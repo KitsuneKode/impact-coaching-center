@@ -1,21 +1,23 @@
 import Image from "next/image"
 
-import { brand, contact, formatPhone, links, place } from "@/lib/brand"
+import { brand, contact, formatPhone, links, place, tracks } from "@/lib/brand"
+import { courseById } from "@/lib/catalogue"
 
 const columns = [
   {
     title: "Courses",
     items: [
-      { label: "APSC", href: "#courses" },
-      { label: "ADRE 3.0 and Assam Police", href: "#courses" },
-      { label: "Bank, SSC, Railway", href: "#courses" },
-      { label: "Fees", href: "#fees" },
+      ...tracks.map((track) => {
+        const course = courseById(track.flagshipId)
+        return { label: course?.short ?? track.exam, href: `/courses/${course?.slug ?? ""}` }
+      }),
+      { label: "All courses", href: "/courses" },
     ],
   },
   {
     title: "Learn",
     items: [
-      { label: "Free classes", href: "#classes" },
+      { label: "Free classes", href: "/#classes" },
       { label: "YouTube channel", href: links.youtube, external: true },
       { label: "Get the ICT app", href: links.play, external: true },
       { label: "Student login", href: links.login, external: true },

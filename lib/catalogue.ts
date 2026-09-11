@@ -10,8 +10,13 @@
 
 export type CatalogueCourse = {
   id: number
+  /** url segment, from the short name: /courses/lakhya-2027 */
   slug: string
   name: string
+  /** "Lakhya 2027" */
+  short: string
+  /** "The Complete APSC Course", empty when ICT gave the course one name */
+  subtitle: string
   /** list price before the standing discount */
   mrp: number
   /** what a student actually pays today */
@@ -26,8 +31,10 @@ export type CatalogueCourse = {
 export const catalogue: CatalogueCourse[] = [
   {
     "id": 886514,
-    "slug": "lakhya-2027-the-complete-apsc-course",
+    "slug": "lakhya-2027",
     "name": "Lakhya 2027 - The Complete APSC Course",
+    "short": "Lakhya 2027",
+    "subtitle": "The Complete APSC Course",
     "mrp": 30010,
     "price": 25009,
     "free": false,
@@ -42,12 +49,14 @@ export const catalogue: CatalogueCourse[] = [
       "Mentorship Till Selection - One-on-one guidance to track progress",
       "Bilingual Content - Available in Assamese & English"
     ],
-    "cover": "/courses/lakhya-2027-the-complete-apsc-course.png"
+    "cover": "/courses/lakhya-2027.png"
   },
   {
     "id": 804860,
-    "slug": "pragati-2027-the-working-professionals-batch",
+    "slug": "pragati-2027",
     "name": "PRAGATI 2027 - The Working Professionals Batch",
+    "short": "PRAGATI 2027",
+    "subtitle": "The Working Professionals Batch",
     "mrp": 30010,
     "price": 25009,
     "free": false,
@@ -62,12 +71,14 @@ export const catalogue: CatalogueCourse[] = [
       "Mentorship Till Selection - One-on-one guidance to track progress",
       "Bilingual Content - Available in Assamese & English"
     ],
-    "cover": "/courses/pragati-2027-the-working-professionals-batch.png"
+    "cover": "/courses/pragati-2027.png"
   },
   {
     "id": 842621,
-    "slug": "diamond-3-0-banking-ssc-railway-ntpc-batch-for-2",
+    "slug": "diamond-3-0",
     "name": "Diamond 3.0 - Banking/SSC/Railway NTPC Batch for 2027",
+    "short": "Diamond 3.0",
+    "subtitle": "Banking/SSC/Railway NTPC Batch for 2027",
     "mrp": 10010,
     "price": 7009,
     "free": false,
@@ -82,12 +93,14 @@ export const catalogue: CatalogueCourse[] = [
       "Live classes recorded on the App",
       "Digital AC Classroom"
     ],
-    "cover": "/courses/diamond-3-0-banking-ssc-railway-ntpc-batch-for-2.jpeg"
+    "cover": "/courses/diamond-3-0.jpeg"
   },
   {
     "id": 889661,
-    "slug": "victor-7-0-the-adre-assam-police-si-govt-exams",
+    "slug": "victor-7-0",
     "name": "Victor 7.0 - The ADRE/Assam Police SI & Govt. Exams",
+    "short": "Victor 7.0",
+    "subtitle": "The ADRE/Assam Police SI & Govt. Exams",
     "mrp": 10009,
     "price": 7009,
     "free": false,
@@ -100,12 +113,14 @@ export const catalogue: CatalogueCourse[] = [
       "Expert guidance for Maths, Reasoning and General Studies",
       "Flexible Online & Offline classes"
     ],
-    "cover": "/courses/victor-7-0-the-adre-assam-police-si-govt-exams.png"
+    "cover": "/courses/victor-7-0.png"
   },
   {
     "id": 869154,
-    "slug": "radiant-2-0-the-complete-batch-for-banking-ssc-r",
+    "slug": "radiant-2-0",
     "name": "Radiant 2.0 - The Complete Batch for Banking /SSC/ Railways NTPC",
+    "short": "Radiant 2.0",
+    "subtitle": "The Complete Batch for Banking /SSC/ Railways NTPC",
     "mrp": 10009,
     "price": 7009,
     "free": false,
@@ -120,12 +135,14 @@ export const catalogue: CatalogueCourse[] = [
       "More than 100+ classes",
       "Mock Tests"
     ],
-    "cover": "/courses/radiant-2-0-the-complete-batch-for-banking-ssc-r.png"
+    "cover": "/courses/radiant-2-0.png"
   },
   {
     "id": 864442,
-    "slug": "victor-6-0-the-adre-assam-police-si-govt-exams",
+    "slug": "victor-6-0",
     "name": "Victor 6.0 - The ADRE/Assam Police SI & Govt. Exams",
+    "short": "Victor 6.0",
+    "subtitle": "The ADRE/Assam Police SI & Govt. Exams",
     "mrp": 10009,
     "price": 7009,
     "free": false,
@@ -138,12 +155,14 @@ export const catalogue: CatalogueCourse[] = [
       "Expert guidance for Maths, Reasoning and General Studies",
       "Flexible Online & Offline classes"
     ],
-    "cover": "/courses/victor-6-0-the-adre-assam-police-si-govt-exams.jpeg"
+    "cover": "/courses/victor-6-0.jpeg"
   },
   {
     "id": 896874,
-    "slug": "victor-8-0-the-adre-assam-police-si-govt-exams",
+    "slug": "victor-8-0",
     "name": "VICTOR 8.0 - The ADRE/Assam Police SI & Govt. Exams",
+    "short": "VICTOR 8.0",
+    "subtitle": "The ADRE/Assam Police SI & Govt. Exams",
     "mrp": 8009,
     "price": 6009,
     "free": false,
@@ -156,12 +175,14 @@ export const catalogue: CatalogueCourse[] = [
       "Expert guidance for Maths, Reasoning and General Studies",
       "Flexible Online & Offline classes"
     ],
-    "cover": "/courses/victor-8-0-the-adre-assam-police-si-govt-exams.png"
+    "cover": "/courses/victor-8-0.png"
   },
   {
     "id": 846595,
-    "slug": "victor-5-0-the-adre-assam-police-si-govt-exams",
+    "slug": "victor-5-0",
     "name": "Victor 5.0 - The ADRE/Assam Police SI & Govt. Exams",
+    "short": "Victor 5.0",
+    "subtitle": "The ADRE/Assam Police SI & Govt. Exams",
     "mrp": 8009,
     "price": 6009,
     "free": false,
@@ -174,12 +195,14 @@ export const catalogue: CatalogueCourse[] = [
       "Expert guidance for Maths, Reasoning and General Studies",
       "Flexible Online & Offline classes"
     ],
-    "cover": "/courses/victor-5-0-the-adre-assam-police-si-govt-exams.jpeg"
+    "cover": "/courses/victor-5-0.jpeg"
   },
   {
     "id": 891842,
     "slug": "arjuna-mains-mock-test-series-2026",
     "name": "ARJUNA Mains Mock Test Series 2026",
+    "short": "ARJUNA Mains Mock Test Series 2026",
+    "subtitle": "",
     "mrp": 6009,
     "price": 4009,
     "free": false,
@@ -196,6 +219,8 @@ export const catalogue: CatalogueCourse[] = [
     "id": 866728,
     "slug": "impact-internship-program-2026",
     "name": "Impact Internship Program 2026",
+    "short": "Impact Internship Program 2026",
+    "subtitle": "",
     "mrp": 11,
     "price": 11,
     "free": false,
@@ -211,8 +236,10 @@ export const catalogue: CatalogueCourse[] = [
   },
   {
     "id": 893950,
-    "slug": "kouxal-free-apsc-workshop",
+    "slug": "kouxal",
     "name": "Kouxal- Free APSC Workshop",
+    "short": "Kouxal",
+    "subtitle": "Free APSC Workshop",
     "mrp": 0,
     "price": 0,
     "free": true,
@@ -225,12 +252,14 @@ export const catalogue: CatalogueCourse[] = [
       "Booklist and Sources",
       "Frequently Asked Questions"
     ],
-    "cover": "/courses/kouxal-free-apsc-workshop.png"
+    "cover": "/courses/kouxal.png"
   },
   {
     "id": 703193,
-    "slug": "abhigyan-4-day-banking-ssc-railway-ntpc-workshop",
+    "slug": "abhigyan",
     "name": "ABHIGYAN - 4 Day Banking/ SSC/ Railway NTPC Workshop",
+    "short": "ABHIGYAN",
+    "subtitle": "4 Day Banking/ SSC/ Railway NTPC Workshop",
     "mrp": 0,
     "price": 0,
     "free": true,
@@ -243,12 +272,16 @@ export const catalogue: CatalogueCourse[] = [
       "2 hour sessions per day",
       "Handouts for better understanding"
     ],
-    "cover": "/courses/abhigyan-4-day-banking-ssc-railway-ntpc-workshop.png"
+    "cover": "/courses/abhigyan.png"
   }
 ]
 
 export function courseById(id: number) {
   return catalogue.find((course) => course.id === id)
+}
+
+export function courseBySlug(slug: string) {
+  return catalogue.find((course) => course.slug === slug)
 }
 
 /** "25009" -> "₹25,009" */

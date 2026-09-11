@@ -2,6 +2,10 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
+import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
+import { SiteFooter } from "@/components/marketing/site-footer"
+import { SiteHeader } from "@/components/marketing/site-header"
+import { EdgeBlur } from "@/components/motion/edge-blur"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, siteUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -31,7 +35,7 @@ export const metadata: Metadata = {
     template: "%s | Impact Career Tutorials",
   },
   description:
-    "APSC, ADRE 3.0, Assam Police, Bank, SSC and Railway coaching on DC Bungalow Road, North Lakhimpur. Book a free demo class, or watch the faculty teach on YouTube first.",
+    "APSC, ADRE 3.0, Assam Police, Bank, SSC and Railway coaching on DC Bungalow Road, North Lakhimpur. Start with a free workshop, or watch the faculty teach on YouTube first.",
   keywords: [
     "APSC coaching North Lakhimpur",
     "ADRE 3.0 coaching Assam",
@@ -98,7 +102,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />
+        <SiteHeader />
+        <EdgeBlur />
         {children}
+        <SiteFooter />
+        <MobileActionBar />
       </body>
     </html>
   )

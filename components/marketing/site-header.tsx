@@ -10,11 +10,11 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { brand, callHref, demoHref, offer } from "@/lib/brand"
 
 const nav = [
-  { href: "#courses", label: "Courses" },
-  { href: "#fees", label: "Fees" },
-  { href: "#results", label: "Results" },
-  { href: "#classes", label: "Free classes" },
-  { href: "#questions", label: "Questions" },
+  { href: "/courses", label: "Courses" },
+  { href: "/#results", label: "Results" },
+  { href: "/#classes", label: "Free classes" },
+  { href: "/#questions", label: "Questions" },
+  { href: "/#enquire", label: "Contact" },
 ] as const
 
 /**

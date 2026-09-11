@@ -43,6 +43,11 @@ lists their live courses, prices and feature lists. What is left:
 - [ ] **Old batches.** Victor 5.0, 6.0 and 7.0 are still listed on their store.
       The site shows only VICTOR 8.0. Confirm the older ones are closed.
 - [ ] **Batch timings** beyond VICTOR 8.0's 8 to 10 AM.
+- [ ] **PRAGATI 2027's poster claims "20+ Selections in APSC CCE 2023-26".**
+      We could not verify it, and the poster is shown on the PRAGATI page.
+      Either confirm it or crop that line out of the poster.
+- [ ] **Kouxal already ran**, 2 to 4 September. It is still listed free on the
+      app, so the site says "try" it rather than "join" it.
 - [ ] **Play Store listing.** Classplus reports the Android app as delisted
       (`isAndroidDelisted: 1`) while the listing still loaded for us. The site
       links to Play in several places, so confirm which is true.
@@ -62,6 +67,16 @@ classes, and the free workshops.
       known. Day batch timings are missing.
 - [ ] **ASSIST scholarship.** Named in the fees panel and FAQ. Get the next
       test date and what it covers.
+
+## B1. Pages
+
+- `/` the landing page
+- `/courses` every live course, grouped by exam, with current prices
+- `/courses/[slug]` one page per listed course: price and saving, the schedule
+  read off ICT's poster, their feature list, teachers, a sample class, the rest
+  of the track, and `Course` structured data. The older Victor 5.0 to 7.0
+  intakes and the Rs 11 internship return 404 on purpose.
+- [ ] A success stories page, once real posters and student material exist.
 
 ## B2. Keeping it current
 

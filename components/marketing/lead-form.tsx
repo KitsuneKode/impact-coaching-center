@@ -85,15 +85,15 @@ export function LeadForm() {
               Thank you, {state.name.split(" ")[0]}.
               <span className="text-muted-foreground">
                 {" "}
-                ICT will call you on <span className="tnum">{formatPhone(state.phone)}</span> to fix a
-                time for your free class.
+                ICT will call you on <span className="tnum">{formatPhone(state.phone)}</span> about{" "}
+                {state.course === "Not sure yet" ? "the right course for you" : state.course}.
               </span>
             </p>
             <p className="mt-6 text-sm text-muted-foreground">Want an answer right now?</p>
             <div className="mt-3 flex flex-wrap gap-3">
               <ButtonAnchor
                 href={whatsappHref(
-                  `Hello ICT, I am ${state.name}. I just asked for a free demo class for ${state.course}, ${state.timing.toLowerCase()} batch. My number is ${state.phone}.`
+                  `Hello ICT, I am ${state.name}. I just enquired about ${state.course}, ${state.timing.toLowerCase()} batch. My number is ${state.phone}.`
                 )}
                 target="_blank"
                 size="lg"

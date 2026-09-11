@@ -1,5 +1,6 @@
 import { IconArrowRight, IconArrowUpRight, IconCheck, IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
+import Link from "next/link"
 
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
@@ -75,7 +76,7 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
       </header>
 
       <div className={cn("mt-6 border-t pt-6", rule)}>
-        <p className={cn("text-sm", muted)}>{course.name.split(/\s*[-–]\s*/)[0]}</p>
+        <p className={cn("text-sm", muted)}>{course.short}</p>
         <p className="mt-1.5 flex items-baseline gap-2">
           <span className="tnum text-[2rem] leading-none font-medium tracking-[-0.03em]">
             {inr(course.price)}
@@ -99,17 +100,28 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
         <IconArrowRight data-nudge stroke={1.75} />
       </ButtonAnchor>
 
+      <Link
+        href={`/courses/${course.slug}`}
+        className={cn(
+          "mt-3 inline-flex items-center justify-center gap-1 self-center text-sm font-medium underline-offset-4 hover:underline",
+          featured ? "text-white" : "text-foreground"
+        )}
+      >
+        See the full {course.short} course
+        <IconArrowRight size={14} stroke={1.75} />
+      </Link>
+
       {free ? (
         <a
           href={trackFreeHref(track)}
           target="_blank"
           rel="noreferrer noopener"
           className={cn(
-            "mt-3 inline-flex items-center justify-center gap-1 self-center text-sm underline underline-offset-4",
+            "mt-1.5 inline-flex items-center justify-center gap-1 self-center text-sm underline underline-offset-4",
             featured ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
           )}
         >
-          Or start free with {free.name.split(/\s*[-–]\s*/)[0].trim()}
+          Or try {free.short} free on the app
           <IconArrowUpRight size={14} stroke={1.75} />
         </a>
       ) : null}
@@ -134,7 +146,9 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
           <dt className={cn("text-sm", muted)}>Also in this track</dt>
           {also.map((other) => (
             <dd key={other!.id} className="flex items-baseline justify-between gap-3 text-sm">
-              <span>{other!.name.split(/\s*[-–]\s*/)[0].trim()}</span>
+              <Link href={`/courses/${other!.slug}`} className="underline-offset-4 hover:underline">
+                {other!.short}
+              </Link>
               <span className={cn("tnum shrink-0", muted)}>
                 {other!.free ? "Free" : inr(other!.price)}
               </span>

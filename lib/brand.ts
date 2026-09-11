@@ -272,6 +272,34 @@ export const tracks = [
 
 export type Track = (typeof tracks)[number]
 
+export function trackForCourse(id: number) {
+  return tracks.find(
+    (track) =>
+      track.flagshipId === id ||
+      (track.alsoIds as readonly number[]).includes(id) ||
+      track.freeId === id
+  )
+}
+
+/**
+ * Courses that get their own page: every course a track points at. The older
+ * Victor 5.0 to 7.0 intakes and the Rs 11 internship stay off the site.
+ */
+export const listedCourseIds = tracks.flatMap((track) =>
+  [track.flagshipId, ...track.alsoIds, track.freeId].filter((id): id is number => id !== null)
+)
+
+/**
+ * Timings and dates, read off ICT's own course posters, since the storefront
+ * listing does not carry them. Each line is what the poster prints.
+ */
+export const schedules: Record<number, { when: string; days?: string; note?: string }> = {
+  886514: { when: "12 to 2 PM", days: "Monday to Saturday", note: "Batch started in August" }, // Lakhya 2027
+  804860: { when: "6 to 8 PM", note: "Built for working professionals" }, // PRAGATI 2027
+  896874: { when: "8 to 10 AM", note: "New batch from 14 September" }, // VICTOR 8.0
+  893950: { when: "4 to 5:30 PM", note: "Ran 2 to 4 September; still free on the app" }, // Kouxal
+}
+
 /**
  * What a batch includes, taken from the Lakhya 2027 listing on ICT's own
  * storefront. These are the institute's current published claims, not an
@@ -417,7 +445,7 @@ export function whatsappHref(message: string) {
 }
 
 export const demoHref = whatsappHref(
-  "Hello ICT, I would like to book a free demo class. Which batches have seats?"
+  "Hello ICT, I would like to try a free workshop before joining. Which courses have one?"
 )
 
 export function trackEnquiryHref(track: Track) {
@@ -425,7 +453,11 @@ export function trackEnquiryHref(track: Track) {
 }
 
 export function trackFreeHref(track: Track) {
-  return whatsappHref(`Hello ICT, I would like to join the free ${track.exam} workshop.`)
+  return whatsappHref(`Hello ICT, I would like to try the free ${track.exam} workshop on the app.`)
+}
+
+export function courseEnrolHref(name: string) {
+  return whatsappHref(`Hello ICT, I want to enrol in ${name}. Please share the next steps.`)
 }
 
 export const callHref = `tel:${contact.phones[0]}`
@@ -444,6 +476,7 @@ export const toConfirm = [
   "Spelling: Pallabi vs Pallavi Neog",
   "Same-day reply promise (joining[0])",
   "Whether the older Victor 5.0 to 7.0 batches should appear anywhere",
-  "Batch timings beyond VICTOR 8.0's 8 to 10 AM",
+  "PRAGATI 2027's poster claims 20+ selections in APSC CCE 2023-26; we could not verify it, and the poster is shown on its page",
+  "Radiant 2.0 and Diamond 3.0 timings are not on their posters",
   "Whether the Play Store listing is still live (Classplus reports the Android app as delisted)",
 ] as const

@@ -98,7 +98,8 @@ async function main() {
   }
   if (byId.size === 0) throw new Error("No courses in the payload; refusing to write an empty catalogue")
 
-  await Bun.$`mkdir -p public/courses`.quiet()
+  // generated directory: clear it so renamed or removed courses leave no stale art
+  await Bun.$`rm -rf public/courses && mkdir -p public/courses`.quiet()
 
   const rows = []
   for (const course of [...byId.values()].sort(
@@ -106,7 +107,12 @@ async function main() {
   )) {
     const mrp = course.price ?? 0
     const payable = mrp - (course.discount ?? 0)
-    const slug = slugify(course.name)
+    // "Lakhya 2027 - The Complete APSC Course" -> short "Lakhya 2027", subtitle
+    // "The Complete APSC Course". ICT also writes "Kouxal- Free ...", so the
+    // separator is a dash followed by a space, with or without one before it.
+    const [short, ...rest] = course.name.trim().split(/\s*[-–]\s+/)
+    const subtitle = rest.join(" - ").trim()
+    const slug = slugify(short)
 
     let cover: string | null = null
     if (course.imageUrl) {
@@ -127,6 +133,8 @@ async function main() {
       id: course.id,
       slug,
       name: course.name.trim(),
+      short: short.trim(),
+      subtitle,
       mrp,
       price: payable,
       free: payable <= 0,
@@ -148,8 +156,13 @@ async function main() {
 
 export type CatalogueCourse = {
   id: number
+  /** url segment, from the short name: /courses/lakhya-2027 */
   slug: string
   name: string
+  /** "Lakhya 2027" */
+  short: string
+  /** "The Complete APSC Course", empty when ICT gave the course one name */
+  subtitle: string
   /** list price before the standing discount */
   mrp: number
   /** what a student actually pays today */
@@ -165,6 +178,10 @@ export const catalogue: CatalogueCourse[] = ${JSON.stringify(rows, null, 2)}
 
 export function courseById(id: number) {
   return catalogue.find((course) => course.id === id)
+}
+
+export function courseBySlug(slug: string) {
+  return catalogue.find((course) => course.slug === slug)
 }
 
 /** "25009" -> "₹25,009" */

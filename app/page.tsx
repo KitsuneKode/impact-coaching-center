@@ -5,13 +5,9 @@ import { Faq } from "@/components/marketing/faq"
 import { Fees } from "@/components/marketing/fees"
 import { FinalCta } from "@/components/marketing/final-cta"
 import { Hero } from "@/components/marketing/hero"
-import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
 import { Posters } from "@/components/marketing/posters"
 import { ProofBar } from "@/components/marketing/proof-bar"
 import { Results } from "@/components/marketing/results"
-import { SiteFooter } from "@/components/marketing/site-footer"
-import { SiteHeader } from "@/components/marketing/site-header"
-import { EdgeBlur } from "@/components/motion/edge-blur"
 
 /*
  * The order follows the decision a visitor actually makes:
@@ -32,23 +28,17 @@ import { EdgeBlur } from "@/components/motion/edge-blur"
  */
 export default function Page() {
   return (
-    <>
-      <SiteHeader />
-      <EdgeBlur />
-      <main id="top">
-        <Hero />
-        <ProofBar />
-        <Results />
-        <Posters />
-        <Courses />
-        <Fees />
-        <Classes />
-        <Faq />
-        <Enquire />
-        <FinalCta />
-      </main>
-      <SiteFooter />
-      <MobileActionBar />
-    </>
+    <main id="top">
+      <Hero />
+      <ProofBar />
+      <Results />
+      <Posters />
+      <Courses />
+      <Fees />
+      <Classes />
+      <Faq />
+      <Enquire />
+      <FinalCta />
+    </main>
   )
 }
