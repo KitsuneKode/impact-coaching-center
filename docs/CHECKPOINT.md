@@ -58,11 +58,12 @@ classes, and the free workshops.
 
 ## B. Content gaps
 
-- [ ] **Real photographs of the centre.** There is not one image of the
-      building, the classroom or the library. For a walk in business this is
-      the biggest remaining trust gap.
-- [ ] **Instagram student testimonials.** ICT's strongest proof. Needs a
-      logged in export.
+- [x] **Real photographs of the centre.** Taken from ICT's own mock test and
+      guest session clips. A photo of the building's exterior is still missing.
+- [x] **Student testimonials.** ICT publishes named student reviews on
+      YouTube; ten are on the site with name and batch.
+- [ ] **Exterior photo of the building**, so a first time visitor can
+      recognise it from the road.
 - [ ] **Batch timings.** Only VICTOR8 (8 to 10 AM) and NAKSHATRA (night) are
       known. Day batch timings are missing.
 - [ ] **ASSIST scholarship.** Named in the fees panel and FAQ. Get the next
@@ -76,7 +77,9 @@ classes, and the free workshops.
   read off ICT's poster, their feature list, teachers, a sample class, the rest
   of the track, and `Course` structured data. The older Victor 5.0 to 7.0
   intakes and the Rs 11 internship return 404 on purpose.
-- [ ] A success stories page, once real posters and student material exist.
+- `/success-stories` results sorted by how checkable they are: the APSC list,
+  then what ICT published itself, then student reviews, then guest officers
+- [ ] A poster wall, once ICT shares their result poster archive.
 
 ## B2. Keeping it current
 
@@ -148,6 +151,19 @@ checkout disagrees with.
       it.
 - [ ] `docs/research-notes.ts` is kept for provenance and compiles with the
       project. Move it out of the TypeScript build if it becomes noise.
+
+## F2. New claims to sanity check with the owner
+
+- [ ] **Mithu Guwala, Assam Police**, from ICT's Success Stories video. Shown
+      as published by ICT, not verified. Ask for the result document.
+- [ ] **Axom Dhwani** has two episodes this site deliberately does not list:
+      one on whether Assamese Muslims are indigenous, one on Lower versus
+      Upper Assam. Both are legitimate and both are politically charged in
+      Assam. The series total does include them.
+- [ ] **Izaaz Ahmed, Academic in Charge**, co-hosts the podcast and is not yet
+      on the faculty strip.
+- [ ] **Asha** is a batch name on student review cards but is not in the live
+      Classplus catalogue. Confirm whether it still runs.
 
 ## G. Next, once the owner is in
 

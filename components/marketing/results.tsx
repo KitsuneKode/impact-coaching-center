@@ -3,6 +3,8 @@ import { IconArrowUpRight, IconCircleCheckFilled } from "@tabler/icons-react"
 import { Reveal } from "@/components/motion/reveal"
 import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider"
 import { Lede, Section } from "@/components/ui/section"
+import Link from "next/link"
+
 import { links, selections, testimonials } from "@/lib/brand"
 
 type Testimonial = (typeof testimonials)[number]
@@ -12,7 +14,7 @@ type Testimonial = (typeof testimonials)[number]
  * on the card and it is the number printed in the commission's own result,
  * never a rank ICT's marketing has claimed elsewhere.
  */
-function SelectionCard({ person }: { person: (typeof selections)[number] }) {
+export function SelectionCard({ person }: { person: (typeof selections)[number] }) {
   return (
     <article className="flex flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-7">
       <div className="flex items-start justify-between gap-4">
@@ -96,15 +98,10 @@ export function Results() {
 
       <div className="container-page">
         <Reveal delay={0.16}>
-          <a
-            href={links.instagram}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="link mt-10 inline-flex items-center gap-1 text-sm"
-          >
-            More student stories on Instagram
+          <Link href="/success-stories" className="link mt-10 inline-flex items-center gap-1 text-sm">
+            Student reviews, officers who taught here, and how we check each claim
             <IconArrowUpRight size={14} stroke={1.75} />
-          </a>
+          </Link>
         </Reveal>
       </div>
     </Section>
