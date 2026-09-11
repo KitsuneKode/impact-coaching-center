@@ -1,19 +1,52 @@
-import { Button } from "@/components/ui/button"
+import { Classes } from "@/components/marketing/classes"
+import { Courses } from "@/components/marketing/courses"
+import { Enquire } from "@/components/marketing/enquire"
+import { Faq } from "@/components/marketing/faq"
+import { Fees } from "@/components/marketing/fees"
+import { FinalCta } from "@/components/marketing/final-cta"
+import { Hero } from "@/components/marketing/hero"
+import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
+import { ProofBar } from "@/components/marketing/proof-bar"
+import { Results } from "@/components/marketing/results"
+import { SiteFooter } from "@/components/marketing/site-footer"
+import { SiteHeader } from "@/components/marketing/site-header"
+import { EdgeBlur } from "@/components/motion/edge-blur"
 
+/*
+ * The order follows the decision a visitor actually makes:
+ *
+ *   who teaches me, and is it real       Hero (faculty), ProofBar
+ *   does it work                         Results
+ *   what can I join                      Courses
+ *   what do I get, what does it cost     Fees
+ *   let me see for myself                Classes
+ *   but what about...                    Faq
+ *   how do I start                       Enquire (steps + form)
+ *   last nudge                           FinalCta
+ *
+ * Every section uses a different layout family, so the page never settles into
+ * a repeating rhythm: text over a people strip, a stat row, a marquee, an
+ * asymmetric card grid, a two-panel pricing block, a split list, an accordion,
+ * a split form, a one-line close.
+ */
 export default function Page() {
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
-        </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
-      </div>
-    </div>
+    <>
+      <SiteHeader />
+      <EdgeBlur />
+      <main id="top">
+        <Hero />
+        <ProofBar />
+        <Results />
+        <Courses />
+        <Fees />
+        <Classes />
+        <Faq />
+        <Enquire />
+        <FinalCta />
+      </main>
+      <SiteFooter />
+      <MobileActionBar />
+    </>
   )
 }
