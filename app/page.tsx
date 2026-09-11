@@ -6,6 +6,7 @@ import { Fees } from "@/components/marketing/fees"
 import { FinalCta } from "@/components/marketing/final-cta"
 import { Hero } from "@/components/marketing/hero"
 import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
+import { Posters } from "@/components/marketing/posters"
 import { ProofBar } from "@/components/marketing/proof-bar"
 import { Results } from "@/components/marketing/results"
 import { SiteFooter } from "@/components/marketing/site-footer"
@@ -38,6 +39,7 @@ export default function Page() {
         <Hero />
         <ProofBar />
         <Results />
+        <Posters />
         <Courses />
         <Fees />
         <Classes />

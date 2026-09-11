@@ -57,24 +57,25 @@ export const app = {
 /* -------------------------------------------------------------------------- */
 
 /**
- * The low-risk first step. Indian coaching converts on "come sit in a class",
- * not on "send us a message", because the visitor risks nothing.
+ * The low-risk first step.
  *
- * PROPOSED, not published by ICT. Confirm with the owner before launch. If ICT
- * does not run free demo classes, change `cta` to "Book a free counselling
- * call" and every button on the site follows.
+ * This was a proposed "free demo class" until ICT's own storefront showed they
+ * already run free workshops: Kouxal for APSC and ABHIGYAN for banking, both
+ * listed at zero and both with real enrolments. Pointing at something the
+ * institute actually sells beats inventing an offer for them.
  */
 export const offer = {
-  cta: "Book a free demo class",
-  short: "Book a free class",
-  promise: "Sit in on a real class first. You pay only when you pick a batch.",
-  confirmed: false,
+  cta: "Join a free workshop",
+  short: "Join free",
+  promise: "Start with a free workshop. Pay only when you pick a batch.",
+  confirmed: true,
 } as const
 
 /** The next batch with a published start date, used for honest urgency. */
 export const nextBatch = {
-  name: "VICTOR8",
-  exam: "ADRE 3.0 and Assam Police",
+  /** ICT writes it "VICTOR 8.0" on their own storefront, so we do too. */
+  name: "VICTOR 8.0",
+  exam: "ADRE and Assam Police SI",
   startsOn: "2026-09-14",
   timing: "8 to 10 AM",
   forWho: "working professionals",
@@ -207,72 +208,84 @@ export const testimonials = [
 /* -------------------------------------------------------------------------- */
 
 /**
- * Durations are from ICT's apply site. No fee is published on any ICT channel,
- * so `fee` stays null until the owner provides it; the UI then shows the number
- * instead of the "ask for this batch's fee" link, with no other change.
+ * Fee presentation. The figures themselves live in `lib/catalogue.ts`, synced
+ * from the store that takes the payment, so the site cannot quote a price the
+ * checkout disagrees with.
  */
-export const courses = [
+export const fees = {
+  unit: "one time",
+  note: "One fee per course, including tests, notes and the app.",
+  scholarship: "Scholarships through ICT's ASSIST test.",
+} as const
+
+/**
+ * Three tracks, each pointing at real courses in ICT's Classplus catalogue.
+ *
+ * Names, prices and feature lists come from `lib/catalogue.ts`, snapshotted
+ * from the store that actually takes the payment, so the site cannot quote a
+ * price the checkout disagrees with. Run `bun run sync:courses` to refresh.
+ *
+ * The older Victor 5.0, 6.0 and 7.0 batches stay out of the page: they are
+ * previous intakes, and listing them would make the current one ambiguous.
+ */
+export const tracks = [
   {
     slug: "apsc",
     exam: "APSC",
     full: "Assam Civil Services",
-    duration: "12 months",
     covers: "Prelims, Mains, and the Interview",
-    batches: [
-      { name: "INDRA", note: "Prelims crash course" },
-      { name: "NAKSHATRA", note: "Night batch" },
-      { name: "DHANUSH", note: "Mains answer writing" },
-      { name: "PRAGATI", note: "Taught in Assamese" },
-    ],
+    duration: "Till selection",
+    flagshipId: 886514, // Lakhya 2027
+    alsoIds: [804860, 891842], // PRAGATI 2027 working professionals, ARJUNA mains mocks
+    freeId: 893950, // Kouxal free APSC workshop
     faculty: ["raheef", "pallabi", "harkaran"] as FacultySlug[],
     sample: { id: "L0sPmVPMHS4", views: 3400 },
-    fee: null as string | null,
     startsOn: null as string | null,
   },
   {
     slug: "adre",
-    exam: "ADRE 3.0 and Assam Police",
-    full: "Grade III and IV posts, Assam Police constable and SI",
-    duration: "12 months",
+    exam: "ADRE and Assam Police",
+    full: "Assam Direct Recruitment and Police SI",
     covers: "GK, polity, English, maths, and reasoning",
-    batches: [{ name: "VICTOR8", note: "8 to 10 AM, for working people" }],
+    duration: "200+ hours",
+    flagshipId: 896874, // VICTOR 8.0
+    alsoIds: [],
+    freeId: null as number | null,
     faculty: ["harkaran", "pallabi", "tulika"] as FacultySlug[],
     sample: { id: "uwd46GrbC6o", views: 264 },
-    fee: null as string | null,
     startsOn: nextBatch.startsOn as string | null,
   },
   {
     slug: "banking",
     exam: "Bank, SSC, Railway",
-    full: "National competitive exams",
+    full: "Banking, SSC and Railway NTPC",
+    covers: "Maths, reasoning, English, and banking awareness",
     duration: "6 months",
-    covers: "Quant, reasoning, English, and GS",
-    batches: [],
+    flagshipId: 869154, // Radiant 2.0
+    alsoIds: [842621], // Diamond 3.0
+    freeId: 703193, // ABHIGYAN free workshop
     faculty: ["rituraj", "tulika"] as FacultySlug[],
     sample: { id: "YRaUgheQb7Y", views: 79 },
-    fee: null as string | null,
     startsOn: null as string | null,
   },
 ] as const
 
-export type Course = (typeof courses)[number]
+export type Track = (typeof tracks)[number]
 
 /**
- * What a batch includes. Sources: YouTube channel "about" (yt), ICT's Feb 2025
- * admissions reel (reel). Reel claims are ICT's own marketing and should be
- * re-confirmed as current with the owner.
+ * What a batch includes, taken from the Lakhya 2027 listing on ICT's own
+ * storefront. These are the institute's current published claims, not an
+ * archived reel, which is why the hostel and the 20+20 mock tests appear here.
  */
 export const included = [
-  { text: "Classroom on DC Bungalow Road, or live on the ICT app", source: "yt" },
-  { text: "Every class recorded on the app the same day", source: "yt" },
-  { text: "Warrior mock tests with video discussion", source: "yt" },
-  { text: "20 Prelims and 20 Mains mock tests for APSC", source: "reel" },
-  { text: "Library with WiFi and study material", source: "yt" },
-  { text: "Classes in Assamese and English", source: "reel" },
-  { text: "Doubt support around the clock", source: "yt" },
-  { text: "Mentorship until selection", source: "reel" },
-  { text: "Interview guidance for APSC", source: "reel" },
-  { text: "Hostel for outstation students", source: "reel" },
+  { text: "Covers Prelims, Mains and the Interview", source: "store" },
+  { text: "20 Prelims and 20 Mains mock tests", source: "store" },
+  { text: "Attend offline, or online in the digital classroom", source: "store" },
+  { text: "Library and study space with WiFi", source: "store" },
+  { text: "Hostel accommodation", source: "store" },
+  { text: "Mentorship and guidance till selection", source: "store" },
+  { text: "Faculty with 5+ years of experience", source: "store" },
+  { text: "Every class recorded on the ICT app", source: "yt" },
 ] as const
 
 /** Programmes that visibly run on the channel. */
@@ -330,15 +343,15 @@ export const timings = ["Morning", "Day", "Evening", "Night", "Online only"] as 
 export const faqs = [
   {
     q: "What are the fees?",
-    a: "Fees are set per batch, so ICT gives you the exact figure for the batch you pick rather than a range. Ask on WhatsApp or at the centre. Scholarships are available through ICT's ASSIST scholarship test.",
+    a: "The complete APSC course (Lakhya 2027) is Rs 25,009. ADRE and Assam Police (VICTOR 8.0) is Rs 6,009, and the Banking, SSC and Railway batch is Rs 7,009. One fee covers classes, tests, notes and the app. Scholarships are available through ICT's ASSIST test.",
   },
   {
     q: "Can I attend a class before I pay?",
-    a: "Yes. Book a free demo class and sit in with the batch you are considering. You can also watch full lectures by the same faculty on the ICT YouTube channel.",
+    a: "Yes. ICT runs free workshops, Kouxal for APSC and ABHIGYAN for Banking, SSC and Railway, and both are listed free on the ICT app. You can also watch full lectures by the same faculty on the YouTube channel.",
   },
   {
     q: "I have a job. Is there a batch that fits?",
-    a: "VICTOR8 runs from 8 to 10 AM for ADRE 3.0 and Assam Police, built for working people. NAKSHATRA is the APSC night batch.",
+    a: "Two. PRAGATI 2027 is ICT's APSC batch built for working professionals, and VICTOR 8.0 runs 8 to 10 AM for ADRE and Assam Police.",
   },
   {
     q: "What happens if I miss a class?",
@@ -346,7 +359,7 @@ export const faqs = [
   },
   {
     q: "Are classes in Assamese or English?",
-    a: "Both. The PRAGATI batch is taught in Assamese, and most classes mix the two so nobody is left behind.",
+    a: "Both. The ARJUNA mains mock series is set in English and Assamese, and classes mix the two so nobody is left behind.",
   },
   {
     q: "Can I study online from outside North Lakhimpur?",
@@ -361,6 +374,35 @@ export const faqs = [
     a: "D C Bunglow Road, Ward no 8, North Lakhimpur, Assam 787001. Open it in Google Maps from the contact section below.",
   },
 ] as const
+
+/* -------------------------------------------------------------------------- */
+/*  Posters                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type Poster = {
+  /** file in public/posters */
+  src: string
+  alt: string
+  kind: "result" | "batch"
+  /** shown under the poster; keep it to what the poster actually shows */
+  caption: string
+  /** true only where the claim is checkable in a primary source */
+  verified?: boolean
+}
+
+/**
+ * ICT designs result and admission posters every month for Instagram. They are
+ * finished, authentic proof that costs the institute nothing to hand over, and
+ * "send the poster on WhatsApp" is a workflow an owner will actually keep up.
+ *
+ * Drop files into public/posters and add a row here. The section hides itself
+ * while this is empty.
+ *
+ * Before adding a result poster, check its claim against the official result.
+ * ICT's own material has carried a rank that the APSC PDF does not support, so
+ * a poster can republish a claim the rest of this site deliberately avoids.
+ */
+export const posters: Poster[] = []
 
 /* -------------------------------------------------------------------------- */
 /*  Links and helpers                                                         */
@@ -378,12 +420,12 @@ export const demoHref = whatsappHref(
   "Hello ICT, I would like to book a free demo class. Which batches have seats?"
 )
 
-export function courseDemoHref(course: Course) {
-  return whatsappHref(`Hello ICT, I would like a free demo class for ${course.exam}.`)
+export function trackEnquiryHref(track: Track) {
+  return whatsappHref(`Hello ICT, I want to join the ${track.exam} batch. Please share the next steps.`)
 }
 
-export function courseFeeHref(course: Course) {
-  return whatsappHref(`Hello ICT, what is the fee for the ${course.exam} batch?`)
+export function trackFreeHref(track: Track) {
+  return whatsappHref(`Hello ICT, I would like to join the free ${track.exam} workshop.`)
 }
 
 export const callHref = `tel:${contact.phones[0]}`
@@ -399,10 +441,9 @@ export function formatPhone(phone: string) {
  * owner as the sign-off checklist.
  */
 export const toConfirm = [
-  "Free demo class offer (offer.cta)",
-  "Fees per course (courses[].fee)",
-  "Hostel availability (included, faqs)",
-  "20 Prelims + 20 Mains mocks, mentorship until selection (from Feb 2025 reel)",
   "Spelling: Pallabi vs Pallavi Neog",
   "Same-day reply promise (joining[0])",
+  "Whether the older Victor 5.0 to 7.0 batches should appear anywhere",
+  "Batch timings beyond VICTOR 8.0's 8 to 10 AM",
+  "Whether the Play Store listing is still live (Classplus reports the Android app as delisted)",
 ] as const

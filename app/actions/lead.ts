@@ -1,6 +1,6 @@
 "use server"
 
-import { courses, timings } from "@/lib/brand"
+import { timings, tracks } from "@/lib/brand"
 
 export type LeadField = "name" | "phone" | "course" | "timing"
 
@@ -19,7 +19,7 @@ export type LeadState =
       timing: string
     }
 
-const courseOptions = [...courses.map((c) => c.exam), "Not sure yet"] as string[]
+const courseOptions = [...tracks.map((t) => t.exam), "Not sure yet"] as string[]
 const timingOptions = [...timings] as string[]
 
 /**

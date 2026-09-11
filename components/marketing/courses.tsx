@@ -1,24 +1,25 @@
-import { IconArrowRight, IconArrowUpRight, IconPlayerPlayFilled } from "@tabler/icons-react"
+import { IconArrowRight, IconArrowUpRight, IconCheck, IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
+import { courseById, inr } from "@/lib/catalogue"
 import {
-  courseDemoHref,
-  courseFeeHref,
-  courses,
   facultyBySlug,
+  fees,
   lectureStill,
   offer,
+  tracks,
+  trackEnquiryHref,
+  trackFreeHref,
   youtubeWatch,
-  type Course,
+  type Track,
 } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 function startsLabel(iso: string) {
   return new Date(`${iso}T00:00:00+05:30`).toLocaleDateString("en-IN", {
-    weekday: "long",
     day: "numeric",
     month: "long",
     timeZone: "Asia/Kolkata",
@@ -26,200 +27,218 @@ function startsLabel(iso: string) {
 }
 
 function views(n: number) {
-  return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K views` : `${n} views`
-}
-
-/** Overlapping monochrome avatars, then the names. Answers "who teaches this?" */
-function TaughtBy({ course }: { course: Course }) {
-  const people = course.faculty.map(facultyBySlug)
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex -space-x-2">
-        {people.map((person) => (
-          <span
-            key={person.slug}
-            className="relative size-8 overflow-hidden rounded-full bg-surface ring-2 ring-card"
-          >
-            <Image
-              src={person.portrait}
-              alt=""
-              fill
-              sizes="32px"
-              className="object-cover object-top grayscale"
-            />
-          </span>
-        ))}
-      </div>
-      <p className="text-sm text-muted-foreground">
-        {people.map((person) => person.called).join(", ")}
-      </p>
-    </div>
-  )
+  return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${n}`
 }
 
 /**
- * The fee row. No fee is published on any ICT channel, so until the owner
- * supplies one the row turns the gap into the next step: a WhatsApp message
- * that already names the course. When `fee` is set, the number appears instead.
+ * A pricing card per track, priced from ICT's own catalogue.
+ *
+ * Name, price, list price and feature list all come from the Classplus
+ * snapshot, so the card cannot disagree with the checkout. The strike-through
+ * is ICT's real standing discount, not a manufactured one.
+ *
+ * The flagship track is an ink panel. On a page this light it does the job a
+ * "most popular" ribbon usually does, without the ribbon.
  */
-function FeeRow({ course, featured }: { course: Course; featured?: boolean }) {
-  return (
-    <div className="mt-auto flex flex-col gap-4 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
-      <div className="text-sm">
-        {course.fee ? (
-          <>
-            <span className="text-muted-foreground">Fee </span>
-            <span className="font-medium">{course.fee}</span>
-          </>
-        ) : (
-          <a
-            href={courseFeeHref(course)}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="link inline-flex items-center gap-0.5 font-medium"
-          >
-            Get the fee
-            <IconArrowUpRight size={14} stroke={1.75} />
-          </a>
-        )}
-      </div>
-      <ButtonAnchor
-        href={courseDemoHref(course)}
-        target="_blank"
-        variant={featured ? "primary" : "secondary"}
-        size="md"
-      >
-        {offer.short}
-        <IconArrowRight data-nudge stroke={1.75} />
-      </ButtonAnchor>
-    </div>
-  )
-}
+function TrackCard({ track, featured = false }: { track: Track; featured?: boolean }) {
+  const course = courseById(track.flagshipId)
+  if (!course) return null
 
-function SampleClass({ course, large }: { course: Course; large?: boolean }) {
+  const free = track.freeId ? courseById(track.freeId) : null
+  const also = track.alsoIds.map(courseById).filter(Boolean)
+  const people = track.faculty.map(facultyBySlug)
+  const muted = featured ? "text-white/60" : "text-muted-foreground"
+  const rule = featured ? "border-white/15" : "border-border"
+
   return (
-    <a
-      href={youtubeWatch(course.sample.id)}
-      target="_blank"
-      rel="noreferrer noopener"
-      className={cn("group/sample flex items-center gap-4", large && "flex-col items-stretch gap-3")}
+    <article
+      className={cn(
+        "flex h-full flex-col rounded-card p-6 md:p-7",
+        featured
+          ? "bg-primary text-primary-foreground shadow-lift"
+          : "border border-border bg-card shadow-frame"
+      )}
     >
-      <span
-        className={cn(
-          "relative block shrink-0 overflow-hidden rounded-[0.625rem] bg-surface ring-1 ring-border",
-          large ? "aspect-video w-full" : "aspect-video w-28"
-        )}
-      >
-        <Image
-          src={lectureStill(course.sample.id)}
-          alt=""
-          fill
-          sizes={large ? "(max-width: 1024px) 90vw, 36vw" : "112px"}
-          className="object-cover grayscale-[0.85] transition-[filter,transform] duration-500 ease-out group-hover/sample:scale-[1.03] group-hover/sample:grayscale-0"
-        />
-        <span className="absolute inset-0 grid place-items-center bg-black/10 transition-colors group-hover/sample:bg-black/0">
+      <header className="min-h-20">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="type-lede">{track.exam}</h3>
           <span
             className={cn(
-              "grid place-items-center rounded-full bg-white/95 text-foreground shadow-frame",
-              large ? "size-12" : "size-8"
+              "shrink-0 rounded-control px-2.5 py-1 text-sm",
+              featured ? "bg-white/10 text-white/80" : "bg-secondary text-muted-foreground"
             )}
           >
-            <IconPlayerPlayFilled className={large ? "size-5" : "size-3.5"} />
+            {track.duration}
           </span>
-        </span>
-      </span>
-      <span className="text-sm">
-        <span className="font-medium group-hover/sample:underline">Watch a sample {course.exam} class</span>
-        <span className="text-muted-foreground">, {views(course.sample.views)} on YouTube</span>
-      </span>
-    </a>
+        </div>
+        <p className={cn("mt-1.5 text-sm", muted)}>{track.covers}</p>
+      </header>
+
+      <div className={cn("mt-6 border-t pt-6", rule)}>
+        <p className={cn("text-sm", muted)}>{course.name.split(/\s*[-–]\s*/)[0]}</p>
+        <p className="mt-1.5 flex items-baseline gap-2">
+          <span className="tnum text-[2rem] leading-none font-medium tracking-[-0.03em]">
+            {inr(course.price)}
+          </span>
+          {course.mrp > course.price ? (
+            <span className={cn("tnum text-sm line-through", muted)}>{inr(course.mrp)}</span>
+          ) : null}
+          <span className={cn("text-sm", muted)}>{fees.unit}</span>
+        </p>
+        <p className={cn("mt-2 text-sm leading-relaxed", muted)}>{fees.note}</p>
+      </div>
+
+      <ButtonAnchor
+        href={trackEnquiryHref(track)}
+        target="_blank"
+        variant={featured ? "secondary" : "primary"}
+        size="lg"
+        className={cn("mt-5 w-full", featured && "border-transparent")}
+      >
+        Enrol for {track.exam}
+        <IconArrowRight data-nudge stroke={1.75} />
+      </ButtonAnchor>
+
+      {free ? (
+        <a
+          href={trackFreeHref(track)}
+          target="_blank"
+          rel="noreferrer noopener"
+          className={cn(
+            "mt-3 inline-flex items-center justify-center gap-1 self-center text-sm underline underline-offset-4",
+            featured ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          Or start free with {free.name.split(/\s*[-–]\s*/)[0].trim()}
+          <IconArrowUpRight size={14} stroke={1.75} />
+        </a>
+      ) : null}
+
+      {/* what the fee buys, in ICT's own words from the listing */}
+      <ul className={cn("mt-7 space-y-2.5 border-t pt-6", rule)}>
+        {course.features.slice(0, 5).map((point) => (
+          <li key={point} className="flex gap-2.5 text-sm leading-snug">
+            <IconCheck
+              size={16}
+              stroke={2}
+              aria-hidden
+              className={cn("mt-0.5 shrink-0", featured ? "text-white/70" : "text-muted-foreground")}
+            />
+            {point}
+          </li>
+        ))}
+      </ul>
+
+      {also.length > 0 ? (
+        <dl className={cn("mt-6 space-y-1.5 border-t pt-5", rule)}>
+          <dt className={cn("text-sm", muted)}>Also in this track</dt>
+          {also.map((other) => (
+            <dd key={other!.id} className="flex items-baseline justify-between gap-3 text-sm">
+              <span>{other!.name.split(/\s*[-–]\s*/)[0].trim()}</span>
+              <span className={cn("tnum shrink-0", muted)}>
+                {other!.free ? "Free" : inr(other!.price)}
+              </span>
+            </dd>
+          ))}
+        </dl>
+      ) : null}
+
+      {track.startsOn ? (
+        <p
+          className={cn(
+            "mt-5 rounded-control px-3 py-2 text-sm",
+            featured ? "bg-white/10" : "bg-highlight/25"
+          )}
+        >
+          Next batch starts {startsLabel(track.startsOn)}
+        </p>
+      ) : null}
+
+      <div className={cn("mt-auto border-t pt-5", rule)}>
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-2">
+            {people.map((person) => (
+              <span
+                key={person.slug}
+                className={cn(
+                  "relative size-7 overflow-hidden rounded-full ring-2",
+                  featured ? "bg-white/10 ring-primary" : "bg-surface ring-card"
+                )}
+              >
+                <Image
+                  src={person.portrait}
+                  alt=""
+                  fill
+                  sizes="28px"
+                  className="object-cover object-top grayscale"
+                />
+              </span>
+            ))}
+          </div>
+          <p className={cn("text-sm", muted)}>
+            {people.map((person) => person.called).join(", ")}
+          </p>
+        </div>
+
+        <a
+          href={youtubeWatch(track.sample.id)}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="group/sample mt-4 flex items-center gap-3"
+        >
+          <span
+            className={cn(
+              "relative aspect-video w-16 shrink-0 overflow-hidden rounded-[0.5rem] ring-1",
+              featured ? "ring-white/20" : "ring-border"
+            )}
+          >
+            <Image
+              src={lectureStill(track.sample.id)}
+              alt=""
+              fill
+              sizes="64px"
+              className="object-cover grayscale-[0.85] transition-[filter] duration-500 group-hover/sample:grayscale-0"
+            />
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="grid size-5 place-items-center rounded-full bg-white/90 text-foreground">
+                <IconPlayerPlayFilled className="size-2.5" />
+              </span>
+            </span>
+          </span>
+          <span className="text-sm">
+            <span className="font-medium underline-offset-4 group-hover/sample:underline">
+              Watch a sample class
+            </span>
+            <span className={cn("block", muted)}>{views(track.sample.views)} views</span>
+          </span>
+        </a>
+      </div>
+    </article>
   )
 }
 
 export function Courses() {
-  const [apsc, ...rest] = courses
-
   return (
     <Section id="courses">
       <Reveal>
         <Lede
           label="Courses"
           claim="Three tracks, one classroom."
-          rest="Every batch is taught on DC Bungalow Road and recorded to the ICT app the same day, so a missed class is never a lost one."
+          rest="These are ICT's live courses and their current prices, the same ones the app charges. Every batch is taught on DC Bungalow Road and recorded to the app the same day."
         />
       </Reveal>
 
-      {/* three courses, three cells: one feature beside two stacked */}
-      <div className="mt-12 grid gap-4 lg:grid-cols-12">
-        <Reveal className="lg:col-span-7">
-        <article className="flex h-full flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-8">
-          <header className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="type-display">{apsc.exam}</h3>
-              <p className="mt-1 text-muted-foreground">
-                {apsc.full}. {apsc.covers}.
-              </p>
-            </div>
-            <span className="shrink-0 rounded-control bg-secondary px-2.5 py-1 text-sm">{apsc.duration}</span>
-          </header>
+      <Reveal delay={0.08} className="mt-12 grid items-stretch gap-4 lg:grid-cols-3">
+        {tracks.map((track) => (
+          <TrackCard key={track.slug} track={track} featured={track.slug === "apsc"} />
+        ))}
+      </Reveal>
 
-          <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-            {apsc.batches.map((batch) => (
-              <div key={batch.name}>
-                <dt className="text-sm font-medium tracking-wide">{batch.name}</dt>
-                <dd className="text-sm text-muted-foreground">{batch.note}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <div className="mt-7">
-            <SampleClass course={apsc} large />
-          </div>
-
-          <div className="mt-7 mb-7">
-            <TaughtBy course={apsc} />
-          </div>
-
-          <FeeRow course={apsc} featured />
-        </article>
-        </Reveal>
-
-        <Reveal delay={0.08} className="grid gap-4 lg:col-span-5">
-          {rest.map((course) => (
-            <article
-              key={course.slug}
-              className="flex h-full flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-7"
-            >
-              <header className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="type-lede">{course.exam}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{course.covers}.</p>
-                </div>
-                <span className="shrink-0 rounded-control bg-secondary px-2.5 py-1 text-sm">
-                  {course.duration}
-                </span>
-              </header>
-
-              {course.startsOn && course.batches[0] ? (
-                <p className="mt-5 rounded-control bg-highlight/25 px-3 py-2.5 text-sm">
-                  <span className="font-medium">{course.batches[0].name}</span> starts{" "}
-                  {startsLabel(course.startsOn)}, {course.batches[0].note}.
-                </p>
-              ) : null}
-
-              <div className="mt-5">
-                <SampleClass course={course} />
-              </div>
-
-              <div className="mt-5 mb-6">
-                <TaughtBy course={course} />
-              </div>
-
-              <FeeRow course={course} />
-            </article>
-          ))}
-        </Reveal>
-      </div>
+      <Reveal delay={0.14}>
+        <p className="mt-6 text-sm text-muted-foreground">
+          {fees.scholarship} {offer.promise}
+        </p>
+      </Reveal>
     </Section>
   )
 }

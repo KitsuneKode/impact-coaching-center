@@ -6,10 +6,10 @@ import { useActionState, useId } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Button, ButtonAnchor } from "@/components/ui/button"
-import { callHref, contact, courses, formatPhone, offer, timings, whatsappHref } from "@/lib/brand"
+import { callHref, contact, formatPhone, offer, timings, tracks, whatsappHref } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
-const courseOptions = [...courses.map((c) => c.exam), "Not sure yet"]
+const courseOptions = [...tracks.map((t) => t.exam), "Not sure yet"]
 
 const field =
   "h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground shadow-frame transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-[invalid=true]:border-destructive"

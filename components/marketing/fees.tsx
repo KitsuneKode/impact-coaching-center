@@ -1,34 +1,45 @@
-import { IconArrowUpRight, IconPlus } from "@tabler/icons-react"
+import { IconPlus } from "@tabler/icons-react"
 
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
-import { courseFeeHref, courses, demoHref, included, offer } from "@/lib/brand"
+import { demoHref, fees, included, offer } from "@/lib/brand"
 
 /**
- * Fees and what they buy, laid out like kobbe.io's pricing: a recessed panel
- * that explains, beside one that lists and asks.
+ * What one fee covers, for every batch.
  *
- * This is the section a parent comes back to. It answers the two questions
- * that decide the enquiry, "what do I get" and "what does it cost", and it is
- * honest that the second one is answered per batch.
+ * The course cards carry the price and the few points that separate one course
+ * from another. This panel carries the full list, which is the same whichever
+ * course you pick, so it is stated once here instead of three times up there.
  */
 export function Fees() {
   return (
     <Section id="fees">
-      <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-        <Reveal className="rounded-card bg-surface p-7 md:p-10">
-          <h2 className="type-lede max-w-[34rem]">
-            <span className="text-foreground">Fees.</span>
-            <span className="text-muted-foreground">
-              {" "}
-              One fee per batch covers everything below. ICT gives you the exact
-              figure for the batch you pick, not a range, and scholarships are
-              open through the ASSIST test.
-            </span>
-          </h2>
+      <Reveal className="rounded-card bg-surface p-7 md:p-12">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
+          <div>
+            <h2 className="type-lede max-w-[26rem]">
+              <span className="text-foreground">Every batch includes all of it.</span>
+              <span className="text-muted-foreground">
+                {" "}
+                {fees.note} {fees.scholarship}
+              </span>
+            </h2>
 
-          <ul className="mt-9 grid gap-x-8 gap-y-3.5 sm:grid-cols-2">
+            <ButtonAnchor
+              href={demoHref}
+              target="_blank"
+              size="lg"
+              className="mt-8 w-full sm:w-auto"
+            >
+              {offer.cta}
+            </ButtonAnchor>
+            <p className="mt-3 max-w-[26rem] text-sm leading-relaxed text-muted-foreground">
+              {offer.promise}
+            </p>
+          </div>
+
+          <ul className="grid gap-x-8 gap-y-3.5 sm:grid-cols-2 lg:content-start">
             {included.map((item) => (
               <li key={item.text} className="flex gap-2.5 text-sm leading-snug">
                 <IconPlus
@@ -41,42 +52,8 @@ export function Fees() {
               </li>
             ))}
           </ul>
-        </Reveal>
-
-        <Reveal delay={0.08} className="flex flex-col rounded-card bg-surface p-7 md:p-10">
-          <p className="type-label">Pick a course</p>
-          <ul className="mt-4">
-            {courses.map((course) => (
-              <li key={course.slug}>
-                <a
-                  href={courseFeeHref(course)}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="row-link group"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate text-[0.9875rem] font-medium">{course.exam}</span>
-                    <span className="block text-sm text-muted-foreground">{course.duration}</span>
-                  </span>
-                  <span className="inline-flex shrink-0 items-center gap-1 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
-                    {course.fee ?? "Get the fee"}
-                    <IconArrowUpRight size={15} stroke={1.75} />
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-auto pt-8">
-            <ButtonAnchor href={demoHref} target="_blank" size="lg" className="w-full">
-              {offer.cta}
-            </ButtonAnchor>
-            <p className="mt-3 text-center text-xs leading-relaxed text-muted-foreground">
-              {offer.promise}
-            </p>
-          </div>
-        </Reveal>
-      </div>
+        </div>
+      </Reveal>
     </Section>
   )
 }

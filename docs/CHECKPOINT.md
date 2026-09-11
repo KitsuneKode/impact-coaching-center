@@ -34,28 +34,25 @@ number taken from ICT's own public channels.
 
 ## A. Owner sign off, content truth
 
-Everything here is on the page but not published by ICT. See `toConfirm` in
-`lib/brand.ts`. Anything the owner rejects must come off before launch.
+Most of this section was answered by ICT's own Classplus storefront, which
+lists their live courses, prices and feature lists. What is left:
 
-- [ ] **Free demo class.** The whole page converts on this offer. It is our
-      proposal. If ICT does not run demo classes, change `offer.cta` in
-      `lib/brand.ts` and every button follows.
-- [ ] **Hostel.** Claimed in ICT's Feb 2025 reel, repeated in the fees list
-      and the FAQ. Confirm it still exists.
-- [ ] **20 Prelims and 20 Mains mock tests.** Same reel, same age.
-- [ ] **Mentorship until selection.** Same reel.
+- [ ] **Pallabi or Pallavi Neog.** ICT's own thumbnails spell it both ways.
 - [ ] **"We reply the same day"** in the joining steps. Only promise this if
       ICT can keep it.
-- [ ] **Pallabi or Pallavi Neog.** ICT's own thumbnails spell it both ways.
-- [ ] **Faculty titles.** Rituraj Sir is shown as "B.Tech, former Bank PO"
-      from his own thumbnail. Earlier notes said NIT Silchar. Confirm.
-- [ ] **Raheef Sir's credentials.** "NIT Silchar, MS Germany" is self
-      reported on Instagram and is currently not shown on the page.
+- [ ] **Old batches.** Victor 5.0, 6.0 and 7.0 are still listed on their store.
+      The site shows only VICTOR 8.0. Confirm the older ones are closed.
+- [ ] **Batch timings** beyond VICTOR 8.0's 8 to 10 AM.
+- [ ] **Play Store listing.** Classplus reports the Android app as delisted
+      (`isAndroidDelisted: 1`) while the listing still loaded for us. The site
+      links to Play in several places, so confirm which is true.
+
+Resolved from the storefront, no longer open questions: fees, the hostel,
+20 Prelims and 20 Mains mock tests, mentorship till selection, bilingual
+classes, and the free workshops.
 
 ## B. Content gaps
 
-- [ ] **Fees per course.** Set `courses[].fee` and the cards and the fees
-      panel switch from "Get the fee" to the number automatically.
 - [ ] **Real photographs of the centre.** There is not one image of the
       building, the classroom or the library. For a walk in business this is
       the biggest remaining trust gap.
@@ -65,6 +62,16 @@ Everything here is on the page but not published by ICT. See `toConfirm` in
       known. Day batch timings are missing.
 - [ ] **ASSIST scholarship.** Named in the fees panel and FAQ. Get the next
       test date and what it covers.
+
+## B2. Keeping it current
+
+Courses, prices and feature lists are snapshotted from ICT's Classplus store,
+which is their LMS and their payment rail, so the site cannot quote a price the
+checkout disagrees with.
+
+- [ ] Re-run `bun run sync:courses` whenever ICT changes a price or adds a
+      course, and review the diff before committing.
+- [ ] Decide whether this should run on a schedule rather than by hand.
 
 ## C. Conversion
 
