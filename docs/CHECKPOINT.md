@@ -92,6 +92,12 @@ Everything here is on the page but not published by ICT. See `toConfirm` in
 - [ ] Check the link preview renders in WhatsApp, the channel this will
       actually be shared through.
 - [ ] Confirm the deployment is production on Vercel, so the URL is stable.
+- [ ] **Vercel ignores our lockfile.** Their bun is 1.3.14 and `bun.lock` is
+      `lockfileVersion: 2`, written by a newer local bun, so the build logs
+      `Unknown lockfile version` and resolves dependencies fresh. It matched
+      what we tested this time, but builds there are not pinned. Either pin
+      versions in `package.json`, or install with a lockfile their bun can
+      read.
 
 ## E. Quality passes not yet run
 
