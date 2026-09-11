@@ -81,7 +81,7 @@ export function LeadForm() {
         {state.status === "ok" ? (
           <motion.div key="done" {...swap} role="status" aria-live="polite">
             <IconCircleCheckFilled size={28} className="text-verified" aria-hidden />
-            <p className="mt-4 text-[1.3125rem] leading-snug font-medium tracking-[-0.015em]">
+            <p className="type-lede mt-4">
               Thank you, {state.name.split(" ")[0]}.
               <span className="text-muted-foreground">
                 {" "}

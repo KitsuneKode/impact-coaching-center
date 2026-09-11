@@ -51,16 +51,12 @@ function Lede({
   size?: "md" | "lg" | "xl"
   className?: string
 }) {
-  const type = {
-    md: "text-[1.1875rem] leading-[1.42] md:text-[1.3125rem]",
-    lg: "text-[1.5rem] leading-[1.3] md:text-[1.875rem] md:leading-[1.28]",
-    xl: "text-[1.875rem] leading-[1.2] md:text-[2.5rem] md:leading-[1.18]",
-  }[size]
+  const type = { md: "type-lede", lg: "type-display", xl: "type-display" }[size]
 
   return (
-    <div className={cn("max-w-[42rem]", size === "xl" && "max-w-[54rem]", className)}>
-      {label ? <p className="mb-3 text-sm text-muted-foreground">{label}</p> : null}
-      <Heading className={cn("font-medium tracking-[-0.018em] text-balance", type)}>
+    <div className={cn("max-w-[44rem]", size !== "md" && "max-w-[56rem]", className)}>
+      {label ? <p className="type-label mb-4">{label}</p> : null}
+      <Heading className={type}>
         <span className="text-foreground">{claim}</span>
         {rest ? <span className="text-muted-foreground"> {rest}</span> : null}
         {link ? (

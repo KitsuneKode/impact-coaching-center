@@ -72,7 +72,7 @@ export function Hero() {
         </a>
 
         <h1
-          className="enter mt-7 max-w-[56rem] text-[1.9rem] leading-[1.16] font-medium tracking-[-0.025em] text-balance sm:text-[2.35rem] lg:text-[2.625rem] lg:leading-[1.14]"
+          className="enter type-display mt-7 max-w-[64rem]"
           style={delay(80)}
         >
           <span className="text-foreground">
@@ -100,7 +100,7 @@ export function Hero() {
       {/* ---- the people ---- */}
       <div className="container-page mt-14 md:mt-16">
         <div className="enter flex items-baseline justify-between gap-4" style={delay(300)}>
-          <p className="text-sm text-muted-foreground">The teachers you will sit in front of</p>
+          <p className="type-label">The teachers you will sit in front of</p>
           <a
             href={links.youtube}
             target="_blank"

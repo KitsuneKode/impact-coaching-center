@@ -30,7 +30,7 @@ export function FinalCta() {
     <section className="py-20 md:py-28">
       <div className="container-page">
         <Reveal className="flex flex-col gap-8 border-t border-border pt-14 md:flex-row md:items-end md:justify-between md:pt-16">
-          <h2 className="max-w-[40rem] text-[1.875rem] leading-[1.18] font-medium tracking-[-0.025em] text-balance md:text-[2.5rem]">
+          <h2 className="type-display max-w-[42rem]">
             <span className="text-foreground">{claim}</span>
             <span className="block text-muted-foreground">
               Sit in on a class this week. It costs nothing.

@@ -155,7 +155,7 @@ export function Courses() {
         <article className="flex h-full flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-8">
           <header className="flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-[1.75rem] leading-tight font-medium tracking-[-0.02em]">{apsc.exam}</h3>
+              <h3 className="type-display">{apsc.exam}</h3>
               <p className="mt-1 text-muted-foreground">
                 {apsc.full}. {apsc.covers}.
               </p>
@@ -192,7 +192,7 @@ export function Courses() {
             >
               <header className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-xl leading-tight font-medium tracking-[-0.015em]">{course.exam}</h3>
+                  <h3 className="type-lede">{course.exam}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{course.covers}.</p>
                 </div>
                 <span className="shrink-0 rounded-control bg-secondary px-2.5 py-1 text-sm">

@@ -18,7 +18,7 @@ export function Fees() {
     <Section id="fees">
       <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <Reveal className="rounded-card bg-surface p-7 md:p-10">
-          <h2 className="max-w-[34rem] text-[1.1875rem] leading-[1.42] font-medium tracking-[-0.018em] text-balance md:text-[1.3125rem]">
+          <h2 className="type-lede max-w-[34rem]">
             <span className="text-foreground">Fees.</span>
             <span className="text-muted-foreground">
               {" "}
@@ -44,7 +44,7 @@ export function Fees() {
         </Reveal>
 
         <Reveal delay={0.08} className="flex flex-col rounded-card bg-surface p-7 md:p-10">
-          <p className="text-sm text-muted-foreground">Pick a course</p>
+          <p className="type-label">Pick a course</p>
           <ul className="mt-4">
             {courses.map((course) => (
               <li key={course.slug}>

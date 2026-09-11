@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Noto_Sans_Bengali } from "next/font/google"
+import { Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, siteUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
-/* One family, the way kobbe.io does it. Hierarchy comes from weight and tone,
-   not from mixing typefaces. */
-const sans = Geist({
+/* Inter, the variable cut kobbe.io ships. One family: hierarchy comes from
+   tone and size, and headings stay at regular weight, which is most of what
+   makes that site read so calm. */
+const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",

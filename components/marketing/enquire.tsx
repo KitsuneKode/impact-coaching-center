@@ -15,7 +15,7 @@ export function Enquire() {
     <Section id="enquire">
       <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
         <Reveal>
-          <h2 className="max-w-[30rem] text-[1.5rem] leading-[1.3] font-medium tracking-[-0.02em] text-balance md:text-[1.875rem]">
+          <h2 className="type-display max-w-[32rem]">
             <span className="text-foreground">{offer.cta}.</span>
             <span className="text-muted-foreground">
               {" "}

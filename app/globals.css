@@ -5,7 +5,7 @@
 /*
  * ICT design system.
  *
- * Register: calm editorial, after kobbe.io. Near-white ground, one grotesk,
+ * Register: calm editorial, after kobbe.io. Near-white ground, Inter only,
  * two-tone paragraphs instead of shouting headlines, hairlines instead of
  * boxes, and colour spent only where it carries meaning.
  *
@@ -111,14 +111,14 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
-    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
 
   .font-as {
@@ -168,10 +168,10 @@
 @layer components {
   .mark {
     background-image: linear-gradient(
-      transparent 50%,
-      color-mix(in oklch, var(--highlight) 62%, transparent) 50%,
-      color-mix(in oklch, var(--highlight) 62%, transparent) 84%,
-      transparent 84%
+      transparent 46%,
+      color-mix(in oklch, var(--highlight) 62%, transparent) 46%,
+      color-mix(in oklch, var(--highlight) 62%, transparent) 82%,
+      transparent 82%
     );
     background-repeat: no-repeat;
     background-size: 100% 100%;
@@ -186,6 +186,35 @@
   .enter {
     animation: enter-blur 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: var(--enter-delay, 0ms);
+  }
+
+  /*
+   * Kobbe's type recipe, lifted from their stylesheet: regular weight,
+   * tracking -0.025em, leading 1.25, fluid size, balanced wrapping.
+   *   display  hero and closing CTA   clamp(24px, 2.5vw, 36px)
+   *   lede     section openers        clamp(20px, 2vw, 21.6px)
+   */
+  .type-display {
+    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  .type-lede {
+    font-size: clamp(1.25rem, 2vw, 1.35rem);
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  /* the quiet label above a lede: body size, medium, grey */
+  .type-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
   }
 
   /* hairline list row, kobbe's "every feature" pattern */

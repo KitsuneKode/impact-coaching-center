@@ -18,7 +18,7 @@ export function Faq() {
     <Section id="questions">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <Reveal>
-          <h2 className="max-w-[28rem] text-[1.1875rem] leading-[1.42] font-medium tracking-[-0.018em] text-balance md:text-[1.3125rem]">
+          <h2 className="type-lede max-w-[28rem]">
             <span className="text-foreground">Questions.</span>
             <span className="text-muted-foreground">
               {" "}
