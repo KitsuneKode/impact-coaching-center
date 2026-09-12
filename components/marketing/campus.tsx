@@ -1,9 +1,10 @@
-import { IconArrowUpRight } from "@tabler/icons-react"
+import { IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import { place, youtubeWatch } from "@/lib/brand"
+import { VideoDialog } from "@/components/marketing/video-dialog"
+import { place } from "@/lib/brand"
 import { campus } from "@/lib/stories"
 
 /**
@@ -56,12 +57,13 @@ function Figure({
   priority?: boolean
 }) {
   return (
-    <figure className="group h-full">
-      <a
-        href={youtubeWatch(item.video)}
-        target="_blank"
-        rel="noreferrer noopener"
-        className="block h-full"
+    <figure className="h-full">
+      <VideoDialog
+        id={item.video}
+        title={item.caption}
+        subtitle="At the ICT centre, North Lakhimpur"
+        vertical
+        className="h-full w-full"
       >
         <div
           className={`relative overflow-hidden rounded-card bg-surface ring-1 ring-border ${className ?? ""}`}
@@ -74,12 +76,12 @@ function Figure({
             sizes="(max-width: 768px) 92vw, 33vw"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
-          <span className="absolute right-3 bottom-3 grid size-8 place-items-center rounded-[0.5rem] bg-white/90 text-foreground opacity-0 shadow-frame transition-opacity duration-300 group-hover:opacity-100">
-            <IconArrowUpRight size={15} stroke={1.75} />
+          <span className="absolute right-3 bottom-3 grid size-9 place-items-center rounded-full bg-white/90 text-foreground opacity-0 shadow-frame transition-opacity duration-300 group-hover:opacity-100">
+            <IconPlayerPlayFilled size={14} />
           </span>
         </div>
         <figcaption className="mt-2.5 text-sm text-muted-foreground">{item.caption}</figcaption>
-      </a>
+      </VideoDialog>
     </figure>
   )
 }

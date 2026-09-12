@@ -1,6 +1,5 @@
 import {
   IconArrowRight,
-  IconArrowUpRight,
   IconCalendar,
   IconCheck,
   IconChevronRight,
@@ -17,6 +16,7 @@ import type { CSSProperties } from "react"
 import { Enquire } from "@/components/marketing/enquire"
 import { Faq } from "@/components/marketing/faq"
 import { FinalCta } from "@/components/marketing/final-cta"
+import { VideoDialog } from "@/components/marketing/video-dialog"
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
@@ -32,7 +32,6 @@ import {
   schedules,
   trackForCourse,
   courseEnrolHref,
-  youtubeWatch,
 } from "@/lib/brand"
 import { catalogue, courseById, courseBySlug, inr } from "@/lib/catalogue"
 import { siteUrl } from "@/lib/site"
@@ -260,12 +259,12 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
           </Reveal>
           <Reveal delay={0.08} className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {people.map((person) => (
-              <a
+              <VideoDialog
                 key={person.slug}
-                href={youtubeWatch(person.lecture)}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group flex items-center gap-4 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
+                id={person.lecture}
+                title={`${person.called} teaching ${person.teaches}`}
+                subtitle="A full class from the ICT channel"
+                className="flex w-full items-center gap-4 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
               >
                 <span className="relative size-16 shrink-0 overflow-hidden rounded-[0.75rem] bg-surface">
                   <Image
@@ -281,20 +280,20 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                   <span className="block text-sm text-muted-foreground">{person.teaches}</span>
                   <span className="mt-1 inline-flex items-center gap-1 text-sm underline-offset-4 group-hover:underline">
                     Watch a class
-                    <IconArrowUpRight size={13} stroke={1.75} />
+                    <IconPlayerPlayFilled size={11} />
                   </span>
                 </span>
-              </a>
+              </VideoDialog>
             ))}
           </Reveal>
 
           {track ? (
             <Reveal delay={0.12}>
-              <a
-                href={youtubeWatch(track.sample.id)}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group mt-4 flex items-center gap-5 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
+              <VideoDialog
+                id={track.sample.id}
+                title={`Sample ${track?.exam ?? ""} class`}
+                subtitle="From the ICT channel"
+                className="mt-4 flex w-full items-center gap-5 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
               >
                 <span className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-[0.625rem] bg-surface">
                   <Image
@@ -313,10 +312,10 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                 <span>
                   <span className="block font-medium">Watch a full sample class</span>
                   <span className="block text-sm text-muted-foreground">
-                    From the same syllabus, on YouTube, free.
+                    From the same syllabus, free.
                   </span>
                 </span>
-              </a>
+              </VideoDialog>
             </Reveal>
           ) : null}
         </Section>

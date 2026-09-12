@@ -1,10 +1,11 @@
-import { IconArrowUpRight, IconMicrophone, IconPlayerPlayFilled } from "@tabler/icons-react"
+import { IconMicrophone, IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
 import { AnimatedNumber } from "@/components/motion-primitives/animated-number"
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import { links, youtubeWatch } from "@/lib/brand"
+import { VideoDialog } from "@/components/marketing/video-dialog"
+import { links } from "@/lib/brand"
 import { podcast, thumb } from "@/lib/stories"
 
 function views(n: number) {
@@ -36,11 +37,11 @@ export function Podcast() {
 
       <div className="mt-10 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
         <Reveal>
-          <a
-            href={youtubeWatch(lead.id)}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="group block overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
+          <VideoDialog
+            id={lead.id}
+            title={lead.title}
+            subtitle={lead.guest}
+            className="w-full overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
           >
             <span className="relative block aspect-video bg-surface">
               <Image
@@ -65,7 +66,7 @@ export function Podcast() {
                 {views(lead.views)} views
               </span>
             </span>
-          </a>
+          </VideoDialog>
         </Reveal>
 
         <Reveal delay={0.08} className="flex flex-col gap-3">
@@ -85,11 +86,11 @@ export function Podcast() {
           <ul className="flex flex-col gap-px overflow-hidden rounded-card border border-border bg-border">
             {rest.slice(0, 4).map((episode) => (
               <li key={episode.id} className="bg-card">
-                <a
-                  href={youtubeWatch(episode.id)}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="group flex items-center gap-3 p-3 transition-colors hover:bg-secondary"
+                <VideoDialog
+                  id={episode.id}
+                  title={episode.title}
+                  subtitle={episode.guest}
+                  className="flex w-full items-center gap-3 p-3 transition-colors hover:bg-secondary"
                 >
                   <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-[0.5rem] bg-surface">
                     <Image
@@ -106,12 +107,11 @@ export function Podcast() {
                       {views(episode.views)} views
                     </span>
                   </span>
-                  <IconArrowUpRight
-                    size={15}
-                    stroke={1.75}
-                    className="shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5"
+                  <IconPlayerPlayFilled
+                    size={13}
+                    className="shrink-0 text-muted-foreground transition-transform group-hover:scale-110"
                   />
-                </a>
+                </VideoDialog>
               </li>
             ))}
           </ul>

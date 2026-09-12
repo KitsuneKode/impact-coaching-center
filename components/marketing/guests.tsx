@@ -1,9 +1,9 @@
-import { IconArrowUpRight } from "@tabler/icons-react"
+import { IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import { youtubeWatch } from "@/lib/brand"
+import { VideoDialog } from "@/components/marketing/video-dialog"
 import { guestSessions, thumb } from "@/lib/stories"
 
 /**
@@ -29,11 +29,11 @@ export function Guests() {
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {guestSessions.map((guest) => (
             <li key={guest.id}>
-              <a
-                href={youtubeWatch(guest.id)}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
+              <VideoDialog
+                id={guest.id}
+                title={`${guest.name}, ${guest.role}`}
+                subtitle="Bijoyee Bartalaap, a guest session at ICT"
+                className="flex h-full w-full flex-col overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
               >
                 <span className="relative block aspect-video bg-surface">
                   <Image
@@ -50,10 +50,10 @@ export function Guests() {
                   <span className="mt-0.5 block text-sm text-muted-foreground">{guest.detail}</span>
                   <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm underline-offset-4 group-hover:underline">
                     Watch the session
-                    <IconArrowUpRight size={13} stroke={1.75} />
+                    <IconPlayerPlayFilled size={12} />
                   </span>
                 </span>
-              </a>
+              </VideoDialog>
             </li>
           ))}
         </ul>

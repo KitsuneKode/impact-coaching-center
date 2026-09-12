@@ -3,7 +3,7 @@ import Image from "next/image"
 
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import { youtubeWatch } from "@/lib/brand"
+import { VideoDialog } from "@/components/marketing/video-dialog"
 import { studentReviews, thumb } from "@/lib/stories"
 
 /**
@@ -34,12 +34,12 @@ export function StudentVoices({
         <ul className="-mx-5 mt-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
           {list.map((student) => (
             <li key={student.id} className="w-[52vw] shrink-0 snap-start sm:w-[32vw] md:w-auto">
-              <a
-                href={youtubeWatch(student.id)}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group block"
-                aria-label={`Watch ${student.name} of the ${student.batch} batch talk about ICT`}
+              <VideoDialog
+                id={student.id}
+                title={`${student.name}, ${student.batch}`}
+                subtitle={`Student review, ${student.exam}`}
+                vertical
+                className="w-full"
               >
                 <div className="relative aspect-[3/4] overflow-hidden rounded-card bg-surface ring-1 ring-border">
                   <Image
@@ -58,7 +58,7 @@ export function StudentVoices({
                 <p className="text-sm text-muted-foreground">
                   {student.batch}, {student.exam}
                 </p>
-              </a>
+              </VideoDialog>
             </li>
           ))}
         </ul>

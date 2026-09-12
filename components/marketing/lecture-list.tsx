@@ -1,6 +1,6 @@
 "use client"
 
-import { IconArrowUpRight } from "@tabler/icons-react"
+import { IconPlayerPlayFilled } from "@tabler/icons-react"
 import {
   AnimatePresence,
   motion,
@@ -11,7 +11,8 @@ import {
 import Image from "next/image"
 import { useRef, useState, type PointerEvent } from "react"
 
-import { lectures, lectureStill, youtubeWatch } from "@/lib/brand"
+import { VideoDialog } from "@/components/marketing/video-dialog"
+import { lectures, lectureStill } from "@/lib/brand"
 
 function views(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${n}`
@@ -55,13 +56,13 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
       >
         {items.map((lecture) => (
           <li key={lecture.id}>
-            <a
-              href={youtubeWatch(lecture.id)}
-              target="_blank"
-              rel="noreferrer noopener"
+            <VideoDialog
+              id={lecture.id}
+              title={lecture.title}
+              subtitle={lecture.by}
               onPointerEnter={(event) => event.pointerType === "mouse" && setActive(lecture.id)}
               onFocus={() => setActive(null)}
-              className="row-link group gap-4 py-4 md:py-5"
+              className="row-link w-full gap-4 py-4 md:py-5"
             >
               <span className="flex min-w-0 items-center gap-4">
                 <span className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-[0.5rem] bg-surface ring-1 ring-border md:hidden">
@@ -82,13 +83,12 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
               </span>
               <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
                 <span className="tnum hidden sm:inline">{views(lecture.views)} views</span>
-                <IconArrowUpRight
-                  size={16}
-                  stroke={1.75}
-                  className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                <IconPlayerPlayFilled
+                  size={14}
+                  className="transition-transform duration-200 group-hover:scale-110"
                 />
               </span>
-            </a>
+            </VideoDialog>
           </li>
         ))}
       </ul>

@@ -3,6 +3,7 @@ import Image from "next/image"
 import type { CSSProperties } from "react"
 
 import { BatchCountdown } from "@/components/marketing/batch-countdown"
+import { VideoDialog } from "@/components/marketing/video-dialog"
 import { ButtonAnchor } from "@/components/ui/button"
 import {
   callHref,
@@ -13,7 +14,6 @@ import {
   links,
   nextBatch,
   offer,
-  youtubeWatch,
 } from "@/lib/brand"
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
@@ -119,12 +119,11 @@ export function Hero() {
               className="enter w-[44vw] shrink-0 snap-start sm:w-[30vw] md:w-auto"
               style={delay(360 + index * 70)}
             >
-              <a
-                href={youtubeWatch(person.lecture)}
-                target="_blank"
-                rel="noreferrer noopener"
-                aria-label={`Watch ${person.called} teach ${person.teaches} on YouTube`}
-                className="group block"
+              <VideoDialog
+                id={person.lecture}
+                title={`${person.called} teaching ${person.teaches}`}
+                subtitle="A full class from the ICT channel"
+                className="w-full"
               >
                 <div className="relative aspect-[4/5] overflow-hidden rounded-card bg-surface ring-1 ring-border md:aspect-[6/7]">
                   <Image
@@ -141,7 +140,7 @@ export function Hero() {
                 </div>
                 <p className="mt-3 text-[0.9375rem] font-medium tracking-tight">{person.called}</p>
                 <p className="text-sm text-muted-foreground">{person.teaches}</p>
-              </a>
+              </VideoDialog>
             </li>
           ))}
         </ul>

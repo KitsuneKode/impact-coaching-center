@@ -2,6 +2,7 @@ import { IconArrowRight, IconArrowUpRight, IconCheck, IconPlayerPlayFilled } fro
 import Image from "next/image"
 import Link from "next/link"
 
+import { VideoDialog } from "@/components/marketing/video-dialog"
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
@@ -14,7 +15,6 @@ import {
   tracks,
   trackEnquiryHref,
   trackFreeHref,
-  youtubeWatch,
   type Track,
 } from "@/lib/brand"
 import { cn } from "@/lib/utils"
@@ -194,11 +194,11 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
           </p>
         </div>
 
-        <a
-          href={youtubeWatch(track.sample.id)}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="group/sample mt-4 flex items-center gap-3"
+        <VideoDialog
+          id={track.sample.id}
+          title={`Sample ${track.exam} class`}
+          subtitle="From the ICT channel"
+          className="group/sample mt-4 flex w-full items-center gap-3"
         >
           <span
             className={cn(
@@ -225,7 +225,7 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
             </span>
             <span className={cn("block", muted)}>{views(track.sample.views)} views</span>
           </span>
-        </a>
+        </VideoDialog>
       </div>
     </article>
   )

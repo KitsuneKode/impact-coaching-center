@@ -1,4 +1,4 @@
-import { IconArrowUpRight, IconCircleCheckFilled, IconPlayerPlayFilled } from "@tabler/icons-react"
+import { IconCircleCheckFilled, IconPlayerPlayFilled } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import Image from "next/image"
 import type { CSSProperties } from "react"
@@ -8,9 +8,10 @@ import { FinalCta } from "@/components/marketing/final-cta"
 import { Guests } from "@/components/marketing/guests"
 import { SelectionCard } from "@/components/marketing/results"
 import { StudentVoices } from "@/components/marketing/student-voices"
+import { VideoDialog } from "@/components/marketing/video-dialog"
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import { links, selections, youtubeWatch } from "@/lib/brand"
+import { links, selections } from "@/lib/brand"
 import { publishedStories, thumb } from "@/lib/stories"
 
 export const metadata: Metadata = {
@@ -83,12 +84,13 @@ export default function SuccessStoriesPage() {
         </Reveal>
         <Reveal delay={0.08} className="mt-10 grid gap-4 sm:grid-cols-2 lg:max-w-3xl">
           {publishedStories.map((story) => (
-            <a
+            <VideoDialog
               key={story.id}
-              href={youtubeWatch(story.id)}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="group flex flex-col overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
+              id={story.id}
+              title={`${story.name}, ${story.outcome}`}
+              subtitle="From ICT's Success Stories"
+              vertical
+              className="flex w-full flex-col overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
             >
               <span className="relative block aspect-video bg-surface">
                 <Image
@@ -107,12 +109,9 @@ export default function SuccessStoriesPage() {
               <span className="p-5">
                 <span className="block text-[1.0625rem] font-medium">{story.name}</span>
                 <span className="block text-sm text-muted-foreground">{story.outcome}</span>
-                <span className="mt-3 inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 group-hover:underline">
-                  {story.note}
-                  <IconArrowUpRight size={13} stroke={1.75} />
-                </span>
+                <span className="mt-3 block text-sm text-muted-foreground">{story.note}</span>
               </span>
-            </a>
+            </VideoDialog>
           ))}
 
           <div className="flex flex-col justify-center rounded-card bg-surface p-6">
