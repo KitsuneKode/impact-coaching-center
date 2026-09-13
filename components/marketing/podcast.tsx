@@ -35,8 +35,10 @@ export function Podcast() {
         />
       </Reveal>
 
-      <div className="mt-10 grid gap-4 lg:grid-cols-[1.25fr_1fr]">
-        <Reveal>
+      {/* grid-cols-1 is minmax(0,1fr): without it the single mobile column
+          grows to fit the longest truncated title and widens the whole page */}
+      <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_1fr]">
+        <Reveal className="min-w-0">
           <VideoDialog
             id={lead.id}
             title={lead.title}
@@ -69,7 +71,7 @@ export function Podcast() {
           </VideoDialog>
         </Reveal>
 
-        <Reveal delay={0.08} className="flex flex-col gap-3">
+        <Reveal delay={0.08} className="flex min-w-0 flex-col gap-3">
           <div className="rounded-card bg-surface p-6">
             <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <IconMicrophone size={16} stroke={1.75} />

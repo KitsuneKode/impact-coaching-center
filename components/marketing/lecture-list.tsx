@@ -62,7 +62,7 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
               subtitle={lecture.by}
               onPointerEnter={(event) => event.pointerType === "mouse" && setActive(lecture.id)}
               onFocus={() => setActive(null)}
-              className="row-link w-full gap-4 py-4 md:py-5"
+              className="row-link flex w-full gap-4 py-4 md:py-5"
             >
               <span className="flex min-w-0 items-center gap-4">
                 <span className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-[0.5rem] bg-surface ring-1 ring-border md:hidden">
