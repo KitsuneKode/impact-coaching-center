@@ -94,7 +94,11 @@ const jsonLd = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-IN" className={cn(sans.variable, assamese.variable, "antialiased")}>
+    <html
+      lang="en-IN"
+      data-scroll-behavior="smooth"
+      className={cn(sans.variable, assamese.variable, "antialiased")}
+    >
       <body>
         <script
           type="application/ld+json"

@@ -104,6 +104,17 @@ export default function CoursesPage() {
               app charges. {fees.scholarship}
             </span>
           </h1>
+          <nav aria-label="Find a course by exam" className="enter mt-8 flex flex-wrap gap-2" style={delay(80)}>
+            <a href="#apsc" className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary">
+              APSC
+            </a>
+            <a href="#adre" className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary">
+              ADRE and Assam Police
+            </a>
+            <a href="#banking" className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary">
+              Banking, SSC and Railway
+            </a>
+          </nav>
         </div>
       </section>
 

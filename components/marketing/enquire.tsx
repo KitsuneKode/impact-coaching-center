@@ -92,6 +92,29 @@ export function Enquire() {
               </div>
             </div>
           </dl>
+
+          <div className="mt-8 overflow-hidden rounded-card border border-border bg-card shadow-frame">
+            <div className="relative aspect-[16/9] bg-surface">
+              <iframe
+                title="Impact Career Tutorials on Google Maps"
+                src={`https://www.google.com/maps?q=${place.lat},${place.lng}&z=17&output=embed`}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="absolute inset-0 size-full border-0 grayscale-[0.2]"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 px-4 py-3">
+              <p className="text-sm text-muted-foreground">D C Bunglow Road, Ward no 6</p>
+              <a
+                href={place.maps}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="link shrink-0 text-sm"
+              >
+                Directions
+              </a>
+            </div>
+          </div>
         </Reveal>
 
         <Reveal delay={0.08}>

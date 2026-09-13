@@ -113,7 +113,7 @@ launch. The Business Profile is free and takes a day.
 1. The fees are already right. Confirm the free workshops, the hostel, and the
    spelling of Pallabi Neog.
 2. The result posters, so the results page can carry them.
-3. Photographs of the building from the road.
+3. Confirm the road-facing location as D C Bunglow Road, Ward no 6, and provide a photograph of the building from the road.
 4. Where enquiries should go, and who answers them.
 5. Fix the domain and the certificate, then point it here.
 

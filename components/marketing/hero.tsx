@@ -130,7 +130,8 @@ export function Hero() {
                     src={person.portrait}
                     alt={`${person.name}, ${person.teaches} faculty at Impact Career Tutorials`}
                     fill
-                    priority={index < 3}
+                    loading={index < 3 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : undefined}
                     sizes="(max-width: 768px) 44vw, 18vw"
                     className="object-cover object-top grayscale-[0.92] contrast-[1.04] transition-[filter,transform] duration-500 ease-out group-hover:scale-[1.03] group-hover:grayscale-0"
                   />
