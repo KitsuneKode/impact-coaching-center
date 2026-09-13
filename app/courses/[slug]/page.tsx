@@ -272,7 +272,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                     alt=""
                     fill
                     sizes="64px"
-                    className="object-cover object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
+                    className="object-cover object-top"
                   />
                 </span>
                 <span className="min-w-0">
@@ -301,7 +301,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                     alt=""
                     fill
                     sizes="160px"
-                    className="object-cover grayscale-[0.85] transition-[filter] duration-500 group-hover:grayscale-0"
+                    className="object-cover"
                   />
                   <span className="absolute inset-0 grid place-items-center">
                     <span className="grid size-9 place-items-center rounded-full bg-white/95 shadow-frame">
@@ -341,7 +341,7 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                       alt=""
                       fill
                       sizes="(max-width: 640px) 92vw, 30vw"
-                      className="object-cover grayscale-[0.85] transition-[filter] duration-500 group-hover:grayscale-0"
+                      className="object-cover"
                     />
                   </span>
                 ) : null}

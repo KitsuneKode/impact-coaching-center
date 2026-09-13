@@ -37,7 +37,7 @@ function CourseTile({ course, flagship }: { course: CatalogueCourse; flagship: b
             alt={`${course.short} course poster`}
             fill
             sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 30vw"
-            className="object-cover grayscale-[0.85] transition-[filter] duration-500 group-hover:grayscale-0"
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
           />
         </span>
       ) : null}

@@ -184,7 +184,7 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
                   alt=""
                   fill
                   sizes="28px"
-                  className="object-cover object-top grayscale"
+                  className="object-cover object-top"
                 />
               </span>
             ))}
@@ -211,7 +211,7 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
               alt=""
               fill
               sizes="64px"
-              className="object-cover grayscale-[0.85] transition-[filter] duration-500 group-hover/sample:grayscale-0"
+              className="object-cover transition-transform duration-500 group-hover/sample:scale-[1.03]"
             />
             <span className="absolute inset-0 grid place-items-center">
               <span className="grid size-5 place-items-center rounded-full bg-white/90 text-foreground">
