@@ -41,7 +41,7 @@ export function Guests() {
                     alt=""
                     fill
                     sizes="(max-width: 640px) 92vw, 31vw"
-                    className="object-cover grayscale-[0.85] transition-[filter] duration-500 group-hover:grayscale-0"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                   />
                 </span>
                 <span className="flex flex-1 flex-col p-5">
