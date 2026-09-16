@@ -80,7 +80,9 @@ function Figure({
             <IconPlayerPlayFilled size={14} />
           </span>
         </div>
-        <figcaption className="mt-2.5 text-sm text-muted-foreground">{item.caption}</figcaption>
+        <figcaption className="mt-2.5 text-sm text-muted-foreground">
+          {item.caption}
+        </figcaption>
       </VideoDialog>
     </figure>
   )

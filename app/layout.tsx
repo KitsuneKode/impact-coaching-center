@@ -31,7 +31,8 @@ const assamese = Noto_Sans_Bengali({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Impact Career Tutorials | APSC and ADRE coaching in North Lakhimpur",
+    default:
+      "Impact Career Tutorials | APSC and ADRE coaching in North Lakhimpur",
     template: "%s | Impact Career Tutorials",
   },
   description:
@@ -53,7 +54,9 @@ export const metadata: Metadata = {
       "Classroom, night batch, and the ICT app, with faculty you can watch teach on YouTube before you pay anything.",
   },
   twitter: { card: "summary_large_image" },
-  robots: indexable ? { index: true, follow: true } : { index: false, follow: false },
+  robots: indexable
+    ? { index: true, follow: true }
+    : { index: false, follow: false },
 }
 
 export const viewport: Viewport = {
@@ -92,7 +95,9 @@ const jsonLd = {
   sameAs: [links.youtube, links.instagram, links.facebook, links.play],
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en-IN"

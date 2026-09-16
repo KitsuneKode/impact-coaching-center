@@ -77,7 +77,11 @@ export function RevealGroup({
           initial={reduce ? false : hidden}
           whileInView={shown}
           viewport={{ once: true, amount: 0.2, margin: "0px 0px -48px 0px" }}
-          transition={{ duration: 0.7, delay: Math.min(index * step, maxDelay), ease: EASE }}
+          transition={{
+            duration: 0.7,
+            delay: Math.min(index * step, maxDelay),
+            ease: EASE,
+          }}
         >
           {child}
         </Item>

@@ -61,8 +61,12 @@ export function Podcast() {
             </span>
             <span className="flex items-end justify-between gap-4 p-5">
               <span>
-                <span className="block text-[1.0625rem] font-medium">{lead.title}</span>
-                <span className="block text-sm text-muted-foreground">{lead.guest}</span>
+                <span className="block text-[1.0625rem] font-medium">
+                  {lead.title}
+                </span>
+                <span className="block text-sm text-muted-foreground">
+                  {lead.guest}
+                </span>
               </span>
               <span className="tnum shrink-0 text-sm text-muted-foreground">
                 {views(lead.views)} views
@@ -104,7 +108,9 @@ export function Podcast() {
                     />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{episode.title}</span>
+                    <span className="block truncate text-sm font-medium">
+                      {episode.title}
+                    </span>
                     <span className="tnum block text-xs text-muted-foreground">
                       {views(episode.views)} views
                     </span>

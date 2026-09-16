@@ -10,7 +10,10 @@ import { proof } from "@/lib/brand"
  */
 export function ProofBar() {
   return (
-    <section aria-label="Numbers you can check" className="border-y border-border">
+    <section
+      aria-label="Numbers you can check"
+      className="border-y border-border"
+    >
       <div className="container-page">
         <ul className="grid grid-cols-2 lg:grid-cols-4">
           {proof.map((item, index) => (

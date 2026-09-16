@@ -110,7 +110,9 @@ export function InfiniteSlider({
 
   if (reduce) {
     return (
-      <div className={cn("flex gap-4 overflow-x-auto pb-2", className)}>{children}</div>
+      <div className={cn("flex gap-4 overflow-x-auto pb-2", className)}>
+        {children}
+      </div>
     )
   }
 
@@ -119,7 +121,9 @@ export function InfiniteSlider({
       <motion.div
         className="flex w-max"
         style={{
-          ...(direction === "horizontal" ? { x: translation } : { y: translation }),
+          ...(direction === "horizontal"
+            ? { x: translation }
+            : { y: translation }),
           gap: `${gap}px`,
           flexDirection: direction === "horizontal" ? "row" : "column",
         }}

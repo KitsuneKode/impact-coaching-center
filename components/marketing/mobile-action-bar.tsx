@@ -1,7 +1,13 @@
 "use client"
 
 import { IconPhone } from "@tabler/icons-react"
-import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react"
+import {
+  AnimatePresence,
+  motion,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+} from "motion/react"
 import { useState } from "react"
 
 import { ButtonAnchor } from "@/components/ui/button"
@@ -33,11 +39,21 @@ export function MobileActionBar() {
           className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/85 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl lg:hidden"
         >
           <div className="mx-auto flex max-w-md gap-2">
-            <ButtonAnchor href={callHref} variant="secondary" size="lg" className="flex-1">
+            <ButtonAnchor
+              href={callHref}
+              variant="secondary"
+              size="lg"
+              className="flex-1"
+            >
               <IconPhone stroke={1.6} />
               Call
             </ButtonAnchor>
-            <ButtonAnchor href={demoHref} target="_blank" size="lg" className="flex-[2]">
+            <ButtonAnchor
+              href={demoHref}
+              target="_blank"
+              size="lg"
+              className="flex-[2]"
+            >
               {offer.short}
             </ButtonAnchor>
           </div>

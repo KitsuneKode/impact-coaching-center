@@ -60,7 +60,9 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
               id={lecture.id}
               title={lecture.title}
               subtitle={lecture.by}
-              onPointerEnter={(event) => event.pointerType === "mouse" && setActive(lecture.id)}
+              onPointerEnter={(event) =>
+                event.pointerType === "mouse" && setActive(lecture.id)
+              }
               onFocus={() => setActive(null)}
               className="row-link flex w-full gap-4 py-4 md:py-5"
             >
@@ -78,11 +80,15 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
                   <span className="block text-[0.9875rem] font-medium transition-colors md:text-[1.0625rem]">
                     {lecture.title}
                   </span>
-                  <span className="block text-sm text-muted-foreground">{lecture.by}</span>
+                  <span className="block text-sm text-muted-foreground">
+                    {lecture.by}
+                  </span>
                 </span>
               </span>
               <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground transition-colors group-hover:text-foreground">
-                <span className="tnum hidden sm:inline">{views(lecture.views)} views</span>
+                <span className="tnum hidden sm:inline">
+                  {views(lecture.views)} views
+                </span>
                 <IconPlayerPlayFilled
                   size={14}
                   className="transition-transform duration-200 group-hover:scale-110"

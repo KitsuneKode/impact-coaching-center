@@ -1,4 +1,8 @@
-import { IconArrowRight, IconArrowUpRight, IconPhone } from "@tabler/icons-react"
+import {
+  IconArrowRight,
+  IconArrowUpRight,
+  IconPhone,
+} from "@tabler/icons-react"
 import Image from "next/image"
 import type { CSSProperties } from "react"
 
@@ -58,8 +62,8 @@ export function Hero() {
           <span className="min-w-0 truncate">
             <span className="font-medium">{nextBatch.name}</span>
             <span className="text-muted-foreground">
-              <span className="hidden sm:inline"> for {nextBatch.exam}</span> starts{" "}
-              <span className="sm:hidden">{startShort}</span>
+              <span className="hidden sm:inline"> for {nextBatch.exam}</span>{" "}
+              starts <span className="sm:hidden">{startShort}</span>
               <span className="hidden sm:inline">{startLabel}</span>
             </span>
           </span>
@@ -71,10 +75,7 @@ export function Hero() {
           />
         </a>
 
-        <h1
-          className="enter type-display mt-7 max-w-[64rem]"
-          style={delay(80)}
-        >
+        <h1 className="enter type-display mt-7 max-w-[64rem]" style={delay(80)}>
           <span className="text-foreground">
             <span className="mark">Crack APSC</span> from North Lakhimpur.
           </span>
@@ -85,7 +86,10 @@ export function Hero() {
           </span>
         </h1>
 
-        <div className="enter mt-8 flex flex-wrap items-center gap-3" style={delay(180)}>
+        <div
+          className="enter mt-8 flex flex-wrap items-center gap-3"
+          style={delay(180)}
+        >
           <ButtonAnchor href={demoHref} target="_blank" size="lg">
             {offer.cta}
             <IconArrowRight data-nudge stroke={1.75} />
@@ -99,7 +103,10 @@ export function Hero() {
 
       {/* ---- the people ---- */}
       <div className="container-page mt-14 md:mt-16">
-        <div className="enter flex items-baseline justify-between gap-4" style={delay(300)}>
+        <div
+          className="enter flex items-baseline justify-between gap-4"
+          style={delay(300)}
+        >
           <p className="type-label">The teachers you will sit in front of</p>
           <a
             href={links.youtube}
@@ -112,7 +119,7 @@ export function Hero() {
           </a>
         </div>
 
-        <ul className="-mx-5 mt-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
+        <ul className="-mx-5 mt-5 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-5 pb-2 md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
           {faculty.map((person, index) => (
             <li
               key={person.slug}
@@ -139,8 +146,12 @@ export function Hero() {
                     <IconArrowUpRight size={16} stroke={1.75} />
                   </span>
                 </div>
-                <p className="mt-3 text-[0.9375rem] font-medium tracking-tight">{person.called}</p>
-                <p className="text-sm text-muted-foreground">{person.teaches}</p>
+                <p className="mt-3 text-[0.9375rem] font-medium tracking-tight">
+                  {person.called}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {person.teaches}
+                </p>
               </VideoDialog>
             </li>
           ))}

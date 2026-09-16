@@ -1,4 +1,9 @@
-import { IconArrowRight, IconArrowUpRight, IconCheck, IconPlayerPlayFilled } from "@tabler/icons-react"
+import {
+  IconArrowRight,
+  IconArrowUpRight,
+  IconCheck,
+  IconPlayerPlayFilled,
+} from "@tabler/icons-react"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -41,7 +46,13 @@ function views(n: number) {
  * The flagship track is an ink panel. On a page this light it does the job a
  * "most popular" ribbon usually does, without the ribbon.
  */
-function TrackCard({ track, featured = false }: { track: Track; featured?: boolean }) {
+function TrackCard({
+  track,
+  featured = false,
+}: {
+  track: Track
+  featured?: boolean
+}) {
   const course = courseById(track.flagshipId)
   if (!course) return null
 
@@ -66,7 +77,9 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
           <span
             className={cn(
               "shrink-0 rounded-control px-2.5 py-1 text-sm",
-              featured ? "bg-white/10 text-white/80" : "bg-secondary text-muted-foreground"
+              featured
+                ? "bg-white/10 text-white/80"
+                : "bg-secondary text-muted-foreground"
             )}
           >
             {track.duration}
@@ -82,7 +95,9 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
             {inr(course.price)}
           </span>
           {course.mrp > course.price ? (
-            <span className={cn("tnum text-sm line-through", muted)}>{inr(course.mrp)}</span>
+            <span className={cn("tnum text-sm line-through", muted)}>
+              {inr(course.mrp)}
+            </span>
           ) : null}
           <span className={cn("text-sm", muted)}>{fees.unit}</span>
         </p>
@@ -118,7 +133,9 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
           rel="noreferrer noopener"
           className={cn(
             "mt-1.5 inline-flex items-center justify-center gap-1 self-center text-sm underline underline-offset-4",
-            featured ? "text-white/70 hover:text-white" : "text-muted-foreground hover:text-foreground"
+            featured
+              ? "text-white/70 hover:text-white"
+              : "text-muted-foreground hover:text-foreground"
           )}
         >
           Or try {free.short} free on the app
@@ -134,7 +151,10 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
               size={16}
               stroke={2}
               aria-hidden
-              className={cn("mt-0.5 shrink-0", featured ? "text-white/70" : "text-muted-foreground")}
+              className={cn(
+                "mt-0.5 shrink-0",
+                featured ? "text-white/70" : "text-muted-foreground"
+              )}
             />
             {point}
           </li>
@@ -145,8 +165,14 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
         <dl className={cn("mt-6 space-y-1.5 border-t pt-5", rule)}>
           <dt className={cn("text-sm", muted)}>Also in this track</dt>
           {also.map((other) => (
-            <dd key={other!.id} className="flex items-baseline justify-between gap-3 text-sm">
-              <Link href={`/courses/${other!.slug}`} className="underline-offset-4 hover:underline">
+            <dd
+              key={other!.id}
+              className="flex items-baseline justify-between gap-3 text-sm"
+            >
+              <Link
+                href={`/courses/${other!.slug}`}
+                className="underline-offset-4 hover:underline"
+              >
                 {other!.short}
               </Link>
               <span className={cn("tnum shrink-0", muted)}>
@@ -223,7 +249,9 @@ function TrackCard({ track, featured = false }: { track: Track; featured?: boole
             <span className="font-medium underline-offset-4 group-hover/sample:underline">
               Watch a sample class
             </span>
-            <span className={cn("block", muted)}>{views(track.sample.views)} views</span>
+            <span className={cn("block", muted)}>
+              {views(track.sample.views)} views
+            </span>
           </span>
         </VideoDialog>
       </div>
@@ -242,9 +270,16 @@ export function Courses() {
         />
       </Reveal>
 
-      <Reveal delay={0.08} className="mt-12 grid items-stretch gap-4 lg:grid-cols-3">
+      <Reveal
+        delay={0.08}
+        className="mt-12 grid items-stretch gap-4 lg:grid-cols-3"
+      >
         {tracks.map((track) => (
-          <TrackCard key={track.slug} track={track} featured={track.slug === "apsc"} />
+          <TrackCard
+            key={track.slug}
+            track={track}
+            featured={track.slug === "apsc"}
+          />
         ))}
       </Reveal>
 

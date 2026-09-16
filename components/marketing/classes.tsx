@@ -16,7 +16,11 @@ export function Classes() {
             label="Free classes"
             claim="Watch a full class before you decide."
             rest="These are the most-watched lectures on the ICT channel this year, by the same teachers you would join."
-            link={{ href: links.youtube, label: "All lectures", external: true }}
+            link={{
+              href: links.youtube,
+              label: "All lectures",
+              external: true,
+            }}
           />
         </Reveal>
         <Reveal delay={0.08}>

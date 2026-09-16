@@ -36,7 +36,12 @@ export function FinalCta() {
               Sit in on a class this week. It costs nothing.
             </span>
           </h2>
-          <ButtonAnchor href={demoHref} target="_blank" size="lg" className="self-start md:self-auto">
+          <ButtonAnchor
+            href={demoHref}
+            target="_blank"
+            size="lg"
+            className="self-start md:self-auto"
+          >
             {offer.cta}
             <IconArrowRight data-nudge stroke={1.75} />
           </ButtonAnchor>

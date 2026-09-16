@@ -1,6 +1,11 @@
 "use client"
 
-import { IconArrowRight, IconMenu2, IconPhone, IconX } from "@tabler/icons-react"
+import {
+  IconArrowRight,
+  IconMenu2,
+  IconPhone,
+  IconX,
+} from "@tabler/icons-react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
 import Image from "next/image"
 import Link from "next/link"
@@ -47,7 +52,8 @@ export function SiteHeader() {
     }
   }, [open])
 
-  const group = "rounded-[0.75rem] border border-border bg-background/75 shadow-frame backdrop-blur-xl"
+  const group =
+    "rounded-[0.75rem] border border-border bg-background/75 shadow-frame backdrop-blur-xl"
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 pt-3 md:pt-4">
@@ -58,14 +64,27 @@ export function SiteHeader() {
           className={`${group} flex h-12 items-center gap-2.5 pr-3.5 pl-1.5`}
         >
           <span className="grid size-9 place-items-center rounded-[0.5rem] bg-white ring-1 ring-border">
-            <Image src={brand.mark} alt="" width={28} height={28} className="size-7" priority />
+            <Image
+              src={brand.mark}
+              alt=""
+              width={28}
+              height={28}
+              className="size-7"
+              priority
+            />
           </span>
           <span className="text-sm font-medium tracking-tight">
-            Impact <span className="hidden text-muted-foreground sm:inline">Career Tutorials</span>
+            Impact{" "}
+            <span className="hidden text-muted-foreground sm:inline">
+              Career Tutorials
+            </span>
           </span>
         </Link>
 
-        <nav aria-label="Sections" className={`${group} hidden h-12 items-center gap-0.5 p-1.5 pl-2 lg:flex`}>
+        <nav
+          aria-label="Sections"
+          className={`${group} hidden h-12 items-center gap-0.5 p-1.5 pl-2 lg:flex`}
+        >
           {nav.map((item) => (
             <Link
               key={item.href}
@@ -75,7 +94,12 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <ButtonAnchor href={demoHref} target="_blank" size="sm" className="ml-1 rounded-[0.5rem]">
+          <ButtonAnchor
+            href={demoHref}
+            target="_blank"
+            size="sm"
+            className="ml-1 rounded-[0.5rem]"
+          >
             {offer.short}
           </ButtonAnchor>
         </nav>
@@ -97,7 +121,11 @@ export function SiteHeader() {
             onClick={() => setOpen((value) => !value)}
             className={`${group} inline-flex size-12 items-center justify-center`}
           >
-            {open ? <IconX size={20} stroke={1.6} /> : <IconMenu2 size={20} stroke={1.6} />}
+            {open ? (
+              <IconX size={20} stroke={1.6} />
+            ) : (
+              <IconMenu2 size={20} stroke={1.6} />
+            )}
           </button>
         </div>
       </div>
@@ -107,9 +135,15 @@ export function SiteHeader() {
           <motion.div
             id={panelId}
             ref={panelRef}
-            initial={reduce ? false : { opacity: 0, y: -8, filter: "blur(6px)" }}
+            initial={
+              reduce ? false : { opacity: 0, y: -8, filter: "blur(6px)" }
+            }
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8, filter: "blur(6px)" }}
+            exit={
+              reduce
+                ? { opacity: 0 }
+                : { opacity: 0, y: -8, filter: "blur(6px)" }
+            }
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="container-page mt-2 lg:hidden"
           >
@@ -123,7 +157,11 @@ export function SiteHeader() {
                       className="flex items-center justify-between rounded-control px-3 py-3.5 text-[1.0625rem] font-medium transition-colors hover:bg-secondary"
                     >
                       {item.label}
-                      <IconArrowRight size={16} stroke={1.6} className="text-muted-foreground" />
+                      <IconArrowRight
+                        size={16}
+                        stroke={1.6}
+                        className="text-muted-foreground"
+                      />
                     </Link>
                   </li>
                 ))}

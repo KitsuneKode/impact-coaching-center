@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "unicorn", "oxc", "jsx-a11y", "nextjs"],
+  "ignorePatterns": [
+    ".next/**",
+    "out/**",
+    "build/**",
+    "dist/**",
+    "coverage/**",
+    "next-env.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": ["components/ui/button.tsx"],
+      "rules": {
+        "jsx-a11y/anchor-has-content": "off"
+      }
+    },
+    {
+      "files": ["components/marketing/lead-form.tsx"],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off"
+      }
+    }
+  ]
+}

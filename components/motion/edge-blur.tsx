@@ -13,15 +13,28 @@ import { ProgressiveBlur } from "@/components/motion-primitives/progressive-blur
 export function EdgeBlur() {
   return (
     <>
-      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-30 h-20">
-        <ProgressiveBlur direction="top" blurLayers={5} blurIntensity={0.9} className="h-full" />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-x-0 top-0 z-30 h-20"
+      >
+        <ProgressiveBlur
+          direction="top"
+          blurLayers={5}
+          blurIntensity={0.9}
+          className="h-full"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-background/80 to-transparent" />
       </div>
       <div
         aria-hidden
         className="pointer-events-none fixed inset-x-0 bottom-0 z-30 hidden h-16 md:block"
       >
-        <ProgressiveBlur direction="bottom" blurLayers={5} blurIntensity={0.6} className="h-full" />
+        <ProgressiveBlur
+          direction="bottom"
+          blurLayers={5}
+          blurIntensity={0.6}
+          className="h-full"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
       </div>
     </>

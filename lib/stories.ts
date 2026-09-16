@@ -25,16 +25,41 @@ export type StudentReview = {
 
 /** ICT's "Student Review" shorts. Name and batch come off each card. */
 export const studentReviews: StudentReview[] = [
-  { id: "iMTV56lmQpQ", name: "Priya Chario Deuri", batch: "Victor 7", exam: "ADRE" },
+  {
+    id: "iMTV56lmQpQ",
+    name: "Priya Chario Deuri",
+    batch: "Victor 7",
+    exam: "ADRE",
+  },
   { id: "ipaMDRbfhms", name: "Himadri Dutta", batch: "Asha", exam: "APSC" },
   { id: "746gEBLxB28", name: "Aaradhya Bhuyan", batch: "Asha", exam: "APSC" },
   { id: "Ocg2NUu-nA0", name: "Uttara Boruah", batch: "Victor 6", exam: "ADRE" },
   { id: "kA7eJM7yDeM", name: "Pakija Das", batch: "Lakhya 25", exam: "APSC" },
-  { id: "agZ9u6FDEU0", name: "Shadananda Dewri", batch: "Victor 1", exam: "ADRE" },
-  { id: "GzQtvSsBmuk", name: "Biswajit Dutta", batch: "Victor 3", exam: "ADRE" },
+  {
+    id: "agZ9u6FDEU0",
+    name: "Shadananda Dewri",
+    batch: "Victor 1",
+    exam: "ADRE",
+  },
+  {
+    id: "GzQtvSsBmuk",
+    name: "Biswajit Dutta",
+    batch: "Victor 3",
+    exam: "ADRE",
+  },
   { id: "8mdCFUcthmc", name: "Anupol Dutta", batch: "Lakhya", exam: "APSC" },
-  { id: "7gWFBJSuhJI", name: "Niharika Konwar", batch: "Victor 6", exam: "ADRE" },
-  { id: "NZJ3nimdiTE", name: "Fatima Yasmin", batch: "APSC batch", exam: "APSC" },
+  {
+    id: "7gWFBJSuhJI",
+    name: "Niharika Konwar",
+    batch: "Victor 6",
+    exam: "ADRE",
+  },
+  {
+    id: "NZJ3nimdiTE",
+    name: "Fatima Yasmin",
+    batch: "APSC batch",
+    exam: "APSC",
+  },
 ]
 
 /**

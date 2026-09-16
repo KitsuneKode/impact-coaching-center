@@ -20,7 +20,13 @@ export const metadata: Metadata = {
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
-function CourseTile({ course, flagship }: { course: CatalogueCourse; flagship: boolean }) {
+function CourseTile({
+  course,
+  flagship,
+}: {
+  course: CatalogueCourse
+  flagship: boolean
+}) {
   const schedule = schedules[course.id]
   return (
     <Link
@@ -48,9 +54,13 @@ function CourseTile({ course, flagship }: { course: CatalogueCourse; flagship: b
             Main course
           </span>
         ) : null}
-        <span className="block text-[1.0625rem] font-medium">{course.short}</span>
+        <span className="block text-[1.0625rem] font-medium">
+          {course.short}
+        </span>
         {course.subtitle ? (
-          <span className="mt-0.5 block text-sm text-muted-foreground">{course.subtitle}</span>
+          <span className="mt-0.5 block text-sm text-muted-foreground">
+            {course.subtitle}
+          </span>
         ) : null}
 
         {schedule ? (
@@ -66,7 +76,9 @@ function CourseTile({ course, flagship }: { course: CatalogueCourse; flagship: b
               {course.free ? "Free" : inr(course.price)}
             </span>
             {course.mrp > course.price ? (
-              <span className="tnum text-sm text-muted-foreground line-through">{inr(course.mrp)}</span>
+              <span className="tnum text-sm text-muted-foreground line-through">
+                {inr(course.mrp)}
+              </span>
             ) : null}
           </span>
           <span className="inline-flex items-center gap-1 text-sm font-medium">
@@ -100,18 +112,31 @@ export default function CoursesPage() {
             <span className="text-foreground">Courses and fees.</span>
             <span className="text-muted-foreground">
               {" "}
-              Every live course at ICT with its current price, the same figure the
-              app charges. {fees.scholarship}
+              Every live course at ICT with its current price, the same figure
+              the app charges. {fees.scholarship}
             </span>
           </h1>
-          <nav aria-label="Find a course by exam" className="enter mt-8 flex flex-wrap gap-2" style={delay(80)}>
-            <a href="#apsc" className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary">
+          <nav
+            aria-label="Find a course by exam"
+            className="enter mt-8 flex flex-wrap gap-2"
+            style={delay(80)}
+          >
+            <a
+              href="#apsc"
+              className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary"
+            >
               APSC
             </a>
-            <a href="#adre" className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary">
+            <a
+              href="#adre"
+              className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary"
+            >
               ADRE and Assam Police
             </a>
-            <a href="#banking" className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary">
+            <a
+              href="#banking"
+              className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary"
+            >
               Banking, SSC and Railway
             </a>
           </nav>
@@ -131,11 +156,22 @@ export default function CoursesPage() {
             className={index > 0 ? "border-t border-border" : undefined}
           >
             <Reveal>
-              <Lede label={track.exam} claim={`${track.full}.`} rest={`${track.covers}.`} />
+              <Lede
+                label={track.exam}
+                claim={`${track.full}.`}
+                rest={`${track.covers}.`}
+              />
             </Reveal>
-            <Reveal delay={0.08} className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Reveal
+              delay={0.08}
+              className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+            >
               {list.map((course) => (
-                <CourseTile key={course.id} course={course} flagship={course.id === track.flagshipId} />
+                <CourseTile
+                  key={course.id}
+                  course={course}
+                  flagship={course.id === track.flagshipId}
+                />
               ))}
             </Reveal>
           </Section>

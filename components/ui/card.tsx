@@ -11,20 +11,23 @@ import { cn } from "@/lib/utils"
  * `interactive` lifts only cards that are themselves links, since motion that
  * leads nowhere reads as noise.
  */
-const cardVariants = cva("rounded-card transition-[transform,box-shadow,border-color] duration-300 ease-out", {
-  variants: {
-    variant: {
-      frame: "border border-border bg-card shadow-frame",
-      panel: "bg-surface",
-      outline: "border border-border",
+const cardVariants = cva(
+  "rounded-card transition-[transform,box-shadow,border-color] duration-300 ease-out",
+  {
+    variants: {
+      variant: {
+        frame: "border border-border bg-card shadow-frame",
+        panel: "bg-surface",
+        outline: "border border-border",
+      },
+      interactive: {
+        true: "hover:-translate-y-0.5 hover:shadow-lift focus-visible:-translate-y-0.5",
+        false: "",
+      },
     },
-    interactive: {
-      true: "hover:-translate-y-0.5 hover:shadow-lift focus-visible:-translate-y-0.5",
-      false: "",
-    },
-  },
-  defaultVariants: { variant: "frame", interactive: false },
-})
+    defaultVariants: { variant: "frame", interactive: false },
+  }
+)
 
 function Card({
   className,

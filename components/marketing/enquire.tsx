@@ -1,9 +1,22 @@
-import { IconArrowUpRight, IconBrandWhatsapp, IconMapPin, IconPhone } from "@tabler/icons-react"
+import {
+  IconArrowUpRight,
+  IconBrandWhatsapp,
+  IconMapPin,
+  IconPhone,
+} from "@tabler/icons-react"
 
 import { LeadForm } from "@/components/marketing/lead-form"
 import { Reveal } from "@/components/motion/reveal"
 import { Section } from "@/components/ui/section"
-import { callHref, contact, demoHref, formatPhone, joining, offer, place } from "@/lib/brand"
+import {
+  callHref,
+  contact,
+  demoHref,
+  formatPhone,
+  joining,
+  offer,
+  place,
+} from "@/lib/brand"
 
 /**
  * Where the page converts. The joining steps sit beside the form so the
@@ -19,8 +32,8 @@ export function Enquire() {
             <span className="text-foreground">{offer.cta}.</span>
             <span className="text-muted-foreground">
               {" "}
-              Leave your number and ICT will call you to fix a time, or walk in to
-              the centre on {place.spoken}.
+              Leave your number and ICT will call you to fix a time, or walk in
+              to the centre on {place.spoken}.
             </span>
           </h2>
 
@@ -36,7 +49,9 @@ export function Enquire() {
                   ) : null}
                 </span>
                 <span className="pb-1">
-                  <span className="block text-[0.9875rem] font-medium">{step.verb}</span>
+                  <span className="block text-[0.9875rem] font-medium">
+                    {step.verb}
+                  </span>
                   <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
                     {step.body}
                   </span>
@@ -47,32 +62,52 @@ export function Enquire() {
 
           <dl className="mt-10 grid gap-4 border-t border-border pt-8 text-sm sm:grid-cols-2">
             <div className="flex gap-3">
-              <IconPhone size={18} stroke={1.6} className="mt-0.5 shrink-0 text-muted-foreground" />
+              <IconPhone
+                size={18}
+                stroke={1.6}
+                className="mt-0.5 shrink-0 text-muted-foreground"
+              />
               <div>
                 <dt className="text-muted-foreground">Call</dt>
                 <dd className="tnum mt-0.5 flex flex-col font-medium">
                   <a href={callHref} className="hover:underline">
                     {formatPhone(contact.phones[0])}
                   </a>
-                  <a href={`tel:${contact.phones[1]}`} className="hover:underline">
+                  <a
+                    href={`tel:${contact.phones[1]}`}
+                    className="hover:underline"
+                  >
                     {formatPhone(contact.phones[1])}
                   </a>
                 </dd>
               </div>
             </div>
             <div className="flex gap-3">
-              <IconBrandWhatsapp size={18} stroke={1.6} className="mt-0.5 shrink-0 text-muted-foreground" />
+              <IconBrandWhatsapp
+                size={18}
+                stroke={1.6}
+                className="mt-0.5 shrink-0 text-muted-foreground"
+              />
               <div>
                 <dt className="text-muted-foreground">WhatsApp</dt>
                 <dd className="mt-0.5 font-medium">
-                  <a href={demoHref} target="_blank" rel="noreferrer noopener" className="tnum hover:underline">
+                  <a
+                    href={demoHref}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="tnum hover:underline"
+                  >
                     {formatPhone(contact.whatsapp)}
                   </a>
                 </dd>
               </div>
             </div>
             <div className="flex gap-3 sm:col-span-2">
-              <IconMapPin size={18} stroke={1.6} className="mt-0.5 shrink-0 text-muted-foreground" />
+              <IconMapPin
+                size={18}
+                stroke={1.6}
+                className="mt-0.5 shrink-0 text-muted-foreground"
+              />
               <div>
                 <dt className="text-muted-foreground">Walk in</dt>
                 <dd className="mt-0.5 font-medium">
@@ -104,7 +139,9 @@ export function Enquire() {
               />
             </div>
             <div className="flex items-center justify-between gap-4 px-4 py-3">
-              <p className="text-sm text-muted-foreground">D C Bunglow Road, Ward no 6</p>
+              <p className="text-sm text-muted-foreground">
+                D C Bunglow Road, Ward no 6
+              </p>
               <a
                 href={place.maps}
                 target="_blank"

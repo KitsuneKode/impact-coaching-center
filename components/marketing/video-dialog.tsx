@@ -88,7 +88,9 @@ export function VideoDialog({
               <Dialog.Title className="text-[0.9375rem] font-medium text-white">
                 {title}
               </Dialog.Title>
-              {subtitle ? <p className="text-sm text-white/60">{subtitle}</p> : null}
+              {subtitle ? (
+                <p className="text-sm text-white/60">{subtitle}</p>
+              ) : null}
               <a
                 href={youtubeWatch(id)}
                 target="_blank"

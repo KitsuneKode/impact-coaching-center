@@ -196,7 +196,8 @@ export const testimonials = [
     verified: true,
   },
   {
-    quote: "Awesome app with great content. Superb learning experience. Really really helpful!!",
+    quote:
+      "Awesome app with great content. Superb learning experience. Really really helpful!!",
     name: "Review on the ICT app",
     role: "Google Play",
     verified: false,
@@ -286,18 +287,30 @@ export function trackForCourse(id: number) {
  * Victor 5.0 to 7.0 intakes and the Rs 11 internship stay off the site.
  */
 export const listedCourseIds = tracks.flatMap((track) =>
-  [track.flagshipId, ...track.alsoIds, track.freeId].filter((id): id is number => id !== null)
+  [track.flagshipId, ...track.alsoIds, track.freeId].filter(
+    (id): id is number => id !== null
+  )
 )
 
 /**
  * Timings and dates, read off ICT's own course posters, since the storefront
  * listing does not carry them. Each line is what the poster prints.
  */
-export const schedules: Record<number, { when: string; days?: string; note?: string }> = {
-  886514: { when: "12 to 2 PM", days: "Monday to Saturday", note: "Batch started in August" }, // Lakhya 2027
+export const schedules: Record<
+  number,
+  { when: string; days?: string; note?: string }
+> = {
+  886514: {
+    when: "12 to 2 PM",
+    days: "Monday to Saturday",
+    note: "Batch started in August",
+  }, // Lakhya 2027
   804860: { when: "6 to 8 PM", note: "Built for working professionals" }, // PRAGATI 2027
   896874: { when: "8 to 10 AM", note: "New batch from 14 September" }, // VICTOR 8.0
-  893950: { when: "4 to 5:30 PM", note: "Ran 2 to 4 September; still free on the app" }, // Kouxal
+  893950: {
+    when: "4 to 5:30 PM",
+    note: "Ran 2 to 4 September; still free on the app",
+  }, // Kouxal
 }
 
 /**
@@ -308,7 +321,10 @@ export const schedules: Record<number, { when: string; days?: string; note?: str
 export const included = [
   { text: "Covers Prelims, Mains and the Interview", source: "store" },
   { text: "20 Prelims and 20 Mains mock tests", source: "store" },
-  { text: "Attend offline, or online in the digital classroom", source: "store" },
+  {
+    text: "Attend offline, or online in the digital classroom",
+    source: "store",
+  },
   { text: "Library and study space with WiFi", source: "store" },
   { text: "Hostel accommodation", source: "store" },
   { text: "Mentorship and guidance till selection", source: "store" },
@@ -317,7 +333,12 @@ export const included = [
 ] as const
 
 /** Programmes that visibly run on the channel. */
-export const programmes = ["Warrior", "Brahmastra", "Astra Series", "Axom Dhwani"] as const
+export const programmes = [
+  "Warrior",
+  "Brahmastra",
+  "Astra Series",
+  "Axom Dhwani",
+] as const
 
 /* -------------------------------------------------------------------------- */
 /*  Lectures                                                                  */
@@ -325,14 +346,54 @@ export const programmes = ["Warrior", "Brahmastra", "Astra Series", "Axom Dhwani
 
 /** Real lectures, ordered by real view count on 10 Sep 2026. */
 export const lectures = [
-  { id: "L0sPmVPMHS4", title: "Schemes and projects of Assam", by: "Pallabi Neog", views: 3400 },
-  { id: "ffM0cE-ejMU", title: "Species in news, APSC Prelims 2026", by: "Pallabi Neog", views: 1100 },
-  { id: "Y0d2rnN4Cw0", title: "Personalities in news 2026", by: "ICT", views: 727 },
-  { id: "0nbXmaZ-jk0", title: "Walk the Talk with Rupamoni Gorh", by: "Axom Dhwani podcast", views: 666 },
-  { id: "PcIFQy3R_HA", title: "Warrior mock test III, discussion", by: "Raheef Aowal", views: 513 },
-  { id: "fDPHYxvK6C0", title: "Assamese women writers of the colonial period", by: "ICT", views: 429 },
-  { id: "eOQ57ILnAvI", title: "Assam Budget 2026 to 27, explained", by: "ICT", views: 309 },
-  { id: "PxRD1RhYOb8", title: "Running water landforms, in Assamese", by: "Raheef Aowal", views: 261 },
+  {
+    id: "L0sPmVPMHS4",
+    title: "Schemes and projects of Assam",
+    by: "Pallabi Neog",
+    views: 3400,
+  },
+  {
+    id: "ffM0cE-ejMU",
+    title: "Species in news, APSC Prelims 2026",
+    by: "Pallabi Neog",
+    views: 1100,
+  },
+  {
+    id: "Y0d2rnN4Cw0",
+    title: "Personalities in news 2026",
+    by: "ICT",
+    views: 727,
+  },
+  {
+    id: "0nbXmaZ-jk0",
+    title: "Walk the Talk with Rupamoni Gorh",
+    by: "Axom Dhwani podcast",
+    views: 666,
+  },
+  {
+    id: "PcIFQy3R_HA",
+    title: "Warrior mock test III, discussion",
+    by: "Raheef Aowal",
+    views: 513,
+  },
+  {
+    id: "fDPHYxvK6C0",
+    title: "Assamese women writers of the colonial period",
+    by: "ICT",
+    views: 429,
+  },
+  {
+    id: "eOQ57ILnAvI",
+    title: "Assam Budget 2026 to 27, explained",
+    by: "ICT",
+    views: 309,
+  },
+  {
+    id: "PxRD1RhYOb8",
+    title: "Running water landforms, in Assamese",
+    by: "Raheef Aowal",
+    views: 261,
+  },
 ] as const
 
 export function lectureStill(id: string) {
@@ -345,10 +406,30 @@ export function lectureStill(id: string) {
 
 /** Every number links to the public page where it can be checked. */
 export const proof = [
-  { value: 16200, display: "16.2K", label: "subscribers on the ICT YouTube channel", href: links.youtube },
-  { value: 1000, display: "1,000+", label: "installs of the ICT app on Google Play", href: links.play },
-  { value: 150, display: "150+", label: "hours of recorded classes on the app", href: links.youtube },
-  { value: 2, display: "2", label: "officers from ICT on the APSC CCE 2022 list", href: links.apscResultPdf },
+  {
+    value: 16200,
+    display: "16.2K",
+    label: "subscribers on the ICT YouTube channel",
+    href: links.youtube,
+  },
+  {
+    value: 1000,
+    display: "1,000+",
+    label: "installs of the ICT app on Google Play",
+    href: links.play,
+  },
+  {
+    value: 150,
+    display: "150+",
+    label: "hours of recorded classes on the app",
+    href: links.youtube,
+  },
+  {
+    value: 2,
+    display: "2",
+    label: "officers from ICT on the APSC CCE 2022 list",
+    href: links.apscResultPdf,
+  },
 ] as const
 
 export const joining = [
@@ -366,7 +447,13 @@ export const joining = [
   },
 ] as const
 
-export const timings = ["Morning", "Day", "Evening", "Night", "Online only"] as const
+export const timings = [
+  "Morning",
+  "Day",
+  "Evening",
+  "Night",
+  "Online only",
+] as const
 
 export const faqs = [
   {
@@ -449,15 +536,21 @@ export const demoHref = whatsappHref(
 )
 
 export function trackEnquiryHref(track: Track) {
-  return whatsappHref(`Hello ICT, I want to join the ${track.exam} batch. Please share the next steps.`)
+  return whatsappHref(
+    `Hello ICT, I want to join the ${track.exam} batch. Please share the next steps.`
+  )
 }
 
 export function trackFreeHref(track: Track) {
-  return whatsappHref(`Hello ICT, I would like to try the free ${track.exam} workshop on the app.`)
+  return whatsappHref(
+    `Hello ICT, I would like to try the free ${track.exam} workshop on the app.`
+  )
 }
 
 export function courseEnrolHref(name: string) {
-  return whatsappHref(`Hello ICT, I want to enrol in ${name}. Please share the next steps.`)
+  return whatsappHref(
+    `Hello ICT, I want to enrol in ${name}. Please share the next steps.`
+  )
 }
 
 export const callHref = `tel:${contact.phones[0]}`

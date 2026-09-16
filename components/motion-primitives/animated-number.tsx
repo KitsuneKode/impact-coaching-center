@@ -16,7 +16,6 @@ import {
 } from "motion/react"
 import { useEffect, useRef } from "react"
 
-
 export type AnimatedNumberProps = {
   value: number
   /** 16200 -> "16.2K". Props stay serialisable so server components can pass them. */
@@ -27,9 +26,10 @@ export type AnimatedNumberProps = {
 }
 
 function formatValue(n: number, compact: boolean, suffix: string) {
-  const text = compact && n >= 1000
-    ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`
-    : Math.round(n).toLocaleString("en-IN")
+  const text =
+    compact && n >= 1000
+      ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`
+      : Math.round(n).toLocaleString("en-IN")
   return `${text}${suffix}`
 }
 
@@ -45,7 +45,9 @@ export function AnimatedNumber({
   const reduce = useReducedMotion()
 
   const spring = useSpring(reduce ? value : 0, springOptions)
-  const display = useTransform(spring, (current) => formatValue(current, compact, suffix))
+  const display = useTransform(spring, (current) =>
+    formatValue(current, compact, suffix)
+  )
 
   useEffect(() => {
     if (inView) spring.set(value)

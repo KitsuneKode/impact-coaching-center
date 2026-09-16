@@ -90,13 +90,17 @@ async function main() {
     status: string
     data: Record<string, { coursesData?: RawCourse[] } | null>
   }
-  if (payload.status !== "success") throw new Error("Classplus returned a non-success payload")
+  if (payload.status !== "success")
+    throw new Error("Classplus returned a non-success payload")
 
   const byId = new Map<number, RawCourse>()
   for (const section of Object.values(payload.data ?? {})) {
     for (const course of section?.coursesData ?? []) byId.set(course.id, course)
   }
-  if (byId.size === 0) throw new Error("No courses in the payload; refusing to write an empty catalogue")
+  if (byId.size === 0)
+    throw new Error(
+      "No courses in the payload; refusing to write an empty catalogue"
+    )
 
   // generated directory: clear it so renamed or removed courses leave no stale art
   await Bun.$`rm -rf public/courses && mkdir -p public/courses`.quiet()
@@ -193,7 +197,9 @@ export function inr(amount: number) {
   await Bun.write("lib/catalogue.ts", file)
   console.log(`Wrote lib/catalogue.ts with ${rows.length} courses`)
   for (const row of rows) {
-    console.log(`  ${row.free ? "FREE  " : String(row.price).padStart(6)}  ${row.name}`)
+    console.log(
+      `  ${row.free ? "FREE  " : String(row.price).padStart(6)}  ${row.name}`
+    )
   }
 }
 

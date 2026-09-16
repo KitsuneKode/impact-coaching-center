@@ -14,7 +14,11 @@ type Testimonial = (typeof testimonials)[number]
  * on the card and it is the number printed in the commission's own result,
  * never a rank ICT's marketing has claimed elsewhere.
  */
-export function SelectionCard({ person }: { person: (typeof selections)[number] }) {
+export function SelectionCard({
+  person,
+}: {
+  person: (typeof selections)[number]
+}) {
   return (
     <article className="flex flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-7">
       <div className="flex items-start justify-between gap-4">
@@ -52,7 +56,11 @@ function QuoteCard({ item }: { item: Testimonial }) {
           <p className="truncate text-xs text-muted-foreground">{item.role}</p>
         </div>
         {item.verified ? (
-          <IconCircleCheckFilled size={15} className="shrink-0 text-verified" aria-hidden />
+          <IconCircleCheckFilled
+            size={15}
+            className="shrink-0 text-verified"
+            aria-hidden
+          />
         ) : null}
       </figcaption>
     </figure>
@@ -74,11 +82,18 @@ export function Results() {
             label="Results"
             claim="Two officers on the APSC CCE 2022 list prepared here."
             rest="Both names are in the commission's own result, published on 17 January 2024."
-            link={{ href: links.apscResultPdf, label: "Open the result", external: true }}
+            link={{
+              href: links.apscResultPdf,
+              label: "Open the result",
+              external: true,
+            }}
           />
         </Reveal>
 
-        <Reveal delay={0.08} className="mt-10 grid gap-4 sm:grid-cols-2 lg:max-w-3xl">
+        <Reveal
+          delay={0.08}
+          className="mt-10 grid gap-4 sm:grid-cols-2 lg:max-w-3xl"
+        >
           {selections.map((person) => (
             <SelectionCard key={person.serial} person={person} />
           ))}
@@ -91,15 +106,22 @@ export function Results() {
       >
         <InfiniteSlider gap={16} speed={28} speedOnHover={4}>
           {testimonials.map((item) => (
-            <QuoteCard key={`${item.name}-${item.quote.slice(0, 20)}`} item={item} />
+            <QuoteCard
+              key={`${item.name}-${item.quote.slice(0, 20)}`}
+              item={item}
+            />
           ))}
         </InfiniteSlider>
       </Reveal>
 
       <div className="container-page">
         <Reveal delay={0.16}>
-          <Link href="/success-stories" className="link mt-10 inline-flex items-center gap-1 text-sm">
-            Student reviews, officers who taught here, and how we check each claim
+          <Link
+            href="/success-stories"
+            className="link mt-10 inline-flex items-center gap-1 text-sm"
+          >
+            Student reviews, officers who taught here, and how we check each
+            claim
             <IconArrowUpRight size={14} stroke={1.75} />
           </Link>
         </Reveal>

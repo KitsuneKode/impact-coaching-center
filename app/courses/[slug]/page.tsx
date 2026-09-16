@@ -66,7 +66,9 @@ const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 /** Enrolment counts are social proof only when they are large enough to be. */
 const LEARNERS_WORTH_SHOWING = 20
 
-export default async function CoursePage({ params }: PageProps<"/courses/[slug]">) {
+export default async function CoursePage({
+  params,
+}: PageProps<"/courses/[slug]">) {
   const { slug } = await params
   const course = courseBySlug(slug)
   if (!course) notFound()
@@ -104,7 +106,11 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
       "@type": "CourseInstance",
       courseMode: "Blended",
       location: `${brand.legalName}, North Lakhimpur, Assam`,
-      ...(schedule ? { courseSchedule: { "@type": "Schedule", description: schedule.when } } : {}),
+      ...(schedule
+        ? {
+            courseSchedule: { "@type": "Schedule", description: schedule.when },
+          }
+        : {}),
     },
   }
 
@@ -112,7 +118,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
     <main>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
 
       {/* ---- hero ---- */}
@@ -143,36 +151,60 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
               <h1 className="enter type-display" style={delay(60)}>
                 <span className="text-foreground">{course.short}.</span>
                 {course.subtitle ? (
-                  <span className="text-muted-foreground"> {course.subtitle}.</span>
+                  <span className="text-muted-foreground">
+                    {" "}
+                    {course.subtitle}.
+                  </span>
                 ) : null}
               </h1>
 
-              <div className="enter mt-8 flex flex-wrap items-baseline gap-x-3 gap-y-1" style={delay(140)}>
+              <div
+                className="enter mt-8 flex flex-wrap items-baseline gap-x-3 gap-y-1"
+                style={delay(140)}
+              >
                 <span className="tnum text-[2.5rem] leading-none font-medium tracking-[-0.03em]">
                   {course.free ? "Free" : inr(course.price)}
                 </span>
                 {saving > 0 ? (
                   <>
-                    <span className="tnum text-muted-foreground line-through">{inr(course.mrp)}</span>
+                    <span className="tnum text-muted-foreground line-through">
+                      {inr(course.mrp)}
+                    </span>
                     <span className="tnum rounded-control bg-highlight/35 px-2 py-0.5 text-sm font-medium">
                       Save {inr(saving)}
                     </span>
                   </>
                 ) : null}
               </div>
-              <p className="enter mt-3 text-sm text-muted-foreground" style={delay(160)}>
-                {course.free ? "No payment needed. Enrol on the ICT app." : fees.note}
+              <p
+                className="enter mt-3 text-sm text-muted-foreground"
+                style={delay(160)}
+              >
+                {course.free
+                  ? "No payment needed. Enrol on the ICT app."
+                  : fees.note}
               </p>
 
               {schedule ? (
-                <ul className="enter mt-6 flex flex-wrap gap-2" style={delay(200)}>
+                <ul
+                  className="enter mt-6 flex flex-wrap gap-2"
+                  style={delay(200)}
+                >
                   <li className="inline-flex items-center gap-1.5 rounded-control border border-border bg-card px-3 py-1.5 text-sm shadow-frame">
-                    <IconClock size={15} stroke={1.75} className="text-muted-foreground" />
+                    <IconClock
+                      size={15}
+                      stroke={1.75}
+                      className="text-muted-foreground"
+                    />
                     {schedule.when}
                   </li>
                   {schedule.days ? (
                     <li className="inline-flex items-center gap-1.5 rounded-control border border-border bg-card px-3 py-1.5 text-sm shadow-frame">
-                      <IconCalendar size={15} stroke={1.75} className="text-muted-foreground" />
+                      <IconCalendar
+                        size={15}
+                        stroke={1.75}
+                        className="text-muted-foreground"
+                      />
                       {schedule.days}
                     </li>
                   ) : null}
@@ -184,9 +216,18 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                 </ul>
               ) : null}
 
-              <div className="enter mt-8 flex flex-wrap gap-3" style={delay(260)}>
-                <ButtonAnchor href={courseEnrolHref(course.short)} target="_blank" size="lg">
-                  {course.free ? `Join ${course.short} free` : `Enrol in ${course.short}`}
+              <div
+                className="enter mt-8 flex flex-wrap gap-3"
+                style={delay(260)}
+              >
+                <ButtonAnchor
+                  href={courseEnrolHref(course.short)}
+                  target="_blank"
+                  size="lg"
+                >
+                  {course.free
+                    ? `Join ${course.short} free`
+                    : `Enrol in ${course.short}`}
                   <IconArrowRight data-nudge stroke={1.75} />
                 </ButtonAnchor>
                 <ButtonAnchor href={callHref} variant="secondary" size="lg">
@@ -196,9 +237,14 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
               </div>
 
               {course.learners >= LEARNERS_WORTH_SHOWING ? (
-                <p className="enter mt-5 text-sm text-muted-foreground" style={delay(300)}>
-                  <span className="tnum font-medium text-foreground">{course.learners}</span> learners
-                  have enrolled on the ICT app.
+                <p
+                  className="enter mt-5 text-sm text-muted-foreground"
+                  style={delay(300)}
+                >
+                  <span className="tnum font-medium text-foreground">
+                    {course.learners}
+                  </span>{" "}
+                  learners have enrolled on the ICT app.
                 </p>
               ) : null}
             </div>
@@ -237,8 +283,16 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
           <Reveal delay={0.08}>
             <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               {course.features.map((point) => (
-                <li key={point} className="flex gap-3 text-[0.9375rem] leading-snug">
-                  <IconCheck size={18} stroke={2} aria-hidden className="mt-0.5 shrink-0 text-muted-foreground" />
+                <li
+                  key={point}
+                  className="flex gap-3 text-[0.9375rem] leading-snug"
+                >
+                  <IconCheck
+                    size={18}
+                    stroke={2}
+                    aria-hidden
+                    className="mt-0.5 shrink-0 text-muted-foreground"
+                  />
                   {point}
                 </li>
               ))}
@@ -257,7 +311,10 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
               rest="Every teacher on this course publishes full lectures on the ICT YouTube channel."
             />
           </Reveal>
-          <Reveal delay={0.08} className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal
+            delay={0.08}
+            className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {people.map((person) => (
               <VideoDialog
                 key={person.slug}
@@ -277,7 +334,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                 </span>
                 <span className="min-w-0">
                   <span className="block font-medium">{person.called}</span>
-                  <span className="block text-sm text-muted-foreground">{person.teaches}</span>
+                  <span className="block text-sm text-muted-foreground">
+                    {person.teaches}
+                  </span>
                   <span className="mt-1 inline-flex items-center gap-1 text-sm underline-offset-4 group-hover:underline">
                     Watch a class
                     <IconPlayerPlayFilled size={11} />
@@ -310,7 +369,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                   </span>
                 </span>
                 <span>
-                  <span className="block font-medium">Watch a full sample class</span>
+                  <span className="block font-medium">
+                    Watch a full sample class
+                  </span>
                   <span className="block text-sm text-muted-foreground">
                     From the same syllabus, free.
                   </span>
@@ -325,9 +386,15 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
       {siblings.length > 0 && track ? (
         <Section size="sm" className="border-t border-border">
           <Reveal>
-            <Lede label={`More in ${track.exam}`} claim="Other ways to prepare." />
+            <Lede
+              label={`More in ${track.exam}`}
+              claim="Other ways to prepare."
+            />
           </Reveal>
-          <Reveal delay={0.08} className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal
+            delay={0.08}
+            className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          >
             {siblings.map((other) => (
               <Link
                 key={other.id}
@@ -349,7 +416,9 @@ export default async function CoursePage({ params }: PageProps<"/courses/[slug]"
                   <span>
                     <span className="block font-medium">{other.short}</span>
                     {other.subtitle ? (
-                      <span className="block text-sm text-muted-foreground">{other.subtitle}</span>
+                      <span className="block text-sm text-muted-foreground">
+                        {other.subtitle}
+                      </span>
                     ) : null}
                   </span>
                   <span className="tnum shrink-0 font-medium">

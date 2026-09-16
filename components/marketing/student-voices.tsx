@@ -31,9 +31,12 @@ export function StudentVoices({
       </Reveal>
 
       <Reveal delay={0.08}>
-        <ul className="-mx-5 mt-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
+        <ul className="-mx-5 mt-10 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-5 pb-2 md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
           {list.map((student) => (
-            <li key={student.id} className="w-[52vw] shrink-0 snap-start sm:w-[32vw] md:w-auto">
+            <li
+              key={student.id}
+              className="w-[52vw] shrink-0 snap-start sm:w-[32vw] md:w-auto"
+            >
               <VideoDialog
                 id={student.id}
                 title={`${student.name}, ${student.batch}`}
@@ -54,7 +57,9 @@ export function StudentVoices({
                     <IconPlayerPlayFilled className="size-3.5" />
                   </span>
                 </div>
-                <p className="mt-3 text-[0.9375rem] font-medium">{student.name}</p>
+                <p className="mt-3 text-[0.9375rem] font-medium">
+                  {student.name}
+                </p>
                 <p className="text-sm text-muted-foreground">
                   {student.batch}, {student.exam}
                 </p>

@@ -46,8 +46,12 @@ export function Guests() {
                 </span>
                 <span className="flex flex-1 flex-col p-5">
                   <span className="block font-medium">{guest.name}</span>
-                  <span className="block text-sm text-muted-foreground">{guest.role}</span>
-                  <span className="mt-0.5 block text-sm text-muted-foreground">{guest.detail}</span>
+                  <span className="block text-sm text-muted-foreground">
+                    {guest.role}
+                  </span>
+                  <span className="mt-0.5 block text-sm text-muted-foreground">
+                    {guest.detail}
+                  </span>
                   <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm underline-offset-4 group-hover:underline">
                     Watch the session
                     <IconPlayerPlayFilled size={12} />

@@ -15,7 +15,8 @@ export const brand = {
   legalName: "Impact Career Tutorials",
   shortName: "ICT",
   aliasUnverified: "Impact Coaching Center",
-  instagramBio: "We create your tomorrow, today. Ace APSC & Govt exams with ICT.",
+  instagramBio:
+    "We create your tomorrow, today. Ace APSC & Govt exams with ICT.",
   seoTitle:
     "Best Coaching Courses for APSC, Bank, SSC & Assam TET | Impact Career Tutorials",
   youtubeAbout:
@@ -68,8 +69,7 @@ export const links = {
   youtube: "https://www.youtube.com/@impactcareertutorials",
   threads: "https://www.threads.com/@impactcareer.tutorials",
   admissionsForm: "https://forms.gle/axsvhKohAWhA4ECR7",
-  apscCce2022:
-    "https://apsc.nic.in/misc_2024/Results_CCE_2022_17012024.pdf",
+  apscCce2022: "https://apsc.nic.in/misc_2024/Results_CCE_2022_17012024.pdf",
 } as const
 
 export const app = {
@@ -103,10 +103,26 @@ export const people = {
     educationLevel: "self-reported" as ClaimLevel,
   },
   facultyNamed: [
-    { name: "Harkaran Singh", role: "Senior Faculty", level: "first-party" as ClaimLevel },
-    { name: "Rituraj Gogoi", role: "NIT Silchar, former Bank PO", level: "social" as ClaimLevel },
-    { name: "Pallabi Neog", role: "Faculty", level: "first-party" as ClaimLevel },
-    { name: "Tulika Dutta", role: "Faculty", level: "first-party" as ClaimLevel },
+    {
+      name: "Harkaran Singh",
+      role: "Senior Faculty",
+      level: "first-party" as ClaimLevel,
+    },
+    {
+      name: "Rituraj Gogoi",
+      role: "NIT Silchar, former Bank PO",
+      level: "social" as ClaimLevel,
+    },
+    {
+      name: "Pallabi Neog",
+      role: "Faculty",
+      level: "first-party" as ClaimLevel,
+    },
+    {
+      name: "Tulika Dutta",
+      role: "Faculty",
+      level: "first-party" as ClaimLevel,
+    },
   ],
 } as const
 
@@ -157,9 +173,14 @@ export const courses = [
   {
     exam: "ADRE",
     durationApply: "12 months",
-    durationHome: "Four months for 3rd and 4th grade (conflicts with apply site)",
+    durationHome:
+      "Four months for 3rd and 4th grade (conflicts with apply site)",
     namedBatches: [
-      { name: "VICTOR8", blurb: "ADRE 3.0 and Assam Police, working-professional batch from 14 Sep 2026" },
+      {
+        name: "VICTOR8",
+        blurb:
+          "ADRE 3.0 and Assam Police, working-professional batch from 14 Sep 2026",
+      },
     ],
   },
   {
@@ -199,8 +220,7 @@ export const socialOffer = {
 } as const
 
 export const positioning = {
-  safe:
-    "Stay in North Lakhimpur for APSC, ADRE, Bank, SSC, and Railway prep, with a classroom, app, night batch, and working-professional morning batch.",
+  safe: "Stay in North Lakhimpur for APSC, ADRE, Bank, SSC, and Railway prep, with a classroom, app, night batch, and working-professional morning batch.",
   unsafe:
     "Better results than Guwahati, exclusive ICT toppers, hostel for outstation students as a proven fact.",
 } as const

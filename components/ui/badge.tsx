@@ -28,7 +28,11 @@ function Badge({
   ...props
 }: ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
   return (
-    <span data-slot="badge" className={cn(badgeVariants({ variant }), className)} {...props} />
+    <span
+      data-slot="badge"
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
   )
 }
 

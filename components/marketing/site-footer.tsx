@@ -9,7 +9,10 @@ const columns = [
     items: [
       ...tracks.map((track) => {
         const course = courseById(track.flagshipId)
-        return { label: course?.short ?? track.exam, href: `/courses/${course?.slug ?? ""}` }
+        return {
+          label: course?.short ?? track.exam,
+          href: `/courses/${course?.slug ?? ""}`,
+        }
       }),
       { label: "All courses", href: "/courses" },
     ],
@@ -55,13 +58,19 @@ export function SiteFooter() {
             </a>
           </p>
           <p className="mt-1 text-sm">
-            <a href={`mailto:${contact.email}`} className="text-muted-foreground hover:text-foreground hover:underline">
+            <a
+              href={`mailto:${contact.email}`}
+              className="text-muted-foreground hover:text-foreground hover:underline"
+            >
               {contact.email}
             </a>
           </p>
         </div>
 
-        <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+        <nav
+          aria-label="Footer"
+          className="grid grid-cols-2 gap-8 sm:grid-cols-3"
+        >
           {columns.map((column) => (
             <div key={column.title}>
               <p className="text-sm font-medium">{column.title}</p>
@@ -87,8 +96,8 @@ export function SiteFooter() {
 
       <div className="container-page mt-14">
         <p className="border-t border-border pt-6 text-xs leading-relaxed text-muted-foreground">
-          {brand.legalName}, {place.city}. Selection serials are from the APSC CCE 2022
-          result published on 17 January 2024.
+          {brand.legalName}, {place.city}. Selection serials are from the APSC
+          CCE 2022 result published on 17 January 2024.
         </p>
       </div>
     </footer>

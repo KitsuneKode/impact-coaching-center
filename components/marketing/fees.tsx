@@ -19,7 +19,9 @@ export function Fees() {
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <div>
             <h2 className="type-lede max-w-[26rem]">
-              <span className="text-foreground">Every batch includes all of it.</span>
+              <span className="text-foreground">
+                Every batch includes all of it.
+              </span>
               <span className="text-muted-foreground">
                 {" "}
                 {fees.note} {fees.scholarship}

@@ -54,7 +54,13 @@ function Lede({
   const type = { md: "type-lede", lg: "type-display", xl: "type-display" }[size]
 
   return (
-    <div className={cn("max-w-[44rem]", size !== "md" && "max-w-[56rem]", className)}>
+    <div
+      className={cn(
+        "max-w-[44rem]",
+        size !== "md" && "max-w-[56rem]",
+        className
+      )}
+    >
       {label ? <p className="type-label mb-4">{label}</p> : null}
       <Heading className={type}>
         <span className="text-foreground">{claim}</span>
@@ -65,7 +71,9 @@ function Lede({
             <a
               href={link.href}
               className="link font-medium whitespace-nowrap"
-              {...(link.external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
+              {...(link.external
+                ? { target: "_blank", rel: "noreferrer noopener" }
+                : {})}
             >
               {link.label}
             </a>

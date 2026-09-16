@@ -31,7 +31,10 @@ const timingOptions = [...timings] as string[]
  * Discord webhook, anything that accepts JSON. Without it, the lead is logged
  * on the server so development works with no setup.
  */
-export async function submitLead(_prev: LeadState, formData: FormData): Promise<LeadState> {
+export async function submitLead(
+  _prev: LeadState,
+  formData: FormData
+): Promise<LeadState> {
   const values = {
     name: String(formData.get("name") ?? "").trim(),
     phone: String(formData.get("phone") ?? "").trim(),
@@ -93,5 +96,11 @@ export async function submitLead(_prev: LeadState, formData: FormData): Promise<
     console.info("[lead]", lead)
   }
 
-  return { status: "ok", name: lead.name, phone: lead.phone, course: lead.course, timing: lead.timing }
+  return {
+    status: "ok",
+    name: lead.name,
+    phone: lead.phone,
+    course: lead.course,
+    timing: lead.timing,
+  }
 }

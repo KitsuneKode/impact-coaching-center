@@ -59,9 +59,11 @@
   --radius-card: 1rem;
 
   /* shadows tinted to the ink, never pure black */
-  --shadow-frame: 0 1px 1px oklch(0.205 0.006 262 / 0.04),
+  --shadow-frame:
+    0 1px 1px oklch(0.205 0.006 262 / 0.04),
     0 8px 24px -12px oklch(0.205 0.006 262 / 0.12);
-  --shadow-lift: 0 2px 4px oklch(0.205 0.006 262 / 0.05),
+  --shadow-lift:
+    0 2px 4px oklch(0.205 0.006 262 / 0.05),
     0 24px 48px -20px oklch(0.205 0.006 262 / 0.22);
 }
 
@@ -118,7 +120,13 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family:
+      var(--font-sans),
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
   }
 
   .font-as {
@@ -233,7 +241,11 @@
     text-decoration-line: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
-    text-decoration-color: color-mix(in oklch, var(--foreground) 35%, transparent);
+    text-decoration-color: color-mix(
+      in oklch,
+      var(--foreground) 35%,
+      transparent
+    );
     transition: text-decoration-color 0.2s ease;
   }
 
