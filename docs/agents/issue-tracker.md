@@ -39,6 +39,34 @@ This applies to issues created by any skill — `/to-tickets`, `/triage`, `/wayf
 maps and their children alike. The one thing that never gets a project is an issue the
 user explicitly says belongs elsewhere.
 
+## Milestones
+
+The project's milestones mirror the delivery stages in spec §23, with one addition:
+**`0. Current site launch`** covers shipping the marketing site that already exists. It
+is deliberately _not_ gated on stages 1-10, because that site is built and deployed and
+does not need Convex, auth or payments to go live.
+
+| Milestone                                    | Source                          |
+| -------------------------------------------- | ------------------------------- |
+| `0. Current site launch`                     | `docs/CHECKPOINT.md` open items |
+| `1. Production foundations`                  | spec §23 stage 1                |
+| `2. Public IA and visual refinement`         | stage 2                         |
+| `3. Identity and messaging`                  | stage 3                         |
+| `4. Lead CRM and conversion instrumentation` | stage 4                         |
+| `5. Resource library`                        | stage 5                         |
+| `6. Physical books and checkout`             | stage 6                         |
+| `7. Library workflow`                        | stage 7                         |
+| `8. Promotions, dashboard and exports`       | stage 8                         |
+| `9. SEO, discovery and qualification`        | stage 9                         |
+| `10. Onboarding, launch and support`         | stage 10, gated on spec §24     |
+
+Set `milestone` on `save_issue` whenever the work clearly belongs to one. Leave it unset
+rather than guessing — an issue in the wrong milestone distorts that milestone's
+progress figure, which is the number the project board reports.
+
+Milestones carry no target dates. Add them when there is a real schedule; don't invent
+one to fill the field.
+
 ## Conventions
 
 Linear's MCP server uses one **`save_issue`** tool for both create and update: passing
