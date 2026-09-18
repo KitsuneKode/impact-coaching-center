@@ -166,7 +166,7 @@ Keep the existing Base UI-flavoured shadcn system, Tabler icons, Tailwind 4 toke
 
 - Next.js 16 App Router and React 19.
 - Server Components by default; client components only around actual interaction.
-- Cloudflare Workers paid plan as the preferred production host, after a compatibility spike using Cloudflare's current recommended Next.js path. The paid plan is required for CPU headroom, not bundle size; see §11.
+- Cloudflare Workers as the production host, via `@opennextjs/cloudflare`. Compatibility was verified by spike on 19 September 2026; see §11.
 - Cloudflare R2 for PDFs and uploaded media.
 - Convex Cloud for mutable operational records and realtime admin updates.
 - Better Auth as a Convex component (`@convex-dev/better-auth`) with the Phone Number plugin, for both staff and student authentication. See §10.
@@ -175,7 +175,20 @@ Keep the existing Base UI-flavoured shadcn system, Tabler icons, Tailwind 4 toke
 - Razorpay Standard Checkout for physical-book payments.
 - PostHog for product/conversion analytics; Search Console for organic search.
 
-No Docker is required for this deployment. If Cloudflare compatibility fails on a required Next.js feature, the fallback is a small managed Node deployment or AWS Lightsail, documented before launch. Raw EC2 is not the default because its maintenance burden conflicts with the low-touch operating goal.
+No Docker is required for this deployment. If Cloudflare compatibility later fails on a required Next.js feature, the fallback is a small managed Node deployment or AWS Lightsail, documented before launch. Raw EC2 is not the default because its maintenance burden conflicts with the low-touch operating goal.
+
+**Next.js version floor.** `@opennextjs/cloudflare` declares `next: ">=15.5.24 <16 || >=16.3.3"`. Next.js 16.0 through 16.3.2 cannot be deployed to Workers through this adapter at all. The repository was moved from 16.2.6 to 16.3.5 for this reason. Any future Next.js upgrade must be checked against the adapter's peer range **before** it is applied.
+
+**Incremental cache.** Prerendered pages are served from the incremental cache, not from static assets, so a cache override is mandatory. Two options:
+
+| Override                          | Cost                          | Limitation                                                                                             |
+| --------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `static-assets-incremental-cache` | No R2 or KV needed            | Read-only: no ISR, and it throws on the `composable` cache type, so Next.js `use cache` is unsupported |
+| `r2-incremental-cache`            | R2, within the free allowance | Required if any route needs ISR or `use cache`                                                         |
+
+Launch uses the static-assets override because the public site is prerendered. Introducing ISR or `use cache` anywhere means moving to the R2 override first; this is a deliberate decision, not a default.
+
+**Local verification.** `wrangler dev` alone returns 404 for every prerendered dynamic route, because it does not populate the cache. Use `opennextjs-cloudflare preview`, which runs `populateCache` first.
 
 ### Ownership
 
@@ -226,6 +239,8 @@ Students and staff share one authentication system: Better Auth running as a Con
 This reverses the earlier staff-only position. ICT sells physical books, so order history, reusable delivery addresses, and a phone number that provably belongs to the buyer are operational requirements rather than conveniences. Phone-first sign-in also matches how ICT's audience already identifies itself.
 
 Clerk remains a capable product, but its phone and SMS OTP require a paid production plan whose monthly cost exceeds the entire Care maintenance fee, for a capability Better Auth provides on Convex at no platform cost. The Convex Better Auth component supports the Phone Number, Email OTP, Magic Link, Two Factor, Generic OAuth, Username, Anonymous, One Tap, and JWT plugins.
+
+**Accepted risk: the component is pre-1.0 and lags upstream.** `@convex-dev/better-auth` 0.12.5 pins `better-auth` to `>=1.6.11 <1.7.0` while upstream Better Auth is already at 1.7.x, so the project pins `better-auth` at 1.6.33. When Better Auth ships features or security fixes in 1.7 and later, ICT waits for the component to catch up. This is acceptable for the cost saved, but it is a real maintenance obligation: the component and its pin must be reviewed on the same schedule as dependency updates in §21, and a security advisory against the pinned range is an escalation, not a routine upgrade.
 
 ### Account model
 
@@ -313,6 +328,17 @@ Marketing broadcasts are out of scope at launch. They cost roughly six times a u
 - Every WhatsApp thread supports opt-out. An opt-out immediately suppresses all non-authentication messages.
 - Staff conversation bodies are operational records. They never enter analytics and are covered by the retention policy in §25.
 
+### Verified behavior
+
+A spike on 19 September 2026 ran the full flow against a local Convex deployment and confirmed:
+
+- `send-otp` accepts a number, the transport receives the phone number and code, `verify` succeeds, the user is created with `phoneNumberVerified: true`, a session is issued, and an authenticated Convex query returns that user. An anonymous request returns no user.
+- The synthetic-email constraint is real, not theoretical. The created user carried `email: "+919876543210@spike.invalid"`, `name` set to the phone number, and `emailVerified: false`. Phone-only recovery is therefore a committed consequence.
+
+It also found one trap that the documentation does not lead with:
+
+**`authComponent.getAuthUser()` throws `ConvexError: Unauthenticated` for anonymous visitors.** It does not return null. A public page that calls it renders a 500 for every signed-out visitor. Public surfaces must use `safeGetAuthUser` instead, and `getAuthUser` belongs only behind an already-authenticated boundary. This applies to the marketing site, resource detail pages, book pages, and the cart — every surface an anonymous visitor can reach.
+
 ### Testing strategy
 
 Three layers, only the last of which costs money:
@@ -336,14 +362,20 @@ The platform runs on free tiers wherever a free tier genuinely covers production
 | Better Auth on Convex          | No platform fee                                       | None                               |
 | Transactional email (fallback) | Approximately 3,000 messages/month                    | None                               |
 | GitHub Actions                 | Free tier minutes                                     | None                               |
-| Cloudflare Workers             | 100k requests/day, 10 ms CPU per request              | Paid plan required, about $5/month |
+| Cloudflare Workers             | 100k requests/day, 10 ms CPU per request              | Possibly none at launch; see below |
 | WhatsApp Cloud API             | Service-window replies free                           | Per delivered template message     |
 | Razorpay                       | No monthly fee                                        | Percentage per order plus GST      |
 | Domain                         | None                                                  | Annual registration                |
 
 Two honest exclusions from "free":
 
-**Hosting is not free.** Workers Free permits 100,000 requests per day but caps CPU at 10 ms per request, which Next.js server rendering will exceed on dynamic routes. Cloudflare removed the compressed worker size ceiling in September 2026, raising it to 64 MiB on all plans, so bundle size is no longer the constraint; CPU is. Workers Paid is the realistic floor. Vercel's Hobby tier is not an alternative because its terms prohibit commercial use.
+**Hosting may or may not be free, and we do not yet know which.** Workers Free permits 100,000 requests per day but caps CPU at 10 ms per request. Bundle size is not the constraint: Cloudflare raised the worker size limit to 64 MiB on all plans in September 2026, and the spike measured this application at 26 MiB uncompressed.
+
+The open question is CPU. The 19 September spike could not measure it, because the local runtime reports `cpu_time_ms` as zero on every request. It is also not yet a live question: every route in the application today is static or SSG, so the worker performs almost no rendering work. CPU pressure begins only when the dynamic routes arrive — sign-in, account, checkout, admin, and the Better Auth handler.
+
+This must be measured on a real preview deployment as soon as the first dynamic route exists, and the result recorded here. Until then, treat Workers Paid at roughly $5 per month as a budgeted contingency rather than a confirmed cost, and do not present either figure to the client as settled.
+
+Vercel's Hobby tier is not an alternative because its terms prohibit commercial use.
 
 **OTP delivery is not free.** Meta withdrew the free monthly conversation allowance; authentication and utility templates are billed per delivered message. At roughly one OTP per new student the expected spend is small, but it is metered and must be rate limited.
 
@@ -584,7 +616,7 @@ After the first measurable win, request a testimonial and two introductions. Bui
 
 1. Production foundations: environment model, Cloudflare compatibility spike, Convex and Better Auth setup, R2 policy, schemas, rate limiting, Turnstile, backups, and shared UI primitives.
 2. Public information architecture and premium visual refinement.
-3. Identity and messaging: phone sign-in, roles, the logger and test-number OTP transports, the message log, and the email fallback.
+3. Identity and messaging: phone sign-in, roles, the logger and test-number OTP transports, the message log, and the email fallback. This stage introduces the first dynamic routes, so it must end with worker CPU measured on a preview deployment and the result recorded in §11.
 4. Lead CRM and conversion instrumentation, including staff replies inside the WhatsApp service window.
 5. Resource library, upload workflow, consent gate, account gate, and R2 delivery.
 6. Physical books, cart, checkout, Razorpay verification, and order fulfilment.
@@ -609,6 +641,8 @@ Before production launch:
 - No OTP appears in any production log or response, and the development OTP transport cannot run in production.
 - A staff-assisted phone-number change works and is audited.
 - A Convex export has been restored successfully at least once.
+- Worker CPU per dynamic route has been measured on a real deployment, and the Workers plan decision in §11 is settled on evidence rather than assumption.
+- Public pages render correctly for signed-out visitors, confirming no surface calls `getAuthUser` where `safeGetAuthUser` is required.
 - Staff complete the five onboarding tasks without developer intervention.
 - PostHog events and funnels contain no personal information; replay masks are verified.
 - Search Console, sitemap, canonical URL, robots, and supported structured data are validated.
@@ -637,4 +671,5 @@ Before production launch:
 - Platform and cost findings: `docs/research/posthog-convex-platform-research.md`.
 - Component, registry, licensing, and success-story findings: `docs/research/component-and-design-research.md`.
 - Existing content/source verification and launch gaps: `docs/CHECKPOINT.md` and `docs/PITCH.md`.
+- Compatibility spike, 19 September 2026: Next.js version floor for the Cloudflare adapter, incremental-cache trade-off, and the end-to-end Better Auth phone flow. Findings are recorded inline in §8, §10, and §11; the spike code was throwaway and has been deleted.
 - Identity, messaging, and free-tier cost decisions are recorded in §10 and §11 of this document. Per-message WhatsApp rates cited during design came from reseller pricing pages and must be verified against Meta's official rate card before any client-facing use.
