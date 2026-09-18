@@ -82,7 +82,7 @@ Payment amounts, inventory, discounts, and order ownership must be calculated an
 
 ### Issue tracker
 
-Issues live in Linear (team `Kitsunekode`, identifiers `KIT-<n>`), reached through the `linear-server` MCP server. See `docs/agents/issue-tracker.md`.
+Issues live in Linear (team `Kitsunekode`, project `Impact Website`, identifiers `KIT-<n>`), reached through the `linear-server` MCP server. Every issue must be created with `project: "Impact Website"`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

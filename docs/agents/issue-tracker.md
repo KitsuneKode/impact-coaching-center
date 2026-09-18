@@ -19,12 +19,25 @@ claude mcp add --transport http linear-server https://mcp.linear.app/mcp
 
 ## Workspace facts
 
-- **Team**: `Kitsunekode` — the only team in the workspace, so use it as the default
-  and don't ask which team an issue belongs to.
+- **Team**: `Kitsunekode`, key `KIT` — the only team in the workspace, so use it as the
+  default and don't ask which team an issue belongs to.
+- **Project**: `Impact Website` — _"Marketing and reception front website for lead
+  collection and book storefront, free test access and promotional stuff."_
+  <https://linear.app/kitsunekode/project/impact-website-448e4535d0cb/overview>
 - **Identifiers**: `KIT-<n>` (e.g. `KIT-38`). Use the identifier in prose, commit
   messages and PR titles; use the UUID only when a tool demands one.
 - **Workflow states**: `Backlog`, `Todo`, `In Progress`, `In Review`, `Done`,
   `Duplicate`, `Canceled`.
+
+## Every issue belongs to the project
+
+**Always pass `project: "Impact Website"` on `save_issue`.** Linear does not infer it,
+and an issue created without it lands loose in the team backlog where it will not show
+up on the project board, in its milestones, or in any progress figure.
+
+This applies to issues created by any skill — `/to-tickets`, `/triage`, `/wayfinder`
+maps and their children alike. The one thing that never gets a project is an issue the
+user explicitly says belongs elsewhere.
 
 ## Conventions
 
