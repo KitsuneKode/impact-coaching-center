@@ -77,3 +77,21 @@ Convex should own mutable business records that need an admin workflow: leads, r
 The admin surface should remain deliberately small and task focused. Reuse shadcn blocks for navigation, tables, forms, dialogs, filters, and status badges, then adapt them to this design system. Prioritize the actions staff perform: update catalogue content, publish or schedule banners, review leads and enrollments, manage inventory and orders, and export operational data. Keep irreversible actions explicit and auditable.
 
 Payment amounts, inventory, discounts, and order ownership must be calculated and verified on the server. Create payment orders server-side, verify provider signatures or webhooks server-side, use idempotency keys, and record provider identifiers without storing card or UPI credentials. A client redirect or success screen is not proof of payment. Keep provider code behind a typed adapter so checkout UI and order state do not depend directly on Razorpay or another gateway. Until live credentials, webhook verification, refund handling, and failure recovery are tested, label checkout as a prototype and do not imply that money was captured.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in Linear (team `Kitsunekode`, identifiers `KIT-<n>`), reached through the `linear-server` MCP server. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage roles, each label string equal to its name, all present on team `Kitsunekode`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, both created lazily. See `docs/agents/domain.md`.
+
+### Plans
+
+Implementation plans live in `docs/plans/` as `YYYY-MM-DD-<slug>.md`, committed. Before starting multi-step work, check for an existing plan there and resume it rather than writing a new one. See `docs/agents/plans.md`.
