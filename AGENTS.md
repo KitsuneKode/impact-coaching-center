@@ -2,7 +2,7 @@
 
 ## Installed Next.js documentation is authoritative
 
-This repository uses Next.js 16.2.6. Its APIs and conventions can differ from older Next.js versions and from model training data. Before changing framework behavior, read the relevant guide under `node_modules/next/dist/docs/` and follow its deprecation notices.
+This repository uses Next.js 16.3.5. Its APIs and conventions can differ from older Next.js versions and from model training data. Before changing framework behavior, read the relevant guide under `node_modules/next/dist/docs/` and follow its deprecation notices.
 
 Useful starting points:
 
@@ -40,7 +40,7 @@ Use Bun and keep `bun.lock` current.
 
 Run `bun run check` after code changes and `bun run build` for changes that affect routes, framework configuration, server/client boundaries, metadata, data fetching, or release readiness.
 
-Oxlint is the sole lint runner. Its native `nextjs` plugin implements every rule in Next.js 16.2.6's `@next/eslint-plugin-next` recommended and Core Web Vitals sets, so retaining ESLint would duplicate coverage and dependency cost. Reassess this boundary when either tool changes; add a narrow ESLint layer only for a demonstrated rule gap.
+Oxlint is the sole lint runner. Its native `nextjs` plugin implements every rule in Next.js 16.3.5's `@next/eslint-plugin-next` recommended and Core Web Vitals sets, so retaining ESLint would duplicate coverage and dependency cost. Reassess this boundary when either tool changes; add a narrow ESLint layer only for a demonstrated rule gap.
 
 The two file-level JSX accessibility exceptions in `.oxlintrc.json` cover analyzer limitations: the polymorphic button anchor receives content through typed props, and the lead-success container intentionally uses `role="status"` because an HTML `output` element cannot contain its block layout. Do not broaden these exceptions.
 
