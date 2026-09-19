@@ -1,8 +1,13 @@
 "use server"
 
-import { timings, tracks } from "@/lib/brand"
+import {
+  type Lead,
+  type LeadField,
+  type LeadSink,
+  parseLead,
+} from "@/lib/leads"
 
-export type LeadField = "name" | "phone" | "course" | "timing"
+export type { LeadField }
 
 export type LeadState =
   | { status: "idle" }
@@ -19,88 +24,78 @@ export type LeadState =
       timing: string
     }
 
-const courseOptions = [...tracks.map((t) => t.exam), "Not sure yet"] as string[]
-const timingOptions = [...timings] as string[]
+/**
+ * Delivery to LEAD_WEBHOOK_URL: a Google Apps Script bound to a Sheet,
+ * Zapier, Make, a Slack or Discord webhook, anything that accepts JSON.
+ * Without it, the lead is logged on the server so development works with no
+ * setup. Convex becomes the second adapter behind this same interface.
+ */
+const webhookSink: LeadSink = {
+  async submit(lead: Lead) {
+    const webhook = process.env.LEAD_WEBHOOK_URL
+    const payload = { ...lead, receivedAt: new Date().toISOString() }
+
+    if (!webhook) {
+      console.info("[lead]", payload)
+      return
+    }
+
+    const response = await fetch(webhook, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!response.ok) {
+      throw new Error(`Lead webhook responded ${response.status}`)
+    }
+  },
+}
 
 /**
  * Records an enquiry before the visitor is handed to WhatsApp.
  *
  * Without this, an abandoned WhatsApp handoff is a lost lead and nobody can
- * tell which course drives enquiries. Delivery goes to LEAD_WEBHOOK_URL when
- * it is set: a Google Apps Script bound to a Sheet, Zapier, Make, a Slack or
- * Discord webhook, anything that accepts JSON. Without it, the lead is logged
- * on the server so development works with no setup.
+ * tell which course drives enquiries. Validation lives in lib/leads.ts so it
+ * can be tested without FormData or a request; this function only maps
+ * between the form and that module.
  */
 export async function submitLead(
   _prev: LeadState,
   formData: FormData
 ): Promise<LeadState> {
-  const values = {
-    name: String(formData.get("name") ?? "").trim(),
-    phone: String(formData.get("phone") ?? "").trim(),
+  const submitted = {
+    name: String(formData.get("name") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
     course: String(formData.get("course") ?? ""),
     timing: String(formData.get("timing") ?? ""),
   }
 
-  // Honeypot: real people never see this field. Bots fill it. Pretend success.
+  // Honeypot: real people never see this field. Bots fill it. Pretend success,
+  // returning nothing, so the response cannot be used to probe validation.
   if (String(formData.get("company") ?? "").length > 0) {
-    return { status: "ok", ...values }
+    return { status: "ok", name: "", phone: "", course: "", timing: "" }
   }
 
-  const digits = values.phone.replace(/\D/g, "").slice(-10)
-  const errors: Partial<Record<LeadField, string>> = {}
-
-  if (values.name.length < 2 || values.name.length > 80) {
-    errors.name = "Please enter your name."
-  }
-  if (!/^[6-9]\d{9}$/.test(digits)) {
-    errors.phone = "Please enter a 10 digit mobile number."
-  }
-  if (!courseOptions.includes(values.course)) {
-    errors.course = "Please pick a course."
-  }
-  if (!timingOptions.includes(values.timing)) {
-    errors.timing = "Please pick a time of day."
+  const parsed = parseLead(submitted)
+  if (!parsed.ok) {
+    return { status: "error", errors: parsed.errors, values: submitted }
   }
 
-  if (Object.keys(errors).length > 0) {
-    return { status: "error", errors, values }
-  }
-
-  const lead = {
-    name: values.name,
-    phone: `+91${digits}`,
-    course: values.course,
-    timing: values.timing,
-    source: "website",
-    receivedAt: new Date().toISOString(),
-  }
-
-  const webhook = process.env.LEAD_WEBHOOK_URL
-  if (webhook) {
-    try {
-      const response = await fetch(webhook, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(lead),
-        signal: AbortSignal.timeout(5000),
-      })
-      if (!response.ok) {
-        console.error("[lead] webhook responded", response.status)
-      }
-    } catch (error) {
-      // The visitor still gets the WhatsApp handoff, so the lead is not lost.
-      console.error("[lead] webhook failed", error)
-    }
-  } else {
-    console.info("[lead]", lead)
+  try {
+    await webhookSink.submit(parsed.lead)
+  } catch (error) {
+    // The visitor still gets the WhatsApp handoff, so the enquiry is not lost
+    // to them - but it is lost to us, which is why this is an error and not a
+    // silent return. Convex replaces this path.
+    console.error("[lead] delivery failed", error)
   }
 
   return {
     status: "ok",
-    name: lead.name,
-    phone: lead.phone,
-    course: lead.course,
-    timing: lead.timing,
+    name: parsed.lead.name,
+    phone: parsed.lead.phone,
+    course: parsed.lead.course,
+    timing: parsed.lead.timing,
   }
 }

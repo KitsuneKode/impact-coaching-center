@@ -17,12 +17,10 @@ import {
   formatPhone,
   offer,
   timings,
-  tracks,
   whatsappHref,
 } from "@/lib/brand"
+import { enquiryCourses } from "@/lib/leads"
 import { cn } from "@/lib/utils"
-
-const courseOptions = [...tracks.map((t) => t.exam), "Not sure yet"]
 
 const field =
   "h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground shadow-frame transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-[invalid=true]:border-destructive"
@@ -196,7 +194,7 @@ export function LeadForm() {
                 <ChoiceGroup
                   name="course"
                   legend="Which exam"
-                  options={courseOptions}
+                  options={enquiryCourses}
                   defaultValue={values.course}
                   error={errors.course}
                 />
