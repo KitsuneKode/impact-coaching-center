@@ -117,6 +117,61 @@ describe("parseLead", () => {
     if (result.ok) expect(String(result.lead.phone)).toBe("+919876543210")
   })
 
+  test("rejects a one-character name but accepts two", () => {
+    expect(parseLead({ ...valid, name: "R" }).ok).toBe(false)
+    expect(parseLead({ ...valid, name: "Ra" }).ok).toBe(true)
+  })
+
+  test("accepts an 80-character name and rejects 81", () => {
+    expect(parseLead({ ...valid, name: "a".repeat(80) }).ok).toBe(true)
+    expect(parseLead({ ...valid, name: "a".repeat(81) }).ok).toBe(false)
+  })
+
+  test("a whitespace-only name is empty, not a name", () => {
+    expect(parseLead({ ...valid, name: "   " }).ok).toBe(false)
+  })
+
+  test("missing keys are treated as empty rather than throwing", () => {
+    const result = parseLead({})
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(Object.keys(result.errors).sort()).toEqual([
+        "course",
+        "name",
+        "phone",
+        "timing",
+      ])
+    }
+  })
+
+  test("rejects the lowest invalid mobile prefix and accepts the lowest valid one", () => {
+    expect(parseLead({ ...valid, phone: "5876543210" }).ok).toBe(false)
+    expect(parseLead({ ...valid, phone: "6876543210" }).ok).toBe(true)
+  })
+
+  test("rejects nine and eleven digits, accepts exactly ten", () => {
+    expect(parseLead({ ...valid, phone: "987654321" }).ok).toBe(false)
+    expect(parseLead({ ...valid, phone: "98765432101" }).ok).toBe(false)
+    expect(parseLead({ ...valid, phone: "9876543210" }).ok).toBe(true)
+  })
+
+  test("an explicit source is kept instead of defaulting", () => {
+    const result = parseLead({ ...valid, source: "promotion" })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.lead.source).toBe("promotion")
+  })
+
+  test("an empty source falls back to the website", () => {
+    const result = parseLead({ ...valid, source: "" })
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.lead.source).toBe("website")
+  })
+
+  test("a course with surrounding whitespace still matches the list", () => {
+    const result = parseLead({ ...valid, course: `  ${enquiryCourses[0]!}  ` })
+    expect(result.ok).toBe(true)
+  })
+
   test("offers 'Not sure yet' as a real choice", () => {
     expect(enquiryCourses).toContain("Not sure yet")
   })

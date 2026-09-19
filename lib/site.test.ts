@@ -52,4 +52,29 @@ describe("resolveSiteUrl", () => {
       })
     ).toBe("https://impactcareertutorials.in")
   })
+
+  test("strips only one trailing slash, since that is all a URL should carry", () => {
+    expect(resolveSiteUrl({ NEXT_PUBLIC_SITE_URL: "https://ict.in//" })).toBe(
+      "https://ict.in/"
+    )
+  })
+
+  test("an empty site URL is treated as unset", () => {
+    expect(resolveSiteUrl({ NEXT_PUBLIC_SITE_URL: "" })).toBe(
+      "http://localhost:3000"
+    )
+  })
+
+  test('SITE_INDEXABLE is exact: only "true" counts', () => {
+    expect(resolveSiteUrl({ SITE_INDEXABLE: "TRUE" })).toBe(
+      "http://localhost:3000"
+    )
+    expect(resolveSiteUrl({ SITE_INDEXABLE: "1" })).toBe(
+      "http://localhost:3000"
+    )
+  })
+
+  test("an entirely empty environment still yields a usable URL", () => {
+    expect(resolveSiteUrl({})).toBe("http://localhost:3000")
+  })
 })
