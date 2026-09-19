@@ -1,6 +1,6 @@
 ---
-status: draft
-ticket: none
+status: in-progress
+ticket: KIT-39
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
 
