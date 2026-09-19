@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "test": "bun test",
-    "check": "bun run format:check && bun run lint && bun run typecheck",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test",
     "lint": "oxlint --deny-warnings .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

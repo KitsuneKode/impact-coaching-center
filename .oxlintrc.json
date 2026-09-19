@@ -2,6 +2,7 @@
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "unicorn", "oxc", "jsx-a11y", "nextjs"],
   "ignorePatterns": [
+    "convex/_generated/**",
     ".next/**",
     "out/**",
     "build/**",
