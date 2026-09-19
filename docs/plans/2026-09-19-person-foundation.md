@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ticket: KIT-39
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -171,7 +171,7 @@ Bun's built-in test runner, which the repo had no equivalent of."
   - `parseLead(input: Record<string, string>): { ok: true; lead: Lead } | { ok: false; errors: FieldErrors }`
   - `interface LeadSink { submit(lead: Lead): Promise<void> }`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `lib/leads.test.ts`:
 
@@ -237,12 +237,12 @@ describe("parseLead", () => {
 })
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 Run: `bun test lib/leads.test.ts`
 Expected: FAIL — cannot resolve `./leads`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `lib/leads.ts`:
 
@@ -317,12 +317,12 @@ export interface LeadSink {
 }
 ```
 
-- [ ] **Step 4: Run the test**
+- [x] **Step 4: Run the test**
 
 Run: `bun test lib/leads.test.ts`
 Expected: PASS, 7 tests.
 
-- [ ] **Step 5: Use the module from the server action**
+- [x] **Step 5: Use the module from the server action**
 
 In `app/actions/lead.ts`, delete the local `courseOptions`, `timingOptions`, the inline `digits` normalisation and the inline validation block. Import `parseLead` and build the webhook adapter:
 
@@ -375,7 +375,7 @@ if (!parsed.ok) {
 }
 ```
 
-- [ ] **Step 6: Remove the duplicated option list from the form**
+- [x] **Step 6: Remove the duplicated option list from the form**
 
 In `components/marketing/lead-form.tsx`, delete line 25's local `const courseOptions = [...tracks.map((t) => t.exam), "Not sure yet"]` and import the shared list instead:
 
@@ -385,13 +385,13 @@ import { enquiryCourses } from "@/lib/leads"
 
 Replace every use of `courseOptions` in that file with `enquiryCourses`. Remove the now-unused `tracks` import if nothing else in the file uses it.
 
-- [ ] **Step 7: Run the gates**
+- [x] **Step 7: Run the gates**
 
 Run: `bun test` — Expected: PASS, 11 tests across both files.
 Run: `bun run check` — Expected: clean. Oxlint will flag the unused `tracks` import if step 6 missed it.
 Run: `bun run build` — Expected: success. This touches a server action.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/leads.ts lib/leads.test.ts app/actions/lead.ts components/marketing/lead-form.tsx
@@ -431,13 +431,13 @@ Convex arrives with one table. Per ADR-0001 there is no separate lead or user ta
   - `upsertPersonByPhone(ctx, { phone, name, source })` — internal helper returning `Id<"persons">`. Creates when the phone is unseen, updates `name` only when the stored one is empty.
   - Convex table `activities`, indexed `by_person` on `["personId"]`.
 
-- [ ] **Step 1: Install Convex**
+- [x] **Step 1: Install Convex**
 
 ```bash
 bun add convex@latest
 ```
 
-- [ ] **Step 2: Declare the component app**
+- [x] **Step 2: Declare the component app**
 
 Create `convex/convex.config.ts`:
 
@@ -451,7 +451,7 @@ export default app
 
 Better Auth is registered here in Task 4, not now.
 
-- [ ] **Step 3: Write the schema**
+- [x] **Step 3: Write the schema**
 
 Create `convex/schema.ts`:
 
@@ -513,7 +513,7 @@ export default defineSchema({
 })
 ```
 
-- [ ] **Step 4: Write the failing test for the upsert rule**
+- [x] **Step 4: Write the failing test for the upsert rule**
 
 Create `convex/persons.test.ts`:
 
@@ -537,12 +537,12 @@ describe("mergePersonName", () => {
 })
 ```
 
-- [ ] **Step 5: Run it and watch it fail**
+- [x] **Step 5: Run it and watch it fail**
 
 Run: `bun test convex/persons.test.ts`
 Expected: FAIL — cannot resolve `./persons`.
 
-- [ ] **Step 6: Write the persons module**
+- [x] **Step 6: Write the persons module**
 
 Create `convex/persons.ts`:
 
@@ -585,12 +585,12 @@ export async function upsertPersonByPhone(
 }
 ```
 
-- [ ] **Step 7: Run the test**
+- [x] **Step 7: Run the test**
 
 Run: `bun test convex/persons.test.ts`
 Expected: PASS, 3 tests.
 
-- [ ] **Step 8: Deploy the schema to a local Convex deployment**
+- [x] **Step 8: Deploy the schema to a local Convex deployment**
 
 ```bash
 CONVEX_AGENT_MODE=anonymous bunx convex dev --once
@@ -598,18 +598,18 @@ CONVEX_AGENT_MODE=anonymous bunx convex dev --once
 
 Expected: `Convex functions ready!`. This runs a local backend and creates no cloud account. It writes `.env.local` with `CONVEX_DEPLOYMENT` and `NEXT_PUBLIC_CONVEX_URL`.
 
-- [ ] **Step 9: Confirm `.env.local` is ignored**
+- [x] **Step 9: Confirm `.env.local` is ignored**
 
 Run: `git check-ignore -v .env.local`
 Expected: a match from `.gitignore`. If there is no match, add `.env.local` to `.gitignore` and commit that first — the file names a deployment.
 
-- [ ] **Step 10: Run the gates**
+- [x] **Step 10: Run the gates**
 
 Run: `bun test` — Expected: PASS, 14 tests.
 Run: `bun run check` — Expected: clean. If `tsc` reports that `convex/_generated` is missing, re-run step 8 to generate it.
 Run: `bun run build` — Expected: success.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add package.json bun.lock convex/ tsconfig.json
@@ -653,7 +653,7 @@ The spike proved this path end to end: `send-otp` fires the transport, `verify` 
   - `getCurrentPerson` — a Convex query returning the signed-in Person or `null`.
   - `sendOtp(target: { phoneNumber: string; code: string }): void` from `lib/otp-transport.ts`.
 
-- [ ] **Step 1: Install the pinned versions**
+- [x] **Step 1: Install the pinned versions**
 
 ```bash
 bun add @convex-dev/better-auth@0.12.5 better-auth@1.6.33
@@ -661,7 +661,7 @@ bun add @convex-dev/better-auth@0.12.5 better-auth@1.6.33
 
 The pin is mandatory: the component requires `better-auth >=1.6.11 <1.7.0` while upstream is already past 1.7.
 
-- [ ] **Step 2: Write the failing transport test**
+- [x] **Step 2: Write the failing transport test**
 
 Create `lib/otp-transport.test.ts`:
 
@@ -683,12 +683,12 @@ describe("chooseTransport", () => {
 
 The rule under test is the one that matters: the plugin stores the code even when delivery does nothing, so a logger reaching production is a silent authentication bypass.
 
-- [ ] **Step 3: Run it and watch it fail**
+- [x] **Step 3: Run it and watch it fail**
 
 Run: `bun test lib/otp-transport.test.ts`
 Expected: FAIL — cannot resolve `./otp-transport`.
 
-- [ ] **Step 4: Write the transport**
+- [x] **Step 4: Write the transport**
 
 Create `lib/otp-transport.ts`:
 
@@ -716,12 +716,12 @@ export function sendOtp(target: { phoneNumber: string; code: string }): void {
 }
 ```
 
-- [ ] **Step 5: Run the test**
+- [x] **Step 5: Run the test**
 
 Run: `bun test lib/otp-transport.test.ts`
 Expected: PASS, 2 tests.
 
-- [ ] **Step 6: Register the Better Auth component**
+- [x] **Step 6: Register the Better Auth component**
 
 Replace `convex/convex.config.ts`:
 
@@ -735,7 +735,7 @@ app.use(betterAuth)
 export default app
 ```
 
-- [ ] **Step 7: Configure the auth provider**
+- [x] **Step 7: Configure the auth provider**
 
 Create `convex/auth.config.ts`:
 
@@ -748,7 +748,7 @@ export default {
 } satisfies AuthConfig
 ```
 
-- [ ] **Step 8: Wire the Phone Number plugin**
+- [x] **Step 8: Wire the Phone Number plugin**
 
 Create `convex/auth.ts`:
 
@@ -803,7 +803,7 @@ export const getCurrentPerson = query({
 })
 ```
 
-- [ ] **Step 9: Register the HTTP routes**
+- [x] **Step 9: Register the HTTP routes**
 
 Create `convex/http.ts`:
 
@@ -823,7 +823,7 @@ authComponent.registerRoutesLazy(http, createAuth, {
 export default http
 ```
 
-- [ ] **Step 10: Add the Next.js side**
+- [x] **Step 10: Add the Next.js side**
 
 Create `lib/auth-server.ts`:
 
@@ -852,14 +852,14 @@ import { handler } from "@/lib/auth-server"
 export const { GET, POST } = handler
 ```
 
-- [ ] **Step 11: Set the deployment environment variables**
+- [x] **Step 11: Set the deployment environment variables**
 
 ```bash
 CONVEX_AGENT_MODE=anonymous bunx convex env set SITE_URL http://localhost:3000
 CONVEX_AGENT_MODE=anonymous bunx convex env set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
 ```
 
-- [ ] **Step 12: Verify the flow end to end by hand**
+- [x] **Step 12: Verify the flow end to end by hand**
 
 Start both servers:
 
@@ -888,13 +888,13 @@ curl -s -X POST http://localhost:3000/api/auth/phone-number/verify \
 
 Expected: HTTP 200, a `token`, and a user carrying `phoneNumberVerified: true`.
 
-- [ ] **Step 13: Run the gates**
+- [x] **Step 13: Run the gates**
 
 Run: `bun test` — Expected: PASS, 16 tests.
 Run: `bun run check` — Expected: clean.
 Run: `bun run build` — Expected: success. This adds a route handler.
 
-- [ ] **Step 14: Commit**
+- [x] **Step 14: Commit**
 
 ```bash
 git add package.json bun.lock convex/ lib/auth-server.ts lib/otp-transport.ts lib/otp-transport.test.ts app/api/
@@ -921,6 +921,23 @@ everyone who is not signed in."
 - **Plan 3 — operations:** the admin action queue, the Person detail and activity history, CSV export with an audit record, and the PostHog adapter with its typed event union.
 
 Each produces working software on its own. Neither can be specified honestly until this one lands, because both attach to `persons` and to `sendOtp`.
+
+## Where execution diverged from the plan
+
+- **Task 1 parameter type.** `NodeJS.ProcessEnv` makes `NODE_ENV` mandatory, so every
+  caller would have had to supply it. Changed to `Record<string, string | undefined>`.
+- **Task 1 throw condition.** Throwing on every production build broke `bun run build`,
+  a gate AGENTS.md asks every contributor to run. Narrowed to an _indexable_ production
+  build, which is where the fallback does irreversible damage.
+- **Task 1 host coupling.** `CF_PAGES_URL` was dropped and no platform is named: the
+  host is no longer settled, and reading one platform's variables is what coupled this
+  module to Vercel originally.
+- **Task 4 transport signal.** `NODE_ENV` cannot distinguish development from production
+  inside Convex functions, which always report `production`. Replaced with an explicit
+  `OTP_TRANSPORT` deployment setting that fails closed when unset — stronger than the
+  original design, because choosing the logger became a deliberate, auditable act.
+- **Branded `E164` in tests.** Comparing against a string literal fails typecheck, which
+  is the brand working; assertions widened with `String(...)`.
 
 ## Open questions this plan assumes an answer to
 
