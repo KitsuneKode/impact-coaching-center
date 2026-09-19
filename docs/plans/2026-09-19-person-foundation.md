@@ -45,7 +45,7 @@ spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 - Consumes: nothing.
 - Produces: `resolveSiteUrl(env: NodeJS.ProcessEnv): string` — exported, pure. `siteUrl: string` and `indexable: boolean` keep their current names and types so existing importers are untouched.
 
-- [ ] **Step 1: Add the test script**
+- [x] **Step 1: Add the test script**
 
 In `package.json`, add to `"scripts"`:
 
@@ -55,7 +55,7 @@ In `package.json`, add to `"scripts"`:
 
 Bun's runner is built in and Jest-compatible; no dependency is added.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Create `lib/site.test.ts`:
 
@@ -93,12 +93,12 @@ describe("resolveSiteUrl", () => {
 })
 ```
 
-- [ ] **Step 3: Run it and watch it fail**
+- [x] **Step 3: Run it and watch it fail**
 
 Run: `bun test lib/site.test.ts`
 Expected: FAIL — `resolveSiteUrl` is not exported.
 
-- [ ] **Step 4: Make it pass**
+- [x] **Step 4: Make it pass**
 
 In `lib/site.ts`, replace the `resolveSiteUrl` function and the `siteUrl` const with:
 
@@ -124,13 +124,13 @@ export const siteUrl = resolveSiteUrl(process.env)
 
 Keep the existing doc comment, updating "then Vercel's own system variables" to name Cloudflare instead. Leave `indexable` exactly as it is.
 
-- [ ] **Step 5: Run the test and the gates**
+- [x] **Step 5: Run the test and the gates**
 
 Run: `bun test lib/site.test.ts` — Expected: PASS, 4 tests.
 Run: `bun run check` — Expected: clean.
 Run: `bun run build` — Expected: success. This touches metadata, so the build gate is required.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add package.json lib/site.ts lib/site.test.ts
