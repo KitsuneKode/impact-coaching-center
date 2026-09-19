@@ -1,5 +1,8 @@
+import { v } from "convex/values"
+
+import { type E164, toE164 } from "../lib/leads"
 import type { Id } from "./_generated/dataModel"
-import type { MutationCtx } from "./_generated/server"
+import { internalMutation, type MutationCtx } from "./_generated/server"
 
 /**
  * A Person's name is whatever we learned first.
@@ -23,7 +26,7 @@ export function mergePersonName(stored: string, incoming: string): string {
  */
 export async function upsertPersonByPhone(
   ctx: MutationCtx,
-  args: { phone: string; name: string; source: string }
+  args: { phone: E164; name: string; source: string }
 ): Promise<Id<"persons">> {
   const existing = await ctx.db
     .query("persons")
@@ -43,3 +46,33 @@ export async function upsertPersonByPhone(
     source: args.source,
   })
 }
+
+/**
+ * Attach a verified phone number to a Person.
+ *
+ * Called from the Phone Number plugin's verification callback, which is the
+ * only place a number is known to belong to the person holding the handset.
+ * Internal: nothing public may mark a Person verified.
+ */
+export const recordVerifiedPerson = internalMutation({
+  args: {
+    phone: v.string(),
+    name: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const phone = toE164(args.phone)
+    if (!phone) {
+      // Unreachable while phoneNumberValidator guards the endpoint, which is
+      // exactly why this throws rather than storing an unnormalised key.
+      throw new Error("Refusing to record a Person under an invalid number.")
+    }
+
+    const personId = await upsertPersonByPhone(ctx, {
+      phone,
+      name: args.name ?? "",
+      source: "verification",
+    })
+    await ctx.db.patch(personId, { verifiedAt: Date.now() })
+    return personId
+  },
+})

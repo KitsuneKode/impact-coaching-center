@@ -14,23 +14,32 @@ export type TransportName = "logger" | "whatsapp"
  * where NODE_ENV is "production" even on a local development deployment, so
  * it cannot tell the two apart.
  *
- * Unset fails closed. The Phone Number plugin stores the code even when
- * sendOTP does nothing and raises no warning when it does, so a transport
- * that quietly degraded to logging would store a code nobody received and
- * then accept it - a silent authentication bypass. Choosing the logger has
- * to be a deliberate act, visible in `convex env list`.
+ * Unset fails closed. Resolve this once at module load - see convex/auth.ts -
+ * so a misconfigured deployment fails while the auth module is being
+ * constructed, before any request can reach the plugin. Deferring the check
+ * to send time is too late: the plugin writes the verification row *before*
+ * it calls sendOTP, so a throw there leaves a stored, still-acceptable code
+ * that nobody received.
  */
 export function chooseTransport(configured: string | undefined): TransportName {
   if (configured === "logger") return "logger"
   if (configured === "whatsapp") return "whatsapp"
   throw new Error(
-    `OTP_TRANSPORT must be set to "logger" or "whatsapp" on this deployment. Refusing to send a verification code without an explicit transport: a silent fallback would store a code nobody received and then accept it.`
+    `OTP_TRANSPORT must be set to "logger" or "whatsapp" on this deployment. Refusing to construct an auth instance without an explicit transport.`
   )
 }
 
-export function sendOtp(target: { phoneNumber: string; code: string }): void {
-  const transport = chooseTransport(process.env.OTP_TRANSPORT)
-
+/**
+ * Deliver a code over the already-resolved transport.
+ *
+ * Async on purpose: WhatsApp delivery will be a network call, and the caller
+ * must await it so a delivery failure surfaces as a failed request rather
+ * than a discarded promise and a cheerful "code sent".
+ */
+export async function sendOtp(
+  transport: TransportName,
+  target: { phoneNumber: string; code: string }
+): Promise<void> {
   if (transport === "whatsapp") {
     // Plan 2. Until it exists, refuse rather than pretend a code was sent.
     throw new Error("The WhatsApp OTP transport is not implemented yet.")

@@ -1,4 +1,6 @@
-import { timings, tracks } from "@/lib/brand"
+// Relative, not aliased: this module is imported from convex/, whose
+// tsconfig does not carry the "@/" path alias.
+import { timings, tracks } from "./brand"
 
 /**
  * Parsing and validation for an enquiry, kept out of the server action so
@@ -53,7 +55,7 @@ export type ParseResult =
  */
 const MOBILE = /^(?:\+?91)?0?([6-9]\d{9})$/
 
-function toE164(input: string): E164 | null {
+export function toE164(input: string): E164 | null {
   // Only separators people actually type are forgiven; anything else, letters
   // included, must fail rather than be quietly discarded.
   const cleaned = input.replace(/[\s()\-.]/g, "")

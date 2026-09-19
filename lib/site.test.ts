@@ -23,19 +23,27 @@ describe("resolveSiteUrl", () => {
     )
   })
 
-  test("falls back to localhost for a production build that is not indexed", () => {
+  test("falls back to localhost for a build that is not indexed", () => {
     expect(resolveSiteUrl({ NODE_ENV: "production" })).toBe(
       "http://localhost:3000"
     )
   })
 
-  test("throws when an indexable production build has no site URL", () => {
+  test("throws when an indexable build has no site URL", () => {
+    expect(() => resolveSiteUrl({ SITE_INDEXABLE: "true" })).toThrow(
+      /NEXT_PUBLIC_SITE_URL/
+    )
+  })
+
+  test("throws for an indexable build even outside production", () => {
+    // robots.ts keys off SITE_INDEXABLE alone, so this combination would
+    // otherwise publish "index me" alongside localhost canonicals.
     expect(() =>
-      resolveSiteUrl({ NODE_ENV: "production", SITE_INDEXABLE: "true" })
+      resolveSiteUrl({ NODE_ENV: "development", SITE_INDEXABLE: "true" })
     ).toThrow(/NEXT_PUBLIC_SITE_URL/)
   })
 
-  test("does not throw when an indexable production build has one", () => {
+  test("does not throw when an indexable build has one", () => {
     expect(
       resolveSiteUrl({
         NODE_ENV: "production",

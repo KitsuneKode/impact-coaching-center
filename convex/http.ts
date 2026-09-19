@@ -1,5 +1,6 @@
 import { httpRouter } from "convex/server"
 
+import { requireEnv } from "../lib/env"
 import { authComponent, createAuth } from "./auth"
 
 const http = httpRouter()
@@ -11,7 +12,10 @@ const http = httpRouter()
 authComponent.registerRoutesLazy(http, createAuth, {
   basePath: "/api/auth",
   cors: true,
-  trustedOrigins: [process.env.SITE_URL!],
+  // Anchors CORS and CSRF trust, so a missing value must not become
+  // [undefined]. Must equal NEXT_PUBLIC_SITE_URL from the build environment;
+  // the two name the same origin and nothing keeps them in sync.
+  trustedOrigins: [requireEnv("SITE_URL", process.env.SITE_URL)],
 })
 
 export default http

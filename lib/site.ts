@@ -22,15 +22,18 @@ export function resolveSiteUrl(
   const explicit = env.NEXT_PUBLIC_SITE_URL
   if (explicit) return explicit.replace(/\/$/, "")
 
-  // Fail only where the fallback would do irreversible damage: an indexable
-  // production build. Search engines would record localhost canonicals, a
-  // localhost sitemap and a localhost LocalBusiness @id. A non-indexable
-  // build is a preview or a local gate run, where localhost is visible and
-  // recoverable, and where failing would make `bun run build` unusable for
-  // anyone without the variable set.
-  if (env.NODE_ENV === "production" && env.SITE_INDEXABLE === "true") {
+  // Fail only where the fallback would do irreversible damage: a build that
+  // invites indexing. Search engines would record localhost canonicals, a
+  // localhost sitemap and a localhost LocalBusiness @id.
+  //
+  // Keyed on SITE_INDEXABLE alone, matching `indexable` below - which is what
+  // actually drives robots.ts and the layout - so the guard and the thing it
+  // guards cannot disagree. A non-indexable build is a preview or a local
+  // gate run, where localhost is visible and recoverable, and where failing
+  // would make `bun run build` unusable for anyone without the variable set.
+  if (env.SITE_INDEXABLE === "true") {
     throw new Error(
-      "NEXT_PUBLIC_SITE_URL must be set for an indexable production build. Falling back to localhost would publish localhost URLs in canonicals, the sitemap, the Open Graph image and the LocalBusiness @id."
+      "NEXT_PUBLIC_SITE_URL must be set when SITE_INDEXABLE is true. Falling back to localhost would publish localhost URLs in canonicals, the sitemap, the Open Graph image and the LocalBusiness @id."
     )
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { chooseTransport } from "./otp-transport"
+import { chooseTransport, sendOtp } from "./otp-transport"
 
 describe("chooseTransport", () => {
   test("selects the logger when it is asked for explicitly", () => {
@@ -21,5 +21,19 @@ describe("chooseTransport", () => {
 
   test("does not treat an empty value as a choice", () => {
     expect(() => chooseTransport("")).toThrow(/OTP_TRANSPORT/)
+  })
+})
+
+describe("sendOtp", () => {
+  test("refuses the unimplemented WhatsApp transport rather than pretending", async () => {
+    await expect(
+      sendOtp("whatsapp", { phoneNumber: "+919876543210", code: "123456" })
+    ).rejects.toThrow(/not implemented/i)
+  })
+
+  test("resolves for the logger transport", async () => {
+    await expect(
+      sendOtp("logger", { phoneNumber: "+919876543210", code: "123456" })
+    ).resolves.toBeUndefined()
   })
 })

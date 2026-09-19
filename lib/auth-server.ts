@@ -1,5 +1,7 @@
 import { convexBetterAuthNextJs } from "@convex-dev/better-auth/nextjs"
 
+import { requireEnv } from "./env"
+
 /**
  * Server-side helpers for authenticated rendering and route handlers.
  *
@@ -15,6 +17,12 @@ export const {
   fetchAuthMutation,
   fetchAuthAction,
 } = convexBetterAuthNextJs({
-  convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL!,
-  convexSiteUrl: process.env.NEXT_PUBLIC_CONVEX_SITE_URL!,
+  convexUrl: requireEnv(
+    "NEXT_PUBLIC_CONVEX_URL",
+    process.env.NEXT_PUBLIC_CONVEX_URL
+  ),
+  convexSiteUrl: requireEnv(
+    "NEXT_PUBLIC_CONVEX_SITE_URL",
+    process.env.NEXT_PUBLIC_CONVEX_SITE_URL
+  ),
 })

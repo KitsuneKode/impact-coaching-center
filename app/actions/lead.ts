@@ -71,15 +71,27 @@ export async function submitLead(
     timing: String(formData.get("timing") ?? ""),
   }
 
-  // Honeypot: real people never see this field. Bots fill it. Pretend success,
-  // returning nothing, so the response cannot be used to probe validation.
-  if (String(formData.get("company") ?? "").length > 0) {
-    return { status: "ok", name: "", phone: "", course: "", timing: "" }
-  }
-
   const parsed = parseLead(submitted)
   if (!parsed.ok) {
     return { status: "error", errors: parsed.errors, values: submitted }
+  }
+
+  const success: LeadState = {
+    status: "ok",
+    name: parsed.lead.name,
+    phone: parsed.lead.phone,
+    course: parsed.lead.course,
+    timing: parsed.lead.timing,
+  }
+
+  // Honeypot: real people never see this field. Bots fill it. The response is
+  // byte-identical to a real submission - same validation errors, same success
+  // payload - so a bot cannot tell the control fired by comparing what came
+  // back. Only the delivery is skipped. Returning empty fields instead would
+  // both reveal the control in one request and render "Thank you, ." to any
+  // human whose password manager autofilled the field.
+  if (String(formData.get("company") ?? "").length > 0) {
+    return success
   }
 
   try {
@@ -91,11 +103,5 @@ export async function submitLead(
     console.error("[lead] delivery failed", error)
   }
 
-  return {
-    status: "ok",
-    name: parsed.lead.name,
-    phone: parsed.lead.phone,
-    course: parsed.lead.course,
-    timing: parsed.lead.timing,
-  }
+  return success
 }
