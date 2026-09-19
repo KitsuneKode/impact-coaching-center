@@ -18,6 +18,8 @@
  * before committing, the same as any other content change.
  */
 
+import { type RawCourse, toCatalogueRow } from "../lib/catalogue-import"
+
 const ORG_ID = 445114
 // base64 of {"tutorId":null,"orgId":445114,"categoryId":null}, as the storefront builds it
 const HASH = Buffer.from(
@@ -27,54 +29,6 @@ const HASH = Buffer.from(
 const ENDPOINT =
   `https://api.classplusapp.com/v2/course/preview/diy/similar/${HASH}` +
   `?subCatList=[]&mainCategoryList=[]&limit=60&offset=0`
-
-type RawCourse = {
-  id: number
-  name: string
-  description?: string | null
-  imageUrl?: string | null
-  price?: number | null
-  discount?: number | null
-  totalSubscriberCount?: number | null
-  createdAt?: string
-}
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48)
-}
-
-/**
- * Their descriptions are bulleted plain text with a prose intro above the
- * bullets. Only the bulleted lines are features, so require a marker: keeping
- * the intro put a whole paragraph in the first slot of the card.
- */
-function parseFeatures(description?: string | null) {
-  if (!description) return []
-  const seen = new Set<string>()
-  return description
-    .split("\n")
-    .filter((line) => /^\s*(?:[✅✓•*\-–—]|\d+[.)])\s*\S/.test(line))
-    .map((line) =>
-      line
-        .replace(/^\s*(?:[✅✓•*\-–—]|\d+[.)])\s*/, "")
-        // an en or em dash used as a separator becomes a plain hyphen; a
-        // hyphen inside a word ("expert-led") is left alone
-        .replace(/\s+[–—]\s+/g, " - ")
-        .trim()
-    )
-    .filter((line) => {
-      if (line.length < 3 || line.length > 90) return false
-      const key = line.toLowerCase()
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    .slice(0, 8)
-}
 
 async function main() {
   const response = await fetch(ENDPOINT, {
@@ -102,50 +56,51 @@ async function main() {
       "No courses in the payload; refusing to write an empty catalogue"
     )
 
-  // generated directory: clear it so renamed or removed courses leave no stale art
-  await Bun.$`rm -rf public/courses && mkdir -p public/courses`.quiet()
+  // The directory is NOT cleared up front. It used to be, which meant a
+  // transient CDN failure deleted a committed cover and wrote cover: null -
+  // a silent content regression from a network blip. Files are overwritten in
+  // place, and only art belonging to no current course is removed, after every
+  // download has been attempted.
+  await Bun.$`mkdir -p public/courses`.quiet()
+  const keep = new Set<string>()
 
   const rows = []
   for (const course of [...byId.values()].sort(
     (a, b) => (b.price ?? 0) - (a.price ?? 0)
   )) {
-    const mrp = course.price ?? 0
-    const payable = mrp - (course.discount ?? 0)
-    // "Lakhya 2027 - The Complete APSC Course" -> short "Lakhya 2027", subtitle
-    // "The Complete APSC Course". ICT also writes "Kouxal- Free ...", so the
-    // separator is a dash followed by a space, with or without one before it.
-    const [short, ...rest] = course.name.trim().split(/\s*[-–]\s+/)
-    const subtitle = rest.join(" - ").trim()
-    const slug = slugify(short)
+    const row = toCatalogueRow(course)
 
     let cover: string | null = null
     if (course.imageUrl) {
       const extension = course.imageUrl.split(".").pop()?.split("?")[0] ?? "png"
-      const file = `public/courses/${slug}.${extension}`
+      const file = `public/courses/${row.slug}.${extension}`
       try {
         const image = await fetch(course.imageUrl)
         if (image.ok) {
           await Bun.write(file, await image.arrayBuffer())
-          cover = `/courses/${slug}.${extension}`
+          cover = `/courses/${row.slug}.${extension}`
         }
       } catch {
-        // a missing cover is not worth failing the sync over
+        // fall through to the existing file below
       }
+      if (!cover && (await Bun.file(file).exists())) {
+        // Keep what is already committed rather than blanking the card.
+        cover = `/courses/${row.slug}.${extension}`
+        console.warn(`  ! kept existing cover for ${row.slug}`)
+      }
+      if (cover) keep.add(`${row.slug}.${extension}`)
     }
 
-    rows.push({
-      id: course.id,
-      slug,
-      name: course.name.trim(),
-      short: short.trim(),
-      subtitle,
-      mrp,
-      price: payable,
-      free: payable <= 0,
-      learners: course.totalSubscriberCount ?? 0,
-      features: parseFeatures(course.description),
-      cover,
-    })
+    rows.push({ ...row, cover })
+  }
+
+  // Now that every cover has been fetched or preserved, art belonging to no
+  // current course is safe to remove.
+  for (const entry of new Bun.Glob("*").scanSync("public/courses")) {
+    if (!keep.has(entry)) {
+      await Bun.file(`public/courses/${entry}`).delete()
+      console.log(`  - removed stale cover ${entry}`)
+    }
   }
 
   const file = `/**
@@ -205,4 +160,3 @@ export function inr(amount: number) {
 
 await main()
 
-export {}
