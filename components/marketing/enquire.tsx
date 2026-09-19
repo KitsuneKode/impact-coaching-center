@@ -8,15 +8,8 @@ import {
 import { LeadForm } from "@/components/marketing/lead-form"
 import { Reveal } from "@/components/motion/reveal"
 import { Section } from "@/components/ui/section"
-import {
-  callHref,
-  contact,
-  demoHref,
-  formatPhone,
-  joining,
-  offer,
-  place,
-} from "@/lib/brand"
+import { contact, formatPhone, joining, offer, place } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 
 /**
  * Where the page converts. The joining steps sit beside the form so the
@@ -70,7 +63,10 @@ export function Enquire() {
               <div>
                 <dt className="text-muted-foreground">Call</dt>
                 <dd className="tnum mt-0.5 flex flex-col font-medium">
-                  <a href={callHref} className="hover:underline">
+                  <a
+                    href={contactHref({ kind: "call" })}
+                    className="hover:underline"
+                  >
                     {formatPhone(contact.phones[0])}
                   </a>
                   <a
@@ -92,7 +88,7 @@ export function Enquire() {
                 <dt className="text-muted-foreground">WhatsApp</dt>
                 <dd className="mt-0.5 font-medium">
                   <a
-                    href={demoHref}
+                    href={contactHref({ kind: "workshop" })}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="tnum hover:underline"

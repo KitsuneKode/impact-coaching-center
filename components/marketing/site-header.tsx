@@ -12,7 +12,8 @@ import Link from "next/link"
 import { useEffect, useId, useRef, useState } from "react"
 
 import { ButtonAnchor } from "@/components/ui/button"
-import { brand, callHref, demoHref, offer } from "@/lib/brand"
+import { brand, offer } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 
 const nav = [
   { href: "/courses", label: "Courses" },
@@ -95,7 +96,7 @@ export function SiteHeader() {
             </Link>
           ))}
           <ButtonAnchor
-            href={demoHref}
+            href={contactHref({ kind: "workshop" })}
             target="_blank"
             size="sm"
             className="ml-1 rounded-[0.5rem]"
@@ -106,7 +107,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2 lg:hidden">
           <a
-            href={callHref}
+            href={contactHref({ kind: "call" })}
             aria-label="Call Impact Career Tutorials"
             className={`${group} inline-flex size-12 items-center justify-center`}
           >
@@ -167,7 +168,7 @@ export function SiteHeader() {
                 ))}
               </ul>
               <ButtonAnchor
-                href={demoHref}
+                href={contactHref({ kind: "workshop" })}
                 target="_blank"
                 size="lg"
                 className="mt-2 w-full"

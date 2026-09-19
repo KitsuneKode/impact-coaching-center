@@ -15,6 +15,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     { url: siteUrl, changeFrequency: "weekly", priority: 1 },
     { url: `${siteUrl}/courses`, changeFrequency: "weekly", priority: 0.9 },
+    // /success-stories sets its own canonical but was missing here, so
+    // nothing pointed crawlers at it.
+    {
+      url: `${siteUrl}/success-stories`,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
     ...courses,
   ]
 }

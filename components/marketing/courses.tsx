@@ -18,11 +18,10 @@ import {
   lectureStill,
   offer,
   tracks,
-  trackEnquiryHref,
-  trackFreeHref,
   type Track,
 } from "@/lib/brand"
 import { cn } from "@/lib/utils"
+import { contactHref } from "@/lib/contact"
 
 function startsLabel(iso: string) {
   return new Date(`${iso}T00:00:00+05:30`).toLocaleDateString("en-IN", {
@@ -105,7 +104,7 @@ function TrackCard({
       </div>
 
       <ButtonAnchor
-        href={trackEnquiryHref(track)}
+        href={contactHref({ kind: "track", exam: track.exam })}
         target="_blank"
         variant={featured ? "secondary" : "primary"}
         size="lg"
@@ -128,7 +127,7 @@ function TrackCard({
 
       {free ? (
         <a
-          href={trackFreeHref(track)}
+          href={contactHref({ kind: "track-free-workshop", exam: track.exam })}
           target="_blank"
           rel="noreferrer noopener"
           className={cn(

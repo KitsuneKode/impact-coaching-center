@@ -527,33 +527,13 @@ export function youtubeWatch(id: string) {
   return `https://www.youtube.com/watch?v=${id}`
 }
 
-export function whatsappHref(message: string) {
-  return `https://wa.me/${contact.whatsapp.replace("+", "")}?text=${encodeURIComponent(message)}`
-}
-
-export const demoHref = whatsappHref(
-  "Hello ICT, I would like to try a free workshop before joining. Which courses have one?"
-)
-
-export function trackEnquiryHref(track: Track) {
-  return whatsappHref(
-    `Hello ICT, I want to join the ${track.exam} batch. Please share the next steps.`
-  )
-}
-
-export function trackFreeHref(track: Track) {
-  return whatsappHref(
-    `Hello ICT, I would like to try the free ${track.exam} workshop on the app.`
-  )
-}
-
-export function courseEnrolHref(name: string) {
-  return whatsappHref(
-    `Hello ICT, I want to enrol in ${name}. Please share the next steps.`
-  )
-}
-
-export const callHref = `tel:${contact.phones[0]}`
+/*
+ * The five wa.me/tel helpers that used to live here moved to lib/contact.ts.
+ * They were shallow - five builders differing only by message string - and
+ * every call site had to pick one, then repeat target/rel itself, so adding
+ * a single analytics event meant editing eleven files. Callers now state an
+ * EnquiryIntent and one module owns the wording, the encoding and the channel.
+ */
 
 /** "+918638061175" -> "+91 86380 61175" */
 export function formatPhone(phone: string) {

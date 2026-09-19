@@ -22,7 +22,6 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
 import {
   brand,
-  callHref,
   contact,
   facultyBySlug,
   fees,
@@ -31,8 +30,8 @@ import {
   listedCourseIds,
   schedules,
   trackForCourse,
-  courseEnrolHref,
 } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 import { catalogue, courseById, courseBySlug, inr } from "@/lib/catalogue"
 import { siteUrl } from "@/lib/site"
 
@@ -221,7 +220,10 @@ export default async function CoursePage({
                 style={delay(260)}
               >
                 <ButtonAnchor
-                  href={courseEnrolHref(course.short)}
+                  href={contactHref({
+                    kind: "course",
+                    courseName: course.short,
+                  })}
                   target="_blank"
                   size="lg"
                 >
@@ -230,7 +232,11 @@ export default async function CoursePage({
                     : `Enrol in ${course.short}`}
                   <IconArrowRight data-nudge stroke={1.75} />
                 </ButtonAnchor>
-                <ButtonAnchor href={callHref} variant="secondary" size="lg">
+                <ButtonAnchor
+                  href={contactHref({ kind: "call" })}
+                  variant="secondary"
+                  size="lg"
+                >
                   <IconPhone stroke={1.6} />
                   <span className="tnum">{formatPhone(contact.phones[0])}</span>
                 </ButtonAnchor>

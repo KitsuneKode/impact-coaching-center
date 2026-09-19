@@ -3,7 +3,8 @@ import { IconPlus } from "@tabler/icons-react"
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
-import { demoHref, fees, included, offer } from "@/lib/brand"
+import { fees, included, offer } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 
 /**
  * What one fee covers, for every batch.
@@ -29,7 +30,7 @@ export function Fees() {
             </h2>
 
             <ButtonAnchor
-              href={demoHref}
+              href={contactHref({ kind: "workshop" })}
               target="_blank"
               size="lg"
               className="mt-8 w-full sm:w-auto"

@@ -5,7 +5,8 @@ import { IconArrowRight } from "@tabler/icons-react"
 import { useDaysUntilBatch } from "@/components/marketing/batch-countdown"
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
-import { demoHref, nextBatch, offer } from "@/lib/brand"
+import { nextBatch, offer } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 
 /**
  * Kobbe's closing move: one two-tone sentence and one button.
@@ -37,7 +38,7 @@ export function FinalCta() {
             </span>
           </h2>
           <ButtonAnchor
-            href={demoHref}
+            href={contactHref({ kind: "workshop" })}
             target="_blank"
             size="lg"
             className="self-start md:self-auto"

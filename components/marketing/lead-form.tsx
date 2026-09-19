@@ -11,16 +11,10 @@ import { useActionState, useId } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Button, ButtonAnchor } from "@/components/ui/button"
-import {
-  callHref,
-  contact,
-  formatPhone,
-  offer,
-  timings,
-  whatsappHref,
-} from "@/lib/brand"
+import { contact, formatPhone, offer, timings } from "@/lib/brand"
 import { enquiryCourses } from "@/lib/leads"
 import { cn } from "@/lib/utils"
+import { contactHref } from "@/lib/contact"
 
 const field =
   "h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground shadow-frame transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-[invalid=true]:border-destructive"
@@ -118,16 +112,24 @@ export function LeadForm() {
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <ButtonAnchor
-                href={whatsappHref(
-                  `Hello ICT, I am ${state.name}. I just enquired about ${state.course}, ${state.timing.toLowerCase()} batch. My number is ${state.phone}.`
-                )}
+                href={contactHref({
+                  kind: "handoff",
+                  name: state.name,
+                  course: state.course,
+                  timing: state.timing,
+                  phone: state.phone,
+                })}
                 target="_blank"
                 size="lg"
               >
                 <IconBrandWhatsapp stroke={1.6} />
                 Continue on WhatsApp
               </ButtonAnchor>
-              <ButtonAnchor href={callHref} variant="secondary" size="lg">
+              <ButtonAnchor
+                href={contactHref({ kind: "call" })}
+                variant="secondary"
+                size="lg"
+              >
                 Call{" "}
                 <span className="tnum">{formatPhone(contact.phones[0])}</span>
               </ButtonAnchor>
