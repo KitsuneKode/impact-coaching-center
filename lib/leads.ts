@@ -40,18 +40,33 @@ export type ParseResult =
   | { ok: true; lead: Lead }
   | { ok: false; errors: FieldErrors }
 
-/** Indian mobile numbers start 6-9 and are ten digits. */
-const MOBILE = /^[6-9]\d{9}$/
+/**
+ * Indian mobile numbers start 6-9 and are ten digits, optionally written with
+ * a +91 or 91 country code, or a trunk 0.
+ *
+ * The whole input must match. An earlier version stripped non-digits and took
+ * the last ten, which silently turned "9876543210 ext 123" into
+ * +916543210123 - a real but entirely different number - and turned foreign
+ * numbers into Indian ones. This string is the natural key for a Person and
+ * the destination of a verification code, so accepting a number nobody typed
+ * means messaging a stranger.
+ */
+const MOBILE = /^(?:\+?91)?0?([6-9]\d{9})$/
 
 function toE164(input: string): E164 | null {
-  const digits = input.replace(/\D/g, "").slice(-10)
-  return MOBILE.test(digits) ? (`+91${digits}` as E164) : null
+  // Only separators people actually type are forgiven; anything else, letters
+  // included, must fail rather than be quietly discarded.
+  const cleaned = input.replace(/[\s()\-.]/g, "")
+  const match = MOBILE.exec(cleaned)
+  return match ? (`+91${match[1]}` as E164) : null
 }
 
 export function parseLead(input: Record<string, string>): ParseResult {
   const name = (input.name ?? "").trim()
-  const course = input.course ?? ""
-  const timing = input.timing ?? ""
+  // Trimmed like the name: a pasted value with a trailing space otherwise
+  // fails with "Please pick a course" after the user did pick one.
+  const course = (input.course ?? "").trim()
+  const timing = (input.timing ?? "").trim()
   const phone = toE164(input.phone ?? "")
 
   const errors: FieldErrors = {}
@@ -68,6 +83,8 @@ export function parseLead(input: Record<string, string>): ParseResult {
     errors.timing = "Please pick a time of day."
   }
 
+  // `!phone` is not redundant with the error check: it is what narrows
+  // E164 | null to E164 for the return below.
   if (!phone || Object.keys(errors).length > 0) return { ok: false, errors }
 
   return {
