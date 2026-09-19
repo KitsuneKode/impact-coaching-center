@@ -69,7 +69,6 @@ describe("resolveSiteUrl", () => {
     expect(
       resolveSiteUrl({
         NEXT_PUBLIC_SITE_URL: "https://impactcareertutorials.in",
-        CF_PAGES_URL: "https://preview.example.workers.dev",
       })
     ).toBe("https://impactcareertutorials.in")
   })
@@ -108,9 +107,9 @@ export function resolveSiteUrl(env: NodeJS.ProcessEnv): string {
   const explicit = env.NEXT_PUBLIC_SITE_URL
   if (explicit) return explicit.replace(/\/$/, "")
 
-  // Cloudflare Workers, the host this project deploys to.
-  if (env.CF_PAGES_URL) return env.CF_PAGES_URL.replace(/\/$/, "")
-
+  // Workers exposes no deployment-URL variable of its own - unlike
+  // Cloudflare Pages - so production must set NEXT_PUBLIC_SITE_URL
+  // explicitly in wrangler.jsonc. There is nothing to fall back to.
   if (env.NODE_ENV === "production") {
     throw new Error(
       "NEXT_PUBLIC_SITE_URL must be set in production. Falling back to localhost would publish localhost URLs in canonicals, the sitemap and the LocalBusiness @id."
@@ -363,7 +362,16 @@ if (String(formData.get("company") ?? "").length > 0) {
 }
 
 if (!parsed.ok) {
-  return { status: "error", errors: parsed.errors, values: { ...rawValues } }
+  return {
+    status: "error",
+    errors: parsed.errors,
+    values: {
+      name: String(formData.get("name") ?? ""),
+      phone: String(formData.get("phone") ?? ""),
+      course: String(formData.get("course") ?? ""),
+      timing: String(formData.get("timing") ?? ""),
+    },
+  }
 }
 ```
 
