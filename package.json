@@ -39,6 +39,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "convex-test": "^0.0.59",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
     "tailwindcss": "^4",
