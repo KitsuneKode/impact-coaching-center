@@ -109,7 +109,7 @@ They need observable deployments, narrow modules, reversible releases, documente
 | `/cart`                                       | Persistent cart and totals                                                                    |
 | `/checkout`                                   | Contact, address, delivery charge, summary, and Razorpay hand-off                             |
 | `/order/[reference]`                          | Safe order result and fulfilment status                                                       |
-| `/sign-in`                                    | Phone verification and sign-in for downloads and checkout                                     |
+| `/sign-in`                                    | Phone verification and sign-in for the Reader and checkout                                    |
 | `/account`                                    | Own orders, unlocked resources, saved addresses, and profile                                  |
 | `/library`                                    | Plans, facilities, rules, timings, and application                                            |
 | `/contact`                                    | Phone, WhatsApp, Telegram, address, hours, and map                                            |
@@ -200,20 +200,20 @@ Every mutable table includes creation/update timestamps and the actor or source 
 
 ### Core tables
 
-- `users`: profile record keyed by the Better Auth user identity — role, display name, phone number in E.164, phone-verified state, optional real email, active state. Better Auth's own credential, session, and verification tables belong to the component and are not written directly.
-- `addresses`: saved delivery addresses belonging to a user.
-- `messages`: outbound and inbound WhatsApp or email records — purpose, template, direction, related user or lead, provider message identifier, delivery status, error, and timestamps.
-- `leads`: contact details, interest, source, campaign, status, assignee, next follow-up, consent, optional linked user, phone-verified state, and WhatsApp service-window expiry.
-- `leadActivities`: status transitions, notes, calls/WhatsApp handoffs, and actor.
+- `persons`: one record per mobile number in E.164, which is the natural key — name, optional real email, `verifiedAt`, role (`student` / `staff` / `owner`), lead status (`new` / `contacted` / `interested` / `enrolled` / `lost`), assignee, next follow-up, source, campaign, interest Track, consent (granted flag, timestamp, wording version), and WhatsApp service-window expiry. There is no separate lead table: an unverified enquirer and a verified account holder are the same record, distinguished by `verifiedAt`. See ADR-0001. Better Auth's own credential, session, and verification tables belong to the component and are not written directly; a verified Better Auth identity attaches to the Person with the matching phone number.
+- `addresses`: saved delivery addresses belonging to a Person.
+- `messages`: outbound and inbound WhatsApp or email records — purpose, template, direction, related Person, provider message identifier, delivery status, error, and timestamps.
+- `activities`: status transitions, notes, calls and WhatsApp handoffs against a Person, with the actor. Free text lives here, never on the Person record.
 - `courses`: mutable public presentation layered over imported catalogue identifiers.
-- `resources`: title, slug, category, exam, subject, year, description, R2 object key, file metadata, publish state.
-- `resourceAccesses`: resource, user, consent, source, granted timestamp.
-- `books`: slug, title, authors, edition, category, price in paise, stock, cover, contents, dimensions/weight if used for fulfilment.
-- `orders`: internal reference, owning user, immutable customer/address snapshot, immutable totals, Razorpay identifiers, payment state, fulfilment state, tracking.
+- `resources`: title, slug, category, Exam, subject, year, description, R2 key of the source document, publish state (`draft` / `processing` / `published`), and page count.
+- `resourcePages`: resource, page number, R2 keys for each rendered width, and conversion state. Rasterization is per page so a failure resumes rather than restarting. See ADR-0003.
+- `resourceAccesses`: resource, Person, consent, source, granted timestamp. Written once per Person per Resource, not per page view.
+- `books`: slug, title, authors, edition, category, list price and selling price in paise, `active` flag, cover, contents, optional approved sample pages, and dimensions/weight if used for fulfilment. ICT does not want inventory management, so there are no stock counts and nothing is ever deleted — a book is enabled or disabled.
+- `orders`: a human-readable reference such as `ICT-2609-0143`, owning Person, immutable customer/address snapshot, immutable totals, delivery method (`ship` or `pickup`), Razorpay identifiers, payment state, fulfilment state, courier name and tracking number.
 - `orderItems`: order, book snapshot, quantity, unit price.
 - `paymentEvents`: verified provider event ID, event type, processing result, timestamps; unique for idempotency.
 - `libraryPlans`: name, term, price display if relevant, facilities, rules, active state.
-- `libraryApplications`: applicant, optional linked user, plan, preferred start, status, notes, consent.
+- `libraryApplications`: applicant Person, plan, preferred start, status, notes, consent.
 - `promotions`: content, placement, target routes, CTA, schedule, priority, dismissal rule, campaign ID, publish state.
 - `siteSettings`: approved contact, social, delivery, and small operational values.
 
@@ -248,7 +248,7 @@ One `users` table with a `role` field. There is no separate admin identity syste
 
 | Role      | Capabilities                                                        |
 | --------- | ------------------------------------------------------------------- |
-| `student` | Own orders, own resource downloads, own profile and saved addresses |
+| `student` | Own orders, own unlocked Resources, own profile and saved addresses |
 | `staff`   | Leads, orders, applications, catalogue, resources, promotions       |
 | `owner`   | Staff capabilities plus user roles and site settings                |
 
@@ -262,15 +262,15 @@ Roles are enforced inside Convex functions. A valid session proves identity only
 | Course enquiry and lead forms                          | No                      |
 | Library application                                    | No                      |
 | Cart                                                   | No                      |
-| Free resource download                                 | Yes                     |
+| Reading a free Resource                                | Yes                     |
 | Checkout and order history                             | Yes                     |
 | Admin                                                  | Yes, `staff` or `owner` |
 
-Enquiries and library applications stay open because they are top-of-funnel and ICT's priority is more of them, not fewer better ones. Resource downloads and checkout require a verified account.
+Enquiries and library applications stay open because they are top-of-funnel and ICT's priority is more of them, not fewer better ones. Reading a Resource and checking out require a verified account.
 
-Verification is per person, not per action. Once a student verifies their phone, a durable session makes every later download a single click, so expected volume is roughly one OTP per new student rather than one per download.
+Verification is per Person, not per action. Once someone verifies their mobile number, a durable 90-day sliding session makes every later Resource a single tap, so expected volume is roughly one OTP per new Person rather than one per Resource. Staff sessions are shorter, at 7 days, because they hold everyone else's data.
 
-Gating the file does not gate the page. Resource detail pages remain server-rendered, indexable, and fully descriptive; only the file delivery is behind the account.
+Gating the document does not gate the page. Resource detail pages remain server-rendered, indexable, and fully descriptive; only the Reader is behind the account.
 
 ### OTP mechanics
 
@@ -293,7 +293,7 @@ A development logger transport must be gated on deployment environment. The plug
 WhatsApp Business Cloud API, used directly rather than through a reseller:
 
 - Authentication template for OTP; approved language variants, English at minimum.
-- The sender number must be dedicated. It cannot already be in use on the WhatsApp or WhatsApp Business app.
+- Sender number: verify coexistence eligibility against ICT's own Meta Business account before requiring a new number. Meta's Coexistence feature, released in May 2025 and generally available since, allows one number to run the WhatsApp Business app and the Cloud API together while retaining chat history. It does not cover personal WhatsApp, and feature support varies, so this is a verification step rather than an assumption in either direction.
 - Verification orchestrators such as Twilio Verify are rejected: their WhatsApp channel falls back to SMS for India, which reintroduces the DLT registration and deliverability problems this channel exists to avoid.
 
 **Interim fallback.** Meta business verification and display-name approval have an unpredictable lead time. Until the live sender is approved, OTP delivery falls back to email OTP on a transactional email provider's free tier, and the resource gate collects a real email. This fallback is a launch dependency, not a permanent channel, and is removed once the sender is live.
@@ -412,18 +412,18 @@ Resource discovery must remain useful before the gate. Search and filters expose
 
 Unlock flow:
 
-1. Visitor selects a resource. The detail page is public, indexable, and describes the file fully before anything is asked of them.
-2. If the visitor already has a session, the download starts immediately. This is the common case after the first unlock.
-3. Otherwise a focused dialog explains that ICT asks for a verified phone number once, and what it will and will not be used for.
-4. Name and mobile are required. Turnstile is verified server-side, then an OTP is sent.
+1. Visitor selects a Resource. The detail page is public, indexable, and describes the document fully before anything is asked of them.
+2. If the visitor already has a session, the Reader opens immediately. This is the common case after the first unlock.
+3. Otherwise a focused dialog explains that ICT asks for a verified mobile number once, and what it will and will not be used for.
+4. Name and mobile are required. Turnstile is verified server-side, then an OTP is sent over WhatsApp.
 5. Consent is explicit and stored with its wording version.
-6. On verification, Convex creates the user, links or creates the lead, and records the resource access.
-7. Access is granted immediately through a short-lived, controlled R2 delivery path.
+6. On verification, Convex creates or matches the Person by phone number and records the resource access.
+7. The Reader opens on the rendered pages, served from R2 through short-lived, controlled URLs. The source document is never handed to the browser.
 8. PostHog receives only the resource and campaign identifiers.
 
-Rate limiting, bot mitigation, safe filenames, upload validation, and access logging are required. The site must never claim a PDF is private after providing a bearer download URL.
+Rate limiting, bot mitigation, safe filenames, upload validation, and access logging are required.
 
-Verification happens once per student, not once per download. If OTP delivery is unavailable, the gate must say so honestly and offer the email fallback described in §10 rather than silently failing or silently letting the file through.
+Verification happens once per Person, not once per Resource, so the expected volume is roughly one OTP per new Person. Per ADR-0003 there is no download: the client's requirement is that documents not be directly downloadable, and the Reader is how that is honoured. Serving images does not make a Resource private — anything rendered can be screenshotted — and the site must never claim otherwise.
 
 ## 14. Physical-book commerce
 
@@ -514,7 +514,7 @@ No contract or UI may guarantee a first position for “best APSC coaching centr
 - Add truthful Organization, LocalBusiness, Course, Product, Offer, Breadcrumb, and applicable FAQ structured data.
 - Validate structured data with Google's supported tools.
 - Preserve server-rendered, crawlable course/resource/book content.
-- Keep resource detail pages fully indexable even though the file download requires an account; gate the file, never the page.
+- Keep resource detail pages fully indexable even though the Reader requires an account; gate the document, never the page.
 - Establish internal links between exam hubs, courses, resources, books, faculty, results, and contact.
 - Optimize Core Web Vitals, images, fonts, and low-bandwidth behavior.
 - Verify and complete the Google Business Profile with consistent name, address, phone, categories, hours, services, photographs, and website.
@@ -660,7 +660,7 @@ Before production launch:
 - Resource PDFs, categories, update dates, authorship/review ownership, and lead-consent wording.
 - Library plans, capacity language, facilities, timings, rules, review owner, and follow-up promise.
 - Razorpay account/KYC, settlement owner, refund owner, and reconciliation process.
-- A dedicated phone number for the WhatsApp sender that is not already in use on the WhatsApp or WhatsApp Business app.
+- The WhatsApp sender number, and confirmation of whether it can run under Meta Coexistence alongside ICT's existing WhatsApp Business app or must be a new number.
 - Meta business verification documents, the approved display name, and approved template wording and languages.
 - Approved consent wording for phone verification and for operational messages.
 - The named staff member responsible for audited phone-number changes.
