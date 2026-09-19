@@ -1,24 +1,38 @@
-import { contact } from "./brand"
+import { contact, type Track } from "./brand"
 
 /**
  * Why someone is contacting ICT, rather than the URL that gets them there.
  *
  * Call sites used to build `wa.me` deep links themselves from five
  * near-identical helpers, so the message copy - which is marketing copy the
- * owner will want to change - lived in five places, and adding a single
- * analytics event or campaign parameter meant editing eleven files.
+ * owner will want to change - lived in five places, and a campaign parameter
+ * or a channel change meant editing eleven files. Those are now one-file
+ * edits, which is what this module buys.
  *
- * Stating the intent instead means one module owns the wording, the encoding
- * and the choice of channel, and there is exactly one place for instrumentation
- * to attach later.
+ * What it does not buy, despite the obvious assumption: this is a pure string
+ * builder called during render, so it cannot fire a click event. Spec section
+ * 17's `cta_clicked` and `whatsapp_handoff` need an onClick on the anchor, and
+ * the anchors are still hand-written at each call site - five of which are
+ * Server Components. Instrumentation needs a small client component owning the
+ * element; adding it here would do nothing.
  */
 export type EnquiryIntent =
   | { kind: "workshop" }
-  | { kind: "track"; exam: string }
-  | { kind: "track-free-workshop"; exam: string }
+  | { kind: "track"; exam: Track["exam"] }
+  | { kind: "track-free-workshop"; exam: Track["exam"] }
   | { kind: "course"; courseName: string }
+  /**
+   * The WhatsApp continuation after someone submits the enquiry form. Named
+   * for spec section 17's `whatsapp_handoff` event, and deliberately not
+   * "handoff" alone - CONTEXT.md reserves "Enrolment handoff" for sending a
+   * Person to Classplus, which is the `course` intent below.
+   *
+   * Carries a name and a phone number. Spec section 17 prohibits both in
+   * analytics events: instrumentation may send `intent.kind` and nothing
+   * else. Never spread an intent into event properties.
+   */
   | {
-      kind: "handoff"
+      kind: "whatsapp-handoff"
       name: string
       course: string
       timing: string
@@ -26,7 +40,7 @@ export type EnquiryIntent =
     }
   | { kind: "call" }
 
-function message(intent: EnquiryIntent): string {
+function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
   switch (intent.kind) {
     case "workshop":
       return "Hello ICT, I would like to try a free workshop before joining. Which courses have one?"
@@ -36,12 +50,8 @@ function message(intent: EnquiryIntent): string {
       return `Hello ICT, I would like to try the free ${intent.exam} workshop on the app.`
     case "course":
       return `Hello ICT, I want to enrol in ${intent.courseName}. Please share the next steps.`
-    case "handoff":
+    case "whatsapp-handoff":
       return `Hello ICT, I am ${intent.name}. I just enquired about ${intent.course}, ${intent.timing.toLowerCase()} batch. My number is ${intent.phone}.`
-    case "call":
-      // Unreachable: a call carries no message. Narrowing keeps the switch
-      // exhaustive so a new intent kind is a compile error, not a silent gap.
-      throw new Error("A call intent has no message.")
   }
 }
 

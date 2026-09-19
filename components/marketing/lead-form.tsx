@@ -12,9 +12,9 @@ import { useActionState, useId } from "react"
 import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Button, ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, offer, timings } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 import { enquiryCourses } from "@/lib/leads"
 import { cn } from "@/lib/utils"
-import { contactHref } from "@/lib/contact"
 
 const field =
   "h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground shadow-frame transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-[invalid=true]:border-destructive"
@@ -113,7 +113,7 @@ export function LeadForm() {
             <div className="mt-3 flex flex-wrap gap-3">
               <ButtonAnchor
                 href={contactHref({
-                  kind: "handoff",
+                  kind: "whatsapp-handoff",
                   name: state.name,
                   course: state.course,
                   timing: state.timing,
