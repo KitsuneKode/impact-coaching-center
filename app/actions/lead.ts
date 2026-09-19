@@ -36,7 +36,12 @@ const webhookSink: LeadSink = {
     const payload = { ...lead, receivedAt: new Date().toISOString() }
 
     if (!webhook) {
-      console.info("[lead]", payload)
+      // Deliberately not the payload: this is the default path whenever the
+      // variable is unset, including a production deploy where someone forgot
+      // it, and the payload is a name and a mobile number.
+      console.info(
+        `[lead] received (no LEAD_WEBHOOK_URL set, not delivered) course=${lead.course}`
+      )
       return
     }
 

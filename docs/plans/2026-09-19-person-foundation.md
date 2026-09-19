@@ -20,7 +20,7 @@ spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 
 - **Next.js floor:** `@opennextjs/cloudflare` declares `next: ">=15.5.24 <16 || >=16.3.3"`. Never downgrade below 16.3.3. Current: 16.3.5.
 - **Version pins:** `better-auth` is pinned at `1.6.33` because `@convex-dev/better-auth@0.12.5` requires `>=1.6.11 <1.7.0`. Do not upgrade `better-auth` independently.
-- **Vocabulary is binding.** Use `Person`, `Track`, `Course`, `Exam`, `Resource`, `Reader`, `Book`, `Order` exactly as `CONTEXT.md` defines them. Never write `user`, `lead`, `customer` or `student` as a table or type name.
+- **Vocabulary is binding.** Use `Person`, `Track`, `Course`, `Exam`, `Resource`, `Reader`, `Book`, `Order` exactly as `CONTEXT.md` defines them. Never write `user`, `customer` or `student` as a table or type name. `Lead` is sanctioned for the follow-up pipeline and its validated payload (`Lead`, `LeadSink`, `parseLead`) but never as a table; `student`/`staff`/`owner` are role _values_, not type names.
 - **One record per mobile number.** There is no `leads` table and no `users` table. See ADR-0001.
 - **Never log or return an OTP.** The development transport must be gated on deployment environment: the plugin stores the code even when delivery does nothing, so a no-op transport in production is a silent authentication bypass.
 - **Authentication is not authorization.** Every Convex function checks role and record ownership itself.
@@ -938,6 +938,24 @@ Each produces working software on its own. Neither can be specified honestly unt
   original design, because choosing the logger became a deliberate, auditable act.
 - **Branded `E164` in tests.** Comparing against a string literal fails typecheck, which
   is the brand working; assertions widened with `String(...)`.
+
+## Divergences found by review, not by the plan
+
+A review of the branch found four things the divergence log above missed, all now fixed:
+
+- **`upsertPersonByPhone` had zero callers**, so verification created a Better Auth
+  user and no Person. The slice's headline deliverable did not exist. Now wired through
+  `callbackOnVerification`.
+- **`lib/auth-client.ts` was listed under Task 4's files and never created.** It is not
+  needed until a client component signs in, which is plan 2.
+- **`E164` was not consumed at the Convex boundary**, despite Task 3 declaring it.
+- **The `tsconfig.json` change Task 3 lists** was never made; Convex generates its own
+  `convex/tsconfig.json`, which is what the project actually uses.
+
+It also found that `toE164` silently rewrote numbers — `"9876543210 ext 123"` became
+`+916543210123`, a different real mobile — and that three comments in this slice
+asserted the opposite of what the code did. Both classes of defect are fixed, and the
+comments now match behaviour.
 
 ## Open questions this plan assumes an answer to
 

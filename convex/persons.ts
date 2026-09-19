@@ -22,7 +22,14 @@ export function mergePersonName(stored: string, incoming: string): string {
  * Phone is the natural key, so every entry point - an enquiry, a verification,
  * a book order - lands on the same record. Convex mutations are serializable,
  * so two concurrent callers cannot both insert: the second conflicts and
- * retries, then finds the row the first wrote.
+ * retries, then finds the row the first wrote. That holds because the read
+ * and the write are in the same mutation; splitting the lookup into a query
+ * and the insert into a separate mutation would silently break it.
+ *
+ * `.unique()` throws if duplicates already exist, and Convex has no unique
+ * index to prevent them. A duplicate introduced by hand in the dashboard
+ * would therefore make every later upsert for that number throw until it is
+ * reconciled - loudly, which is the right failure for a natural key.
  */
 export async function upsertPersonByPhone(
   ctx: MutationCtx,

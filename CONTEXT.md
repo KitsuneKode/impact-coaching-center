@@ -40,6 +40,13 @@ _Avoid_: lead form submission, contact request
 Where a Person sits in ICT's follow-up pipeline: New, Contacted, Interested, Enrolled or Lost. A field on the Person, not a separate record.
 _Avoid_: stage, pipeline position
 
+**Lead**:
+A Person who has entered the follow-up pipeline, and the validated payload that puts them there. Sanctioned as a code-level name (`Lead`, `LeadSink`, `parseLead`) because the pipeline is the thing being named; it is never a table, and it never substitutes for **Person**.
+_Avoid_: prospect, contact
+
+**Role value**:
+`student`, `staff` and `owner` are field _values_ on a Person, not type names, so they are exempt from the words listed under _Avoid_ for **Person**.
+
 ### Materials and commerce
 
 **Resource**:
