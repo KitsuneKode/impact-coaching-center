@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { requireEnv } from "./env"
+import { parseTrustedOrigins, requireEnv } from "./env"
 
 describe("requireEnv", () => {
   test("returns a set value", () => {
@@ -23,5 +23,37 @@ describe("requireEnv", () => {
     // mistake this helper cannot distinguish from a deliberate value, and
     // silently rejecting it would be its own surprise.
     expect(requireEnv("SITE_URL", " ")).toBe(" ")
+  })
+})
+
+describe("parseTrustedOrigins", () => {
+  test("accepts a single origin", () => {
+    expect(parseTrustedOrigins("https://ict.in")).toEqual(["https://ict.in"])
+  })
+
+  test("splits a comma-separated list", () => {
+    expect(
+      parseTrustedOrigins("http://localhost:3000,https://preview.vercel.app")
+    ).toEqual(["http://localhost:3000", "https://preview.vercel.app"])
+  })
+
+  test("trims whitespace around entries", () => {
+    expect(parseTrustedOrigins(" https://a.in , https://b.in ")).toEqual([
+      "https://a.in",
+      "https://b.in",
+    ])
+  })
+
+  test("drops empty entries so a trailing comma cannot widen trust", () => {
+    expect(parseTrustedOrigins("https://ict.in,")).toEqual(["https://ict.in"])
+    expect(parseTrustedOrigins("https://a.in,,https://b.in")).toEqual([
+      "https://a.in",
+      "https://b.in",
+    ])
+  })
+
+  test("refuses a value that yields no origin at all", () => {
+    expect(() => parseTrustedOrigins(",,")).toThrow(/empty trusted-origin/i)
+    expect(() => parseTrustedOrigins("   ")).toThrow(/empty trusted-origin/i)
   })
 })
