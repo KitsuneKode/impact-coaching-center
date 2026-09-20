@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ticket: none (raise a KIT-<n> under "Impact Website" before starting; label it as content/contract work)
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -185,6 +185,29 @@ If either script fails to import `docx` (absolute path does not exist on this ma
 - [ ] `bun run format:check` exits 0
 - [ ] Either the binaries are regenerated, or the report names which ones are stale
 - [ ] `docs/plans/README.md` status row updated
+
+## Executed — 20 September 2026
+
+Steps 1-4 landed. The quotation, both generators and the change-note are done;
+`Clerk` and `Resend` are gone from every Markdown and generator source, and the
+only remaining `stock` is the correct `stock-counted` phrasing on quotation
+line 51.
+
+More occurrences existed than the plan cited - `generate-final-quotation.mjs`
+also carried them at 334, 420, 527 and 566, and `generate-client-materials.mjs`
+at 1803. The done criteria ("0 matches") governed, so all were fixed.
+
+The `docx` import resolved on this machine, so the DOCX and PPTX were
+regenerated: `ICT-Brief-Project-Proposal.docx`,
+`ICT-Digital-Growth-Platform-Presentation.pptx`,
+`ICT-Final-Project-Quotation.docx` and
+`ICT-Project-Proposal-and-Quotation.docx`.
+
+**The four PDFs under `client-materials/pdf/` are stale.** They still contain
+the removed terms - `ICT-Final-Project-Quotation.pdf` alone has six matches.
+Nothing in the repo converts DOCX to PDF and LibreOffice is not on this
+machine, so they were left rather than hand-converted. **Do not send the PDFs
+to ICT until they are regenerated from the new DOCX.**
 
 ## STOP conditions
 

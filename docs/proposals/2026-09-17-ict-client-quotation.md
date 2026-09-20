@@ -85,7 +85,7 @@ Ongoing Google Business Profile publishing, review operations, local citation wo
 - One recorded staff onboarding session covering promotions, books, resources, enquiries, applications, and order fulfilment.
 - Technical documentation and 30 days of post-launch defect support.
 
-Production accounts for the domain, Cloudflare, Convex, Clerk, PostHog, Razorpay, Google Search Console, and Google Business Profile will be owned by ICT. Any paid third-party usage is billed directly to ICT.
+Production accounts for the domain, Cloudflare, Convex, Meta WhatsApp Business, PostHog, Razorpay, Google Search Console, and Google Business Profile will be owned by ICT. Any paid third-party usage is billed directly to ICT.
 
 ## Delivery stages
 
@@ -98,7 +98,7 @@ Production accounts for the domain, Cloudflare, Convex, Clerk, PostHog, Razorpay
 
 ## Client responsibilities
 
-ICT will provide and approve its official name, address, hours, contacts, course information, fees, schedules, faculty information, results evidence and permissions, resource files, book data and covers, stock, delivery charges, library rules, legal policies, payment account, and responsible staff contacts.
+ICT will provide and approve its official name, address, hours, contacts, course information, fees, schedules, faculty information, results evidence and permissions, resource files, book data and covers, which books are available to order, delivery charges, library rules, legal policies, payment account, and responsible staff contacts.
 
 Delays in content, approvals, account verification, or payment-provider onboarding may move the delivery date. New functionality requested after scope approval will be estimated separately before work begins.
 

@@ -331,7 +331,7 @@ const quotation = new Document({
           },
           {
             title: "Commerce and communication",
-            body: "Verified Razorpay checkout with transactional order email through Resend.",
+            body: "Verified Razorpay checkout with WhatsApp order updates.",
           },
           {
             title: "Measurable growth",
@@ -413,11 +413,11 @@ const quotation = new Document({
           },
           {
             title: "Physical books",
-            body: "Catalogue, book details, stock, cart, address collection, Razorpay checkout, server-side payment verification, order states and fulfilment workflow.",
+            body: "Catalogue, book details, availability, cart, address collection, Razorpay checkout, server-side payment verification, order states and fulfilment workflow.",
           },
           {
             title: "Transactional email",
-            body: "Resend customer order confirmation, staff new-order notification and approved payment/order-status messages using a verified ICT sending domain.",
+            body: "WhatsApp customer order confirmation, staff new-order notification and approved payment/order-status messages using ICT's verified WhatsApp Business number.",
           },
           {
             title: "Library applications",
@@ -485,7 +485,7 @@ const quotation = new Document({
           HeadingLevel.HEADING_2
         ),
         bullet(
-          "ICT owns the production domain, Cloudflare/R2, Convex, Clerk, Razorpay, Resend, PostHog, Search Console and Google Business Profile accounts."
+          "ICT owns the production domain, Cloudflare/R2, Convex, Meta WhatsApp Business, Razorpay, PostHog, Search Console and Google Business Profile accounts."
         ),
         bullet(
           "The developer receives only the access required to build, deploy and maintain the platform."
@@ -505,7 +505,7 @@ const quotation = new Document({
         heading("Responsibilities and exclusions"),
         heading("ICT will provide and approve", HeadingLevel.HEADING_2),
         para(
-          "Official business details and contacts; courses, fees, schedules and syllabus; faculty information; results/testimonial evidence and permissions; books, covers, prices, stock and delivery rules; PDFs and categories; library details; legal policies; production-account verification; and one authorized decision-maker."
+          "Official business details and contacts; courses, fees, schedules and syllabus; faculty information; results/testimonial evidence and permissions; books, covers, prices, availability and delivery rules; PDFs and categories; library details; legal policies; production-account verification; and one authorized decision-maker."
         ),
         heading("Not included in this phase", HeadingLevel.HEADING_2),
         para(
@@ -521,10 +521,10 @@ const quotation = new Document({
         ),
         heading("Operational boundaries", HeadingLevel.HEADING_2),
         bullet(
-          "ICT remains responsible for book prices, stock accuracy, delivery areas and charges, packaging, dispatch, courier operation, customer support, cancellations and refund decisions."
+          "ICT remains responsible for book prices, availability, delivery areas and charges, packaging, dispatch, courier operation, customer support, cancellations and refund decisions."
         ),
         bullet(
-          "Resend requires an ICT-authorized sending domain. Inbox delivery cannot be guaranteed, and newsletters or promotional automation are excluded."
+          "WhatsApp messaging requires an ICT-authorized WhatsApp Business number. Message delivery depends on Meta, and newsletters or promotional automation are excluded."
         ),
         bullet(
           "Lead matching uses normalized phone/email identifiers, preserves every submission and flags conflicting matches for staff review; people are never merged only by name."
@@ -563,7 +563,7 @@ const quotation = new Document({
         ),
         heading("Acceptance checks", HeadingLevel.HEADING_2),
         para(
-          "Acceptance is based on the agreed routes and staging modules working materially as described: lead submission and repeat-lead history; resource access; test book order and verified payment state; Resend test email; library application; promotion scheduling; approved PostHog events; and responsive operation across the agreed mobile, iPad/tablet and laptop/desktop checks."
+          "Acceptance is based on the agreed routes and staging modules working materially as described: lead submission and repeat-lead history; resource access; test book order and verified payment state; WhatsApp test message; library application; promotion scheduling; approved PostHog events; and responsive operation across the agreed mobile, iPad/tablet and laptop/desktop checks."
         ),
         heading("Tax and invoicing", HeadingLevel.HEADING_2),
         para(
