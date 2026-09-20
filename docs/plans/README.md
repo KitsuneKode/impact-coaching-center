@@ -8,16 +8,17 @@ update your row here and the `status:` in the plan's header when done.
 
 ## Execution order and status
 
-| Plan                                            | Title                                                               | Priority | Effort | Depends on                              | Status |
-| ----------------------------------------------- | ------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | ------ |
-| `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)       | —        | —      | —                                       | DONE   |
-| `2026-09-20-client-materials-reconciliation.md` | Client documents agree with the ADRs; change-note drafted           | P1       | S      | —                                       | DONE   |
-| `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                      | P1       | M      | —                                       | DONE   |
-| `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows   | P1       | M      | — (before KIT-46)                       | DONE   |
-| `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                | P2       | M      | step 5 after/with the throttle plan     | DONE   |
-| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan | P2       | M      | throttle plan before any shared preview | DONE   |
+| Plan                                            | Title                                                               | Priority | Effort | Depends on                              | Status                                               |
+| ----------------------------------------------- | ------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | ---------------------------------------------------- |
+| `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)       | —        | —      | —                                       | DONE                                                 |
+| `2026-09-20-client-materials-reconciliation.md` | Client documents agree with the ADRs; change-note drafted           | P1       | S      | —                                       | DONE                                                 |
+| `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                      | P1       | M      | —                                       | DONE                                                 |
+| `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows   | P1       | M      | — (before KIT-46)                       | DONE                                                 |
+| `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                | P2       | M      | step 5 after/with the throttle plan     | DONE                                                 |
+| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan | P2       | M      | throttle plan before any shared preview | PARTIAL (build plan written; runtime half never run) |
+| `2026-09-20-sign-in-and-admin-leads.md`         | `/sign-in` + read-only `/admin/leads` (from the spike)              | P2       | L      | KIT-49 before any shared preview        | TODO                                                 |
 
-| `2026-09-20-sign-in-and-admin-leads.md` | `/sign-in` + read-only `/admin/leads` (from the spike) | P2 | L | KIT-49 before any shared preview | TODO |
+| `2026-09-20-library-draft.md` (no plan file) | `/library` as a draft plus its seven questions for ICT (KIT-50) | P2 | S | — | DONE (built to request, without a plan) |
 
 Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJECTED (one-line rationale).
 

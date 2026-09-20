@@ -138,6 +138,20 @@ export const policyBySlug = (slug: string) =>
   policies.find((policy) => policy.slug === slug)
 
 /**
+ * The document behind a policy route, or a build failure.
+ *
+ * Each route knows its own slug at module scope, so a missing document is a
+ * wiring mistake, not something a visitor can reach: failing the build names
+ * the problem, where a runtime 404 would quietly drop a route that is supposed
+ * to exist.
+ */
+export function requirePolicy(slug: PolicySlug): PolicyDocument {
+  const doc = policyBySlug(slug)
+  if (!doc) throw new Error(`No policy document declared for "${slug}"`)
+  return doc
+}
+
+/**
  * Metadata for one policy route.
  *
  * An unapproved document is kept out of search results. `robots` only ever

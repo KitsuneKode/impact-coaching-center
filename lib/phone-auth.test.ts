@@ -17,7 +17,7 @@ function harness() {
   let code = ""
   let deliveredTo = ""
   let failRecord = false
-  let allowSend = true
+  let sendRefusal: "phone" | "address" | "deployment" | null = null
   let throttled: { phone: string; ip: string | null } | null = null
   const auth = betterAuth({
     baseURL: "http://localhost:3000",
@@ -28,7 +28,7 @@ function harness() {
     ...phoneAuthOptions({
       throttle: async (target) => {
         throttled = target
-        return allowSend
+        return sendRefusal
       },
       send: async (target) => {
         code = target.code
@@ -55,8 +55,8 @@ function harness() {
     request,
     sentTo: () => deliveredTo,
     lastCode: () => code,
-    allowSend: (value: boolean) => {
-      allowSend = value
+    refuseSend: (scope: "phone" | "address" | "deployment" | null) => {
+      sendRefusal = scope
     },
     lastThrottle: () => throttled,
     failRecord: (value = true) => {
@@ -157,12 +157,12 @@ describe("phone authentication through the installed plugin", () => {
     const h = harness()
     await h.send()
     const live = h.lastCode()
-    h.allowSend(false)
+    h.refuseSend("phone")
     expect((await h.send()).status).toBe(429)
     // The throttle runs before the resend clears the previous row, so a
     // flood of refused sends cannot retire a code a real Person already has.
     expect(h.db.verification).toHaveLength(1)
-    h.allowSend(true)
+    h.refuseSend(null)
     expect((await h.verify(undefined, { code: live })).status).toBe(200)
   })
   test("the throttle sees the normalised number, never the raw input", async () => {
@@ -173,12 +173,12 @@ describe("phone authentication through the installed plugin", () => {
   test("verify is not throttled by the send ceiling", async () => {
     const h = harness()
     await h.send()
-    h.allowSend(false)
+    h.refuseSend("phone")
     expect((await h.verify()).status).toBe(200)
   })
   test("a refused send delivers nothing", async () => {
     const h = harness()
-    h.allowSend(false)
+    h.refuseSend("phone")
     expect((await h.send()).status).toBe(429)
     expect(h.sentTo()).toBe("")
     expect(h.db.verification).toHaveLength(0)

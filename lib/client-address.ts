@@ -26,10 +26,22 @@ function isIpv4(value: string) {
   )
 }
 
-function isIpv6(value: string) {
-  // Bracket form is what the URL parser accepts, and it rejects zone ids and
-  // trailing junk that a hand-written pattern tends to let through.
-  return value.includes(":") && URL.canParse(`http://[${value}]`)
+/**
+ * Canonical IPv6 text, or null.
+ *
+ * Canonicalising is the point, not a bonus. `2001:db8::1`, `2001:0db8::1` and
+ * `2001:DB8:0:0:0:0:0:1` are one address written three ways; validating
+ * without normalising would give each its own rate-limit bucket and let a
+ * caller mint as many as they can spell. The IPv4 branch guards exactly this
+ * with its no-leading-zeros rule, and IPv6 needs the same care.
+ *
+ * `URL` does the normalising: `hostname` comes back as `[2001:db8::1]`.
+ */
+function canonicalIpv6(value: string) {
+  if (!value.includes(":")) return null
+  const url = URL.parse(`http://[${value}]`)
+  const host = url?.hostname
+  return host?.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : null
 }
 
 export function parseClientAddress(
@@ -38,5 +50,6 @@ export function parseClientAddress(
   if (!forwarded) return null
   const first = forwarded.split(",")[0]?.trim()
   if (!first || first.length > MAX_LENGTH) return null
-  return isIpv4(first) || isIpv6(first) ? first : null
+  if (isIpv4(first)) return first
+  return canonicalIpv6(first)
 }

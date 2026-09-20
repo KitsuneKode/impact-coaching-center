@@ -1,11 +1,20 @@
 import { v } from "convex/values"
 
+import { parseClientAddress } from "../lib/client-address"
 import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
 import { consumeRateLimit } from "./persons"
 
-/** Raised when a caller exceeds a verification-code send ceiling. */
-export const OTP_SEND_LIMITED = "Verification code send limit reached."
+/**
+ * Which ceiling refused a send, or null when none did.
+ *
+ * Spec §10 asks a ceiling to "fail closed with a truthful message". A single
+ * boolean cannot carry one: telling someone behind a busy shared connection,
+ * or someone who hit the deployment-wide cap, that they asked too often for
+ * *their number* is simply untrue, and "wait a few minutes" is wrong advice
+ * for a twenty-four hour window.
+ */
+export type SendRefusal = "phone" | "address" | "deployment"
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -40,20 +49,49 @@ export const consumeSendAllowance = internalMutation({
   args: { phone: v.string(), ip: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const phone = toE164(args.phone)
-    if (!phone) return false
-    const checks: Array<[string, number, number]> = [
-      [`otp:phone:10m:${phone}`, SENDS_PER_PHONE_10_MIN, 10 * MINUTE],
-      [`otp:phone:day:${phone}`, SENDS_PER_PHONE_DAY, DAY],
-      ...(args.ip
-        ? ([[`otp:ip:${args.ip}`, SENDS_PER_IP_HOUR, HOUR]] as Array<
-            [string, number, number]
-          >)
+    if (!phone) return "phone" as SendRefusal
+    // Validated exactly as the enquiry path does. The address arrives from a
+    // header the caller controls, so an unchecked value would both evade this
+    // ceiling and mint a counter row per made-up spelling. ADR-0004.
+    const ip = parseClientAddress(args.ip)
+    const checks: Array<{
+      key: string
+      limit: number
+      windowMs: number
+      refusal: SendRefusal
+    }> = [
+      {
+        key: `otp:phone:10m:${phone}`,
+        limit: SENDS_PER_PHONE_10_MIN,
+        windowMs: 10 * MINUTE,
+        refusal: "phone",
+      },
+      {
+        key: `otp:phone:day:${phone}`,
+        limit: SENDS_PER_PHONE_DAY,
+        windowMs: DAY,
+        refusal: "phone",
+      },
+      ...(ip
+        ? [
+            {
+              key: `otp:ip:${ip}`,
+              limit: SENDS_PER_IP_HOUR,
+              windowMs: HOUR,
+              refusal: "address" as SendRefusal,
+            },
+          ]
         : []),
-      ["otp:global:day", SENDS_PER_DAY_GLOBAL, DAY],
+      {
+        key: "otp:global:day",
+        limit: SENDS_PER_DAY_GLOBAL,
+        windowMs: DAY,
+        refusal: "deployment",
+      },
     ]
-    for (const [key, limit, windowMs] of checks) {
-      if (!(await consumeRateLimit(ctx, key, limit, windowMs))) return false
+    for (const { key, limit, windowMs, refusal } of checks) {
+      if (!(await consumeRateLimit(ctx, key, limit, windowMs))) return refusal
     }
-    return true
+    return null
   },
 })

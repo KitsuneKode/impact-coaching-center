@@ -133,6 +133,13 @@ export const recordVerifiedPerson = internalMutation({
 /** Small enough to stay cheap on a hot path, large enough to keep up. */
 const PRUNE_PER_CALL = 10
 
+/**
+ * A counter is disposable only once no window can still be reading it. The
+ * longest window any caller uses is 24 hours (convex/otp.ts), so two days is
+ * comfortably past every live bucket. Raise this before adding a longer one.
+ */
+const STALE_AFTER = 2 * 24 * 60 * 60 * 1000
+
 export async function consumeRateLimit(
   ctx: MutationCtx,
   key: string,
@@ -140,12 +147,17 @@ export async function consumeRateLimit(
   windowMs: number
 ) {
   const now = Date.now()
-  // Opportunistic cleanup, a few rows per call: counters outlive their window
-  // by no use to anyone, and a public path that can mint buckets would
-  // otherwise leave a row behind for every one it ever saw.
+  // Opportunistic cleanup, a few rows per call: a public path that can mint
+  // buckets would otherwise leave a row behind for every one it ever saw.
+  //
+  // The cutoff is absolute, NOT this caller's `windowMs`. Using the caller's
+  // window deleted every bucket with a longer one: a send checks its
+  // ten-minute bucket first, which wiped the per-day and global-per-day rows
+  // regardless of the counts sitting in them, so those two ceilings never
+  // fired at all. The cutoff must outlast the longest window any caller uses.
   const stale = await ctx.db
     .query("rateLimits")
-    .withIndex("by_window", (q) => q.lt("windowStart", now - windowMs))
+    .withIndex("by_window", (q) => q.lt("windowStart", now - STALE_AFTER))
     .take(PRUNE_PER_CALL)
   for (const row of stale) await ctx.db.delete(row._id)
 

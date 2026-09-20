@@ -1,5 +1,5 @@
 ---
-status: done
+status: partial
 ticket: none (raise a KIT-<n> "Spike: sign-in UI and read-only leads inbox" under "Impact Website")
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -220,7 +220,7 @@ Delete the spike branch.
 - [ ] Spike branch deleted; `git status` clean on main apart from the plan file
 - [ ] `docs/plans/README.md` row updated
 
-## Executed — 20 September 2026
+## Executed — 20 September 2026 (PARTIAL)
 
 The committed deliverable, `docs/plans/2026-09-20-sign-in-and-admin-leads.md`,
 is written. **The throwaway spike branch was not built**, so the static half of

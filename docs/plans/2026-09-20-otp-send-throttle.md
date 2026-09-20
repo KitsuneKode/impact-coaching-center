@@ -491,9 +491,18 @@ Stop and report back if:
 ## Executed — 20 September 2026
 
 Steps 1-6 landed. Per the concurrent-work notice, the `by_windowStart` index,
-`purgeStaleRateLimits` and `convex/crons.ts` were **skipped**: `by_window` and
-an opportunistic prune inside `consumeRateLimit` already shipped with the
-enquiry ceilings, and they bound the table without a scheduled sweep.
+`purgeStaleRateLimits` and `convex/crons.ts` were **skipped** in favour of the
+`by_window` index and opportunistic prune that shipped with the enquiry
+ceilings.
+
+**That skip was wrong on substance, and a later review caught it.** The
+existing prune used the _calling_ bucket's `windowMs` as its cutoff. Every send
+checks its ten-minute bucket first, so it deleted the per-day and
+global-per-day rows whatever counts sat in them: `SENDS_PER_PHONE_DAY` and
+`SENDS_PER_DAY_GLOBAL` never fired at all, leaving 432 sends per number per day
+and no deployment ceiling. The plan's own `purgeStaleRateLimits` used a fixed
+two-day cutoff and would not have had this defect. The prune now uses an
+absolute `STALE_AFTER` cutoff, and two regression tests cover it.
 
 `bunx convex codegen` needed the gitignored `.env.local` from the main
 checkout, which points at the local anonymous deployment; with it, `internal.otp`
