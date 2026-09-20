@@ -71,4 +71,17 @@ export default defineSchema({
     course: v.optional(v.string()),
     timing: v.optional(v.string()),
   }).index("by_person", ["personId"]),
+
+  /**
+   * Fixed-window counters for public submission paths.
+   *
+   * `key` is scoped by its own caller, e.g. `enquiry:ip:203.0.113.4` or
+   * `enquiry:phone:+919876543210`, so one bucket cannot consume another's
+   * allowance. Rows are rewritten in place when a window rolls over.
+   */
+  rateLimits: defineTable({
+    key: v.string(),
+    count: v.number(),
+    windowStart: v.number(),
+  }).index("by_key", ["key"]),
 })

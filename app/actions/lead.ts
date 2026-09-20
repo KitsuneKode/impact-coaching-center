@@ -1,5 +1,7 @@
 "use server"
 
+import { headers } from "next/headers"
+
 import { HONEYPOT_FIELD, type LeadField, parseLead } from "@/lib/leads"
 import { createLeadSink } from "@/lib/lead-delivery"
 
@@ -66,8 +68,14 @@ export async function submitLead(
     return success
   }
 
+  // The first entry is the visitor; later ones are proxies we added. Only the
+  // hop nearest the client is meaningful, and it is forwarded to Convex, which
+  // otherwise only ever sees this server as the caller.
+  const forwarded = (await headers()).get("x-forwarded-for")
+  const ip = forwarded?.split(",")[0]?.trim() || undefined
+
   try {
-    await createLeadSink(process.env).submit(parsed.lead)
+    await createLeadSink(process.env, fetch, ip).submit(parsed.lead)
   } catch {
     // Do not log provider exceptions: they can contain URLs and personal data.
     console.error("[lead] delivery was not confirmed")

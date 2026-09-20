@@ -5,6 +5,7 @@ import { authComponent, createAuth } from "./auth"
 import { internal } from "./_generated/api"
 import { httpAction } from "./_generated/server"
 import { parseLead } from "../lib/leads"
+import { ENQUIRY_RATE_LIMITED } from "./persons"
 
 const http = httpRouter()
 
@@ -34,12 +35,24 @@ http.route({
       return new Response(null, { status: 400 })
     if (!parseLead(data as Record<string, string>).ok)
       return new Response(null, { status: 400 })
-    await ctx.runMutation(internal.persons.recordEnquiry, {
-      name: data.name as string,
-      phone: data.phone as string,
-      course: data.course as string,
-      timing: data.timing as string,
-    })
+    try {
+      await ctx.runMutation(internal.persons.recordEnquiry, {
+        name: data.name as string,
+        phone: data.phone as string,
+        course: data.course as string,
+        timing: data.timing as string,
+        ip: typeof data.ip === "string" ? data.ip : undefined,
+      })
+    } catch (error) {
+      // A ceiling is the one failure the caller can act on by backing off.
+      // Everything else stays a 500 rather than describing our internals.
+      if (
+        error instanceof Error &&
+        error.message.includes(ENQUIRY_RATE_LIMITED)
+      )
+        return new Response(null, { status: 429 })
+      throw error
+    }
     return new Response(null, { status: 204 })
   }),
 })

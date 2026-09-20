@@ -3,7 +3,9 @@ import type { LeadSink } from "./leads"
 /** Delivery selection stays server-side. Never fall back after an ambiguous timeout. */
 export function createLeadSink(
   env: Record<string, string | undefined>,
-  fetcher: typeof fetch = fetch
+  fetcher: typeof fetch = fetch,
+  /** Forwarded so Convex can rate-limit the visitor, not our own server. */
+  ip?: string
 ): LeadSink {
   return {
     async submit(lead) {
@@ -33,6 +35,7 @@ export function createLeadSink(
                 phone: lead.phone,
                 course: lead.course,
                 timing: lead.timing,
+                ...(ip ? { ip } : {}),
               }
             : { ...lead, receivedAt: new Date().toISOString() }
         ),

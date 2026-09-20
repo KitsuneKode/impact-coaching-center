@@ -121,6 +121,54 @@ export const recordVerifiedPerson = internalMutation({
   },
 })
 
+/**
+ * Fixed-window rate limit. Returns false once `limit` is reached inside
+ * `windowMs`, and starts a fresh window after it elapses.
+ *
+ * Fixed rather than sliding: a burst straddling a window boundary can briefly
+ * reach twice the limit, which is an acceptable trade here for one document
+ * read and one write per call. The public enquiry path is not hot enough to
+ * justify the extra rows a sliding log would need.
+ */
+export async function consumeRateLimit(
+  ctx: MutationCtx,
+  key: string,
+  limit: number,
+  windowMs: number
+) {
+  const now = Date.now()
+  const existing = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .unique()
+  if (!existing) {
+    await ctx.db.insert("rateLimits", { key, count: 1, windowStart: now })
+    return true
+  }
+  if (now - existing.windowStart >= windowMs) {
+    await ctx.db.patch(existing._id, { count: 1, windowStart: now })
+    return true
+  }
+  if (existing.count >= limit) return false
+  await ctx.db.patch(existing._id, { count: existing.count + 1 })
+  return true
+}
+
+/** Raised when a caller exceeds a public submission ceiling. */
+export const ENQUIRY_RATE_LIMITED = "Enquiry rate limit reached."
+
+const HOUR = 60 * 60 * 1000
+/** One shared connection (a college or a cafe) may hold several enquirers. */
+const ENQUIRIES_PER_IP_HOUR = 20
+/**
+ * A single number has no legitimate reason to enquire this often. Set above
+ * the handful of retries an impatient visitor might produce, because the
+ * ceiling is checked before the idempotency shortcut below - an identical
+ * resubmission still spends allowance, so that a flood cannot be laundered
+ * through repeats.
+ */
+const ENQUIRIES_PER_PHONE_HOUR = 10
+
 /** Called only by the authenticated server-to-server ingestion route. */
 export const recordEnquiry = internalMutation({
   args: {
@@ -128,11 +176,37 @@ export const recordEnquiry = internalMutation({
     phone: v.string(),
     course: v.string(),
     timing: v.string(),
+    /**
+     * The visitor's address, forwarded by our own server action. Convex sees
+     * that server as the caller, so it cannot observe the visitor itself. Only
+     * a holder of the ingestion secret can set this.
+     */
+    ip: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const parsed = parseLead(args)
     if (!parsed.ok) throw new Error("Invalid enquiry.")
     const lead = parsed.lead
+    // Checked before any write, and before the idempotency shortcut below, so
+    // a flood cannot be laundered through repeated identical submissions.
+    if (args.ip !== undefined) {
+      const allowed = await consumeRateLimit(
+        ctx,
+        `enquiry:ip:${args.ip}`,
+        ENQUIRIES_PER_IP_HOUR,
+        HOUR
+      )
+      if (!allowed) throw new Error(ENQUIRY_RATE_LIMITED)
+    }
+    if (
+      !(await consumeRateLimit(
+        ctx,
+        `enquiry:phone:${lead.phone}`,
+        ENQUIRIES_PER_PHONE_HOUR,
+        HOUR
+      ))
+    )
+      throw new Error(ENQUIRY_RATE_LIMITED)
     const existing = await ctx.db
       .query("persons")
       .withIndex("by_phone", (q) => q.eq("phone", lead.phone))

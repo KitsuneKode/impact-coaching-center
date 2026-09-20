@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test"
 
 import { internal } from "./_generated/api"
 import schema from "./schema"
-import { findVerifiedPerson } from "./persons"
+import { ENQUIRY_RATE_LIMITED, findVerifiedPerson } from "./persons"
 import { enquiryCourses, enquiryTimings } from "../lib/leads"
 
 /**
@@ -223,6 +223,46 @@ describe("domain identity and enquiries", () => {
     )
     await t.mutation(record, { phone: lead.phone, name: lead.name })
     expect((await t.run((ctx) => ctx.db.get(id)))?.name).toBe("Rituparna")
+  })
+  test("a phone number cannot enquire without limit", async () => {
+    const t = convexTest(schema, modules)
+    for (let n = 0; n < 10; n++)
+      await t.mutation(internal.persons.recordEnquiry, {
+        ...lead,
+        course: enquiryCourses[n % enquiryCourses.length]!,
+      })
+    await expect(
+      t.mutation(internal.persons.recordEnquiry, {
+        ...lead,
+        timing: enquiryTimings[1]!,
+      })
+    ).rejects.toThrow(ENQUIRY_RATE_LIMITED)
+  })
+  test("one address cannot flood on behalf of many numbers", async () => {
+    const t = convexTest(schema, modules)
+    const ip = "203.0.113.4"
+    // Distinct numbers, so only the address ceiling can stop this.
+    for (let n = 0; n < 20; n++)
+      await t.mutation(internal.persons.recordEnquiry, {
+        ...lead,
+        phone: `98765${String(43210 + n).padStart(5, "0")}`,
+        ip,
+      })
+    await expect(
+      t.mutation(internal.persons.recordEnquiry, {
+        ...lead,
+        phone: "9812345678",
+        ip,
+      })
+    ).rejects.toThrow(ENQUIRY_RATE_LIMITED)
+    // A different address is unaffected by its neighbour's spending.
+    expect(
+      await t.mutation(internal.persons.recordEnquiry, {
+        ...lead,
+        phone: "9812345678",
+        ip: "203.0.113.9",
+      })
+    ).toBe("recorded")
   })
   test("invalid enquiry cannot create a Person or activity", async () => {
     const t = convexTest(schema, modules)

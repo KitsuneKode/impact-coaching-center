@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, mock, test } from "bun:test"
 
+// submitLead reads the forwarded address, which only exists inside a request
+// scope. Supplying one here keeps that read real in production rather than
+// wrapping it in a swallow-everything guard for the tests' benefit.
+let forwardedFor: string | null = "203.0.113.4"
+mock.module("next/headers", () => ({
+  headers: async () =>
+    new Headers(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
+}))
+
 import { enquiryCourses, enquiryTimings, HONEYPOT_FIELD } from "../../lib/leads"
 import { submitLead } from "./lead"
 
