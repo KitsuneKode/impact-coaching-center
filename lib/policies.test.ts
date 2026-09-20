@@ -35,20 +35,24 @@ describe("policies", () => {
     }
   })
 
-  test("the 'no sign-in, no codes' claim is still true of the codebase", () => {
-    // This asserted only `approved === false`, which is not the claim at all.
-    // The privacy policy tells visitors the site does not ask them to sign in
-    // and does not send verification codes. The day a sign-in route exists,
-    // that sentence becomes false and this must fail, so the wording and the
-    // code move together.
+  test("the privacy policy describes sign-in iff sign-in exists", () => {
+    // This guard has already earned its place once: the policy said the site
+    // "does not currently ask you to sign in and does not send verification
+    // codes", and the day app/sign-in landed the sentence became false. The
+    // wording and the code have to move together, in both directions.
     const privacy = policies.find((p) => p.slug === "privacy")!
-    const claim = privacy.sections
-      .flatMap((s) => s.paragraphs)
+    const text = privacy.sections.flatMap((s) => s.paragraphs).join(" ")
+    const describesSignIn =
+      text.includes("If you sign in") && text.includes("one-time code")
+    expect(describesSignIn).toBe(existsSync("app/sign-in"))
+  })
+
+  test("the policy does not describe an account area that does not exist", () => {
+    const text = policies
+      .flatMap((p) => p.sections.flatMap((s) => s.paragraphs))
       .join(" ")
-      .includes("does not currently ask you to sign in")
-    expect(claim).toBe(true)
-    expect(existsSync("app/sign-in")).toBe(false)
-    expect(existsSync("app/account")).toBe(false)
+    if (!existsSync("app/account"))
+      expect(text).not.toContain("your account page")
   })
 
   test("no document sells or takes payment while none of that is built", () => {

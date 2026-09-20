@@ -13,10 +13,18 @@ const unapprovedPolicyRoutes = policies
   .filter((policy) => !policy.approved)
   .map((policy) => `/${policy.slug}`)
 
+/**
+ * Routes that set their own `noindex` and so must not be listed: a sitemap
+ * entry asks a crawler to fetch a page that tells it to go away. Sign-in has
+ * nothing worth ranking, and the leads inbox is staff-only.
+ */
+const noindexRoutes = ["/sign-in", "/admin/leads"]
+
 /** Every route allowed to exist on disk and be absent from the sitemap. */
 const draftRoutes = [
   ...unapprovedPolicyRoutes,
   ...(libraryApproved ? [] : ["/library"]),
+  ...noindexRoutes,
 ]
 
 /**

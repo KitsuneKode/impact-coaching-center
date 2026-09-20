@@ -40,7 +40,7 @@ export const policies: readonly PolicyDocument[] = [
         heading: "What we collect",
         paragraphs: [
           "When you send an enquiry we collect your name, mobile number, the exam you are asking about and your preferred time of day. Your network address is used only to limit automated submissions and is not stored with your enquiry.",
-          "The site does not currently ask you to sign in and does not send verification codes. If that changes, this policy will be updated first.",
+          "If you sign in, we verify that the mobile number is yours by sending a one-time code to it. We keep the number, the fact that it is verified, and the date. There is no password to store. You do not need to sign in to send an enquiry.",
         ],
       },
       {

@@ -40,6 +40,7 @@ export default defineSchema({
     nextFollowUpAt: v.optional(v.number()),
     source: v.string(),
     campaignId: v.optional(v.string()),
+    /** Which Track the Person asked about, from their latest enquiry. */
     interestTrack: v.optional(v.string()),
     consent: v.optional(
       v.object({
@@ -51,7 +52,10 @@ export default defineSchema({
     ),
     /** When WhatsApp's free 24-hour reply window closes. */
     waWindowExpiresAt: v.optional(v.number()),
-  }).index("by_phone", ["phone"]),
+  })
+    .index("by_phone", ["phone"])
+    // The follow-up queue: a lead status, then most recently active first.
+    .index("by_leadStatus", ["leadStatus", "lastEnquiryAt"]),
 
   /**
    * Status changes, notes and handoffs. Free text lives here and never on the

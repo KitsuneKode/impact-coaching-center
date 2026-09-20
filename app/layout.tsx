@@ -3,6 +3,7 @@ import { Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
 import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
+import { Providers } from "@/app/providers"
 import { SiteFooter } from "@/components/marketing/site-footer"
 import { SiteHeader } from "@/components/marketing/site-header"
 import { EdgeBlur } from "@/components/motion/edge-blur"
@@ -111,11 +112,13 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <SiteHeader />
-        <EdgeBlur />
-        {children}
-        <SiteFooter />
-        <MobileActionBar />
+        <Providers>
+          <SiteHeader />
+          <EdgeBlur />
+          {children}
+          <SiteFooter />
+          <MobileActionBar />
+        </Providers>
       </body>
     </html>
   )

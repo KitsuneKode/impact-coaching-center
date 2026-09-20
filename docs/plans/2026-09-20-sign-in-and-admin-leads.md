@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ticket: none (raise a KIT-<n> "Sign-in and the read-only leads inbox" under "Impact Website")
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -66,6 +66,35 @@ cheap once `bunx convex dev` is running with `OTP_TRANSPORT=logger`:
 - [ ] How many round trips does a full sign-in take, and what does a 400 look like in the UI?
 - [ ] Does a Convex HTTP action see a real client address? Request a code, then check `rateLimits` for an `otp:ip:*` row. **If none appears the per-address ceiling from KIT-49 is inert** and only the per-number and global ones bite.
 - [ ] Confirm `getCurrentPerson` returns `null` rather than throwing for an anonymous visitor on a public page (acceptance gate §24).
+
+## Executed — 20 September 2026
+
+Steps 1-4 landed. Step 5 (session lifetimes) is **not** done: Better Auth's
+defaults still apply, and setting students to 90 days and staff to 7 is a
+one-line change that belongs with KIT-46, when a session first costs a billed
+message to create.
+
+Two guards written earlier fired during this work and were right both times:
+
+- `lib/policies.test.ts` failed the moment `app/sign-in` existed, because the
+  privacy policy said the site "does not currently ask you to sign in and does
+  not send verification codes". The policy was corrected, not the test, and
+  the guard now asserts the claim in both directions.
+- `lib/sitemap.test.ts` failed because two new static routes were absent from
+  the sitemap. Both are deliberately `noindex`, so they joined the excluded
+  set - and writing that down revealed `/admin/leads` had no `noindex` at all,
+  since a client component cannot export metadata. `app/admin/layout.tsx` adds
+  it.
+
+The role gate takes its identity as an argument (`staffFromIdentity`,
+`readInbox`), mirroring `findVerifiedPerson`, so all four cases - anonymous,
+verified student, staff, owner - are covered without standing up the Better
+Auth component in convex-test.
+
+Verified against a running build: `/sign-in` 200 `noindex, follow`,
+`/admin/leads` 200 `noindex, nofollow`, `/` still 200 for an anonymous
+visitor, and the only `tel:` link an anonymous visitor sees on the admin route
+is ICT's own number from the site chrome.
 
 ## Steps
 
