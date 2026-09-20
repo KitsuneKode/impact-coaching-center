@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ticket: KIT-39
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -11,14 +11,23 @@ spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 The original checklist records implementation history, not current release approval.
 The follow-up audit at `891e1f5` reopened this plan with user authorization.
 
-- [ ] Normalize phone identifiers before Better Auth reads or stores them; reject unsupported phone replacement before consuming a code.
-- [ ] Keep temporary auth names out of Person names; resolve authenticated identities to domain Person IDs and roles.
-- [ ] Exercise the actual phone plugin with a memory auth adapter and Convex test database: alternate formats, invalid inputs, retries, replay, attempt exhaustion, expiry, callback failure, and phone replacement.
-- [ ] Restrict logger transport to local Convex origins and reject unavailable transports before code creation.
-- [ ] Return truthful enquiry delivery states, preserve the WhatsApp fallback, and test missing configuration, timeout, rejection, validation and honeypot behavior.
-- [ ] Repair expired announcement wording, responsive menu scroll locking and video dialog height containment without redesign.
-- [ ] Reconcile the specification and record remaining launch slices, decision dependencies and migration/production checks.
-- [ ] Add CI for frozen-lockfile installation, check and production build; run local gates and review the final diff.
+All eight items landed across `7c1e560..b1e7cf8`, verified against `bun run check`
+(157 tests) and `bun run build`. Two defects were found while closing them out and
+are fixed in that range: a resend left two live verification rows, so which code
+was accepted depended on a `createdAt` tie and the stale one could win; and the
+enquiry throttle rejected a genuine second enquiry inside a minute, telling a real
+enquirer their message had failed. The honeypot also briefly became detectable and
+was restored to a byte-identical reply, with the autofill false-positive it was
+reacting to fixed at the field name instead.
+
+- [x] Normalize phone identifiers before Better Auth reads or stores them; reject unsupported phone replacement before consuming a code.
+- [x] Keep temporary auth names out of Person names; resolve authenticated identities to domain Person IDs and roles.
+- [x] Exercise the actual phone plugin with a memory auth adapter and Convex test database: alternate formats, invalid inputs, retries, replay, attempt exhaustion, expiry, callback failure, and phone replacement.
+- [x] Restrict logger transport to local Convex origins and reject unavailable transports before code creation.
+- [x] Return truthful enquiry delivery states, preserve the WhatsApp fallback, and test missing configuration, timeout, rejection, validation and honeypot behavior.
+- [x] Repair expired announcement wording, responsive menu scroll locking and video dialog height containment without redesign.
+- [x] Reconcile the specification and record remaining launch slices, decision dependencies and migration/production checks.
+- [x] Add CI for frozen-lockfile installation, check and production build; run local gates and review the final diff.
 
 Implementation uses the installed Better Auth 1.6.33 plugin and Next.js 16.3.5
 docs. No production data is migrated automatically. Existing noncanonical auth
@@ -39,6 +48,14 @@ Provider evidence and account-manager questions are recorded in
 evidence of a product capability, not confirmation of ICT's API entitlement.
 
 ### Follow-up scope review — 20 September 2026
+
+These are not part of this slice. They are tracked as their own Linear issues so
+KIT-39 can close; the list is kept here only as the record of where they came from.
+
+KIT-40 enquiry delivery, KIT-41 content sign-off, KIT-42 domain and deployment,
+KIT-43 Business Profile and Search Console, KIT-44 accessibility and device passes,
+KIT-45 policy pages and `/contact`, KIT-46 WhatsApp OTP transport, KIT-47 Classplus
+access, KIT-48 missing content assets.
 
 - [ ] Keep `learn.` migration documentation-only until preview validation and
       separately authorized deployment cutover. Vercel preview must not replace the
