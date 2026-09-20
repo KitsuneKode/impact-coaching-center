@@ -61,7 +61,7 @@ The in-browser viewer for a Resource. Serves pre-rasterized page images rather t
 _Avoid_: viewer, PDF viewer
 
 **Book**:
-A physical book ICT sells and ships. Bought on this site, unlike a Course.
+A physical book ICT maintains and sells independently of Classplus, for shipping or collection at ICT. Bought on this site, unlike a Course. Availability is enabled or disabled; it is not a stock count.
 _Avoid_: product, item
 
 **Order**:

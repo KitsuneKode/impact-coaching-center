@@ -6,6 +6,49 @@
 **Working commercial scope:** ₹37,500 launch package  
 **Source requirements:** `Website Req.pdf`, current repository content, verified ICT public material, and the decisions recorded below
 
+**Decisions confirmed with the maintainer, 19–20 September 2026:** Books use enabled/disabled availability with no inventory counts. Reader and checkout remain unavailable until phone verification works; there is no email OTP launch fallback. Production hosting remains undecided pending deployment comparison. Historical spike results below are candidate evidence, not production acceptance.
+
+## Confirmed storefront scope — 20 September 2026
+
+These decisions supersede conflicting launch assumptions in the historical detail
+below. They are requirements, not claims of implemented functionality.
+
+- Classplus remains the sole Course catalogue authority and handles course
+  purchase and digital classrooms. Our site presents a published snapshot with
+  automatic syncing and an owner-triggered Resync. Only local presentation and
+  hide-from-website overrides belong here; never maintain a second course price.
+- Supported Classplus API access is unconfirmed. Obtain ICT-account-specific
+  integration documentation and approval before production use. The existing
+  public-endpoint importer is not evidence of a supported API contract. Keep
+  credentials server-side, fetch complete bounded datasets and publish validated
+  snapshots atomically; failed syncs retain the last successful snapshot.
+- The new site replaces the current main domain. Confirm an independent supported
+  Classplus purchase/classroom destination before cutover; backend catalogue APIs
+  do not solve checkout routing. No course account or payment mirroring is scoped.
+- Books have no Classplus dependency. Our owner-managed catalogue is their only
+  source of truth; our Orders use Razorpay. Availability is boolean, not inventory.
+- Initial Book payments are online only, including collection at ICT. Cash,
+  unpaid reservations and seller-created accounts are deferred for owner review,
+  not approved features. Purchasing does not automatically imply marketing consent.
+- Shipping and collection are supported design paths. Shipping must fail closed
+  until confirmed PIN-code coverage, charges and dispatch rules are configured.
+  "Most of Assam" is unverified and must not be advertised as guaranteed coverage.
+  Collection instructions, hours and readiness expectations also need approval.
+- Owner handles catalogue writes, resync, fulfilment, refunds, access changes and
+  destructive actions. Staff start with backend-enforced read-only access to
+  necessary operational fields; exports are not implicitly allowed. Changes and
+  financial operations are auditable; payment and fulfilment are separate states.
+- Reuse existing Base UI/shadcn controls and Razorpay checkout. Keep course sync,
+  Book ordering and delivery rules focused; avoid speculative CRM, cash-counter,
+  shared Course/Book cart or generic commerce framework work.
+
+Execution dependencies are recorded in
+`docs/plans/2026-09-19-person-foundation.md`. Classplus's public
+[product information](https://classplusapp.com/new-web) describes its branded
+website/course offering, but does not establish ICT's API entitlements. The
+20 September research did not locate a verified public catalogue API contract;
+this is an unresolved dependency, not evidence that no private API exists.
+
 ## 1. Purpose
 
 Turn the existing Impact Career Tutorials pitch site into a production-ready admissions, resources, physical-book commerce, library-enrollment, and staff-operations platform.
@@ -43,7 +86,7 @@ The launch is successful when:
 - Convex operational backend, phone-verified student and staff accounts on Better Auth, and a minimal role-protected admin.
 - WhatsApp Business sender for verification codes, order-status messages, and staff replies inside the service window.
 - Razorpay Standard Checkout for physical books, including order creation, signature verification, idempotent webhooks, and manual fulfilment status.
-- Cloudflare deployment, R2 file delivery, domain connection, PostHog, and Search Console setup.
+- Deployment on the host selected after comparison, R2 file delivery, domain connection, PostHog, and Search Console setup.
 - Technical and local SEO foundations.
 - Scheduled announcement, inline, and restrained popup campaigns.
 - Initial population of the existing course catalogue, up to 20 books, and up to 30 resources from client-supplied material.
@@ -166,7 +209,7 @@ Keep the existing Base UI-flavoured shadcn system, Tabler icons, Tailwind 4 toke
 
 - Next.js 16 App Router and React 19.
 - Server Components by default; client components only around actual interaction.
-- Cloudflare Workers as the production host, via `@opennextjs/cloudflare`. Compatibility was verified by spike on 19 September 2026; see §11.
+- Production host undecided. Compare Cloudflare Workers via `@opennextjs/cloudflare` with a managed Node host using the same application and dynamic flows. The 19 September Cloudflare spike is preliminary evidence; see §11.
 - Cloudflare R2 for PDFs and uploaded media.
 - Convex Cloud for mutable operational records and realtime admin updates.
 - Better Auth as a Convex component (`@convex-dev/better-auth`) with the Phone Number plugin, for both staff and student authentication. See §10.
@@ -223,7 +266,7 @@ Every mutable table includes creation/update timestamps and the actor or source 
 - Authentication never substitutes for role authorization in Convex functions. Better Auth establishes identity; every function still checks the role and record ownership itself.
 - Every endpoint that can trigger a billed message is rate limited and Turnstile-protected, and fails closed.
 - Queries are indexed, paginated, and scoped. Public pages never scan operational tables.
-- Payment amounts, discounts, stock, and delivery charges are calculated from server-owned data.
+- Payment amounts, discounts, book availability, quantity limits and delivery charges are calculated or validated from server-owned data.
 - Personal data never enters analytics events.
 - PDFs and media live in R2; Convex stores metadata and access policy.
 - Sensitive admin actions create audit/activity records.
@@ -244,7 +287,7 @@ Clerk remains a capable product, but its phone and SMS OTP require a paid produc
 
 ### Account model
 
-One `users` table with a `role` field. There is no separate admin identity system.
+One domain `persons` table with a `role` field. Better Auth owns its internal account and session tables; those IDs are never domain Person IDs. Resolve a verified auth identity to the matching Person before checking role or ownership. There is no separate admin identity system.
 
 | Role      | Capabilities                                                        |
 | --------- | ------------------------------------------------------------------- |
@@ -275,7 +318,7 @@ Gating the document does not gate the page. Resource detail pages remain server-
 ### OTP mechanics
 
 - Phone Number plugin configured with `otpLength: 6`, `expiresIn: 300`, `allowedAttempts: 5`.
-- `sendOTP` is enqueued and never awaited inside the request, avoiding both request latency and a timing oracle that would reveal whether a number is already registered.
+- Await delivery acceptance so failures cannot be reported as successful sends. Do not use untracked background promises. A future durable outbox must define retries, expiry, invalidation after failure and truthful queued/delivered states before replacing this behavior.
 - Client resend cooldown of at least 30 seconds.
 - The code is never returned in a response and never written to a production log.
 
@@ -296,7 +339,7 @@ WhatsApp Business Cloud API, used directly rather than through a reseller:
 - Sender number: verify coexistence eligibility against ICT's own Meta Business account before requiring a new number. Meta's Coexistence feature, released in May 2025 and generally available since, allows one number to run the WhatsApp Business app and the Cloud API together while retaining chat history. It does not cover personal WhatsApp, and feature support varies, so this is a verification step rather than an assumption in either direction.
 - Verification orchestrators such as Twilio Verify are rejected: their WhatsApp channel falls back to SMS for India, which reintroduces the DLT registration and deliverability problems this channel exists to avoid.
 
-**Interim fallback.** Meta business verification and display-name approval have an unpredictable lead time. Until the live sender is approved, OTP delivery falls back to email OTP on a transactional email provider's free tier, and the resource gate collects a real email. This fallback is a launch dependency, not a permanent channel, and is removed once the sender is live.
+**Launch dependency, no email fallback.** Until the phone sender is approved and end-to-end verification works, Reader and checkout stay unavailable. Public discovery and enquiries remain usable. Email verification must never mark a phone verified or attach a session to a Person by an unverified supplied number. Confirmed by the maintainer on 19–20 September 2026.
 
 ### Cost and abuse controls
 
@@ -347,7 +390,7 @@ Three layers, only the last of which costs money:
 2. **Meta test number.** Cloud API provisions a test WhatsApp Business account and test business number that sends free template messages to up to five verified recipients with no payment method on file. Used to verify template rendering, the copy-code button, language variants, and real delivery latency to Assam numbers.
 3. **Live sender smoke test.** After verification and display-name approval, a small number of real messages confirm production template approval and the sender name students will see.
 
-Automated tests assert against the stored verification record using the plugin's `verifyOTP` override. They never assert on a delivered message.
+Automated tests exercise the installed phone plugin and its real OTP verifier with in-memory delivery capture, a memory auth adapter and a Convex test database. Cover canonical identity, names, expiry, attempt exhaustion, replay, prohibited phone changes and callback failure without sending messages. Do not override `verifyOTP` to bypass the security behavior being tested.
 
 ## 11. Vendor cost model and free-tier boundaries
 
@@ -430,7 +473,7 @@ Verification happens once per Person, not once per Resource, so the expected vol
 ### Cart
 
 - Persistent on the device without requiring customer login.
-- Quantity cannot exceed current stock.
+- Only enabled books can be ordered. Quantity must be a positive bounded integer; agree the per-order business limit before commerce implementation. There are no stock counts, reservations or decrements.
 - Prices are display hints until recalculated by the server at checkout.
 - Desktop may use a quick cart sheet; the durable cart and checkout use full routes.
 
@@ -438,7 +481,7 @@ Verification happens once per Person, not once per Resource, so the expected vol
 
 1. The student signs in, then confirms name, mobile, optional real email, and a structured Indian delivery address, which may be saved for reuse.
 2. Show delivery method/charge, item totals, and final amount before payment.
-3. Server validates stock and creates an immutable pending order.
+3. Server rechecks each book's enabled state, quantity limits and delivery rules, then creates an immutable pending order. A book disabled after cart creation cannot start a new payment. Late verified payments for existing orders need explicit reconciliation, never silent rejection.
 4. Server creates a Razorpay order using the server-calculated amount.
 5. Client opens Razorpay Standard Checkout.
 6. Client callback may show a processing state but cannot mark the order paid.
@@ -446,7 +489,7 @@ Verification happens once per Person, not once per Resource, so the expected vol
 8. The order becomes paid only from verified server evidence.
 9. Staff manually moves fulfilment through Packed, Shipped, and Delivered and may add courier/tracking information.
 
-Stock decrement behavior, abandoned-order expiry, cancellation, refund ownership, delivery coverage, and customer notifications must be agreed before live payments.
+Abandoned-order expiry, cancellation, refund ownership, delivery coverage, inability-to-fulfil handling and customer notifications must be agreed before live payments. Staff disable unavailable books; the site never implies inventory guarantees.
 
 ## 15. Library workflow
 
@@ -471,7 +514,7 @@ Behavior rules:
 - Dismissal is easy, stored, and respected.
 - No popup appears during checkout or competes with the mobile action bar.
 - Each placement emits safe impression/click events.
-- Urgency must use a real published date or stock fact.
+- Urgency must use a real published date. Do not show remaining-stock claims when quantities are not tracked.
 
 ## 17. Analytics
 
@@ -616,7 +659,7 @@ After the first measurable win, request a testimonial and two introductions. Bui
 
 1. Production foundations: environment model, Cloudflare compatibility spike, Convex and Better Auth setup, R2 policy, schemas, rate limiting, Turnstile, backups, and shared UI primitives.
 2. Public information architecture and premium visual refinement.
-3. Identity and messaging: phone sign-in, roles, the logger and test-number OTP transports, the message log, and the email fallback. This stage introduces the first dynamic routes, so it must end with worker CPU measured on a preview deployment and the result recorded in §11.
+3. Identity and messaging: phone sign-in, roles, local logger and test-number OTP transports, and the message log. Reader/checkout remain unavailable until real phone verification passes. Measure dynamic-route performance on hosting candidates and record the comparison in §11 before selecting production hosting.
 4. Lead CRM and conversion instrumentation, including staff replies inside the WhatsApp service window.
 5. Resource library, upload workflow, consent gate, account gate, and R2 delivery.
 6. Physical books, cart, checkout, Razorpay verification, and order fulfilment.
@@ -655,7 +698,7 @@ Before production launch:
 - Google Business Profile ownership or authorization to create/repair it.
 - Approved course catalogue, schedules, syllabi, fulfilment links, and Classplus ownership rules.
 - Result evidence, participant relationship, portrait consent, and quote approval.
-- Physical-book catalogue: covers, edition, authors, ISBN if available, contents, price, stock, weight/dimensions, delivery coverage, and fulfilment owner.
+- Physical-book catalogue: covers, edition, authors, ISBN if available, contents, price, enabled/disabled availability, per-order quantity limit, weight/dimensions, delivery coverage, and fulfilment owner.
 - Shipping charge rules, dispatch promise, cancellation/refund policy, and support contact.
 - Resource PDFs, categories, update dates, authorship/review ownership, and lead-consent wording.
 - Library plans, capacity language, facilities, timings, rules, review owner, and follow-up promise.

@@ -159,4 +159,3 @@ export function inr(amount: number) {
 }
 
 await main()
-

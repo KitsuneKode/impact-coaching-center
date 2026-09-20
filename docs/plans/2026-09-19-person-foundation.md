@@ -1,10 +1,120 @@
 ---
-status: done
+status: in-progress
 ticket: KIT-39
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
 
 # Person Foundation Implementation Plan
+
+## Audit remediation — 19 September 2026
+
+The original checklist records implementation history, not current release approval.
+The follow-up audit at `891e1f5` reopened this plan with user authorization.
+
+- [ ] Normalize phone identifiers before Better Auth reads or stores them; reject unsupported phone replacement before consuming a code.
+- [ ] Keep temporary auth names out of Person names; resolve authenticated identities to domain Person IDs and roles.
+- [ ] Exercise the actual phone plugin with a memory auth adapter and Convex test database: alternate formats, invalid inputs, retries, replay, attempt exhaustion, expiry, callback failure, and phone replacement.
+- [ ] Restrict logger transport to local Convex origins and reject unavailable transports before code creation.
+- [ ] Return truthful enquiry delivery states, preserve the WhatsApp fallback, and test missing configuration, timeout, rejection, validation and honeypot behavior.
+- [ ] Repair expired announcement wording, responsive menu scroll locking and video dialog height containment without redesign.
+- [ ] Reconcile the specification and record remaining launch slices, decision dependencies and migration/production checks.
+- [ ] Add CI for frozen-lockfile installation, check and production build; run local gates and review the final diff.
+
+Implementation uses the installed Better Auth 1.6.33 plugin and Next.js 16.3.5
+docs. No production data is migrated automatically. Existing noncanonical auth
+identities require a separately reviewed reconciliation before deployment.
+Product decisions are confirmed: enabled/disabled Book availability without stock
+counts; no email verification fallback; Reader and checkout stay unavailable until
+phone verification works. Hosting remains undecided pending comparison.
+
+## Foundation dependencies confirmed — 20 September 2026
+
+Domain-routing research and the proposed cutover sequence are recorded in
+`docs/research/2026-09-20-course-domain-migration.md`. Preferred learning subdomain:
+`learn.impactcareertutorials.in`, conditional on provider support and owner approval.
+This is not permission to change DNS. Preserve numeric legacy Course URLs and
+existing-student access before replacing the main-domain storefront.
+Provider evidence and account-manager questions are recorded in
+`docs/research/2026-09-20-classplus-integration.md`; custom-domain tutorials are
+evidence of a product capability, not confirmation of ICT's API entitlement.
+
+### Follow-up scope review — 20 September 2026
+
+- [ ] Keep `learn.` migration documentation-only until preview validation and
+      separately authorized deployment cutover. Vercel preview must not replace the
+      existing site or use live payment credentials; see the migration research note.
+- [ ] Confirm Blog publishing ownership and Careers meaning before designing the
+      content workflow. Prefer existing editorial components and a small shared admin
+      shell based on official shadcn blocks, not a second CMS/dashboard template.
+- [ ] Before adding content editors, specify draft/published/archived visibility,
+      stable slugs, owner-only publishing, safe rich-text rendering, image permissions
+      and truthful metadata. Recruitment, if approved, needs vacancy expiry and a
+      defined application destination; do not add CV storage or an applicant-tracking
+      system without a real requirement and retention/access rules.
+- [ ] Reconcile historical component-research claims (stock counts, broad staff
+      writes and package-version recommendations) with current decisions at execution.
+- [ ] Close operational gaps alongside features: owner bootstrap/recovery, bounded
+      public submissions, minimal staff data access, backup/restore procedure, payment
+      reconciliation, delivery failures, privacy-safe analytics and alerts for failed
+      enquiry delivery/sync. These are release work, not decorative dashboard metrics.
+
+This section records follow-on work, not completed functionality. The maintainer
+requested implementation focus, not additional test scaffolding. Existing required
+checks and production qualification remain gates; do not claim live readiness from
+this plan update.
+
+- [ ] Confirm ICT's supported Classplus catalogue access with its account manager:
+      credentials/scopes, publication permissions, pagination, rate limits, stable IDs,
+      media reuse, removal semantics and supported purchase URLs. Account ownership
+      alone does not establish API access. Never use staff session cookies as a
+      production integration credential.
+- [ ] Resolve domain cutover before redirect changes: the new site replaces
+      `www.impactcareertutorials.in`; Classplus must retain a supported separate
+      storefront/purchase address. An API sync does not replace Classplus checkout or
+      classroom URLs. Preserve old course-ID links without redirect loops.
+- [ ] Evolve `scripts/sync-courses.ts` and `lib/catalogue-import.ts` into one
+      server-side import path shared by scheduled and owner-triggered jobs. Keep
+      `lib/catalogue.ts` as the current snapshot until a validated persisted snapshot
+      can replace it; do not introduce dual manual catalogue editing.
+- [ ] Persist sync run status and published snapshot identity in Convex. Validate
+      all pages, IDs, prices, URLs and response bounds before atomically publishing;
+      reject incomplete results, preserve last-good data, and never infer deletions
+      from a failed or partial page. Use bounded retries/backoff, request timeouts,
+      overlapping-job exclusion and stale-job recovery. Retain stable public slugs
+      across title changes and local course visibility overrides across imports.
+- [ ] Add owner-only Resync using existing UI primitives: pending/disabled state,
+      last successful sync, counts and sanitized failure information. Staff may read
+      status but cannot trigger jobs. Keep secrets and raw provider payloads off the
+      client. Choose the schedule after provider limits are confirmed.
+- [ ] Replace course purchase-intent WhatsApp links with verified Classplus
+      destinations; keep counselling secondary. Public course browsing/handoff does
+      not require our phone verification. Do not mirror Classplus identities,
+      enrolments, payments or protected classroom content.
+- [ ] Build Books as a separate owner-managed catalogue in Convex, independent of
+      Classplus: approved titles, covers, editions, prices and enabled availability.
+      Reuse existing Base UI/shadcn controls; no generic multi-provider commerce layer
+      or shared Course/Book cart. Staff are read-only initially, including no exports
+      by default; enforce role and field access on the backend, not only navigation.
+- [ ] Build online-only Book ordering initially for both shipping and ICT
+      collection. Cash collection, unpaid reservations and seller-created accounts
+      require a later owner decision and are excluded from initial implementation.
+      Never mark a seller-entered phone as verified or automatically opt a buyer into
+      marketing. Owner manages fulfilment, cancellations and refunds with audit logs.
+- [ ] Implement server-side delivery eligibility and quote calculation with
+      explicit unconfigured/unsupported outcomes. Shipping stays unavailable until
+      serviceable PIN codes, charges and dispatch rules are approved. Do not claim
+      Assam-wide coverage or invent free delivery. Collection needs approved centre
+      instructions and pickup timing; no shipping address should be required for it.
+- [ ] Keep immutable Book/price/delivery snapshots on Orders; calculate totals in
+      integer paise on the server and revalidate availability and quotes before
+      payment. Reuse Razorpay checkout. Separate verified payment state from
+      fulfilment state; deduplicate payment attempts/webhooks and reconcile delayed
+      success without duplicate Orders. Disabled Books cannot enter new checkout;
+      existing paid Orders require owner resolution, not silent deletion/backorder.
+- [ ] Obtain owner decisions on serviceability/charges, collection readiness,
+      cancellation/refund policy and contact-data visibility before enabling their
+      dependent operations. Owner-only destructive/access changes must preserve
+      financial history and prevent removal of the last owner.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
