@@ -34,6 +34,16 @@ const columns = [
       { label: "YouTube", href: links.youtube, external: true },
     ],
   },
+  {
+    title: "ICT",
+    items: [
+      { label: "Contact", href: "/contact" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
+      { label: "Shipping", href: "/shipping" },
+      { label: "Refunds", href: "/refunds" },
+    ],
+  },
 ] as const
 
 /** Kobbe's footer: identity on the left, quiet link columns, nothing else. */

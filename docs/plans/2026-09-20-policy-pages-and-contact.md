@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ticket: KIT-45
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---

@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next"
 
 import { listedCourseIds } from "@/lib/brand"
 import { catalogue } from "@/lib/catalogue"
+import { policies } from "@/lib/policies"
 import { siteUrl } from "@/lib/site"
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -22,6 +23,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    { url: `${siteUrl}/contact`, changeFrequency: "yearly", priority: 0.6 },
+    // Only documents ICT has signed off. An unapproved policy is also
+    // noindex, so listing it here would ask crawlers to fetch a page that
+    // tells them to go away.
+    ...policies
+      .filter((policy) => policy.approved)
+      .map((policy) => ({
+        url: `${siteUrl}/${policy.slug}`,
+        changeFrequency: "yearly" as const,
+        priority: 0.3,
+      })),
     ...courses,
   ]
 }
