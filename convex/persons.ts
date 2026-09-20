@@ -1,8 +1,37 @@
 import { v } from "convex/values"
 
-import { type E164, toE164 } from "../lib/leads"
+import { type E164, parseLead, toE164 } from "../lib/leads"
 import type { Id } from "./_generated/dataModel"
-import { internalMutation, type MutationCtx } from "./_generated/server"
+import {
+  internalMutation,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server"
+
+/** Fail closed for anonymous, unverified, or incompletely linked identities. */
+export async function findVerifiedPerson(
+  ctx: Pick<QueryCtx, "db">,
+  identity:
+    | { phoneNumber?: string | null; phoneNumberVerified?: boolean | null }
+    | null
+    | undefined
+) {
+  if (!identity?.phoneNumberVerified || !identity.phoneNumber) return null
+  const phone = toE164(identity.phoneNumber)
+  if (!phone) return null
+  const person = await ctx.db
+    .query("persons")
+    .withIndex("by_phone", (q) => q.eq("phone", phone))
+    .unique()
+  if (!person?.verifiedAt) return null
+  return {
+    id: person._id,
+    name: person.name,
+    phone: person.phone,
+    role: person.role,
+    verifiedAt: person.verifiedAt,
+  }
+}
 
 /**
  * A Person's name is whatever we learned first.
@@ -41,16 +70,21 @@ export async function upsertPersonByPhone(
     .unique()
 
   if (existing) {
-    const name = mergePersonName(existing.name, args.name)
-    if (name !== existing.name) await ctx.db.patch(existing._id, { name })
+    // Repair only the exact generated phone placeholder, never a real name.
+    const storedName = toE164(existing.name) === args.phone ? "" : existing.name
+    const incomingName = toE164(args.name) === args.phone ? "" : args.name
+    const name = mergePersonName(storedName, incomingName)
+    if (name !== existing.name)
+      await ctx.db.patch(existing._id, { name, updatedAt: Date.now() })
     return existing._id
   }
 
   return await ctx.db.insert("persons", {
     phone: args.phone,
-    name: args.name.trim(),
+    name: toE164(args.name) === args.phone ? "" : args.name.trim(),
     role: "student",
     source: args.source,
+    updatedAt: Date.now(),
   })
 }
 
@@ -79,7 +113,62 @@ export const recordVerifiedPerson = internalMutation({
       name: args.name ?? "",
       source: "verification",
     })
-    await ctx.db.patch(personId, { verifiedAt: Date.now() })
+    await ctx.db.patch(personId, {
+      verifiedAt: Date.now(),
+      updatedAt: Date.now(),
+    })
     return personId
+  },
+})
+
+/** Called only by the authenticated server-to-server ingestion route. */
+export const recordEnquiry = internalMutation({
+  args: {
+    name: v.string(),
+    phone: v.string(),
+    course: v.string(),
+    timing: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const parsed = parseLead(args)
+    if (!parsed.ok) throw new Error("Invalid enquiry.")
+    const lead = parsed.lead
+    const existing = await ctx.db
+      .query("persons")
+      .withIndex("by_phone", (q) => q.eq("phone", lead.phone))
+      .unique()
+    const now = Date.now()
+    const key = JSON.stringify([lead.name, lead.course, lead.timing])
+    // Idempotency, not rate limiting: a double-click or a retried request
+    // repeats the identical enquiry, so acknowledge it without a second
+    // activity. A different course or timing inside the window is genuine new
+    // interest from the same Person and must be recorded - rejecting it told a
+    // real enquirer their message had failed. Throttling abusive volume is the
+    // route's job, per phone and per IP, and is not implemented yet.
+    if (
+      existing?.lastEnquiryAt !== undefined &&
+      now - existing.lastEnquiryAt < 60_000 &&
+      existing.lastEnquiryKey === key
+    )
+      return "recorded" as const
+    const personId = await upsertPersonByPhone(ctx, {
+      phone: lead.phone,
+      name: lead.name,
+      source: "website",
+    })
+    await ctx.db.patch(personId, {
+      leadStatus: existing?.leadStatus ?? "new",
+      interestTrack: lead.course,
+      updatedAt: now,
+      lastEnquiryAt: now,
+      lastEnquiryKey: key,
+    })
+    await ctx.db.insert("activities", {
+      personId,
+      kind: "enquiry",
+      course: lead.course,
+      timing: lead.timing,
+    })
+    return "recorded" as const
   },
 })

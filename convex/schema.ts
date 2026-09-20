@@ -18,6 +18,9 @@ export default defineSchema({
     /** A real address, never the synthetic one Better Auth requires. */
     email: v.optional(v.string()),
     verifiedAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    lastEnquiryAt: v.optional(v.number()),
+    lastEnquiryKey: v.optional(v.string()),
     role: v.union(v.literal("student"), v.literal("staff"), v.literal("owner")),
     /**
      * Absent until the Person shows intent. Reading a Resource creates a
@@ -60,9 +63,12 @@ export default defineSchema({
       v.literal("status_change"),
       v.literal("note"),
       v.literal("call"),
+      v.literal("enquiry"),
       v.literal("whatsapp_handoff")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
+    course: v.optional(v.string()),
+    timing: v.optional(v.string()),
   }).index("by_person", ["personId"]),
 })
