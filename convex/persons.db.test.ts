@@ -4,7 +4,7 @@ import { describe, expect, test } from "bun:test"
 import { internal } from "./_generated/api"
 import schema from "./schema"
 import { ENQUIRY_RATE_LIMITED, findVerifiedPerson } from "./persons"
-import { enquiryCourses, enquiryTimings } from "../lib/leads"
+import { enquiryTracks, enquiryTimings } from "../lib/leads"
 
 /**
  * Database behaviour of the Person upsert.
@@ -141,7 +141,7 @@ describe("domain identity and enquiries", () => {
   const lead = {
     phone: "+919876543210",
     name: "Rituparna",
-    course: enquiryCourses[0]!,
+    track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }
   test("an enquiry creates one unverified Person; retry creates no duplicate activity", async () => {
@@ -229,7 +229,7 @@ describe("domain identity and enquiries", () => {
     for (let n = 0; n < 10; n++)
       await t.mutation(internal.persons.recordEnquiry, {
         ...lead,
-        course: enquiryCourses[n % enquiryCourses.length]!,
+        track: enquiryTracks[n % enquiryTracks.length]!,
       })
     await expect(
       t.mutation(internal.persons.recordEnquiry, {
@@ -267,7 +267,7 @@ describe("domain identity and enquiries", () => {
   test("invalid enquiry cannot create a Person or activity", async () => {
     const t = convexTest(schema, modules)
     await expect(
-      t.mutation(internal.persons.recordEnquiry, { ...lead, course: "Unknown" })
+      t.mutation(internal.persons.recordEnquiry, { ...lead, track: "Unknown" })
     ).rejects.toThrow()
     expect(
       await t.run((ctx) => ctx.db.query("persons").collect())

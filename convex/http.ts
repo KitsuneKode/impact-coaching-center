@@ -4,6 +4,7 @@ import { parseTrustedOrigins, requireEnv } from "../lib/env"
 import { authComponent, createAuth } from "./auth"
 import { internal } from "./_generated/api"
 import { httpAction } from "./_generated/server"
+import { parseClientAddress } from "../lib/client-address"
 import { parseLead } from "../lib/leads"
 import { ENQUIRY_RATE_LIMITED } from "./persons"
 
@@ -28,7 +29,7 @@ http.route({
       return new Response(null, { status: 400 })
     const data = input as Record<string, unknown>
     if (
-      ![data.name, data.phone, data.course, data.timing].every(
+      ![data.name, data.phone, data.track, data.timing].every(
         (value) => typeof value === "string"
       )
     )
@@ -39,9 +40,14 @@ http.route({
       await ctx.runMutation(internal.persons.recordEnquiry, {
         name: data.name as string,
         phone: data.phone as string,
-        course: data.course as string,
+        track: data.track as string,
         timing: data.timing as string,
-        ip: typeof data.ip === "string" ? data.ip : undefined,
+        // Re-validated here: holding the ingestion secret does not make a
+        // forwarded address well formed, and a junk value would mint its own
+        // counter row.
+        ip:
+          (typeof data.ip === "string" ? parseClientAddress(data.ip) : null) ??
+          undefined,
       })
     } catch (error) {
       // A ceiling is the one failure the caller can act on by backing off.

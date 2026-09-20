@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { convexTest } from "convex-test"
 import schema from "./schema"
-import { enquiryCourses, enquiryTimings } from "../lib/leads"
+import { enquiryTracks, enquiryTimings } from "../lib/leads"
 
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
@@ -27,7 +27,7 @@ describe("server-to-server enquiry route", () => {
   const lead = {
     name: "Rituparna",
     phone: "98765 43210",
-    course: enquiryCourses[0]!,
+    track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }
   const headers = {

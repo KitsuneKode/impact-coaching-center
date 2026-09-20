@@ -102,7 +102,7 @@ describe("contactHref message encoding", () => {
     const href = contactHref({
       kind: "whatsapp-handoff",
       name: "Rituparna Das",
-      course: "APSC",
+      track: "APSC",
       timing: "Morning",
       phone: "+919876543210",
     })
@@ -117,7 +117,7 @@ describe("contactHref message encoding", () => {
     const href = contactHref({
       kind: "whatsapp-handoff",
       name: "A & B",
-      course: "APSC",
+      track: "APSC",
       timing: "Morning",
       phone: "+919876543210",
     })
@@ -130,7 +130,7 @@ describe("contactHref message encoding", () => {
     const href = contactHref({
       kind: "whatsapp-handoff",
       name: "Test",
-      course: "APSC",
+      track: "APSC",
       timing: "Morning",
       phone: "+919876543210",
     })
@@ -148,7 +148,7 @@ describe("contactHref message encoding", () => {
       {
         kind: "whatsapp-handoff",
         name: "Test",
-        course: "APSC",
+        track: "APSC",
         timing: "Evening",
         phone: "+919876543210",
       },
@@ -195,7 +195,7 @@ describe("contactHref exact copy", () => {
       contactHref({
         kind: "whatsapp-handoff",
         name: "Rituparna Das",
-        course: "APSC",
+        track: "APSC",
         timing: "Morning",
         phone: "+919876543210",
       })

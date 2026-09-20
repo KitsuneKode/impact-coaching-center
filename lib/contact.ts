@@ -34,7 +34,7 @@ export type EnquiryIntent =
   | {
       kind: "whatsapp-handoff"
       name: string
-      course: string
+      track: string
       timing: string
       phone: string
     }
@@ -51,7 +51,7 @@ function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
     case "course":
       return `Hello ICT, I want to enrol in ${intent.courseName}. Please share the next steps.`
     case "whatsapp-handoff":
-      return `Hello ICT, I am ${intent.name}. I just enquired about ${intent.course}, ${intent.timing.toLowerCase()} batch. My number is ${intent.phone}.`
+      return `Hello ICT, I am ${intent.name}. I just enquired about ${intent.track}, ${intent.timing.toLowerCase()} batch. My number is ${intent.phone}.`
   }
 }
 

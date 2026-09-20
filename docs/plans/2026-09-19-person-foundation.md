@@ -1051,6 +1051,17 @@ Each produces working software on its own. Neither can be specified honestly unt
 
 ## Where execution diverged from the plan
 
+- **Enquiry ingestion landed in this slice.** `/enquiries`, `recordEnquiry`, the
+  `enquiry` activity kind and `persons.lastEnquiryAt`/`lastEnquiryKey` are in none of
+  Task 3's produces list. Recorded after the fact in `docs/adr/0004`.
+- **Rate limiting moved forward from plan 2.** This slice introduced the unauthenticated
+  public write path the ceilings exist to bound, so shipping it without them was not
+  defensible. It does not discharge spec §10's ceilings on billed OTP sends, which are
+  still outstanding (KIT-46).
+- **`course` was renamed to `track` across the enquiry path.** The options are Tracks
+  labelled by their Exam, and CONTEXT.md reserves Course for a Classplus product with an
+  id. Done before merge, while the Convex field had no rows to migrate.
+
 - **Task 1 parameter type.** `NodeJS.ProcessEnv` makes `NODE_ENV` mandatory, so every
   caller would have had to supply it. Changed to `Record<string, string | undefined>`.
 - **Task 1 throw condition.** Throwing on every production build broke `bun run build`,

@@ -68,7 +68,7 @@ export default defineSchema({
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
-    course: v.optional(v.string()),
+    track: v.optional(v.string()),
     timing: v.optional(v.string()),
   }).index("by_person", ["personId"]),
 
@@ -83,5 +83,10 @@ export default defineSchema({
     key: v.string(),
     count: v.number(),
     windowStart: v.number(),
-  }).index("by_key", ["key"]),
+  })
+    .index("by_key", ["key"])
+    // Counters are disposable once their window has passed. Without a way to
+    // find the stale ones this table only ever grows, one row per bucket ever
+    // seen.
+    .index("by_window", ["windowStart"]),
 })

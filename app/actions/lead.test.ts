@@ -9,7 +9,7 @@ mock.module("next/headers", () => ({
     new Headers(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
 }))
 
-import { enquiryCourses, enquiryTimings, HONEYPOT_FIELD } from "../../lib/leads"
+import { enquiryTracks, enquiryTimings, HONEYPOT_FIELD } from "../../lib/leads"
 import { submitLead } from "./lead"
 
 const original = { ...process.env }
@@ -31,7 +31,7 @@ function form() {
   for (const [key, value] of Object.entries({
     name: "Rituparna",
     phone: "98765 43210",
-    course: enquiryCourses[0]!,
+    track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }))
     data.set(key, value)
@@ -62,12 +62,19 @@ describe("enquiry action delivery", () => {
       expect(mocked.mock.calls[0]![0]).toBe(
         "https://example.convex.site/enquiries"
       )
-      for (const status of [401, 429, 500]) {
+      for (const status of [401, 500]) {
         mocked.mockResolvedValueOnce(new Response(null, { status }))
         expect((await submitLead({ status: "idle" }, form())).status).toBe(
           "handoff"
         )
       }
+      // A ceiling is not a delivery failure: ICT has the enquiry already, so
+      // telling the sender it did not arrive would be untrue and would push
+      // them onto an unmetered channel.
+      mocked.mockResolvedValueOnce(new Response(null, { status: 429 }))
+      expect((await submitLead({ status: "idle" }, form())).status).toBe(
+        "throttled"
+      )
       mocked.mockRejectedValueOnce(new DOMException("timeout", "TimeoutError"))
       expect((await submitLead({ status: "idle" }, form())).status).toBe(
         "handoff"

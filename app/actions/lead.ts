@@ -2,8 +2,9 @@
 
 import { headers } from "next/headers"
 
+import { parseClientAddress } from "@/lib/client-address"
 import { HONEYPOT_FIELD, type LeadField, parseLead } from "@/lib/leads"
-import { createLeadSink } from "@/lib/lead-delivery"
+import { createLeadSink, LeadThrottled } from "@/lib/lead-delivery"
 
 export type { LeadField }
 
@@ -15,10 +16,10 @@ export type LeadState =
       values: Partial<Record<LeadField, string>>
     }
   | {
-      status: "ok" | "handoff"
+      status: "ok" | "handoff" | "throttled"
       name: string
       phone: string
-      course: string
+      track: string
       timing: string
     }
 
@@ -37,7 +38,7 @@ export async function submitLead(
   const submitted = {
     name: String(formData.get("name") ?? ""),
     phone: String(formData.get("phone") ?? ""),
-    course: String(formData.get("course") ?? ""),
+    track: String(formData.get("track") ?? ""),
     timing: String(formData.get("timing") ?? ""),
   }
 
@@ -50,7 +51,7 @@ export async function submitLead(
     status: "ok",
     name: parsed.lead.name,
     phone: parsed.lead.phone,
-    course: parsed.lead.course,
+    track: parsed.lead.track,
     timing: parsed.lead.timing,
   }
 
@@ -68,15 +69,20 @@ export async function submitLead(
     return success
   }
 
-  // The first entry is the visitor; later ones are proxies we added. Only the
-  // hop nearest the client is meaningful, and it is forwarded to Convex, which
-  // otherwise only ever sees this server as the caller.
-  const forwarded = (await headers()).get("x-forwarded-for")
-  const ip = forwarded?.split(",")[0]?.trim() || undefined
+  // Forwarded to Convex, which otherwise only ever sees this server as the
+  // caller. Validated rather than trusted - see lib/client-address.ts for what
+  // that does and does not guarantee.
+  const ip =
+    parseClientAddress((await headers()).get("x-forwarded-for")) ?? undefined
 
   try {
     await createLeadSink(process.env, fetch, ip).submit(parsed.lead)
-  } catch {
+  } catch (error) {
+    // A ceiling is not a failure: ICT already has these details, and saying
+    // "we could not confirm receipt" would both be untrue and push a throttled
+    // sender onto an unmetered channel.
+    if (error instanceof LeadThrottled)
+      return { ...success, status: "throttled" }
     // Do not log provider exceptions: they can contain URLs and personal data.
     console.error("[lead] delivery was not confirmed")
     return { ...success, status: "handoff" }

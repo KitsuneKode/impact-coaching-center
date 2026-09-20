@@ -20,20 +20,20 @@ export type E164 = string & { readonly __e164: unique symbol }
  * The enquiry options, declared once. The form renders these; the action
  * validates against these. Adding a Track adds an option in both places.
  */
-export const enquiryCourses = [
+export const enquiryTracks = [
   ...tracks.map((track) => track.exam),
   "Not sure yet",
 ] as const satisfies readonly string[]
 
 export const enquiryTimings = [...timings] as const satisfies readonly string[]
 
-export type LeadField = "name" | "phone" | "course" | "timing"
+export type LeadField = "name" | "phone" | "track" | "timing"
 export type FieldErrors = Partial<Record<LeadField, string>>
 
 export type Lead = {
   name: string
   phone: E164
-  course: string
+  track: string
   timing: string
   source: string
 }
@@ -66,8 +66,8 @@ export function toE164(input: string): E164 | null {
 export function parseLead(input: Record<string, string>): ParseResult {
   const name = (input.name ?? "").trim()
   // Trimmed like the name: a pasted value with a trailing space otherwise
-  // fails with "Please pick a course" after the user did pick one.
-  const course = (input.course ?? "").trim()
+  // fails with "Please pick an exam." after the user did pick one.
+  const track = (input.track ?? "").trim()
   const timing = (input.timing ?? "").trim()
   const phone = toE164(input.phone ?? "")
 
@@ -78,8 +78,8 @@ export function parseLead(input: Record<string, string>): ParseResult {
   if (!phone) {
     errors.phone = "Please enter a 10 digit mobile number."
   }
-  if (!enquiryCourses.includes(course as (typeof enquiryCourses)[number])) {
-    errors.course = "Please pick a course."
+  if (!enquiryTracks.includes(track as (typeof enquiryTracks)[number])) {
+    errors.track = "Please pick an exam."
   }
   if (!enquiryTimings.includes(timing as (typeof enquiryTimings)[number])) {
     errors.timing = "Please pick a time of day."
@@ -91,7 +91,7 @@ export function parseLead(input: Record<string, string>): ParseResult {
 
   return {
     ok: true,
-    lead: { name, phone, course, timing, source: input.source || "website" },
+    lead: { name, phone, track, timing, source: input.source || "website" },
   }
 }
 

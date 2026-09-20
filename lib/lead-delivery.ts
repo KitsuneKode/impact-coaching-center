@@ -1,5 +1,17 @@
 import type { LeadSink } from "./leads"
 
+/**
+ * The destination refused this enquiry for volume, not because delivery broke.
+ * Distinguished so the visitor is not told their message failed to arrive when
+ * in fact ICT already has it.
+ */
+export class LeadThrottled extends Error {
+  constructor() {
+    super("Enquiry ceiling reached.")
+    this.name = "LeadThrottled"
+  }
+}
+
 /** Delivery selection stays server-side. Never fall back after an ambiguous timeout. */
 export function createLeadSink(
   env: Record<string, string | undefined>,
@@ -33,7 +45,7 @@ export function createLeadSink(
             ? {
                 name: lead.name,
                 phone: lead.phone,
-                course: lead.course,
+                track: lead.track,
                 timing: lead.timing,
                 ...(ip ? { ip } : {}),
               }
@@ -41,6 +53,7 @@ export function createLeadSink(
         ),
         signal: AbortSignal.timeout(5000),
       })
+      if (response.status === 429) throw new LeadThrottled()
       if (!response.ok)
         throw new Error("Enquiry delivery was not acknowledged.")
     },

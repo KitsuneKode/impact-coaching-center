@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test"
 
-import { enquiryCourses, parseLead } from "./leads"
+import { enquiryTracks, parseLead } from "./leads"
 
 const valid = {
   name: "Rituparna Das",
   phone: "98765 43210",
-  course: enquiryCourses[0]!,
+  track: enquiryTracks[0]!,
   timing: "Morning",
 }
 
@@ -35,9 +35,9 @@ describe("parseLead", () => {
   })
 
   test("rejects a course outside the published list", () => {
-    const result = parseLead({ ...valid, course: "Astrophysics" })
+    const result = parseLead({ ...valid, track: "Astrophysics" })
     expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.errors.course).toBeDefined()
+    if (!result.ok) expect(result.errors.track).toBeDefined()
   })
 
   test("rejects a timing outside the published list", () => {
@@ -47,14 +47,14 @@ describe("parseLead", () => {
   })
 
   test("reports every invalid field at once", () => {
-    const result = parseLead({ name: "R", phone: "1", course: "", timing: "" })
+    const result = parseLead({ name: "R", phone: "1", track: "", timing: "" })
     expect(result.ok).toBe(false)
     if (!result.ok) {
       expect(Object.keys(result.errors).sort()).toEqual([
-        "course",
         "name",
         "phone",
         "timing",
+        "track",
       ])
     }
   })
@@ -136,10 +136,10 @@ describe("parseLead", () => {
     expect(result.ok).toBe(false)
     if (!result.ok) {
       expect(Object.keys(result.errors).sort()).toEqual([
-        "course",
         "name",
         "phone",
         "timing",
+        "track",
       ])
     }
   })
@@ -168,11 +168,11 @@ describe("parseLead", () => {
   })
 
   test("a course with surrounding whitespace still matches the list", () => {
-    const result = parseLead({ ...valid, course: `  ${enquiryCourses[0]!}  ` })
+    const result = parseLead({ ...valid, track: `  ${enquiryTracks[0]!}  ` })
     expect(result.ok).toBe(true)
   })
 
   test("offers 'Not sure yet' as a real choice", () => {
-    expect(enquiryCourses).toContain("Not sure yet")
+    expect(enquiryTracks).toContain("Not sure yet")
   })
 })

@@ -130,6 +130,9 @@ export const recordVerifiedPerson = internalMutation({
  * read and one write per call. The public enquiry path is not hot enough to
  * justify the extra rows a sliding log would need.
  */
+/** Small enough to stay cheap on a hot path, large enough to keep up. */
+const PRUNE_PER_CALL = 10
+
 export async function consumeRateLimit(
   ctx: MutationCtx,
   key: string,
@@ -137,6 +140,15 @@ export async function consumeRateLimit(
   windowMs: number
 ) {
   const now = Date.now()
+  // Opportunistic cleanup, a few rows per call: counters outlive their window
+  // by no use to anyone, and a public path that can mint buckets would
+  // otherwise leave a row behind for every one it ever saw.
+  const stale = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_window", (q) => q.lt("windowStart", now - windowMs))
+    .take(PRUNE_PER_CALL)
+  for (const row of stale) await ctx.db.delete(row._id)
+
   const existing = await ctx.db
     .query("rateLimits")
     .withIndex("by_key", (q) => q.eq("key", key))
@@ -174,7 +186,7 @@ export const recordEnquiry = internalMutation({
   args: {
     name: v.string(),
     phone: v.string(),
-    course: v.string(),
+    track: v.string(),
     timing: v.string(),
     /**
      * The visitor's address, forwarded by our own server action. Convex sees
@@ -212,13 +224,17 @@ export const recordEnquiry = internalMutation({
       .withIndex("by_phone", (q) => q.eq("phone", lead.phone))
       .unique()
     const now = Date.now()
-    const key = JSON.stringify([lead.name, lead.course, lead.timing])
+    // Course and timing are validated against fixed option lists, so this key
+    // holds no visitor-entered text. The name is deliberately left out: the
+    // schema keeps free text on activities so an export of persons cannot leak
+    // it, and a corrected spelling is the same enquiry anyway.
+    const key = `${lead.track}\u0000${lead.timing}`
     // Idempotency, not rate limiting: a double-click or a retried request
     // repeats the identical enquiry, so acknowledge it without a second
     // activity. A different course or timing inside the window is genuine new
     // interest from the same Person and must be recorded - rejecting it told a
-    // real enquirer their message had failed. Throttling abusive volume is the
-    // route's job, per phone and per IP, and is not implemented yet.
+    // real enquirer their message had failed. Abusive volume is bounded above
+    // by the per-address and per-number ceilings, not here.
     if (
       existing?.lastEnquiryAt !== undefined &&
       now - existing.lastEnquiryAt < 60_000 &&
@@ -232,7 +248,7 @@ export const recordEnquiry = internalMutation({
     })
     await ctx.db.patch(personId, {
       leadStatus: existing?.leadStatus ?? "new",
-      interestTrack: lead.course,
+      interestTrack: lead.track,
       updatedAt: now,
       lastEnquiryAt: now,
       lastEnquiryKey: key,
@@ -240,7 +256,7 @@ export const recordEnquiry = internalMutation({
     await ctx.db.insert("activities", {
       personId,
       kind: "enquiry",
-      course: lead.course,
+      track: lead.track,
       timing: lead.timing,
     })
     return "recorded" as const

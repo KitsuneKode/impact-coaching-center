@@ -14,12 +14,12 @@ export type TransportName = "logger" | "whatsapp"
  * where NODE_ENV is "production" even on a local development deployment, so
  * it cannot tell the two apart.
  *
- * Unset fails closed. Resolve this once at module load - see convex/auth.ts -
- * so a misconfigured deployment fails while the auth module is being
- * constructed, before any request can reach the plugin. Deferring the check
- * to send time is too late: the plugin writes the verification row *before*
- * it calls sendOTP, so a throw there leaves a stored, still-acceptable code
- * that nobody received.
+ * Unset fails closed. Resolve this before the plugin is constructed - see
+ * convex/auth.ts, which calls it per request because the check reads
+ * CONVEX_SITE_URL, supplied to the running function rather than to module
+ * scope. Deferring the check to send time would be too late: the plugin writes
+ * the verification row *before* it calls sendOTP, so a throw there leaves a
+ * stored, still-acceptable code that nobody received.
  */
 export function chooseTransport(
   configured: string | undefined,
