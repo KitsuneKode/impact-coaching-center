@@ -40,7 +40,7 @@ export default function SuccessStoriesPage() {
     <main>
       <section className="pt-26 pb-10 md:pt-30">
         <div className="container-page">
-          <h1 className="enter type-display max-w-[52rem]" style={delay(0)}>
+          <h1 className="enter type-display max-w-208" style={delay(0)}>
             <span className="text-foreground">
               Results, and how to check them.
             </span>

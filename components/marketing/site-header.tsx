@@ -44,11 +44,18 @@ export function SiteHeader() {
       }
     }
     const previous = document.body.style.overflow
+    const desktop = window.matchMedia("(min-width: 64rem)")
+    const onBreakpointChange = () => {
+      if (desktop.matches) setOpen(false)
+    }
+    onBreakpointChange()
+    desktop.addEventListener("change", onBreakpointChange)
     document.body.style.overflow = "hidden"
     document.addEventListener("keydown", onKeyDown)
     panelRef.current?.querySelector<HTMLElement>("a")?.focus()
     return () => {
       document.body.style.overflow = previous
+      desktop.removeEventListener("change", onBreakpointChange)
       document.removeEventListener("keydown", onKeyDown)
     }
   }, [open])

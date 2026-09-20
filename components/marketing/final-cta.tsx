@@ -25,7 +25,7 @@ export function FinalCta() {
         : days === 1
           ? `${nextBatch.name} starts tomorrow.`
           : `${nextBatch.name} starts in ${days} days.`
-      : "The next batch is forming now."
+      : "Find the right batch for you."
 
   return (
     <section className="py-20 md:py-28">

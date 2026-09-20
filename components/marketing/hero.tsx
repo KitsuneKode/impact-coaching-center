@@ -61,8 +61,8 @@ export function Hero() {
           <span className="min-w-0 truncate">
             <span className="font-medium">{nextBatch.name}</span>
             <span className="text-muted-foreground">
-              <span className="hidden sm:inline"> for {nextBatch.exam}</span>{" "}
-              starts <span className="sm:hidden">{startShort}</span>
+              <span className="hidden sm:inline"> for {nextBatch.exam}</span> ·
+              Start date: <span className="sm:hidden">{startShort}</span>
               <span className="hidden sm:inline">{startLabel}</span>
             </span>
           </span>

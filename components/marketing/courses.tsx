@@ -189,7 +189,7 @@ function TrackCard({
             featured ? "bg-white/10" : "bg-highlight/25"
           )}
         >
-          Next batch starts {startsLabel(track.startsOn)}
+          Batch start date: {startsLabel(track.startsOn)}
         </p>
       ) : null}
 

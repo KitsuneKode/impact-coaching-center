@@ -59,11 +59,11 @@ export function VideoDialog({
         <Dialog.Popup
           initialFocus={closeRef}
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 w-[min(94vw,64rem)] -translate-x-1/2 -translate-y-1/2 outline-none",
+            "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
             "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
             "data-ending-style:scale-95 data-ending-style:opacity-0",
             "data-starting-style:scale-95 data-starting-style:opacity-0",
-            vertical && "w-[min(92vw,24rem)]"
+            vertical && "w-[min(92vw,24rem,calc((100dvh-10rem)*0.5625))]"
           )}
         >
           <div
