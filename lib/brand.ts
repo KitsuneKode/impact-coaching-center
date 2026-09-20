@@ -556,4 +556,6 @@ export const toConfirm = [
   "Whether ICT has a Telegram channel; the spec lists one as a contact channel and no link exists",
   "Wording of the four policy documents in lib/policies.ts; all four are drafts and stay noindex until approved",
   "Delivery areas, charges and dispatch times, and the cancellation and refund policy, before online ordering opens",
+  // The library page has its own list, kept beside the content it gates:
+  // `libraryQuestions` in lib/library.ts.
 ] as const

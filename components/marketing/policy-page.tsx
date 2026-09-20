@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react"
 
+import { DraftNotice } from "@/components/ui/draft-notice"
 import { Section } from "@/components/ui/section"
 import type { PolicyDocument } from "@/lib/policies"
 
@@ -44,18 +45,12 @@ export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
             Last updated {readableDate(doc.updated)}.
           </p>
         ) : (
-          <div
-            className="enter mt-8 max-w-160 rounded-card border border-highlight bg-highlight/20 p-5"
-            style={delay(90)}
-          >
-            <p className="text-sm font-medium text-foreground">
-              Draft — not yet approved by Impact Career Tutorials
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
+          <div className="enter mt-8" style={delay(90)}>
+            <DraftNotice drafted={readableDate(doc.updated)}>
               This wording describes how the website works today and has not
               been signed off. It is not a contract. For anything that matters,
-              speak to ICT directly. Drafted {readableDate(doc.updated)}.
-            </p>
+              speak to ICT directly.
+            </DraftNotice>
           </div>
         )}
 
