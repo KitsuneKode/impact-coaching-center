@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ticket: none (raise one KIT-<n> "Audit hygiene batch" under "Impact Website")
 spec: none
 ---
@@ -283,6 +283,24 @@ In `convex/http.ts`, import it and change the check to:
 - [ ] `curl -sI` on the running build shows the four headers
 - [ ] `git status --short` shows only files named in the steps
 - [ ] `docs/plans/README.md` row updated
+
+## Executed — 20 September 2026
+
+All eight steps landed, verified with `bun run check` (189 tests) and
+`bun run build`; the four headers were confirmed on the wire against a running
+build, on `/` and on a policy route.
+
+Two deviations worth recording:
+
+- **Step 5 was already done.** Both comments were corrected while closing the
+  KIT-39 review findings, so this step was a no-op.
+- **Step 4 crossed its own STOP condition, deliberately.** Typechecking
+  `scripts/` exposed `scripts/sync-courses.ts` reading `course.imageUrl`, a
+  property `RawCourse` never declared - exactly the class of bug the exclusion
+  was hiding. The plan says stop if the fix needs a `lib/` change. The only
+  alternative was a cast in the script, which would have re-hidden the same
+  gap, so `imageUrl` was declared on `RawCourse` instead: one optional field on
+  the type that models the payload. Flagged rather than done silently.
 
 ## STOP conditions
 

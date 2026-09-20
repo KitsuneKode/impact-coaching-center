@@ -38,3 +38,19 @@ export function parseTrustedOrigins(value: string): string[] {
   }
   return origins
 }
+
+/**
+ * Constant-time string equality, so a shared secret cannot be recovered by
+ * timing how long a comparison takes to fail.
+ *
+ * Length is folded into the same accumulator rather than short-circuiting,
+ * because returning early on a length mismatch leaks the secret's length.
+ */
+export function secretsMatch(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a)
+  const y = new TextEncoder().encode(b)
+  let diff = x.length ^ y.length
+  for (let i = 0; i < Math.max(x.length, y.length); i++)
+    diff |= (x[i] ?? 0) ^ (y[i] ?? 0)
+  return diff === 0
+}

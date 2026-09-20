@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { parseTrustedOrigins, requireEnv } from "./env"
+import { parseTrustedOrigins, requireEnv, secretsMatch } from "./env"
 
 describe("requireEnv", () => {
   test("returns a set value", () => {
@@ -55,5 +55,29 @@ describe("parseTrustedOrigins", () => {
   test("refuses a value that yields no origin at all", () => {
     expect(() => parseTrustedOrigins(",,")).toThrow(/empty trusted-origin/i)
     expect(() => parseTrustedOrigins("   ")).toThrow(/empty trusted-origin/i)
+  })
+})
+
+describe("secretsMatch", () => {
+  test("accepts an exact match", () => {
+    expect(secretsMatch("a", "a")).toBe(true)
+    expect(secretsMatch("", "")).toBe(true)
+    expect(secretsMatch("Bearer abc123", "Bearer abc123")).toBe(true)
+  })
+
+  test("rejects a different value of the same length", () => {
+    expect(secretsMatch("a", "b")).toBe(false)
+  })
+
+  test("rejects a prefix rather than treating it as a match", () => {
+    // Length is folded into the accumulator instead of short-circuiting, so
+    // these must fail without returning early and leaking the length.
+    expect(secretsMatch("a", "ab")).toBe(false)
+    expect(secretsMatch("ab", "a")).toBe(false)
+    expect(secretsMatch("", "a")).toBe(false)
+  })
+
+  test("compares bytes, so multi-byte characters cannot collide", () => {
+    expect(secretsMatch("é", "e")).toBe(false)
   })
 })

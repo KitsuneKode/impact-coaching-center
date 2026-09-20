@@ -18,6 +18,13 @@ export type RawCourse = {
   price?: number | null
   discount?: number | null
   totalSubscriberCount?: number | null
+  /**
+   * Cover art. Read by scripts/sync-courses.ts, not by toCatalogueRow - the
+   * script downloads it and sets `cover` from where the file landed. It was
+   * missing from this type while scripts/ was excluded from tsc, so the script
+   * read a property the payload type did not declare.
+   */
+  imageUrl?: string | null
 }
 
 /**
@@ -113,5 +120,24 @@ export function toCatalogueRow(
     free: payable <= 0,
     learners: course.totalSubscriberCount ?? 0,
     features: parseFeatures(course.description),
+  }
+}
+
+/**
+ * Two Courses whose short names slugify identically would share one route:
+ * the second has no page and its card links to the first. Refuse at sync
+ * time, where a human is reading the output, rather than shipping it.
+ */
+export function assertUniqueSlugs(
+  rows: ReadonlyArray<{ slug: string; id: number }>
+) {
+  const seen = new Map<string, number>()
+  for (const row of rows) {
+    const other = seen.get(row.slug)
+    if (other !== undefined)
+      throw new Error(
+        `Slug "${row.slug}" is produced by courses ${other} and ${row.id}; refusing to write lib/catalogue.ts`
+      )
+    seen.set(row.slug, row.id)
   }
 }
