@@ -21,9 +21,29 @@ export type TransportName = "logger" | "whatsapp"
  * it calls sendOTP, so a throw there leaves a stored, still-acceptable code
  * that nobody received.
  */
-export function chooseTransport(configured: string | undefined): TransportName {
-  if (configured === "logger") return "logger"
-  if (configured === "whatsapp") return "whatsapp"
+export function chooseTransport(
+  configured: string | undefined,
+  convexSiteUrl?: string
+): TransportName {
+  if (configured === "logger") {
+    // Convex supplies its own origin. A user-set "development" flag alone
+    // must not turn on credential logging for a hosted production backend.
+    const url = convexSiteUrl ? URL.parse(convexSiteUrl) : null
+    if (
+      !url ||
+      url.protocol !== "http:" ||
+      !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) ||
+      url.username ||
+      url.password
+    ) {
+      throw new Error(
+        "The logger OTP transport requires a local HTTP CONVEX_SITE_URL."
+      )
+    }
+    return "logger"
+  }
+  if (configured === "whatsapp")
+    throw new Error("The WhatsApp OTP transport is not implemented yet.")
   throw new Error(
     `OTP_TRANSPORT must be set to "logger" or "whatsapp" on this deployment. Refusing to construct an auth instance without an explicit transport.`
   )

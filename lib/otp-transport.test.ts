@@ -4,11 +4,26 @@ import { chooseTransport, sendOtp } from "./otp-transport"
 
 describe("chooseTransport", () => {
   test("selects the logger when it is asked for explicitly", () => {
-    expect(chooseTransport("logger")).toBe("logger")
+    expect(chooseTransport("logger", "http://127.0.0.1:3211")).toBe("logger")
   })
 
-  test("selects WhatsApp when it is asked for explicitly", () => {
-    expect(chooseTransport("whatsapp")).toBe("whatsapp")
+  test("rejects unavailable WhatsApp before any code is stored", () => {
+    expect(() => chooseTransport("whatsapp")).toThrow(/not implemented/)
+  })
+
+  test("logger fails closed outside local Convex", () => {
+    for (const origin of [
+      undefined,
+      "",
+      "garbage",
+      "https://example.convex.site",
+      "http://localhost.evil.test",
+      "http://localhost@evil.test",
+      "https://localhost",
+    ]) {
+      expect(() => chooseTransport("logger", origin)).toThrow(/local HTTP/)
+    }
+    expect(chooseTransport("logger", "http://[::1]:3211")).toBe("logger")
   })
 
   test("fails closed when no transport is configured", () => {
