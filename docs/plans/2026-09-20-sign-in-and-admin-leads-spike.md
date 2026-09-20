@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ticket: none (raise a KIT-<n> "Spike: sign-in UI and read-only leads inbox" under "Impact Website")
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -219,6 +219,28 @@ Delete the spike branch.
 - [ ] `docs/plans/2026-09-2X-sign-in-and-admin-leads.md` exists with all eight questions answered
 - [ ] Spike branch deleted; `git status` clean on main apart from the plan file
 - [ ] `docs/plans/README.md` row updated
+
+## Executed — 20 September 2026
+
+The committed deliverable, `docs/plans/2026-09-20-sign-in-and-admin-leads.md`,
+is written. **The throwaway spike branch was not built**, so the static half of
+this spike is done and the runtime half is not.
+
+Answered from the installed packages: the provider component and its props,
+the client plugin and its enumerated error codes, the live plugin route names,
+the seven helpers `convexBetterAuthNextJs` returns, and the fact that our own
+hook already forbids `updatePhoneNumber`. Those were the questions that made
+the build plan unexecutable, and they are closed.
+
+Left open, and listed in the build plan under "Not yet verified": whether the
+session cookie is set on localhost, the round-trip count and 400 rendering,
+whether a Convex HTTP action sees a real client address, and the anonymous
+`getCurrentPerson` path. Each needs `bunx convex dev` with
+`OTP_TRANSPORT=logger` and a browser, which was not run here.
+
+The address question is the one with teeth: if no `otp:ip:*` row appears, the
+per-address ceiling added in KIT-49 is inert and only the per-number and global
+ones bite.
 
 ## STOP conditions
 

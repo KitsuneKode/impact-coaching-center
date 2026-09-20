@@ -15,7 +15,9 @@ update your row here and the `status:` in the plan's header when done.
 | `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                      | P1       | M      | —                                       | DONE   |
 | `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows   | P1       | M      | — (before KIT-46)                       | DONE   |
 | `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                | P2       | M      | step 5 after/with the throttle plan     | DONE   |
-| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan | P2       | M      | throttle plan before any shared preview | TODO   |
+| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan | P2       | M      | throttle plan before any shared preview | DONE   |
+
+| `2026-09-20-sign-in-and-admin-leads.md` | `/sign-in` + read-only `/admin/leads` (from the spike) | P2 | L | KIT-49 before any shared preview | TODO |
 
 Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJECTED (one-line rationale).
 
