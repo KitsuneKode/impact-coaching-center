@@ -34,6 +34,19 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     // returning the promise is what makes a delivery failure fail the request
     // instead of answering "code sent" to someone who will never receive one.
     send: (target) => sendOtp(transport, target),
+    // Spends allowance before a code is generated or stored. Every send is a
+    // billed message once the WhatsApp transport lands, so the ceiling is a
+    // cost control as much as an abuse control. See convex/otp.ts.
+    throttle: async ({ phone, ip }) => {
+      if (!("runMutation" in ctx))
+        throw new Error(
+          "Sending a verification code requires a mutation-capable context."
+        )
+      return await ctx.runMutation(internal.otp.consumeSendAllowance, {
+        phone,
+        ip: ip ?? undefined,
+      })
+    },
     // The one point at which a number is known to belong to the person holding
     // the handset, so it is where the Person is created and stamped verified.
     // See ADR-0001.

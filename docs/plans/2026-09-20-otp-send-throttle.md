@@ -1,5 +1,5 @@
 ---
-status: draft
+status: done
 ticket: KIT-46 (precondition; raise a KIT-<n> for this slice before starting)
 spec: docs/superpowers/specs/2026-09-17-ict-growth-platform-design.md
 ---
@@ -487,6 +487,17 @@ Stop and report back if:
 - `bunx convex codegen` demands a login or deployment you do not have and `internal.otp` therefore cannot typecheck — report; do not hand-edit `convex/_generated`.
 - The memory-adapter harness returns something other than 429 for an `APIError("TOO_MANY_REQUESTS")` — report the status you got rather than changing the assertion.
 - You find yourself wanting to edit `lib/otp-transport.ts` or `convex/http.ts`.
+
+## Executed — 20 September 2026
+
+Steps 1-6 landed. Per the concurrent-work notice, the `by_windowStart` index,
+`purgeStaleRateLimits` and `convex/crons.ts` were **skipped**: `by_window` and
+an opportunistic prune inside `consumeRateLimit` already shipped with the
+enquiry ceilings, and they bound the table without a scheduled sweep.
+
+`bunx convex codegen` needed the gitignored `.env.local` from the main
+checkout, which points at the local anonymous deployment; with it, `internal.otp`
+generated normally and nothing under `convex/_generated` was hand-edited.
 
 ## Maintenance notes
 

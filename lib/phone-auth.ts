@@ -1,4 +1,4 @@
-import { APIError, createAuthMiddleware } from "better-auth/api"
+import { APIError, createAuthMiddleware, getIp } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
 import { toE164 } from "./leads"
@@ -7,6 +7,8 @@ import { toE164 } from "./leads"
 export function phoneAuthOptions(delivery: {
   send: (target: { phoneNumber: string; code: string }) => Promise<void>
   record: (person: { phone: string; name: string }) => Promise<void>
+  /** False refuses the send. See convex/otp.ts for the ceilings. */
+  throttle: (target: { phone: string; ip: string | null }) => Promise<boolean>
 }) {
   return {
     hooks: {
@@ -24,6 +26,21 @@ export function phoneAuthOptions(delivery: {
           throw new APIError("BAD_REQUEST", {
             message: "Enter a valid Indian mobile number.",
           })
+        if (ctx.path === "/phone-number/send-otp") {
+          // Checked before the delete below: a refused resend must leave the
+          // live code intact, or a flood of refused sends could be used to
+          // lock a real Person out of the code they already received.
+          const ip = getIp(
+            ctx.request ?? ctx.headers ?? new Headers(),
+            ctx.context.options
+          )
+          if (!(await delivery.throttle({ phone, ip }))) {
+            throw new APIError("TOO_MANY_REQUESTS", {
+              message:
+                "Too many codes were requested for this number. Wait a few minutes and try again.",
+            })
+          }
+        }
         // A resend must leave exactly one live code. send-otp only ever
         // inserts, and findVerificationValue resolves ties on createdAt with
         // `limit: 1`, so two rows created inside the same millisecond make
