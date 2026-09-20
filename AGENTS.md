@@ -35,7 +35,8 @@ Use Bun and keep `bun.lock` current.
 - `bun run format:check`: check formatting without writes.
 - `bun run lint`: run Oxlint with React, TypeScript, JSX accessibility, and native Next.js rules; warnings fail the command.
 - `bun run typecheck`: generate Next.js route types, then run TypeScript without emitting files.
-- `bun run check`: run formatting, linting, and type checking.
+- `bun run test`: run the Bun test suite.
+- `bun run check`: run formatting, linting, type checking, and tests.
 - `bun run build`: production Next.js build and route-generation gate.
 
 Run `bun run check` after code changes and `bun run build` for changes that affect routes, framework configuration, server/client boundaries, metadata, data fetching, or release readiness.
@@ -95,3 +96,13 @@ Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, both created lazi
 ### Plans
 
 Implementation plans live in `docs/plans/` as `YYYY-MM-DD-<slug>.md`, committed. Before starting multi-step work, check for an existing plan there and resume it rather than writing a new one. See `docs/agents/plans.md`.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

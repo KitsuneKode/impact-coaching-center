@@ -10,15 +10,14 @@ import { BatchCountdown } from "@/components/marketing/batch-countdown"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { ButtonAnchor } from "@/components/ui/button"
 import {
-  callHref,
   contact,
-  demoHref,
   faculty,
   formatPhone,
   links,
   nextBatch,
   offer,
 } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
@@ -53,7 +52,7 @@ export function Hero() {
       <div className="container-page">
         {/* the one eyebrow on the page: a real, dated batch */}
         <a
-          href={demoHref}
+          href={contactHref({ kind: "workshop" })}
           target="_blank"
           rel="noreferrer noopener"
           className="enter group inline-flex max-w-full items-center gap-2.5 rounded-control border border-border bg-card py-1.5 pr-2.5 pl-3 text-sm shadow-frame transition-colors hover:bg-secondary"
@@ -62,8 +61,8 @@ export function Hero() {
           <span className="min-w-0 truncate">
             <span className="font-medium">{nextBatch.name}</span>
             <span className="text-muted-foreground">
-              <span className="hidden sm:inline"> for {nextBatch.exam}</span>{" "}
-              starts <span className="sm:hidden">{startShort}</span>
+              <span className="hidden sm:inline"> for {nextBatch.exam}</span> ·
+              Start date: <span className="sm:hidden">{startShort}</span>
               <span className="hidden sm:inline">{startLabel}</span>
             </span>
           </span>
@@ -90,11 +89,19 @@ export function Hero() {
           className="enter mt-8 flex flex-wrap items-center gap-3"
           style={delay(180)}
         >
-          <ButtonAnchor href={demoHref} target="_blank" size="lg">
+          <ButtonAnchor
+            href={contactHref({ kind: "workshop" })}
+            target="_blank"
+            size="lg"
+          >
             {offer.cta}
             <IconArrowRight data-nudge stroke={1.75} />
           </ButtonAnchor>
-          <ButtonAnchor href={callHref} variant="secondary" size="lg">
+          <ButtonAnchor
+            href={contactHref({ kind: "call" })}
+            variant="secondary"
+            size="lg"
+          >
             <IconPhone stroke={1.6} />
             <span className="tnum">{formatPhone(contact.phones[0])}</span>
           </ButtonAnchor>

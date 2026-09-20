@@ -11,7 +11,8 @@ import {
 import { useState } from "react"
 
 import { ButtonAnchor } from "@/components/ui/button"
-import { callHref, demoHref, offer } from "@/lib/brand"
+import { offer } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 
 /**
  * The mobile conversion bar: call, or book, one thumb away.
@@ -40,7 +41,7 @@ export function MobileActionBar() {
         >
           <div className="mx-auto flex max-w-md gap-2">
             <ButtonAnchor
-              href={callHref}
+              href={contactHref({ kind: "call" })}
               variant="secondary"
               size="lg"
               className="flex-1"
@@ -49,7 +50,7 @@ export function MobileActionBar() {
               Call
             </ButtonAnchor>
             <ButtonAnchor
-              href={demoHref}
+              href={contactHref({ kind: "workshop" })}
               target="_blank"
               size="lg"
               className="flex-[2]"

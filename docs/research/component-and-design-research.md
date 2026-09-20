@@ -2,6 +2,21 @@
 
 Research date: 17 September 2026
 
+## Scope corrections — 20 September 2026
+
+The following supersede historical suggestions below: Books use boolean
+availability, not stock quantities, low-stock metrics or stock decrement. Owner
+has write/fulfilment/refund/resync authority; staff start read-only. Table/chart
+package versions below are historical research, not installation pins: verify
+current supported releases only when the feature needs the dependency. Do not add
+charts merely because `dashboard-01` includes them.
+
+The requested Blog and Careers pages are new scope. Reuse the existing editorial
+layout, Card/Badge/Button/Section components and appropriate official shadcn
+primitives rather than installing a second design system. Content ownership,
+publishing workflow and the meaning of Careers need approval before implementation.
+No fabricated articles, vacancies, authors, dates or salaries are acceptable.
+
 ## Decision
 
 Build the first production version from the project's existing Base UI-flavoured shadcn system, using official shadcn components and `dashboard-01` as reference material. Add only two UI dependencies when their features are actually needed:

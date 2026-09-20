@@ -1,8 +1,12 @@
 "use server"
 
-import { timings, tracks } from "@/lib/brand"
+import { headers } from "next/headers"
 
-export type LeadField = "name" | "phone" | "course" | "timing"
+import { parseClientAddress } from "@/lib/client-address"
+import { HONEYPOT_FIELD, type LeadField, parseLead } from "@/lib/leads"
+import { createLeadSink, LeadThrottled } from "@/lib/lead-delivery"
+
+export type { LeadField }
 
 export type LeadState =
   | { status: "idle" }
@@ -12,95 +16,77 @@ export type LeadState =
       values: Partial<Record<LeadField, string>>
     }
   | {
-      status: "ok"
+      status: "ok" | "handoff" | "throttled"
       name: string
       phone: string
-      course: string
+      track: string
       timing: string
     }
-
-const courseOptions = [...tracks.map((t) => t.exam), "Not sure yet"] as string[]
-const timingOptions = [...timings] as string[]
 
 /**
  * Records an enquiry before the visitor is handed to WhatsApp.
  *
  * Without this, an abandoned WhatsApp handoff is a lost lead and nobody can
- * tell which course drives enquiries. Delivery goes to LEAD_WEBHOOK_URL when
- * it is set: a Google Apps Script bound to a Sheet, Zapier, Make, a Slack or
- * Discord webhook, anything that accepts JSON. Without it, the lead is logged
- * on the server so development works with no setup.
+ * tell which course drives enquiries. Validation lives in lib/leads.ts so it
+ * can be tested without FormData or a request; this function only maps
+ * between the form and that module.
  */
 export async function submitLead(
   _prev: LeadState,
   formData: FormData
 ): Promise<LeadState> {
-  const values = {
-    name: String(formData.get("name") ?? "").trim(),
-    phone: String(formData.get("phone") ?? "").trim(),
-    course: String(formData.get("course") ?? ""),
+  const submitted = {
+    name: String(formData.get("name") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+    track: String(formData.get("track") ?? ""),
     timing: String(formData.get("timing") ?? ""),
   }
 
-  // Honeypot: real people never see this field. Bots fill it. Pretend success.
-  if (String(formData.get("company") ?? "").length > 0) {
-    return { status: "ok", ...values }
+  const parsed = parseLead(submitted)
+  if (!parsed.ok) {
+    return { status: "error", errors: parsed.errors, values: submitted }
   }
 
-  const digits = values.phone.replace(/\D/g, "").slice(-10)
-  const errors: Partial<Record<LeadField, string>> = {}
-
-  if (values.name.length < 2 || values.name.length > 80) {
-    errors.name = "Please enter your name."
-  }
-  if (!/^[6-9]\d{9}$/.test(digits)) {
-    errors.phone = "Please enter a 10 digit mobile number."
-  }
-  if (!courseOptions.includes(values.course)) {
-    errors.course = "Please pick a course."
-  }
-  if (!timingOptions.includes(values.timing)) {
-    errors.timing = "Please pick a time of day."
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return { status: "error", errors, values }
-  }
-
-  const lead = {
-    name: values.name,
-    phone: `+91${digits}`,
-    course: values.course,
-    timing: values.timing,
-    source: "website",
-    receivedAt: new Date().toISOString(),
-  }
-
-  const webhook = process.env.LEAD_WEBHOOK_URL
-  if (webhook) {
-    try {
-      const response = await fetch(webhook, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(lead),
-        signal: AbortSignal.timeout(5000),
-      })
-      if (!response.ok) {
-        console.error("[lead] webhook responded", response.status)
-      }
-    } catch (error) {
-      // The visitor still gets the WhatsApp handoff, so the lead is not lost.
-      console.error("[lead] webhook failed", error)
-    }
-  } else {
-    console.info("[lead]", lead)
-  }
-
-  return {
+  const success: LeadState = {
     status: "ok",
-    name: lead.name,
-    phone: lead.phone,
-    course: lead.course,
-    timing: lead.timing,
+    name: parsed.lead.name,
+    phone: parsed.lead.phone,
+    track: parsed.lead.track,
+    timing: parsed.lead.timing,
   }
+
+  // Honeypot: real people never see this field, bots fill it. The reply is
+  // byte-identical to a real submission - same validation errors, same success
+  // payload - so a bot cannot detect the control by submitting twice and
+  // diffing the responses. Only the delivery is skipped.
+  //
+  // The field is named so that no autofill heuristic recognises it (see
+  // lead-form.tsx). An earlier revision called it "company", which maps to the
+  // standard `organization` token, so password managers filled it for real
+  // visitors; that false-positive is fixed at the field, not by weakening the
+  // reply here.
+  if (String(formData.get(HONEYPOT_FIELD) ?? "").length > 0) {
+    return success
+  }
+
+  // Forwarded to Convex, which otherwise only ever sees this server as the
+  // caller. Validated rather than trusted - see lib/client-address.ts for what
+  // that does and does not guarantee.
+  const ip =
+    parseClientAddress((await headers()).get("x-forwarded-for")) ?? undefined
+
+  try {
+    await createLeadSink(process.env, fetch, ip).submit(parsed.lead)
+  } catch (error) {
+    // A ceiling is not a failure: ICT already has these details, and saying
+    // "we could not confirm receipt" would both be untrue and push a throttled
+    // sender onto an unmetered channel.
+    if (error instanceof LeadThrottled)
+      return { ...success, status: "throttled" }
+    // Do not log provider exceptions: they can contain URLs and personal data.
+    console.error("[lead] delivery was not confirmed")
+    return { ...success, status: "handoff" }
+  }
+
+  return success
 }

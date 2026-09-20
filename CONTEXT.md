@@ -40,6 +40,16 @@ _Avoid_: lead form submission, contact request
 Where a Person sits in ICT's follow-up pipeline: New, Contacted, Interested, Enrolled or Lost. A field on the Person, not a separate record.
 _Avoid_: stage, pipeline position
 
+**Lead**:
+A Person who has entered the follow-up pipeline, and the validated payload that puts them there. Sanctioned as a code-level name (`Lead`, `LeadSink`, `parseLead`) because the pipeline is the thing being named; it is never a table, and it never substitutes for **Person**.
+_Avoid_: prospect, contact
+
+**Contact channel**:
+A way of reaching ICT — WhatsApp or a phone call. "Contact" is listed under _Avoid_ for **Person** as a noun for a human, and that still holds; it is sanctioned only as a channel word (`contactHref`, `lib/contact.ts`), never as a name for a Person.
+
+**Role value**:
+`student`, `staff` and `owner` are field _values_ on a Person, not type names, so they are exempt from the words listed under _Avoid_ for **Person**.
+
 ### Materials and commerce
 
 **Resource**:
@@ -51,7 +61,7 @@ The in-browser viewer for a Resource. Serves pre-rasterized page images rather t
 _Avoid_: viewer, PDF viewer
 
 **Book**:
-A physical book ICT sells and ships. Bought on this site, unlike a Course.
+A physical book ICT maintains and sells independently of Classplus, for shipping or collection at ICT. Bought on this site, unlike a Course. Availability is enabled or disabled; it is not a stock count.
 _Avoid_: product, item
 
 **Order**:

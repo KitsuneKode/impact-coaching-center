@@ -18,10 +18,9 @@ import {
   lectureStill,
   offer,
   tracks,
-  trackEnquiryHref,
-  trackFreeHref,
   type Track,
 } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 import { cn } from "@/lib/utils"
 
 function startsLabel(iso: string) {
@@ -105,7 +104,7 @@ function TrackCard({
       </div>
 
       <ButtonAnchor
-        href={trackEnquiryHref(track)}
+        href={contactHref({ kind: "track", exam: track.exam })}
         target="_blank"
         variant={featured ? "secondary" : "primary"}
         size="lg"
@@ -128,7 +127,7 @@ function TrackCard({
 
       {free ? (
         <a
-          href={trackFreeHref(track)}
+          href={contactHref({ kind: "track-free-workshop", exam: track.exam })}
           target="_blank"
           rel="noreferrer noopener"
           className={cn(
@@ -190,7 +189,7 @@ function TrackCard({
             featured ? "bg-white/10" : "bg-highlight/25"
           )}
         >
-          Next batch starts {startsLabel(track.startsOn)}
+          Batch start date: {startsLabel(track.startsOn)}
         </p>
       ) : null}
 

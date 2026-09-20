@@ -12,6 +12,7 @@
     "functions": ["cn", "cva"]
   },
   "ignorePatterns": [
+    "convex/_generated/",
     "dist/",
     "node_modules/",
     ".next/",
