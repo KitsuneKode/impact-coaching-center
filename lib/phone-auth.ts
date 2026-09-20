@@ -1,12 +1,36 @@
-import { APIError, createAuthMiddleware } from "better-auth/api"
+import { APIError, createAuthMiddleware, getIp } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
 import { toE164 } from "./leads"
+
+/**
+ * What a refused send tells the person, per ceiling.
+ *
+ * Each has to be true of the ceiling that actually fired. A shared college
+ * connection hitting the address limit is not the visitor asking too often,
+ * and the deployment cap is not something they can wait out in a few minutes.
+ */
+const REFUSAL_MESSAGES = {
+  phone:
+    "Too many codes were requested for this number. Wait a few minutes and try again.",
+  address:
+    "Too many codes were requested from this internet connection. Wait a while, or call ICT instead.",
+  deployment:
+    "We cannot send verification codes at the moment. Please call or message ICT and they will help you directly.",
+} as const
 
 /** Shared by the Convex adapter and the integration-test memory adapter. */
 export function phoneAuthOptions(delivery: {
   send: (target: { phoneNumber: string; code: string }) => Promise<void>
   record: (person: { phone: string; name: string }) => Promise<void>
+  /**
+   * Null allows the send; a scope refuses it and says which ceiling was hit,
+   * so the message the caller sees is true. See convex/otp.ts.
+   */
+  throttle: (target: {
+    phone: string
+    ip: string | null
+  }) => Promise<"phone" | "address" | "deployment" | null>
 }) {
   return {
     hooks: {
@@ -24,6 +48,21 @@ export function phoneAuthOptions(delivery: {
           throw new APIError("BAD_REQUEST", {
             message: "Enter a valid Indian mobile number.",
           })
+        if (ctx.path === "/phone-number/send-otp") {
+          // Checked before the delete below: a refused resend must leave the
+          // live code intact, or a flood of refused sends could be used to
+          // lock a real Person out of the code they already received.
+          const ip = getIp(
+            ctx.request ?? ctx.headers ?? new Headers(),
+            ctx.context.options
+          )
+          const refusal = await delivery.throttle({ phone, ip })
+          if (refusal) {
+            throw new APIError("TOO_MANY_REQUESTS", {
+              message: REFUSAL_MESSAGES[refusal],
+            })
+          }
+        }
         // A resend must leave exactly one live code. send-otp only ever
         // inserts, and findVerificationValue resolves ties on createdAt with
         // `limit: 1`, so two rows created inside the same millisecond make

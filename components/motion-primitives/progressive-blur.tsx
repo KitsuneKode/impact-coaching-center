@@ -1,6 +1,6 @@
-"use client"
+import type { ComponentProps } from "react"
+
 import { cn } from "@/lib/utils"
-import { HTMLMotionProps, motion } from "motion/react"
 
 export const GRADIENT_ANGLES = {
   top: 0,
@@ -14,7 +14,7 @@ export type ProgressiveBlurProps = {
   blurLayers?: number
   className?: string
   blurIntensity?: number
-} & HTMLMotionProps<"div">
+} & Omit<ComponentProps<"div">, "children">
 
 export function ProgressiveBlur({
   direction = "bottom",
@@ -45,7 +45,7 @@ export function ProgressiveBlur({
         )})`
 
         return (
-          <motion.div
+          <div
             key={index}
             className="pointer-events-none absolute inset-0 rounded-[inherit]"
             style={{

@@ -12,6 +12,26 @@ describe("parseClientAddress", () => {
   test("accepts IPv6", () => {
     expect(parseClientAddress("2001:db8::1")).toBe("2001:db8::1")
   })
+
+  test("one IPv6 address written several ways is one bucket", () => {
+    // Validating without canonicalising gave each spelling its own
+    // rate-limit key, so a caller could mint as many as they could spell.
+    const spellings = [
+      "2001:db8::1",
+      "2001:0db8::1",
+      "2001:DB8:0:0:0:0:0:1",
+      "2001:0db8:0000:0000:0000:0000:0000:0001",
+    ]
+    const keys = new Set(spellings.map(parseClientAddress))
+    expect(keys.size).toBe(1)
+    expect([...keys][0]).toBe("2001:db8::1")
+  })
+
+  test("loopback spellings also collapse to one", () => {
+    expect(parseClientAddress("::1")).toBe(
+      parseClientAddress("0:0:0:0:0:0:0:1")
+    )
+  })
   test("treats a missing header as no address", () => {
     expect(parseClientAddress(null)).toBeNull()
     expect(parseClientAddress(undefined)).toBeNull()

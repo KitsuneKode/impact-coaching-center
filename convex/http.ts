@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server"
 
-import { parseTrustedOrigins, requireEnv } from "../lib/env"
+import { parseTrustedOrigins, requireEnv, secretsMatch } from "../lib/env"
 import { authComponent, createAuth } from "./auth"
 import { internal } from "./_generated/api"
 import { httpAction } from "./_generated/server"
@@ -15,7 +15,8 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     const secret = process.env.LEAD_INGEST_SECRET
-    if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`)
+    const header = request.headers.get("authorization") ?? ""
+    if (!secret || !secretsMatch(header, `Bearer ${secret}`))
       return new Response(null, { status: 401 })
     let input: unknown
     try {

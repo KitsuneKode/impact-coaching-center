@@ -18,7 +18,11 @@
  * before committing, the same as any other content change.
  */
 
-import { type RawCourse, toCatalogueRow } from "../lib/catalogue-import"
+import {
+  assertUniqueSlugs,
+  type RawCourse,
+  toCatalogueRow,
+} from "../lib/catalogue-import"
 
 const ORG_ID = 445114
 // base64 of {"tutorId":null,"orgId":445114,"categoryId":null}, as the storefront builds it
@@ -93,6 +97,11 @@ async function main() {
 
     rows.push({ ...row, cover })
   }
+
+  // Before anything on disk changes: a collision here would silently hide a
+  // course page, and failing while a human is reading the output is cheaper
+  // than shipping it.
+  assertUniqueSlugs(rows)
 
   // Now that every cover has been fetched or preserved, art belonging to no
   // current course is safe to remove.

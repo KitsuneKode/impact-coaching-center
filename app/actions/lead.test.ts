@@ -99,6 +99,15 @@ describe("enquiry action delivery", () => {
       value: mocked,
     })
     try {
+      // A File stringifies to "[object File]", thirteen characters, which
+      // would otherwise pass the name length check and be stored as a name.
+      const uploaded = form()
+      uploaded.set("name", new File(["x"], "x.txt"))
+      const fileResult = await submitLead({ status: "idle" }, uploaded)
+      expect(fileResult.status).toBe("error")
+      if (fileResult.status === "error")
+        expect(fileResult.errors.name).toBeDefined()
+
       const invalid = form()
       invalid.set("phone", "invalid")
       expect((await submitLead({ status: "idle" }, invalid)).status).toBe(

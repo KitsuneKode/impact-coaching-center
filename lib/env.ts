@@ -38,3 +38,27 @@ export function parseTrustedOrigins(value: string): string[] {
   }
   return origins
 }
+
+/**
+ * Constant-time equality against a secret, so the secret cannot be recovered
+ * by timing how long a comparison takes to fail.
+ *
+ * Argument order matters: the loop runs exactly `secret`'s length, so the work
+ * done does not depend on anything the caller controls. An earlier version
+ * looped to `Math.max(candidate.length, secret.length)`, which meant a caller
+ * lengthening their input could watch for the point where timing started to
+ * grow and read off the secret's length - the very leak the length fold below
+ * is there to prevent.
+ *
+ * Length is folded into the accumulator rather than short-circuiting, for the
+ * same reason: returning early on a length mismatch leaks it too.
+ */
+export function secretsMatch(candidate: string, secret: string): boolean {
+  const encoder = new TextEncoder()
+  const given = encoder.encode(candidate)
+  const expected = encoder.encode(secret)
+  let diff = given.length ^ expected.length
+  for (let i = 0; i < expected.length; i++)
+    diff |= (given[i] ?? 0) ^ (expected[i] ?? 0)
+  return diff === 0
+}

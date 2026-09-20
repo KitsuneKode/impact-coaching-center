@@ -1,6 +1,23 @@
 import { describe, expect, test } from "bun:test"
 
 import sitemap from "../app/sitemap"
+import { libraryApproved } from "./library"
+import { policies } from "./policies"
+
+/**
+ * A policy ICT has not signed off renders `noindex`, so listing it would ask
+ * a crawler to fetch a page that tells it to go away. These are the only
+ * routes allowed to exist on disk and be absent from the sitemap.
+ */
+const unapprovedPolicyRoutes = policies
+  .filter((policy) => !policy.approved)
+  .map((policy) => `/${policy.slug}`)
+
+/** Every route allowed to exist on disk and be absent from the sitemap. */
+const draftRoutes = [
+  ...unapprovedPolicyRoutes,
+  ...(libraryApproved ? [] : ["/library"]),
+]
 
 /**
  * Routes derived from the filesystem, not hand-listed.
@@ -24,9 +41,19 @@ const pathnames = () => sitemap().map((entry) => new URL(entry.url).pathname)
 
 describe("sitemap", () => {
   test("lists every static page in the App Router tree", () => {
-    expect([...pathnames()].sort()).toEqual(
-      expect.arrayContaining(staticRoutesOnDisk().sort())
-    )
+    const expected = staticRoutesOnDisk()
+      .filter((route) => !draftRoutes.includes(route))
+      .sort()
+    expect([...pathnames()].sort()).toEqual(expect.arrayContaining(expected))
+  })
+
+  test("an unapproved policy is absent, an approved one is listed", () => {
+    // Both directions, so the gate cannot rot into "policies are never
+    // listed" once ICT signs the wording off.
+    const listed = pathnames()
+    for (const route of draftRoutes) expect(listed).not.toContain(route)
+    for (const policy of policies.filter((p) => p.approved))
+      expect(listed).toContain(`/${policy.slug}`)
   })
 
   test("the derivation found the routes we know exist", () => {

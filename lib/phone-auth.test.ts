@@ -17,6 +17,8 @@ function harness() {
   let code = ""
   let deliveredTo = ""
   let failRecord = false
+  let sendRefusal: "phone" | "address" | "deployment" | null = null
+  let throttled: { phone: string; ip: string | null } | null = null
   const auth = betterAuth({
     baseURL: "http://localhost:3000",
     secret: "test-only-secret-not-used-outside-this-memory-adapter",
@@ -24,6 +26,10 @@ function harness() {
     rateLimit: { enabled: false },
     logger: { disabled: true },
     ...phoneAuthOptions({
+      throttle: async (target) => {
+        throttled = target
+        return sendRefusal
+      },
       send: async (target) => {
         code = target.code
         deliveredTo = target.phoneNumber
@@ -49,6 +55,10 @@ function harness() {
     request,
     sentTo: () => deliveredTo,
     lastCode: () => code,
+    refuseSend: (scope: "phone" | "address" | "deployment" | null) => {
+      sendRefusal = scope
+    },
+    lastThrottle: () => throttled,
     failRecord: (value = true) => {
       failRecord = value
     },
@@ -142,6 +152,36 @@ describe("phone authentication through the installed plugin", () => {
       await exhausted.verify(undefined, { code: "invalid" })
     expect((await exhausted.verify()).status).not.toBe(200)
     expect(exhausted.db.user).toHaveLength(0)
+  })
+  test("a refused send returns 429 and leaves the live code intact", async () => {
+    const h = harness()
+    await h.send()
+    const live = h.lastCode()
+    h.refuseSend("phone")
+    expect((await h.send()).status).toBe(429)
+    // The throttle runs before the resend clears the previous row, so a
+    // flood of refused sends cannot retire a code a real Person already has.
+    expect(h.db.verification).toHaveLength(1)
+    h.refuseSend(null)
+    expect((await h.verify(undefined, { code: live })).status).toBe(200)
+  })
+  test("the throttle sees the normalised number, never the raw input", async () => {
+    const h = harness()
+    await h.send("98765 43210")
+    expect(h.lastThrottle()?.phone).toBe("+919876543210")
+  })
+  test("verify is not throttled by the send ceiling", async () => {
+    const h = harness()
+    await h.send()
+    h.refuseSend("phone")
+    expect((await h.verify()).status).toBe(200)
+  })
+  test("a refused send delivers nothing", async () => {
+    const h = harness()
+    h.refuseSend("phone")
+    expect((await h.send()).status).toBe(429)
+    expect(h.sentTo()).toBe("")
+    expect(h.db.verification).toHaveLength(0)
   })
   test("Person callback failure never issues a session", async () => {
     const h = harness()

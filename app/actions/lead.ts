@@ -24,6 +24,17 @@ export type LeadState =
     }
 
 /**
+ * FormData values are `string | File`. A File stringifies to "[object File]",
+ * thirteen characters, which passes the 2-80 length check on a name - so a
+ * file part would have become a Person's name. Only strings are ever a field
+ * value here, so anything else reads as absent.
+ */
+const text = (data: FormData, key: string) => {
+  const value = data.get(key)
+  return typeof value === "string" ? value : ""
+}
+
+/**
  * Records an enquiry before the visitor is handed to WhatsApp.
  *
  * Without this, an abandoned WhatsApp handoff is a lost lead and nobody can
@@ -36,10 +47,10 @@ export async function submitLead(
   formData: FormData
 ): Promise<LeadState> {
   const submitted = {
-    name: String(formData.get("name") ?? ""),
-    phone: String(formData.get("phone") ?? ""),
-    track: String(formData.get("track") ?? ""),
-    timing: String(formData.get("timing") ?? ""),
+    name: text(formData, "name"),
+    phone: text(formData, "phone"),
+    track: text(formData, "track"),
+    timing: text(formData, "timing"),
   }
 
   const parsed = parseLead(submitted)
@@ -65,7 +76,7 @@ export async function submitLead(
   // standard `organization` token, so password managers filled it for real
   // visitors; that false-positive is fixed at the field, not by weakening the
   // reply here.
-  if (String(formData.get(HONEYPOT_FIELD) ?? "").length > 0) {
+  if (text(formData, HONEYPOT_FIELD).length > 0) {
     return success
   }
 

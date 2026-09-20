@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  assertUniqueSlugs,
   parseFeatures,
   slugify,
   splitCourseName,
@@ -236,5 +237,24 @@ describe("toCatalogueRow", () => {
 
   test("never produces an empty slug", () => {
     expect(toCatalogueRow({ id: 42, name: "অসম পুলিচ" }).slug).toBe("course-42")
+  })
+})
+
+describe("assertUniqueSlugs", () => {
+  test("passes distinct slugs", () => {
+    expect(() =>
+      assertUniqueSlugs([
+        { slug: "a", id: 1 },
+        { slug: "b", id: 2 },
+      ])
+    ).not.toThrow()
+  })
+  test("names both colliding courses", () => {
+    expect(() =>
+      assertUniqueSlugs([
+        { slug: "lakhya-2027", id: 1 },
+        { slug: "lakhya-2027", id: 2 },
+      ])
+    ).toThrow(/1 and 2/)
   })
 })

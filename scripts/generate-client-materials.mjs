@@ -418,7 +418,7 @@ pptx.defineSlideMaster({
     [
       "03",
       "Physical books",
-      "Catalogue, cart, Razorpay, stock, orders and Resend email updates.",
+      "Catalogue, cart, Razorpay, availability, orders and WhatsApp order updates.",
     ],
     [
       "04",
@@ -1429,7 +1429,7 @@ const doc = new Document({
           "Book catalogue, details, availability, cart, address collection and order summary."
         ),
         bullet(
-          "Razorpay Standard Checkout with server-verified amount, stock, signature and payment status."
+          "Razorpay Standard Checkout with server-verified amount, availability, signature and payment status."
         ),
         bullet(
           "Paid, packing, shipped, delivered, cancelled and refunded staff workflow."
@@ -1524,7 +1524,7 @@ const doc = new Document({
         ),
         heading("Client-owned services", HeadingLevel.HEADING_2),
         p(
-          "Production accounts for the domain, Cloudflare, Convex, Clerk, PostHog, Razorpay, Google Search Console and Google Business Profile will be owned by ICT. Third-party subscriptions, transaction charges, messaging charges and taxes are paid directly by ICT."
+          "Production accounts for the domain, Cloudflare, Convex, Meta WhatsApp Business, PostHog, Razorpay, Google Search Console and Google Business Profile will be owned by ICT. Third-party subscriptions, transaction charges, messaging charges and taxes are paid directly by ICT."
         ),
         pageBreak(),
         heading("Exclusions and responsibilities"),
@@ -1544,7 +1544,7 @@ const doc = new Document({
         ),
         heading("ICT responsibilities", HeadingLevel.HEADING_2),
         p(
-          "ICT will provide and approve its official name, address, hours, contacts, programme information, fees, schedules, faculty information, results evidence and permissions, resource files, book details and covers, stock, delivery charges, library rules, legal policies, payment account and responsible staff contacts."
+          "ICT will provide and approve its official name, address, hours, contacts, programme information, fees, schedules, faculty information, results evidence and permissions, resource files, book details and covers, which books are available to order, delivery charges, library rules, legal policies, payment account and responsible staff contacts."
         ),
         p(
           "The project begins after written acceptance, the first payment, and receipt of the starting content and account-access checklist. This quotation is valid for 15 days.",
@@ -1736,7 +1736,7 @@ const briefProposal = new Document({
             ],
             ["Physical books", "Library", "Promotions"],
             [
-              "Catalogue, cart, Razorpay checkout, stock, orders, fulfilment and transactional email through Resend.",
+              "Catalogue, cart, Razorpay checkout, availability, orders, fulfilment and WhatsApp order updates.",
               "Facilities, plans, rules, application form and staff review workflow.",
               "Admin-controlled banners and campaign cards with schedule, targeting and measurement.",
             ],
@@ -1800,7 +1800,7 @@ const briefProposal = new Document({
           numbering: { reference: "brief-bullets", level: 0 },
           children: [
             new TextRun({
-              text: "Resend transactional email for customer order confirmation and staff new-order notification; verified sending domain required.",
+              text: "WhatsApp messages for customer order confirmation and staff new-order notification; ICT's verified WhatsApp Business number required.",
               font,
               size: 19,
             }),
