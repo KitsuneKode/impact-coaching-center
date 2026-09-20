@@ -1,11 +1,7 @@
 "use server"
 
-import {
-  type Lead,
-  type LeadField,
-  type LeadSink,
-  parseLead,
-} from "@/lib/leads"
+import { HONEYPOT_FIELD, type LeadField, parseLead } from "@/lib/leads"
+import { createLeadSink } from "@/lib/lead-delivery"
 
 export type { LeadField }
 
@@ -17,45 +13,12 @@ export type LeadState =
       values: Partial<Record<LeadField, string>>
     }
   | {
-      status: "ok"
+      status: "ok" | "handoff"
       name: string
       phone: string
       course: string
       timing: string
     }
-
-/**
- * Delivery to LEAD_WEBHOOK_URL: a Google Apps Script bound to a Sheet,
- * Zapier, Make, a Slack or Discord webhook, anything that accepts JSON.
- * Without it, the lead is logged on the server so development works with no
- * setup. Convex becomes the second adapter behind this same interface.
- */
-const webhookSink: LeadSink = {
-  async submit(lead: Lead) {
-    const webhook = process.env.LEAD_WEBHOOK_URL
-    const payload = { ...lead, receivedAt: new Date().toISOString() }
-
-    if (!webhook) {
-      // Deliberately not the payload: this is the default path whenever the
-      // variable is unset, including a production deploy where someone forgot
-      // it, and the payload is a name and a mobile number.
-      console.info(
-        `[lead] received (no LEAD_WEBHOOK_URL set, not delivered) course=${lead.course}`
-      )
-      return
-    }
-
-    const response = await fetch(webhook, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(5000),
-    })
-    if (!response.ok) {
-      throw new Error(`Lead webhook responded ${response.status}`)
-    }
-  },
-}
 
 /**
  * Records an enquiry before the visitor is handed to WhatsApp.
@@ -89,23 +52,26 @@ export async function submitLead(
     timing: parsed.lead.timing,
   }
 
-  // Honeypot: real people never see this field. Bots fill it. The response is
+  // Honeypot: real people never see this field, bots fill it. The reply is
   // byte-identical to a real submission - same validation errors, same success
-  // payload - so a bot cannot tell the control fired by comparing what came
-  // back. Only the delivery is skipped. Returning empty fields instead would
-  // both reveal the control in one request and render "Thank you, ." to any
-  // human whose password manager autofilled the field.
-  if (String(formData.get("company") ?? "").length > 0) {
+  // payload - so a bot cannot detect the control by submitting twice and
+  // diffing the responses. Only the delivery is skipped.
+  //
+  // The field is named so that no autofill heuristic recognises it (see
+  // lead-form.tsx). An earlier revision called it "company", which maps to the
+  // standard `organization` token, so password managers filled it for real
+  // visitors; that false-positive is fixed at the field, not by weakening the
+  // reply here.
+  if (String(formData.get(HONEYPOT_FIELD) ?? "").length > 0) {
     return success
   }
 
   try {
-    await webhookSink.submit(parsed.lead)
-  } catch (error) {
-    // The visitor still gets the WhatsApp handoff, so the enquiry is not lost
-    // to them - but it is lost to us, which is why this is an error and not a
-    // silent return. Convex replaces this path.
-    console.error("[lead] delivery failed", error)
+    await createLeadSink(process.env).submit(parsed.lead)
+  } catch {
+    // Do not log provider exceptions: they can contain URLs and personal data.
+    console.error("[lead] delivery was not confirmed")
+    return { ...success, status: "handoff" }
   }
 
   return success

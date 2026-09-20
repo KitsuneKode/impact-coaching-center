@@ -13,7 +13,7 @@ import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Button, ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, offer, timings } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
-import { enquiryCourses } from "@/lib/leads"
+import { enquiryCourses, HONEYPOT_FIELD } from "@/lib/leads"
 import { cn } from "@/lib/utils"
 
 const field =
@@ -86,7 +86,7 @@ export function LeadForm() {
   return (
     <div className="rounded-card border border-border bg-surface p-6 md:p-8">
       <AnimatePresence mode="wait" initial={false}>
-        {state.status === "ok" ? (
+        {state.status === "ok" || state.status === "handoff" ? (
           <motion.div key="done" {...swap} role="status" aria-live="polite">
             <IconCircleCheckFilled
               size={28}
@@ -97,10 +97,10 @@ export function LeadForm() {
               Thank you, {state.name.split(" ")[0]}.
               <span className="text-muted-foreground">
                 {" "}
-                ICT will call you on{" "}
-                <span className="tnum">
-                  {formatPhone(state.phone)}
-                </span> about{" "}
+                {state.status === "ok"
+                  ? "Your enquiry was received. Your callback number is "
+                  : "We could not confirm receipt. Send your enquiry on WhatsApp or call ICT. Your number is "}
+                <span className="tnum">{formatPhone(state.phone)}</span> about{" "}
                 {state.course === "Not sure yet"
                   ? "the right course for you"
                   : state.course}
@@ -108,7 +108,9 @@ export function LeadForm() {
               </span>
             </p>
             <p className="mt-6 text-sm text-muted-foreground">
-              Want an answer right now?
+              {state.status === "ok"
+                ? "You can also contact ICT directly."
+                : "Continue below to send your details to ICT."}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <ButtonAnchor
@@ -217,8 +219,12 @@ export function LeadForm() {
                 className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
               >
                 <label>
-                  Company
-                  <input name="company" tabIndex={-1} autoComplete="off" />
+                  Leave this field empty
+                  <input
+                    name={HONEYPOT_FIELD}
+                    tabIndex={-1}
+                    autoComplete="off"
+                  />
                 </label>
               </div>
 

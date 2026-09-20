@@ -104,3 +104,16 @@ export function parseLead(input: Record<string, string>): ParseResult {
 export interface LeadSink {
   submit(lead: Lead): Promise<void>
 }
+
+/**
+ * The enquiry form's honeypot field.
+ *
+ * Deliberately not a recognised autofill token: browsers and password managers
+ * fill fields they can name, bots fill every input they find. An earlier
+ * revision called it "company", which maps to the standard `organization`
+ * token, so password managers tripped the trap for real visitors.
+ *
+ * It lives here rather than beside the action because a "use server" module
+ * may only export async functions.
+ */
+export const HONEYPOT_FIELD = "enquiry-ref"

@@ -2,8 +2,47 @@ import { httpRouter } from "convex/server"
 
 import { parseTrustedOrigins, requireEnv } from "../lib/env"
 import { authComponent, createAuth } from "./auth"
+import { internal } from "./_generated/api"
+import { httpAction } from "./_generated/server"
+import { parseLead } from "../lib/leads"
 
 const http = httpRouter()
+
+http.route({
+  path: "/enquiries",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.LEAD_INGEST_SECRET
+    if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`)
+      return new Response(null, { status: 401 })
+    let input: unknown
+    try {
+      const body = await request.text()
+      if (body.length > 8192) return new Response(null, { status: 413 })
+      input = JSON.parse(body)
+    } catch {
+      return new Response(null, { status: 400 })
+    }
+    if (!input || typeof input !== "object")
+      return new Response(null, { status: 400 })
+    const data = input as Record<string, unknown>
+    if (
+      ![data.name, data.phone, data.course, data.timing].every(
+        (value) => typeof value === "string"
+      )
+    )
+      return new Response(null, { status: 400 })
+    if (!parseLead(data as Record<string, string>).ok)
+      return new Response(null, { status: 400 })
+    await ctx.runMutation(internal.persons.recordEnquiry, {
+      name: data.name as string,
+      phone: data.phone as string,
+      course: data.course as string,
+      timing: data.timing as string,
+    })
+    return new Response(null, { status: 204 })
+  }),
+})
 
 /**
  * Lazy registration: Better Auth is not constructed while routes are being
