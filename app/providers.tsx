@@ -24,6 +24,17 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null
 
 /**
+ * Whether this build can reach Convex from the browser at all.
+ *
+ * `NEXT_PUBLIC_CONVEX_URL` is inlined when the bundle is built, so this is
+ * settled at build time and cannot change per request. The one route that
+ * reads Convex from the browser checks it before calling a hook: `useQuery`
+ * throws without a provider, and because /admin/leads is prerendered that
+ * throw fails the entire production build rather than just that page.
+ */
+export const convexConfigured = convex !== null
+
+/**
  * One cast, at the one boundary that needs it.
  *
  * The provider declares `authClient: AuthClient`, which the package defines as

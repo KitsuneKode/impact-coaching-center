@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react"
 import Link from "next/link"
 
+import { convexConfigured } from "@/app/providers"
 import { Section } from "@/components/ui/section"
 import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
@@ -37,6 +38,40 @@ function when(at: number | undefined) {
  * data - the query is one fetch away for anyone with a session.
  */
 export default function AdminLeadsPage() {
+  // Checked before any hook runs, and in a parent rather than around the hook
+  // itself: `useQuery` throws when no provider is mounted, and this page is
+  // prerendered, so an unconfigured build failed `next build` outright instead
+  // of degrading. The value is fixed when the bundle is built, so this branch
+  // cannot change between renders.
+  if (!convexConfigured) return <Unavailable />
+  return <Inbox />
+}
+
+/**
+ * What a build with no `NEXT_PUBLIC_CONVEX_URL` shows here.
+ *
+ * Expected on a preview deployment that was never given the variable. On the
+ * live site it means the site cannot reach its own database, which is a
+ * configuration fault and not something the person reading this can fix.
+ */
+function Unavailable() {
+  return (
+    <main>
+      <Section size="sm" className="pt-26 md:pt-30">
+        <h1 className="type-display">
+          <span className="text-foreground">Not available here.</span>
+        </h1>
+        <p className="type-lede mt-4 max-w-160 text-muted-foreground">
+          This copy of the site has no connection to the enquiry database, so
+          there is nothing to show. Nothing is wrong with your account. If you
+          are seeing this on the live site, tell whoever maintains it.
+        </p>
+      </Section>
+    </main>
+  )
+}
+
+function Inbox() {
   const result = useQuery(api.leads.inbox)
 
   if (result === undefined)
