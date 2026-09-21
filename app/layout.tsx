@@ -104,6 +104,12 @@ export default function RootLayout({
       lang="en-IN"
       data-scroll-behavior="smooth"
       className={cn(sans.variable, assamese.variable, "antialiased")}
+      // Browser extensions write their own attributes onto <html> before React
+      // hydrates - LanguageTool adds `data-lt-installed`, password managers and
+      // translators do the same - and React reports every one as a mismatch the
+      // site cannot fix. This suppresses exactly one element's attribute
+      // comparison; mismatches anywhere inside the tree are still reported.
+      suppressHydrationWarning
     >
       <body>
         <script
