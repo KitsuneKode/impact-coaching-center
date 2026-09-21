@@ -232,6 +232,53 @@
     border-color: var(--border);
   }
 
+  /*
+   * Atmosphere for the dark palettes, after patterncraft.fun's dark radial
+   * glow. Flat #000 is the single most lifeless ground available and it was
+   * making a considered palette look like a default one; the glow gives the
+   * page a light source, so the hero sits in something rather than on it.
+   *
+   * The navy is the palette's own second colour, not a new one - patterncraft
+   * ships this shape as rgb(13,26,54), which is within a hair of ICT's
+   * #14213D. Fixed attachment so the source stays put while the page scrolls
+   * rather than repeating down it.
+   */
+  :root[data-theme="elegance-dark"] body {
+    background-image: radial-gradient(
+      125% 125% at 50% 90%,
+      oklch(0 0 0) 40%,
+      oklch(0.252 0.056 264) 100%
+    );
+    background-attachment: fixed;
+  }
+
+  :root[data-theme="twilight-dark"] body {
+    background-image: radial-gradient(
+      125% 125% at 50% 90%,
+      oklch(0.131 0.034 246.6) 40%,
+      oklch(0.328 0.1 252.6) 100%
+    );
+    background-attachment: fixed;
+  }
+
+  /*
+   * The highlighter has to change on a dark ground, not just change colour.
+   *
+   * At 62% over near-white it reads as a marker stroke. The same 62% over
+   * black is a solid gold block with white text sitting on it - the contrast
+   * is bad and the effect is a high-visibility vest. On dark it becomes a
+   * band under the text instead: the same gesture, drawn rather than filled.
+   */
+  :root[data-theme="elegance-dark"] .mark,
+  :root[data-theme="twilight-dark"] .mark {
+    background-image: linear-gradient(
+      transparent 72%,
+      color-mix(in oklch, var(--highlight) 85%, transparent) 72%,
+      color-mix(in oklch, var(--highlight) 85%, transparent) 90%,
+      transparent 90%
+    );
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
