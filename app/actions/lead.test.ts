@@ -68,9 +68,8 @@ describe("enquiry action delivery", () => {
           "handoff"
         )
       }
-      // A ceiling is not a delivery failure: ICT has the enquiry already, so
-      // telling the sender it did not arrive would be untrue and would push
-      // them onto an unmetered channel.
+      // A ceiling needs distinct retry guidance. It does not prove receipt:
+      // shared-IP limits can reject a first-time visitor before persistence.
       mocked.mockResolvedValueOnce(new Response(null, { status: 429 }))
       expect((await submitLead({ status: "idle" }, form())).status).toBe(
         "throttled"

@@ -4,6 +4,7 @@ import {
   IconArrowRight,
   IconBrandWhatsapp,
   IconCircleCheckFilled,
+  IconInfoCircle,
   IconLoader2,
 } from "@tabler/icons-react"
 import { AnimatePresence, motion, useReducedMotion } from "motion/react"
@@ -130,11 +131,19 @@ export function LeadForm() {
       <AnimatePresence mode="wait" initial={false}>
         {state.status !== "idle" && state.status !== "error" && !again ? (
           <motion.div key="done" {...swap} role="status" aria-live="polite">
-            <IconCircleCheckFilled
-              size={28}
-              className="text-verified"
-              aria-hidden
-            />
+            {state.status === "ok" ? (
+              <IconCircleCheckFilled
+                size={28}
+                className="text-verified"
+                aria-hidden
+              />
+            ) : (
+              <IconInfoCircle
+                size={28}
+                className="text-muted-foreground"
+                aria-hidden
+              />
+            )}
             <p className="type-lede mt-4">
               Thank you, {state.name.split(" ")[0]}.
               <span className="text-muted-foreground">
@@ -142,7 +151,7 @@ export function LeadForm() {
                 {state.status === "ok"
                   ? "Your enquiry was received. Your callback number is "
                   : state.status === "throttled"
-                    ? "ICT already has your recent enquiries, so we did not send this one again. Your number is "
+                    ? "A temporary submission limit was reached. Please try again later or contact ICT directly. Your number is "
                     : "We could not confirm receipt. Send your enquiry on WhatsApp or call ICT. Your number is "}
                 <span className="tnum">{formatPhone(state.phone)}</span> about{" "}
                 {state.track === "Not sure yet"

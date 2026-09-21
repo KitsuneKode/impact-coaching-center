@@ -13,8 +13,9 @@ charts merely because `dashboard-01` includes them.
 
 The requested Blog and Careers pages are new scope. Reuse the existing editorial
 layout, Card/Badge/Button/Section components and appropriate official shadcn
-primitives rather than installing a second design system. Content ownership,
-publishing workflow and the meaning of Careers need approval before implementation.
+primitives rather than installing a second design system. The owner manages both
+in the shared dashboard; staff are read-only. Careers means jobs at ICT; student
+guidance belongs in Blog. Both have draft/published states; Vacancies can be closed.
 No fabricated articles, vacancies, authors, dates or salaries are acceptable.
 
 ## Decision
