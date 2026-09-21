@@ -74,11 +74,18 @@ function Unavailable() {
 function Inbox() {
   const result = useQuery(api.leads.inbox)
 
+  // The heading is part of the loading state, not something that arrives with
+  // the data. This is the markup the server sends and the first thing a screen
+  // reader meets; every other route on the site answers "what page is this?"
+  // before anything loads, and a bare "Loading…" does not.
   if (result === undefined)
     return (
       <main>
         <Section size="sm" className="pt-26 md:pt-30">
-          <p className="text-muted-foreground">Loading…</p>
+          <h1 className="type-display">
+            <span className="text-foreground">Enquiries.</span>{" "}
+            <span className="text-muted-foreground">Loading…</span>
+          </h1>
         </Section>
       </main>
     )
