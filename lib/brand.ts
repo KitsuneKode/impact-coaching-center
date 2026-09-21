@@ -21,7 +21,7 @@ export const brand = {
 } as const
 
 export const place = {
-  street: "D C Bunglow Road, Ward no 6",
+  street: "D C Bunglow Road, Ward no 8",
   city: "North Lakhimpur",
   region: "Assam",
   pin: "787001",
@@ -486,7 +486,7 @@ export const faqs = [
   },
   {
     q: "Where exactly is the centre?",
-    a: "D C Bunglow Road, Ward no 6, North Lakhimpur, Assam 787001. Open it in Google Maps from the contact section below.",
+    a: "D C Bunglow Road, Ward no 8, North Lakhimpur, Assam 787001. Open it in Google Maps from the contact section below.",
   },
 ] as const
 
