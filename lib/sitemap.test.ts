@@ -18,7 +18,7 @@ const unapprovedPolicyRoutes = policies
  * entry asks a crawler to fetch a page that tells it to go away. Sign-in has
  * nothing worth ranking, and the leads inbox is staff-only.
  */
-const noindexRoutes = ["/sign-in", "/admin", "/admin/leads"]
+const noindexRoutes = ["/login", "/register", "/admin", "/admin/leads"]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
 const draftRoutes = [

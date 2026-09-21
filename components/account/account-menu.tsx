@@ -26,7 +26,7 @@ import { formatPhone } from "@/lib/brand"
  * Who you are, and the way out.
  *
  * The site could sign a person in and then show them no evidence of it and no
- * way to leave - the header had no session awareness at all, and /sign-in was
+ * way to leave - the header had no session awareness at all, and /login was
  * not reachable from anywhere in the chrome. This is the missing half of the
  * log-in flow rather than an embellishment.
  *
@@ -62,7 +62,7 @@ function Menu({ className }: { className?: string }) {
   if (viewer === null)
     return (
       <Link
-        href="/sign-in"
+        href="/login"
         className={`rounded-control px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
       >
         Log in

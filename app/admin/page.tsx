@@ -72,7 +72,7 @@ function Home() {
                   has on file for you.
                 </EmptyDescription>
               </EmptyHeader>
-              <ButtonLink href="/sign-in?next=/admin" size="md">
+              <ButtonLink href="/login?next=/admin" size="md">
                 Log in
               </ButtonLink>
             </Empty>

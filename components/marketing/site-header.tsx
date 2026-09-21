@@ -178,7 +178,7 @@ export function SiteHeader() {
               </ul>
               {/*
                * The account control belongs in the mobile menu too. Without
-               * it /sign-in is unreachable from a handset, which is most of
+               * it /login is unreachable from a handset, which is most of
                * this audience.
                */}
               <div className="mt-1 flex justify-start border-t border-border px-1 pt-2">

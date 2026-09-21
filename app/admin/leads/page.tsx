@@ -146,7 +146,7 @@ function Inbox() {
               on file for you.
             </EmptyDescription>
           </EmptyHeader>
-          <ButtonLink href="/sign-in?next=/admin/leads" size="md">
+          <ButtonLink href="/login?next=/admin/leads" size="md">
             Log in
           </ButtonLink>
         </Empty>

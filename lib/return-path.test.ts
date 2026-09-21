@@ -38,6 +38,6 @@ describe("safeReturnPath", () => {
   })
 
   test("honours a caller's own fallback", () => {
-    expect(safeReturnPath("//evil.example", "/sign-in")).toBe("/sign-in")
+    expect(safeReturnPath("//evil.example", "/login")).toBe("/login")
   })
 })
