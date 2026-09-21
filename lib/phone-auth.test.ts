@@ -122,7 +122,7 @@ describe("phone authentication through the installed plugin", () => {
     expect((await h.verify()).status).not.toBe(200)
     expect(h.db.session).toHaveLength(1)
   })
-  test("resend replaces the live code instead of racing it", async () => {
+  test("a sequential resend leaves one live code", async () => {
     const h = harness()
     await h.send()
     await h.send()
