@@ -136,7 +136,7 @@ export function Enquire() {
             </div>
             <div className="flex items-center justify-between gap-4 px-4 py-3">
               <p className="text-sm text-muted-foreground">
-                D C Bunglow Road, Ward no 6
+                D C Bunglow Road, Ward no 8
               </p>
               <a
                 href={place.maps}

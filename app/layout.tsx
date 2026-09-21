@@ -3,6 +3,7 @@ import { Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
 import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
+import { Providers } from "@/app/providers"
 import { SiteFooter } from "@/components/marketing/site-footer"
 import { SiteHeader } from "@/components/marketing/site-header"
 import { EdgeBlur } from "@/components/motion/edge-blur"
@@ -103,6 +104,12 @@ export default function RootLayout({
       lang="en-IN"
       data-scroll-behavior="smooth"
       className={cn(sans.variable, assamese.variable, "antialiased")}
+      // Browser extensions write their own attributes onto <html> before React
+      // hydrates - LanguageTool adds `data-lt-installed`, password managers and
+      // translators do the same - and React reports every one as a mismatch the
+      // site cannot fix. This suppresses exactly one element's attribute
+      // comparison; mismatches anywhere inside the tree are still reported.
+      suppressHydrationWarning
     >
       <body>
         <script
@@ -111,11 +118,13 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <SiteHeader />
-        <EdgeBlur />
-        {children}
-        <SiteFooter />
-        <MobileActionBar />
+        <Providers>
+          <SiteHeader />
+          <EdgeBlur />
+          {children}
+          <SiteFooter />
+          <MobileActionBar />
+        </Providers>
       </body>
     </html>
   )

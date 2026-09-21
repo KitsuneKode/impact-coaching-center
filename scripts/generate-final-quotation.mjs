@@ -17,7 +17,7 @@ import {
   TextRun,
   VerticalAlign,
   WidthType,
-} from "/home/kitsunekode/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/docx/dist/index.mjs"
+} from "docx"
 import fs from "node:fs"
 import path from "node:path"
 

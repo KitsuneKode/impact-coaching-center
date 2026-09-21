@@ -4,16 +4,18 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "test": "bun test",
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run test",
-    "lint": "oxlint --deny-warnings .",
+    "dev": "next dev",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
-    "sync:courses": "bun run scripts/sync-courses.ts"
+    "lint": "oxlint --deny-warnings .",
+    "materials:docs": "bun scripts/generate-final-quotation.mjs && bun scripts/generate-client-materials.mjs",
+    "materials:pdf": "bun scripts/materials-to-pdf.mjs",
+    "start": "next start",
+    "sync:courses": "bun run scripts/sync-courses.ts",
+    "test": "bun test",
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -38,8 +40,10 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "convex-test": "^0.0.59",
+    "docx": "9.6.1",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0",
+    "pptxgenjs": "4.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
