@@ -63,12 +63,10 @@ export function phoneAuthOptions(delivery: {
             })
           }
         }
-        // A resend must leave exactly one live code. send-otp only ever
-        // inserts, and findVerificationValue resolves ties on createdAt with
-        // `limit: 1`, so two rows created inside the same millisecond make
-        // which code is accepted undefined - the stale one can win. Deleting
-        // first also means a resend invalidates the code it replaces, which
-        // is the behaviour a resend button implies.
+        // Retire the previous code on sequential resends. The plugin inserts
+        // separately, so delete + insert is NOT atomic across concurrent
+        // requests. Hosted OTP requires a concurrency safeguard before launch;
+        // see docs/research/2026-09-20-implementation-and-merge-status.md.
         if (ctx.path === "/phone-number/send-otp") {
           await ctx.context.internalAdapter.deleteVerificationByIdentifier(
             phone

@@ -89,9 +89,8 @@ export async function submitLead(
   try {
     await createLeadSink(process.env, fetch, ip).submit(parsed.lead)
   } catch (error) {
-    // A ceiling is not a failure: ICT already has these details, and saying
-    // "we could not confirm receipt" would both be untrue and push a throttled
-    // sender onto an unmetered channel.
+    // A shared-IP ceiling may reject a first-time visitor. A limit response
+    // does not establish receipt of this enquiry or any previous enquiry.
     if (error instanceof LeadThrottled)
       return { ...success, status: "throttled" }
     // Do not log provider exceptions: they can contain URLs and personal data.
