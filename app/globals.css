@@ -261,24 +261,6 @@
     background-attachment: fixed;
   }
 
-  /*
-   * The highlighter has to change on a dark ground, not just change colour.
-   *
-   * At 62% over near-white it reads as a marker stroke. The same 62% over
-   * black is a solid gold block with white text sitting on it - the contrast
-   * is bad and the effect is a high-visibility vest. On dark it becomes a
-   * band under the text instead: the same gesture, drawn rather than filled.
-   */
-  :root[data-theme="elegance-dark"] .mark,
-  :root[data-theme="twilight-dark"] .mark {
-    background-image: linear-gradient(
-      transparent 72%,
-      color-mix(in oklch, var(--highlight) 85%, transparent) 72%,
-      color-mix(in oklch, var(--highlight) 85%, transparent) 90%,
-      transparent 90%
-    );
-  }
-
   html {
     -webkit-tap-highlight-color: transparent;
     scroll-behavior: smooth;
@@ -358,6 +340,31 @@
     animation: mark-in 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.55s backwards;
   }
 
+  /*
+   * The highlighter has to change on a dark ground, not just change colour.
+   *
+   * At 62% over near-white it reads as a marker stroke. The same 62% over
+   * black is a solid gold block with white text sitting on it - the contrast
+   * is bad and the effect is a high-visibility vest. On dark it becomes a
+   * band under the text instead: the same gesture, drawn rather than filled.
+   */
+  :root[data-theme="elegance-dark"] .mark,
+  :root[data-theme="twilight-dark"] .mark {
+    /*
+     * Positioned in em rather than percent. Percentages resolve against the
+     * line box, so a band tuned at 36px cuts straight through the letterforms
+     * at the 60px hero size - it stopped reading as a highlight and started
+     * reading as a strikethrough. In em it keeps the same relationship to the
+     * baseline at every size.
+     */
+    background-image: linear-gradient(
+      transparent calc(100% - 0.22em),
+      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.22em),
+      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.06em),
+      transparent calc(100% - 0.06em)
+    );
+  }
+
   /* entry for above-the-fold content: CSS, so it paints without hydration */
   .enter {
     animation: enter-blur 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
@@ -370,6 +377,29 @@
    *   display  hero and closing CTA   clamp(24px, 2.5vw, 36px)
    *   lede     section openers        clamp(20px, 2vw, 21.6px)
    */
+  /*
+   * The hero scale, and the reason it exists.
+   *
+   * `.type-display` was doing every job on the site: the home hero, every
+   * section head, the policy pages, the 404, the staff inbox. One size for
+   * ten jobs is not a hierarchy, and at a 36px ceiling the hero read as a
+   * subheading with an accidental empty column beside it.
+   *
+   * This is the only place on the site that gets to be this size. If a second
+   * page wants it, that page is claiming to be as important as the front
+   * door, and it probably is not.
+   *
+   * Leading tightens as the size grows - 1.25 is right for a paragraph-shaped
+   * display line and far too loose for a three-word claim at 60px.
+   */
+  .type-hero {
+    font-size: clamp(2.25rem, 5.2vw, 3.75rem);
+    font-weight: 400;
+    line-height: 1.04;
+    letter-spacing: -0.032em;
+    text-wrap: balance;
+  }
+
   .type-display {
     font-size: clamp(1.5rem, 2.5vw, 2.25rem);
     font-weight: 400;

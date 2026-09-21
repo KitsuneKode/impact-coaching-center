@@ -74,16 +74,25 @@ export function Hero() {
           />
         </a>
 
-        <h1 className="enter type-display mt-7 max-w-[64rem]" style={delay(80)}>
-          <span className="text-foreground">
-            <span className="mark">Crack APSC</span> from North Lakhimpur.
-          </span>
-          <span className="text-muted-foreground">
-            {" "}
-            Classroom, night batch, and the ICT app, with faculty you can watch
-            teach on YouTube before you pay anything.
-          </span>
+        {/*
+         * The claim and the explanation were one h1 at section-heading size,
+         * so they competed and neither won. Split: the claim gets the hero
+         * scale and the ink, the explanation becomes a lede beneath it. Two
+         * sizes where there was one is the whole of the hierarchy.
+         *
+         * Also better semantics - the heading is now the heading, rather than
+         * a heading with a paragraph inside it.
+         */}
+        <h1 className="enter type-hero mt-7 max-w-5xl" style={delay(80)}>
+          <span className="mark">Crack APSC</span> from North Lakhimpur.
         </h1>
+        <p
+          className="enter type-lede mt-5 max-w-3xl text-muted-foreground"
+          style={delay(140)}
+        >
+          Classroom, night batch, and the ICT app, with faculty you can watch
+          teach on YouTube before you pay anything.
+        </p>
 
         <div
           className="enter mt-8 flex flex-wrap items-center gap-3"
