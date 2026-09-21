@@ -4,6 +4,7 @@ import { Inter, Noto_Sans_Bengali } from "next/font/google"
 import "./globals.css"
 import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
 import { Providers } from "@/app/providers"
+import { ThemePreview } from "@/components/dev/theme-preview"
 import { SiteFooter } from "@/components/marketing/site-footer"
 import { SiteHeader } from "@/components/marketing/site-header"
 import { EdgeBlur } from "@/components/motion/edge-blur"
@@ -124,6 +125,12 @@ export default function RootLayout({
           {children}
           <SiteFooter />
           <MobileActionBar />
+          {/*
+           * Palette comparison harness, development only. Never reaches a
+           * visitor; delete with components/dev/theme-preview.tsx once KIT-67
+           * picks a palette.
+           */}
+          {process.env.NODE_ENV === "development" ? <ThemePreview /> : null}
         </Providers>
       </body>
     </html>

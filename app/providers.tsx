@@ -5,6 +5,7 @@ import {
   ConvexBetterAuthProvider,
 } from "@convex-dev/better-auth/react"
 import { ConvexReactClient } from "convex/react"
+import { ThemeProvider } from "next-themes"
 import type { ReactNode } from "react"
 
 import { authClient } from "@/lib/auth-client"
@@ -46,11 +47,41 @@ export const convexConfigured = convex !== null
  */
 const providerAuthClient = authClient as unknown as AuthClient
 
-export function Providers({ children }: { children: ReactNode }) {
-  if (!convex) return children
+/**
+ * next-themes drives the palette attribute, not a hand-rolled switcher.
+ *
+ * It writes `data-theme` on <html> and injects a blocking script so the value
+ * is set before first paint - without that, a chosen palette flashes the
+ * default one on every load. `defaultTheme` is "current", which matches no
+ * selector, so the tokens on :root apply untouched until something overrides
+ * them.
+ *
+ * Here rather than only in the dev harness because KIT-67 needs exactly this
+ * machinery for dark mode: the palette comparison is its first use, not its
+ * only one. <html> already carries suppressHydrationWarning, which the
+ * injected script requires.
+ */
+function Themed({ children }: { children: ReactNode }) {
   return (
-    <ConvexBetterAuthProvider client={convex} authClient={providerAuthClient}>
+    <ThemeProvider
+      attribute="data-theme"
+      defaultTheme="current"
+      themes={["current", "elegance", "twilight"]}
+      enableSystem={false}
+      disableTransitionOnChange
+    >
       {children}
-    </ConvexBetterAuthProvider>
+    </ThemeProvider>
+  )
+}
+
+export function Providers({ children }: { children: ReactNode }) {
+  if (!convex) return <Themed>{children}</Themed>
+  return (
+    <Themed>
+      <ConvexBetterAuthProvider client={convex} authClient={providerAuthClient}>
+        {children}
+      </ConvexBetterAuthProvider>
+    </Themed>
   )
 }

@@ -67,6 +67,58 @@
     0 24px 48px -20px oklch(0.205 0.006 262 / 0.22);
 }
 
+/*
+ * The two candidate palettes ICT picked, side by side, so the choice is made
+ * by looking rather than by describing. Applied with `data-theme` on <html>;
+ * the dev-only switcher in components/dev/theme-preview.tsx sets it.
+ *
+ * Both keep the near-white editorial ground. The palettes are dark-first, but
+ * making navy the *ground* is a redesign rather than a palette swap - every
+ * photograph, every course poster and the full-colour logo raster would have
+ * to be re-judged. This shows the reversible half of the decision, which is
+ * the half worth seeing first.
+ *
+ * Measured against the ground, not guessed:
+ *   #14213D 15.3:1   #000814 19.3:1   #003566 11.8:1   -> body text
+ *   #FCA311  1.94:1  #FFC300  1.54:1  #FFD60A  1.35:1  -> NEVER text
+ * The golds are a surface, a highlighter and an accent. Nothing else.
+ */
+
+/* Black & Gold Elegance: white ground, grey panels, black ink, navy actions. */
+:root[data-theme="elegance"] {
+  --background: oklch(1 0 89.9);
+  --surface: oklch(0.922 0 89.9);
+  --card: oklch(1 0 89.9);
+  --secondary: oklch(0.955 0 89.9);
+  --muted: oklch(0.955 0 89.9);
+  --accent: oklch(0.955 0 89.9);
+
+  --foreground: oklch(0 0 0);
+  --muted-foreground: oklch(0.48 0.012 264);
+
+  --primary: oklch(0.252 0.056 264);
+  --primary-foreground: oklch(1 0 89.9);
+  --brand: oklch(0.252 0.056 264);
+  --highlight: oklch(0.786 0.167 70);
+
+  --border: oklch(0.252 0.056 264 / 12%);
+  --input: oklch(0.252 0.056 264 / 18%);
+}
+
+/* Golden Twilight: the same ground, a deeper ink and a brighter gold. */
+:root[data-theme="twilight"] {
+  --foreground: oklch(0.131 0.034 246.6);
+  --muted-foreground: oklch(0.46 0.03 250);
+
+  --primary: oklch(0.231 0.071 252.9);
+  --primary-foreground: oklch(0.985 0.002 85);
+  --brand: oklch(0.328 0.1 252.6);
+  --highlight: oklch(0.848 0.174 86.1);
+
+  --border: oklch(0.131 0.034 246.6 / 10%);
+  --input: oklch(0.131 0.034 246.6 / 16%);
+}
+
 @theme inline {
   --font-sans: var(--font-sans);
   --font-as: var(--font-as);
