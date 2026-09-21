@@ -3,6 +3,7 @@ import type { CSSProperties } from "react"
 
 import { SignInForm } from "@/components/marketing/sign-in-form"
 import { Section } from "@/components/ui/section"
+import { safeReturnPath } from "@/lib/return-path"
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -17,19 +18,15 @@ export const metadata: Metadata = {
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
 /**
- * `next` is read from the query string and deliberately restricted to a path
- * on this site: an open redirect on a sign-in page hands an attacker a
- * trustworthy-looking link that lands somewhere else entirely.
+ * `next` is typed as it actually arrives. A repeated `?next=` gives an array,
+ * which the previous signature denied could happen and `startsWith` would
+ * have thrown on. `safeReturnPath` refuses both that and the destinations a
+ * prefix check misses.
  */
-function safeNext(value: string | undefined) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/"
-  return value
-}
-
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>
+  searchParams: Promise<{ next?: string | string[] }>
 }) {
   const { next } = await searchParams
   return (
@@ -49,7 +46,7 @@ export default async function SignInPage({
             className="enter mt-10 rounded-card border border-border bg-surface p-6 md:p-8"
             style={delay(120)}
           >
-            <SignInForm next={safeNext(next)} />
+            <SignInForm next={safeReturnPath(next)} />
           </div>
         </div>
       </Section>
