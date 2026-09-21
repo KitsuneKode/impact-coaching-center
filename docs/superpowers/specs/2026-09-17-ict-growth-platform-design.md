@@ -51,6 +51,118 @@ this is an unresolved dependency, not evidence that no private API exists.
 
 ## 1. Purpose
 
+### Approved Blog and Careers scope — 20 September 2026
+
+Owner-managed Blog posts and ICT job Vacancies share the existing admin system;
+staff remain read-only. `/blog` and `/blog/[slug]` contain articles and student
+career/Exam guidance. `/careers` and `/careers/[slug]` contain recruitment listings.
+Both models support draft/published states; Vacancies also support closed.
+No separate CMS, applicant accounts, CV storage or hiring pipeline is in scope.
+An open Vacancy requires an approved application email or HTTPS destination.
+Closed listings have no active Apply action. Public reading requires no login.
+
+Keep the existing editorial design, with shared layout/controls and distinct
+Blog/Vacancy fields. Owner-only writes and publication filtering belong in backend
+functions. Direct slug requests cannot expose drafts. Use stable unique slugs,
+safe content rendering, real publication dates and audit timestamps. Publishing
+cannot invent authors, posts, jobs, pay or deadlines. Public list projections omit
+draft bodies and internal audit fields. Unpublishing/closure must invalidate stale
+public content, including metadata and sitemap entries where applicable.
+
+### Required experience states and pagination
+
+This contract applies to new public/admin lists and editorial actions, and is the
+baseline to reuse in Books, Orders and catalogue sync. It describes planned work,
+not an assertion that the current application implements these states.
+
+| State                      | Required behavior                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| First load                 | Layout-matched skeleton, readable loading status, no premature empty message.                                       |
+| Loaded                     | Render actual records with stable IDs and actions appropriate to permissions.                                       |
+| Empty catalogue            | Honest "No articles published yet" / "No open vacancies"; admin creation action only for owner.                     |
+| No filter matches          | Show current filters and Clear filters; do not imply the catalogue is empty.                                        |
+| Loading more               | Keep current records visible; disable repeated Load more; label progress.                                           |
+| Refreshing                 | Preserve safe existing records and label refresh; never display old-filter results as new-filter results.           |
+| Initial error              | Sanitized persistent error and Retry; no stack traces or false empty state.                                         |
+| Subsequent-page error      | Retain already loaded safe records where possible; retry the failed request without appending duplicates.           |
+| End of list                | Remove loading affordance and announce end of results; no fabricated total-page count.                              |
+| Offline/stale              | Explain disconnected/stale data; no success claims for unacknowledged writes.                                       |
+| Missing/unpublished detail | Public not-found response without revealing draft existence; appropriate admin feedback.                            |
+| Closed Vacancy             | Clearly closed, no Apply button; preserve useful public detail for existing links.                                  |
+| Session expired/forbidden  | Stop protected operations and clear protected cached results; provide login/access guidance.                        |
+| Invalid form               | Associate errors with fields, focus first invalid field, preserve input.                                            |
+| Saving/publishing          | Disable duplicate submission; distinguish saving a draft from publishing it.                                        |
+| Confirmed success          | Show saved/published state only after server acknowledgement, with view/edit next action.                           |
+| Save error/conflict        | Preserve edits in the current editor, show retry or reload/reconcile action; never silently overwrite another edit. |
+
+Use explicit states rather than combinations of contradictory boolean flags.
+Completion of a list means exhausted; completion of a write means acknowledged.
+Neither implies payment success, which still requires server-verified evidence.
+Use semantic status/error announcements, visible focus, reduced motion and existing
+shadcn/Base UI Skeleton, Empty, Alert, Field and Button patterns. Toasts supplement
+inline feedback; they are not the sole error channel. Avoid full-screen spinners
+for local mutations. Do not persist sensitive editor contents to browser storage
+by default or leak them to another signed-in person.
+
+Pagination implementation requirements:
+
+- Use Convex cursor pagination and its generated types; validate `paginationOpts`
+  server-side. Proposed initial request sizes: 12 public records, 25 admin rows,
+  maximum 50 requested records, plus bounded read budgets. Do not fetch everything
+  with `.collect()` and paginate in the browser. Reactive returned page sizes can
+  change; do not confuse request-size limits with a fixed page length.
+- Preserve the native response envelope (`page`, `isDone`, `continueCursor` and
+  any split metadata) while projecting permitted fields. Cursors are opaque;
+  they are neither authorization nor user-editable page numbers.
+- Apply visibility/tenant rules and indexed filters before paging. Use a stable
+  deterministic ordering and record IDs for row identity; support only indexed
+  sort/filter combinations. Never deduplicate distinct records by title.
+- Reset cursor history on filter/sort changes. Ignore stale request results from
+  previous filters. Validate URL filter parameters; Back/Forward restores filters.
+  Do not forward a cursor from one query shape to another.
+- Use explicit Load more for public browsing; no forced infinite scroll. Admin
+  uses next/previous with cursor history, not an invented "Page X of Y". Avoid
+  retaining unbounded rows in long admin sessions. Public article URLs remain
+  discoverable independently through ordinary links and a published-only sitemap.
+- Handle expired/invalid cursors with a clear restart action. An empty page with
+  `isDone: false` is not proof that the list is empty; continuation must be bounded
+  and recoverable, never an automatic infinite request loop.
+- Prefer Convex's native reactive pagination to manual merging. If another source
+  requires merging, deduplicate by stable ID within the same query/snapshot only.
+  Repeated clicks and mutation retries also need transactional idempotency, not
+  just disabled buttons. Prevent duplicate slugs atomically and detect stale editor
+  revisions on save. Role revocation must not retain protected data as "stale".
+
+Convex documents its cursor envelope, reactive page sizing and loading statuses in
+[Paginated Queries](https://docs.convex.dev/database/pagination). Errors require
+their own handling; they are not an extra native pagination status. Verify the
+installed version before wiring recovery, especially after a later-page exception.
+
+### Library reuse and deduplication decisions
+
+- Already installed: Base UI/shadcn, Convex, Better Auth, Motion, Tabler icons and
+  class-variance-authority. Reuse these rather than adding parallel primitives,
+  animation libraries, identity stores or server-data caches.
+- Add `@tanstack/react-table` only when admin sorting/columns/selection warrant it,
+  following the [official shadcn guide](https://ui.shadcn.com/docs/components/base/data-table).
+  Keep server pagination authoritative; do not apply client-only sorting to one
+  page and label it globally sorted. Simple lists can remain semantic tables.
+- Start simple forms with existing React form handling and shared domain parsers.
+  Consider one form library only if complex repeated fields justify it. Convex
+  validators remain authoritative for backend shape; shared pure parsers own
+  business rules so browser/server copies cannot drift.
+- For Markdown-based article bodies, evaluate `react-markdown` rather than custom
+  Markdown/HTML parsing. Its [official security guidance](https://github.com/remarkjs/react-markdown#security)
+  warns that plugins and custom transforms can change safety. Disallow raw HTML,
+  executable MDX and unsafe links by default. A rich-text editor is a separate
+  choice only if the owner's editing workflow needs it; do not build one from scratch.
+- Share field/error presentation, empty/loading states, admin shell and paging
+  controls after confirming real repetition. Keep Blog, Vacancy, Book and Order
+  rules distinct; avoid a universal CRUD component with dozens of mode flags.
+- Review import usage, bundle impact, licence and compatibility before installs or
+  removals. No speculative charts, state machines, fuzzy search, date library,
+  uploads or second CMS package. Dependencies are candidates, not installed work.
+
 Turn the existing Impact Career Tutorials pitch site into a production-ready admissions, resources, physical-book commerce, library-enrollment, and staff-operations platform.
 
 The system must do four jobs well:
@@ -456,7 +568,7 @@ Resource discovery must remain useful before the gate. Search and filters expose
 Unlock flow:
 
 1. Visitor selects a Resource. The detail page is public, indexable, and describes the document fully before anything is asked of them.
-2. If the visitor already has a session, the Reader opens immediately. This is the common case after the first unlock.
+2. If the visitor already has a valid session, check current Resource access and required versioned acknowledgements server-side before issuing page URLs. Do not repeat phone verification unnecessarily, and never infer marketing consent from authentication.
 3. Otherwise a focused dialog explains that ICT asks for a verified mobile number once, and what it will and will not be used for.
 4. Name and mobile are required. Turnstile is verified server-side, then an OTP is sent over WhatsApp.
 5. Consent is explicit and stored with its wording version.
@@ -479,7 +591,7 @@ Verification happens once per Person, not once per Resource, so the expected vol
 
 ### Checkout
 
-1. The student signs in, then confirms name, mobile, optional real email, and a structured Indian delivery address, which may be saved for reuse.
+1. The Person signs in, then confirms name, mobile and optional real email. Shipping requires a structured Indian delivery address; ICT collection does not. Address saving is optional and must not be presumed.
 2. Show delivery method/charge, item totals, and final amount before payment.
 3. Server rechecks each book's enabled state, quantity limits and delivery rules, then creates an immutable pending order. A book disabled after cart creation cannot start a new payment. Late verified payments for existing orders need explicit reconciliation, never silent rejection.
 4. Server creates a Razorpay order using the server-calculated amount.
@@ -487,15 +599,15 @@ Verification happens once per Person, not once per Resource, so the expected vol
 6. Client callback may show a processing state but cannot mark the order paid.
 7. Server verifies the checkout signature and processes signed, idempotent Razorpay webhooks.
 8. The order becomes paid only from verified server evidence.
-9. Staff manually moves fulfilment through Packed, Shipped, and Delivered and may add courier/tracking information.
+9. The owner manages fulfilment appropriate to the method: shipping or ready-for-collection/collected. Staff remain read-only. The exact state transitions and payment/refund contract must be agreed before checkout implementation.
 
-Abandoned-order expiry, cancellation, refund ownership, delivery coverage, inability-to-fulfil handling and customer notifications must be agreed before live payments. Staff disable unavailable books; the site never implies inventory guarantees.
+Abandoned-order expiry, cancellation, refund ownership, delivery coverage, inability-to-fulfil handling and customer notifications must be agreed before live payments. The owner disables unavailable books; the site never implies inventory guarantees.
 
 ## 15. Library workflow
 
 The library page presents real facilities, timings, rules, plans, and a qualified availability statement. It does not display invented seat counts.
 
-An application records applicant details, plan interest, preferred start, study/exam interest, source, and consent. Staff reviews applications through `New -> Contacted -> Approved/Waitlisted/Declined`. Payment is outside the first release.
+An application records applicant details, plan interest, preferred start, study/exam interest, source, and consent. The owner reviews applications through `New -> Contacted -> Approved/Waitlisted/Declined`; staff start read-only. Payment is outside the first release.
 
 ## 16. Promotion system
 

@@ -2,8 +2,8 @@ import type { LeadSink } from "./leads"
 
 /**
  * The destination refused this enquiry for volume, not because delivery broke.
- * Distinguished so the visitor is not told their message failed to arrive when
- * in fact ICT already has it.
+ * Distinguished to explain the temporary limit without inferring whether ICT
+ * has received any previous enquiry from this visitor.
  */
 export class LeadThrottled extends Error {
   constructor() {

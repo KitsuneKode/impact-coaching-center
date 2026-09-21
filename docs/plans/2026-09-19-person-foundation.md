@@ -60,9 +60,16 @@ access, KIT-48 missing content assets.
 - [ ] Keep `learn.` migration documentation-only until preview validation and
       separately authorized deployment cutover. Vercel preview must not replace the
       existing site or use live payment credentials; see the migration research note.
-- [ ] Confirm Blog publishing ownership and Careers meaning before designing the
-      content workflow. Prefer existing editorial components and a small shared admin
-      shell based on official shadcn blocks, not a second CMS/dashboard template.
+- [x] Confirm Blog publishing ownership and Careers meaning: owner-managed Blog
+      posts and ICT job Vacancies, staff read-only; student guidance belongs in Blog.
+      This marks a decision only, not completed pages or editors.
+- [ ] Implement the editorial/recruitment scope and state contract in the platform
+      specification: public listing/detail routes, shared owner admin, safe
+      publishing, paginated responses and explicit recovery states. Keep this as
+      follow-on scope; do not reopen completed Person work or claim it is shipped.
+- [ ] Audit duplication before adding dependencies: reuse existing controls,
+      Convex pagination, auth/role checks and domain validators. Add table/editor
+      libraries only for demonstrated feature needs; no second data-fetch cache.
 - [ ] Before adding content editors, specify draft/published/archived visibility,
       stable slugs, owner-only publishing, safe rich-text rendering, image permissions
       and truthful metadata. Recruitment, if approved, needs vacancy expiry and a
