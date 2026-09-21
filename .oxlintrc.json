@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "unicorn", "oxc", "jsx-a11y", "nextjs"],
+  "jsPlugins": ["@shadcn/lint"],
   "ignorePatterns": [
     "convex/_generated/**",
     ".next/**",
@@ -10,6 +11,11 @@
     "coverage/**",
     "next-env.d.ts"
   ],
+  "rules": {
+    "shadcn/no-raw-colors": "error",
+    "shadcn/no-unknown-classes": "error",
+    "shadcn/require-static-classes": "error"
+  },
   "overrides": [
     {
       "files": ["components/ui/button.tsx"],
@@ -21,6 +27,37 @@
       "files": ["components/marketing/lead-form.tsx"],
       "rules": {
         "jsx-a11y/prefer-tag-over-role": "off"
+      }
+    },
+    {
+      "files": [
+        "components/ui/field.tsx",
+        "components/ui/input-group.tsx",
+        "components/ui/input-otp.tsx",
+        "components/ui/spinner.tsx"
+      ],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off"
+      }
+    },
+    {
+      "files": ["components/ui/input-group.tsx"],
+      "rules": {
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "shadcn/require-static-classes": "off"
+      }
+    },
+    {
+      "files": ["components/ui/input-otp.tsx"],
+      "rules": {
+        "shadcn/no-unknown-classes": "off"
+      }
+    },
+    {
+      "files": ["components/ui/label.tsx"],
+      "rules": {
+        "jsx-a11y/label-has-associated-control": "off"
       }
     }
   ]
