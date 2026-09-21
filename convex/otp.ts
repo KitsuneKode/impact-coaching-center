@@ -57,6 +57,12 @@ const sendRefusal = v.union(
  * would then throw on every later send and lock the number out. Keep the
  * unexpired code when one exists, otherwise the highest generation, and
  * delete the rest.
+ *
+ * A deleted row's generation must never be minted again. The next claim is
+ * `kept.generation + 1`, so when a discarded row is newer than the one we
+ * keep, the kept row jumps to `max + 1` first. Otherwise that orphan still
+ * holds the number the next claim is about to issue, and can commit or
+ * release a lease it no longer owns.
  */
 async function leaseByPhone(ctx: MutationCtx, phone: string) {
   const rows = await ctx.db
@@ -74,10 +80,17 @@ async function leaseByPhone(ctx: MutationCtx, phone: string) {
     ranked[0] ??
     null
   if (!keep) return null
+  const maxGeneration = ranked[0]?.generation ?? keep.generation
+  const discardsANewerOrEqualGeneration = rows.some(
+    (row) => row._id !== keep._id && row.generation >= keep.generation
+  )
   for (const extra of rows) {
     if (extra._id !== keep._id) await ctx.db.delete(extra._id)
   }
-  return keep
+  if (!discardsANewerOrEqualGeneration) return keep
+  const generation = maxGeneration + 1
+  await ctx.db.patch(keep._id, { generation })
+  return { ...keep, generation }
 }
 
 function hashesMatch(left: string, right: string) {
