@@ -128,7 +128,8 @@ const jsonLd = {
 
 export default function RootLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+  authModal,
+}: Readonly<{ children: React.ReactNode; authModal: React.ReactNode }>) {
   return (
     <html
       lang="en-IN"
@@ -159,6 +160,12 @@ export default function RootLayout({
           {children}
           <SiteFooter />
           <MobileActionBar />
+          {/*
+           * The intercepted /login and /register routes render here, over the
+           * page the visitor was already on. app/@authModal/default.tsx keeps
+           * this empty the rest of the time.
+           */}
+          {authModal}
           {/*
            * Palette comparison harness, development only. Never reaches a
            * visitor; delete with components/dev/theme-preview.tsx once KIT-67

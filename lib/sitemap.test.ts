@@ -37,12 +37,21 @@ const draftRoutes = [
  */
 function staticRoutesOnDisk(): string[] {
   const glob = new Bun.Glob("app/**/page.tsx")
-  return [...glob.scanSync(".")]
-    .map(
-      (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
-    )
-    .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
-    .filter((route) => !route.includes("["))
+  return (
+    [...glob.scanSync(".")]
+      .map(
+        (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
+      )
+      .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
+      .filter((route) => !route.includes("["))
+      /*
+       * Parallel-route slots (@authModal) and intercepting routes ((.)login)
+       * are presentations of routes that already exist elsewhere in this list,
+       * not separate pages. Listing /@authModal/(.)login in a sitemap would ask
+       * a crawler to fetch a URL that does not exist.
+       */
+      .filter((route) => !route.includes("/@") && !route.includes("/(."))
+  )
 }
 
 const pathnames = () => sitemap().map((entry) => new URL(entry.url).pathname)
