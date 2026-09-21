@@ -13,6 +13,10 @@ import type { ReactNode } from "react"
  * result for someone who was never going to get past that check anyway.
  */
 export const metadata: Metadata = {
+  // The pages under here are client components, so they cannot name
+  // themselves. Without this the staff inbox inherits the marketing title and
+  // a staff member with several tabs open cannot tell which one it is.
+  title: { default: "Admin", template: "%s · Admin · ICT" },
   robots: { index: false, follow: false },
 }
 

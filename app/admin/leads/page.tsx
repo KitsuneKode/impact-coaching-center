@@ -1,10 +1,29 @@
 "use client"
 
+import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
-import Link from "next/link"
+import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { Badge } from "@/components/ui/badge"
+import { ButtonLink } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Section } from "@/components/ui/section"
+import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
 
@@ -24,6 +43,22 @@ function when(at: number | undefined) {
     hour: "numeric",
     minute: "2-digit",
   })
+}
+
+/**
+ * One shell for every state, so the page cannot change shape underneath the
+ * reader as data arrives, and so the heading is present before it does -
+ * docs/design-guide.md §6.
+ */
+function Shell({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return (
+    <main>
+      <Section size="sm" className="pt-26 md:pt-30">
+        <h1 className="type-display">{title}</h1>
+        <div className="mt-10">{children}</div>
+      </Section>
+    </main>
+  )
 }
 
 /**
@@ -56,131 +91,142 @@ export default function AdminLeadsPage() {
  */
 function Unavailable() {
   return (
-    <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <h1 className="type-display">
-          <span className="text-foreground">Not available here.</span>
-        </h1>
-        <p className="type-lede mt-4 max-w-160 text-muted-foreground">
-          This copy of the site has no connection to the enquiry database, so
-          there is nothing to show. Nothing is wrong with your account. If you
-          are seeing this on the live site, tell whoever maintains it.
-        </p>
-      </Section>
-    </main>
+    <Shell title={<span className="text-foreground">Enquiries.</span>}>
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <IconPlugConnectedX stroke={1.75} />
+          </EmptyMedia>
+          <EmptyTitle>Not available here</EmptyTitle>
+          <EmptyDescription>
+            This copy of the site has no connection to the enquiry database, so
+            there is nothing to show. Nothing is wrong with your account. If you
+            are seeing this on the live site, tell whoever maintains it.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    </Shell>
   )
 }
 
 function Inbox() {
   const result = useQuery(api.leads.inbox)
 
-  // The heading is part of the loading state, not something that arrives with
-  // the data. This is the markup the server sends and the first thing a screen
-  // reader meets; every other route on the site answers "what page is this?"
-  // before anything loads, and a bare "Loading…" does not.
+  // A skeleton in the shape of the answer, not a spinner: the reader learns
+  // the page is a table of enquiries before the enquiries arrive.
   if (result === undefined)
     return (
-      <main>
-        <Section size="sm" className="pt-26 md:pt-30">
-          <h1 className="type-display">
+      <Shell
+        title={
+          <>
             <span className="text-foreground">Enquiries.</span>{" "}
             <span className="text-muted-foreground">Loading…</span>
-          </h1>
-        </Section>
-      </main>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-3" aria-hidden="true">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-11 w-full rounded-control" />
+          ))}
+        </div>
+      </Shell>
     )
 
   if (!result.authorized)
     return (
-      <main>
-        <Section size="sm" className="pt-26 md:pt-30">
-          <h1 className="type-display">
-            <span className="text-foreground">Staff only.</span>
-          </h1>
-          <p className="type-lede mt-4 max-w-160 text-muted-foreground">
-            This page is for Impact Career Tutorials staff. If you are staff and
-            seeing this,{" "}
-            <Link
-              href="/sign-in?next=/admin/leads"
-              className="text-foreground underline underline-offset-4"
-            >
-              sign in
-            </Link>{" "}
-            with the number ICT has on file for you.
-          </p>
-        </Section>
-      </main>
+      <Shell title={<span className="text-foreground">Staff only.</span>}>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <IconLock stroke={1.75} />
+            </EmptyMedia>
+            <EmptyTitle>This page is for ICT staff</EmptyTitle>
+            <EmptyDescription>
+              If you are staff and seeing this, log in with the number ICT has
+              on file for you.
+            </EmptyDescription>
+          </EmptyHeader>
+          <ButtonLink href="/sign-in?next=/admin/leads" size="md">
+            Log in
+          </ButtonLink>
+        </Empty>
+      </Shell>
+    )
+
+  if (result.leads.length === 0)
+    return (
+      <Shell title={<span className="text-foreground">Enquiries.</span>}>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <IconInbox stroke={1.75} />
+            </EmptyMedia>
+            <EmptyTitle>No enquiries yet</EmptyTitle>
+            <EmptyDescription>
+              They appear here as soon as someone sends the form on the site.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </Shell>
     )
 
   return (
-    <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <h1 className="type-display">
+    <Shell
+      title={
+        <>
           <span className="text-foreground">Enquiries.</span>{" "}
           <span className="text-muted-foreground">
             {result.leads.length} to follow up.
           </span>
-        </h1>
-
-        {result.leads.length === 0 ? (
-          <p className="mt-10 text-muted-foreground">
-            No enquiries yet. They appear here as soon as someone sends the form
-            on the site.
-          </p>
-        ) : (
-          <div className="mt-10 overflow-x-auto">
-            <table className="w-full min-w-160 border-collapse text-left text-[0.9375rem]">
-              <thead>
-                <tr className="border-b border-border">
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Name
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Mobile
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Exam
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Status
-                  </th>
-                  <th scope="col" className="py-3 font-medium">
-                    Last enquiry
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.leads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-border/60">
-                    <td className="py-3 pr-4">
-                      {lead.name || (
-                        <span className="text-muted-foreground">Not given</span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">
-                      <a
-                        href={`tel:${lead.phone}`}
-                        className="tnum underline underline-offset-4"
-                      >
-                        {formatPhone(lead.phone)}
-                      </a>
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {lead.interestTrack ?? "—"}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {STATUS_LABELS[lead.leadStatus ?? ""] ?? "—"}
-                    </td>
-                    <td className="py-3 text-muted-foreground">
-                      {when(lead.lastEnquiryAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-    </main>
+        </>
+      }
+    >
+      <div className="overflow-x-auto">
+        <Table className="min-w-160">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Mobile</TableHead>
+              <TableHead>Exam</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last enquiry</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {result.leads.map((lead) => (
+              <TableRow key={lead.id}>
+                <TableCell>
+                  {lead.name || (
+                    <span className="text-muted-foreground">Not given</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {/*
+                   * A tel: link, not plain text. Staff read this queue on a
+                   * handset and the next action is always a call.
+                   */}
+                  <a href={`tel:${lead.phone}`} className="tnum link">
+                    {formatPhone(lead.phone)}
+                  </a>
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {lead.interestTrack ?? "—"}
+                </TableCell>
+                <TableCell>
+                  {lead.leadStatus ? (
+                    <Badge>{STATUS_LABELS[lead.leadStatus] ?? "—"}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="tnum text-muted-foreground">
+                  {when(lead.lastEnquiryAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </Shell>
   )
 }
