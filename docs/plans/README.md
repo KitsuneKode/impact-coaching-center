@@ -8,6 +8,20 @@ update your row here and the `status:` in the plan's header when done.
 
 ## Execution order and status
 
+### Delegation update — 21 September 2026
+
+Linear work packages KIT-53 through KIT-65 now cover auth concurrency/sign-in,
+shared admin, editorial, Books/checkout/fulfilment, Resources, Classplus sync,
+library applications, promotions/analytics, operations and branded error
+screens. Dependencies are linked in Linear. Copy-paste prompts and shared-file
+ownership rules are in `docs/agents/2026-09-21-worktree-prompts.md`.
+
+The table below is reconciled to the merged state, and this branch's commit is
+the agreed baseline the delegation prompts require: it carries the approved
+editorial/state spec, the audit's remaining truthfulness fixes and the
+coordination documents. Reconcile branch contents before assigning a TODO row;
+do not duplicate completed slices. No merge/deployment is implied by this update.
+
 | Plan                                            | Title                                                               | Priority | Effort | Depends on                              | Status                                               |
 | ----------------------------------------------- | ------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | ---------------------------------------------------- |
 | `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)       | —        | —      | —                                       | DONE                                                 |
@@ -23,6 +37,12 @@ update your row here and the `status:` in the plan's header when done.
 Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJECTED (one-line rationale).
 
 ## Dependency notes
+
+- Current implementation/PR separation and the approved editorial follow-on are
+  recorded in `docs/research/2026-09-20-implementation-and-merge-status.md`.
+- Before hosted OTP, resolve concurrent resend replacement: deleting a verification
+  then inserting via the plugin is not atomic. Send ceilings alone are not a
+  per-phone concurrency guarantee.
 
 - The throttle plan must merge **before** the WhatsApp transport (KIT-46) — the first billed send must already be rate limited.
 - The spike can run locally without the throttle, but no sign-in UI should reach a shared preview URL before it.

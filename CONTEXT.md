@@ -79,3 +79,13 @@ _Avoid_: booking, reservation
 **Promotion**:
 A scheduled, staff-authored message placed on the site — an announcement bar, an inline panel or a dialog.
 _Avoid_: banner, popup, campaign
+
+### Editorial and recruitment
+
+**Blog post**:
+An ICT-authored article, including student career or Exam guidance, published in the Blog. It is not a gated Resource or a recruitment listing.
+_Avoid_: resource, vacancy
+
+**Vacancy**:
+A job opening to work at ICT, listed in Careers. A closed Vacancy no longer accepts applications.
+_Avoid_: career guidance, course, admission
