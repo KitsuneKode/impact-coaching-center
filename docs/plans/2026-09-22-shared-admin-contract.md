@@ -1,5 +1,5 @@
 ---
-status: in progress (steps 1-4 done; the /admin/people screen remains)
+status: done
 ticket: KIT-55
 spec: docs/agents/2026-09-21-execution-runbook.md §2 (shared contract freeze)
 ---
@@ -87,16 +87,16 @@ Categories the runbook requires: `anonymous`, `forbidden`, `missing-record`,
 ### 5. The admin shell
 
 - [x] Sidebar block installed from the registry, adapted to the tokens
-- [ ] `/admin` home and `/admin/leads` done; `/admin/people` still to build
-- [ ] Forbidden and session-expired states, from the design guide's §6
+- [x] `/admin` home, `/admin/leads`, `/admin/people`
+- [x] Forbidden and session-expired states, from the design guide's §6
       convention
-- [ ] Keyboard and mobile layout
+- [x] Keyboard and mobile layout (registry sidebar: sheet on mobile, keyboard shortcut, rail)
 
 ### 6. Gates
 
-- [ ] `bun run check` and `bun run build`
-- [ ] Existing `convex/leads.db.test.ts` role coverage still passes
-- [ ] Anonymous, student, staff and owner each exercised against the new
+- [x] `bun run check` and `bun run build`
+- [x] Existing `convex/leads.db.test.ts` role coverage still passes
+- [x] Anonymous, student, staff and owner each exercised against the new
       helpers
 
 ## STOP conditions

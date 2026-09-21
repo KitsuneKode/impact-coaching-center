@@ -49,9 +49,12 @@ const project = (person: {
 export const listAdmins = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
+    // A plain PaginationResult, because `usePaginatedQuery` requires that
+    // shape. `canManagePeople` answers access on its own, the same split the
+    // leads inbox uses, so a non-owner costs one boolean rather than a read
+    // of who has access to what.
     const owner = await requireOwner(ctx)
-    if (!owner.ok)
-      return { ...owner, page: [], isDone: true, continueCursor: "" }
+    if (!owner.ok) return { page: [], isDone: true, continueCursor: "" }
 
     const staff = await ctx.db
       .query("persons")
@@ -66,7 +69,6 @@ export const listAdmins = query({
       .collect()
 
     return {
-      ok: true as const,
       ...staff,
       page: [...owners.map(project), ...staff.page.map(project)],
     }
@@ -161,4 +163,15 @@ export const grantStaffByPhone = mutation({
 
     return { ok: true as const }
   },
+})
+
+/**
+ * Whether the viewer may manage access at all, for the page shell.
+ *
+ * Separate from `listAdmins` so the screen can say "owner only" truthfully
+ * without also reading the list of who has access and discarding it.
+ */
+export const canManagePeople = query({
+  args: {},
+  handler: async (ctx) => (await requireOwner(ctx)).ok,
 })
