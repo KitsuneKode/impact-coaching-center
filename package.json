@@ -20,6 +20,7 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@convex-dev/better-auth": "0.12.5",
+    "@shadcn/react": "^0.3.1",
     "@tabler/icons-react": "^3.46.0",
     "better-auth": "1.6.33",
     "class-variance-authority": "^0.7.1",
