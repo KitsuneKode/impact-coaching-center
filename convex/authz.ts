@@ -129,3 +129,31 @@ export function refusalMessage(refusal: Refusal): string {
       return "Somebody else changed this while you were editing. Your changes are still here - review them against the current version."
   }
 }
+
+/**
+ * A record's current revision, treating absent as 0.
+ *
+ * Rows written before the convention existed have no `revision`, and
+ * backfilling them would be a migration for no benefit: the first edit writes
+ * 1 either way, and a caller holding 0 for an untouched record is holding the
+ * truth.
+ */
+export function revisionOf(doc: { revision?: number }): number {
+  return doc.revision ?? 0
+}
+
+/**
+ * Check the caller's expected revision against the stored one.
+ *
+ * Returned rather than thrown, and carrying the current value, so the UI can
+ * show the caller their own input against the newer record instead of
+ * discarding what they typed. The runbook makes preserving input on conflict
+ * an acceptance gate.
+ */
+export function checkRevision(
+  doc: { revision?: number },
+  expected: number
+): Refusal | null {
+  const current = revisionOf(doc)
+  return current === expected ? null : revisionConflict(current)
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
+import { usePaginatedQuery, useQuery } from "convex/react"
 import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
@@ -14,8 +14,10 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { Button } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
   TableBody,
@@ -110,11 +112,19 @@ function Unavailable() {
 }
 
 function Inbox() {
-  const result = useQuery(api.leads.inbox)
+  // Two queries on purpose. `canSeeInbox` answers the access question without
+  // fetching a page of enquiries and discarding it, so a student who opens
+  // this URL costs one boolean rather than a read of the follow-up queue.
+  const allowed = useQuery(api.leads.canSeeInbox)
+  const {
+    results: leads,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.leads.inboxPage, {}, { initialNumItems: 25 })
 
   // A skeleton in the shape of the answer, not a spinner: the reader learns
   // the page is a table of enquiries before the enquiries arrive.
-  if (result === undefined)
+  if (allowed === undefined || status === "LoadingFirstPage")
     return (
       <Shell
         title={
@@ -132,7 +142,7 @@ function Inbox() {
       </Shell>
     )
 
-  if (!result.authorized)
+  if (!allowed)
     return (
       <Shell title={<span className="text-foreground">Staff only.</span>}>
         <Empty>
@@ -153,7 +163,7 @@ function Inbox() {
       </Shell>
     )
 
-  if (result.leads.length === 0)
+  if (leads.length === 0)
     return (
       <Shell title={<span className="text-foreground">Enquiries.</span>}>
         <Empty>
@@ -172,14 +182,13 @@ function Inbox() {
 
   return (
     <Shell
-      title={
-        <>
-          <span className="text-foreground">Enquiries.</span>{" "}
-          <span className="text-muted-foreground">
-            {result.leads.length} to follow up.
-          </span>
-        </>
-      }
+      /*
+       * No count. It used to read "N to follow up" from whatever the single
+       * query returned, which stopped being true the moment there was a
+       * second page - and a number derived from one page is worse than no
+       * number, because it looks authoritative.
+       */
+      title={<span className="text-foreground">Enquiries.</span>}
     >
       <div className="overflow-x-auto">
         <Table className="min-w-160">
@@ -193,7 +202,7 @@ function Inbox() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {result.leads.map((lead) => (
+            {leads.map((lead) => (
               <TableRow key={lead.id}>
                 <TableCell>
                   {lead.name || (
@@ -227,6 +236,19 @@ function Inbox() {
           </TableBody>
         </Table>
       </div>
+      {status === "CanLoadMore" || status === "LoadingMore" ? (
+        <div className="mt-6">
+          <Button
+            variant="secondary"
+            size="md"
+            disabled={status === "LoadingMore"}
+            onClick={() => loadMore(25)}
+          >
+            {status === "LoadingMore" ? <Spinner /> : null}
+            Load more
+          </Button>
+        </div>
+      ) : null}
     </Shell>
   )
 }

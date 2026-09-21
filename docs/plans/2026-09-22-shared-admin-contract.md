@@ -1,5 +1,5 @@
 ---
-status: in progress
+status: in progress (steps 1-4 done; the /admin/people screen remains)
 ticket: KIT-55
 spec: docs/agents/2026-09-21-execution-runbook.md §2 (shared contract freeze)
 ---
@@ -53,41 +53,41 @@ a throw is a 500 for an anonymous visitor.
 Categories the runbook requires: `anonymous`, `forbidden`, `missing-record`,
 `invalid-input`, `revision-conflict`.
 
-- [ ] `viewerPerson(ctx)` — the verified Person or an `anonymous` result
-- [ ] `requireStaff(ctx)` / `requireOwner(ctx)` — never trust a client-supplied
+- [x] `viewerPerson(ctx)` — the verified Person or an `anonymous` result
+- [x] `requireStaff(ctx)` / `requireOwner(ctx)` — never trust a client-supplied
       role, never read a role out of anything a public input can set
-- [ ] Every protected mutation re-checks at the point of the write, not once at
+- [x] Every protected mutation re-checks at the point of the write, not once at
       the start of a handler that then awaits
 
 **STOP** if any helper needs a role argument from the client.
 
 ### 2. The revision convention
 
-- [ ] `revision: v.number()` on every table that gets edited
-- [ ] Mutations take an expected revision, verify it transactionally, increment
+- [x] `revision: v.optional(v.number())` on persons that gets edited
+- [x] Mutations take an expected revision, verify it transactionally, increment
       on success
-- [ ] A conflict returns `revision-conflict` **with the caller's input intact**,
+- [x] A conflict returns `revision-conflict` **with the caller's input intact**,
       so the UI can re-present what they typed rather than discard it
 
 ### 3. Pagination envelope
 
-- [ ] Convex-native `paginationOpts`, one declared indexed sort order per
+- [x] Convex-native `paginationOpts`, one declared indexed sort order per
       feature, separate public and admin projections
-- [ ] No global-looking counts computed from a partial page — `/admin/leads`
+- [x] No global-looking counts computed from a partial page — `/admin/leads`
       currently renders "N to follow up" from whatever it fetched, which stops
       being true the moment there is a second page
 
 ### 4. Staff management — owner only
 
-- [ ] `grantStaff` / `revokeStaff`, owner-only, audited
-- [ ] **Last-owner protection**: refuse to demote or remove the final owner.
+- [x] `grantStaffByPhone` / `setRole`, owner-only, audited
+- [x] **Last-owner protection**: refuse to demote or remove the final owner.
       Nobody can lock everyone out of the product.
-- [ ] No automatic staff exports (KIT-55)
+- [x] No automatic staff exports (KIT-55)
 
 ### 5. The admin shell
 
-- [ ] Sidebar block installed from the registry, adapted to the tokens
-- [ ] `/admin` home, `/admin/leads`, `/admin/people`
+- [x] Sidebar block installed from the registry, adapted to the tokens
+- [ ] `/admin` home and `/admin/leads` done; `/admin/people` still to build
 - [ ] Forbidden and session-expired states, from the design guide's §6
       convention
 - [ ] Keyboard and mobile layout

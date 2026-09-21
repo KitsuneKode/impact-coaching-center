@@ -23,6 +23,15 @@ export default defineSchema({
     lastEnquiryKey: v.optional(v.string()),
     role: v.union(v.literal("student"), v.literal("staff"), v.literal("owner")),
     /**
+     * Optimistic-concurrency counter, the convention the execution runbook
+     * asks every editable record to share.
+     *
+     * Optional because rows already exist without it; `revisionOf` treats
+     * absent as 0 rather than backfilling, so no migration is needed and an
+     * untouched Person still participates in the first edit correctly.
+     */
+    revision: v.optional(v.number()),
+    /**
      * Absent until the Person shows intent. Reading a Resource creates a
      * Person but not a lead, or staff drown in casual readers and stop
      * trusting the queue.

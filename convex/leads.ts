@@ -1,3 +1,5 @@
+import { paginationOptsValidator } from "convex/server"
+
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"
 import { query, type QueryCtx } from "./_generated/server"
@@ -78,6 +80,55 @@ export const inbox = query({
   args: {},
   handler: async (ctx) =>
     readInbox(ctx, await authComponent.safeGetAuthUser(ctx)),
+})
+
+/**
+ * The same queue, paginated, as the shared contract requires.
+ *
+ * `readInbox` above takes a fixed page and *then* drops the rows with no
+ * leadStatus, so a page could come back short - or empty - while more leads
+ * existed behind it. Filtering inside the query instead lets Convex keep
+ * filling the page until it is actually full.
+ *
+ * `by_leadStatus` is ["leadStatus", "lastEnquiryAt"], so descending order is
+ * most recently active first within each status. That ordering is declared
+ * here rather than sorted in the client, because a client can only sort the
+ * page it was given, which produces a list that looks ordered and is not.
+ *
+ * There is deliberately no total count. Counting would mean reading every
+ * matching row on every page load, and a number derived from one page is
+ * worse than no number: it looks authoritative and is wrong.
+ */
+export const inboxPage = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    // Returns an empty page rather than an envelope with an `authorized`
+    // flag, because `usePaginatedQuery` requires a plain PaginationResult.
+    // `canSeeInbox` already exists to answer the access question on its own,
+    // which is why the page can say "staff only" without fetching rows.
+    const staff = await staffPerson(ctx)
+    if (!staff) return { page: [], isDone: true, continueCursor: "" }
+
+    const result = await ctx.db
+      .query("persons")
+      .withIndex("by_leadStatus")
+      .order("desc")
+      .filter((q) => q.neq(q.field("leadStatus"), undefined))
+      .paginate(args.paginationOpts)
+
+    return {
+      ...result,
+      page: result.page.map((person) => ({
+        id: person._id,
+        name: person.name,
+        phone: person.phone,
+        leadStatus: person.leadStatus,
+        interestTrack: person.interestTrack,
+        lastEnquiryAt: person.lastEnquiryAt,
+        verifiedAt: person.verifiedAt,
+      })),
+    }
+  },
 })
 
 /**
