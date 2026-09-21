@@ -155,9 +155,29 @@ export default function RootLayout({
           }}
         />
         <Providers>
+          {/*
+           * WCAG 2.4.1, Level A. The header renders the whole navigation
+           * before the content on every page, so without this a keyboard or
+           * switch user tabs through it again on each route. Visible only
+           * when focused, which is the point: it is for people who cannot
+           * scroll past it with their eyes.
+           */}
+          <a
+            href="#main"
+            className="sr-only rounded-control bg-primary px-4 py-2 text-primary-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-100"
+          >
+            Skip to content
+          </a>
           <SiteHeader />
           <EdgeBlur />
-          {children}
+          {/*
+           * `tabIndex={-1}` so the skip link can move focus here. Without it
+           * the browser scrolls to the target and leaves focus in the header,
+           * so the next Tab returns to the navigation that was just skipped.
+           */}
+          <div id="main" tabIndex={-1} className="outline-none">
+            {children}
+          </div>
           <SiteFooter />
           <MobileActionBar />
           {/*

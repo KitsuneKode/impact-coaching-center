@@ -98,7 +98,7 @@ export function Podcast() {
                   subtitle={episode.guest}
                   className="flex w-full items-center gap-3 p-3 transition-colors hover:bg-secondary"
                 >
-                  <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-[0.5rem] bg-surface">
+                  <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-md bg-surface">
                     <Image
                       src={thumb(episode.id)}
                       alt=""

@@ -360,7 +360,7 @@ export default async function CoursePage({
                 subtitle="From the ICT channel"
                 className="mt-4 flex w-full items-center gap-5 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
               >
-                <span className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-[0.625rem] bg-surface">
+                <span className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-control bg-surface">
                   <Image
                     src={lectureStill(track.sample.id)}
                     alt=""

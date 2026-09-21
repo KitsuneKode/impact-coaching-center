@@ -46,7 +46,7 @@ export function BatchCountdown() {
   if (!label) return null
 
   return (
-    <span className="tnum shrink-0 rounded-[0.375rem] bg-highlight/40 px-1.5 py-0.5 text-[0.8125rem] font-medium whitespace-nowrap text-foreground">
+    <span className="tnum shrink-0 rounded-sm bg-highlight/40 px-1.5 py-0.5 text-[0.8125rem] font-medium whitespace-nowrap text-foreground">
       {label}
     </span>
   )

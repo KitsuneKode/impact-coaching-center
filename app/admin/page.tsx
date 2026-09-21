@@ -61,8 +61,8 @@ function Home() {
             <span className="text-foreground">Staff only.</span>
           </h1>
           <div className="mt-10">
-            <Empty>
-              <EmptyHeader>
+            <Empty className="max-w-160 items-start rounded-card border border-border text-left">
+              <EmptyHeader className="max-w-none items-start">
                 <EmptyMedia variant="icon">
                   <IconLock stroke={1.75} />
                 </EmptyMedia>

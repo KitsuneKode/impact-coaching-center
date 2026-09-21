@@ -72,7 +72,7 @@ export function SiteHeader() {
           aria-label={`${brand.legalName}, home`}
           className={`${group} flex h-12 items-center gap-2.5 pr-3.5 pl-1.5`}
         >
-          <span className="grid size-9 place-items-center rounded-[0.5rem] bg-white ring-1 ring-border">
+          <span className="grid size-9 place-items-center rounded-md bg-white ring-1 ring-border">
             <Image
               src={brand.mark}
               alt=""
@@ -98,7 +98,7 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-[0.5rem] px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               {item.label}
             </Link>
@@ -108,7 +108,7 @@ export function SiteHeader() {
             href={contactHref({ kind: "workshop" })}
             target="_blank"
             size="sm"
-            className="ml-1 rounded-[0.5rem]"
+            className="ml-1 rounded-md"
           >
             {offer.short}
           </ButtonAnchor>

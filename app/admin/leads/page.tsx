@@ -94,8 +94,8 @@ export default function AdminLeadsPage() {
 function Unavailable() {
   return (
     <Shell title={<span className="text-foreground">Enquiries.</span>}>
-      <Empty>
-        <EmptyHeader>
+      <Empty className="max-w-160 items-start rounded-card border border-border text-left">
+        <EmptyHeader className="max-w-none items-start">
           <EmptyMedia variant="icon">
             <IconPlugConnectedX stroke={1.75} />
           </EmptyMedia>
@@ -145,8 +145,8 @@ function Inbox() {
   if (!allowed)
     return (
       <Shell title={<span className="text-foreground">Staff only.</span>}>
-        <Empty>
-          <EmptyHeader>
+        <Empty className="max-w-160 items-start rounded-card border border-border text-left">
+          <EmptyHeader className="max-w-none items-start">
             <EmptyMedia variant="icon">
               <IconLock stroke={1.75} />
             </EmptyMedia>
@@ -166,8 +166,8 @@ function Inbox() {
   if (leads.length === 0)
     return (
       <Shell title={<span className="text-foreground">Enquiries.</span>}>
-        <Empty>
-          <EmptyHeader>
+        <Empty className="max-w-160 items-start rounded-card border border-border text-left">
+          <EmptyHeader className="max-w-none items-start">
             <EmptyMedia variant="icon">
               <IconInbox stroke={1.75} />
             </EmptyMedia>

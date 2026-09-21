@@ -67,7 +67,7 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
               className="row-link flex w-full gap-4 py-4 md:py-5"
             >
               <span className="flex min-w-0 items-center gap-4">
-                <span className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-[0.5rem] bg-surface ring-1 ring-border md:hidden">
+                <span className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-md bg-surface ring-1 ring-border md:hidden">
                   <Image
                     src={lectureStill(lecture.id)}
                     alt=""

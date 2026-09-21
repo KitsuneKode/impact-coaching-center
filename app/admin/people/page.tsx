@@ -108,8 +108,8 @@ function People() {
   if (!allowed)
     return (
       <Shell title={<span className="text-foreground">Owner only.</span>}>
-        <Empty>
-          <EmptyHeader>
+        <Empty className="max-w-160 items-start rounded-card border border-border text-left">
+          <EmptyHeader className="max-w-none items-start">
             <EmptyMedia variant="icon">
               <IconLock stroke={1.75} />
             </EmptyMedia>

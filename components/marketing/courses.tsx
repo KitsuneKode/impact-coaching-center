@@ -227,7 +227,7 @@ function TrackCard({
         >
           <span
             className={cn(
-              "relative aspect-video w-16 shrink-0 overflow-hidden rounded-[0.5rem] ring-1",
+              "relative aspect-video w-16 shrink-0 overflow-hidden rounded-md ring-1",
               featured ? "ring-white/20" : "ring-border"
             )}
           >
