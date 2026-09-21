@@ -176,7 +176,7 @@ describe("claimOtpSend", () => {
         codeHash: hash,
         codeExpiresAt: Date.now() + 60_000,
       })
-    ).toBe(true)
+    ).toBe("ok")
     const [second, third] = await Promise.all([
       t.mutation(claim, { phone: PHONE }),
       t.mutation(claim, { phone: PHONE }),
@@ -214,7 +214,7 @@ describe("claimOtpSend", () => {
         codeHash: stale,
         codeExpiresAt: Date.now() + 60_000,
       })
-    ).toBe(false)
+    ).toBe("lost")
     expect(
       await t.mutation(internal.otp.commitOtpCode, {
         phone: PHONE,
@@ -222,7 +222,7 @@ describe("claimOtpSend", () => {
         codeHash: current,
         codeExpiresAt: Date.now() + 60_000,
       })
-    ).toBe(true)
+    ).toBe("ok")
     const lease = await t.run((ctx) => ctx.db.query("otpSendLeases").unique())
     expect(lease?.codeHash).toBe(current)
   })
@@ -309,5 +309,85 @@ describe("claimOtpSend", () => {
     expect(await t.mutation(claim, { phone: PHONE })).toMatchObject({
       ok: true,
     })
+  })
+
+  test("a slow send is expired, not overtaken, and keeps the live code", async () => {
+    const t = convexTest(schema, modules)
+    const claimed = await t.mutation(claim, { phone: PHONE })
+    expect(claimed.ok).toBe(true)
+    if (!claimed.ok) return
+    const hash = "2".repeat(64)
+    expect(
+      await t.mutation(internal.otp.commitOtpCode, {
+        phone: PHONE,
+        generation: claimed.generation,
+        codeHash: hash,
+        codeExpiresAt: Date.now() + 60_000,
+      })
+    ).toBe("ok")
+    await t.run(async (ctx) => {
+      const row = await ctx.db.query("otpSendLeases").unique()
+      if (!row) throw new Error("expected a lease")
+      await ctx.db.patch(row._id, { inflightUntil: Date.now() - 1 })
+    })
+    expect(
+      await t.mutation(internal.otp.commitOtpCode, {
+        phone: PHONE,
+        generation: claimed.generation,
+        codeHash: "3".repeat(64),
+        codeExpiresAt: Date.now() + 60_000,
+      })
+    ).toBe("expired")
+    const lease = await t.run((ctx) => ctx.db.query("otpSendLeases").unique())
+    expect(lease?.codeHash).toBe(hash)
+  })
+
+  test("duplicate lease rows collapse onto the live code", async () => {
+    const t = convexTest(schema, modules)
+    const hash = "4".repeat(64)
+    await t.run(async (ctx) => {
+      await ctx.db.insert("otpSendLeases", {
+        phone: "+919876543210",
+        generation: 1,
+        inflightUntil: 0,
+        codeHash: hash,
+        codeExpiresAt: Date.now() + 60_000,
+        attempts: 0,
+      })
+      await ctx.db.insert("otpSendLeases", {
+        phone: "+919876543210",
+        generation: 2,
+        inflightUntil: Date.now() + 20_000,
+        attempts: 0,
+      })
+    })
+    expect(
+      await t.mutation(internal.otp.verifyOtpCode, {
+        phone: PHONE,
+        codeHash: hash,
+      })
+    ).toBe("ok")
+    const rows = await t.run((ctx) => ctx.db.query("otpSendLeases").collect())
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.codeHash).toBeUndefined()
+  })
+
+  test("two verifies of one code accept it once", async () => {
+    const t = convexTest(schema, modules)
+    const claimed = await t.mutation(claim, { phone: PHONE })
+    expect(claimed.ok).toBe(true)
+    if (!claimed.ok) return
+    const hash = "5".repeat(64)
+    await t.mutation(internal.otp.commitOtpCode, {
+      phone: PHONE,
+      generation: claimed.generation,
+      codeHash: hash,
+      codeExpiresAt: Date.now() + 60_000,
+    })
+    const verdicts = await Promise.all([
+      t.mutation(internal.otp.verifyOtpCode, { phone: PHONE, codeHash: hash }),
+      t.mutation(internal.otp.verifyOtpCode, { phone: PHONE, codeHash: hash }),
+    ])
+    expect(verdicts.filter((verdict) => verdict === "ok")).toHaveLength(1)
   })
 })

@@ -8,7 +8,7 @@ import { safeReturnPath } from "@/lib/return-path"
 export const metadata: Metadata = {
   title: "Sign in",
   description:
-    "Sign in to Impact Career Tutorials with your mobile number and a one-time code.",
+    "Sign in to Impact Career Tutorials with a WhatsApp code to your mobile number.",
   alternates: { canonical: "/sign-in" },
   // Nothing here is worth a search result, and an indexed sign-in page only
   // ever collects the wrong kind of traffic.
@@ -40,7 +40,8 @@ export default async function SignInPage({
             className="enter type-lede mt-4 text-muted-foreground"
             style={delay(60)}
           >
-            Your mobile number is your account. No password to remember.
+            Your mobile number is your account. We send a WhatsApp code. There
+            is no password.
           </p>
           <div
             className="enter mt-10 rounded-card border border-border bg-surface p-6 md:p-8"

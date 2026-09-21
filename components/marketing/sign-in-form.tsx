@@ -145,7 +145,7 @@ export function SignInForm({ next }: { next: string }) {
             className={cn(field, "tnum")}
           />
           <p className="mt-1 text-sm text-muted-foreground">
-            ICT will send a one-time code to this number.
+            ICT will send a WhatsApp code to this number.
           </p>
         </div>
       ) : (
@@ -191,7 +191,7 @@ export function SignInForm({ next }: { next: string }) {
           </>
         ) : (
           <>
-            {step === "phone" ? "Send me a code" : "Sign in"}
+            {step === "phone" ? "Send a WhatsApp code" : "Sign in"}
             <IconArrowRight stroke={1.75} />
           </>
         )}

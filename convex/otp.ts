@@ -52,11 +52,32 @@ const sendRefusal = v.union(
   v.literal("deployment")
 )
 
+/**
+ * The lease for this phone. A lost insert race can leave extras; `.unique()`
+ * would then throw on every later send and lock the number out. Keep the
+ * unexpired code when one exists, otherwise the highest generation, and
+ * delete the rest.
+ */
 async function leaseByPhone(ctx: MutationCtx, phone: string) {
-  return await ctx.db
+  const rows = await ctx.db
     .query("otpSendLeases")
     .withIndex("by_phone", (q) => q.eq("phone", phone))
-    .unique()
+    .take(32)
+  if (rows.length === 0) return null
+  if (rows.length === 1) return rows[0] ?? null
+  const now = Date.now()
+  const ranked = [...rows].sort((a, b) => b.generation - a.generation)
+  const keep =
+    ranked.find(
+      (row) => row.codeHash !== undefined && (row.codeExpiresAt ?? 0) > now
+    ) ??
+    ranked[0] ??
+    null
+  if (!keep) return null
+  for (const extra of rows) {
+    if (extra._id !== keep._id) await ctx.db.delete(extra._id)
+  }
+  return keep
 }
 
 function hashesMatch(left: string, right: string) {
@@ -166,8 +187,11 @@ export const claimOtpSend = internalMutation({
 })
 
 /**
- * Record the code this generation may accept. A stale holder, whose lease
- * expired and was taken over, gets false and must not deliver.
+ * Record the code this generation may accept.
+ *
+ * `lost` means a newer send already holds the number: do not deliver.
+ * `expired` means this same send outlived its lease and nobody took over:
+ * the previous code, if any, stays, and the caller must not deliver.
  */
 export const commitOtpCode = internalMutation({
   args: {
@@ -176,23 +200,23 @@ export const commitOtpCode = internalMutation({
     codeHash: v.string(),
     codeExpiresAt: v.number(),
   },
-  returns: v.boolean(),
+  returns: v.union(v.literal("ok"), v.literal("lost"), v.literal("expired")),
   handler: async (ctx, args) => {
     const phone = toE164(args.phone)
-    if (!phone || !CODE_HASH.test(args.codeHash)) return false
+    if (!phone || !CODE_HASH.test(args.codeHash)) return "lost"
     const now = Date.now()
     const ttl = args.codeExpiresAt - now
-    if (ttl <= 0 || ttl > 10 * MINUTE) return false
+    if (ttl <= 0 || ttl > 10 * MINUTE) return "lost"
     const row = await leaseByPhone(ctx, phone)
-    if (!row || row.generation !== args.generation || row.inflightUntil <= now)
-      return false
+    if (!row || row.generation !== args.generation) return "lost"
+    if (row.inflightUntil <= now) return "expired"
     await ctx.db.patch(row._id, {
       codeHash: args.codeHash,
       codeExpiresAt: args.codeExpiresAt,
       attempts: 0,
       inflightUntil: now + SEND_LEASE_MS,
     })
-    return true
+    return "ok"
   },
 })
 

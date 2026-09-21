@@ -22,6 +22,7 @@ function harness() {
   let deliveredTo = ""
   let failRecord = false
   let failSend = false
+  let failRelease = false
   let holdSend = false
   let releaseHold = () => {}
   const hold = new Promise<void>((resolve) => {
@@ -52,6 +53,7 @@ function harness() {
       commit: (attempt) =>
         persons.mutation(internal.otp.commitOtpCode, attempt),
       release: async (attempt) => {
+        if (failRelease) throw new Error("release failed")
         await persons.mutation(internal.otp.releaseOtpSend, attempt)
       },
       abort: async (attempt) => {
@@ -74,8 +76,11 @@ function harness() {
     }),
   })
   async function request(path: string, body: Record<string, unknown>) {
+    return post(`phone-number/${path}`, body)
+  }
+  async function post(path: string, body: Record<string, unknown>) {
     return auth.handler(
-      new Request(`http://localhost:3000/api/auth/phone-number/${path}`, {
+      new Request(`http://localhost:3000/api/auth/${path}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
@@ -86,11 +91,15 @@ function harness() {
     db,
     persons,
     request,
+    post,
     sentTo: () => deliveredTo,
     lastCode: () => code,
     codes: () => codes,
     failSend: (value = true) => {
       failSend = value
+    },
+    failRelease: (value = true) => {
+      failRelease = value
     },
     holdNextSend: () => {
       holdSend = true
@@ -252,6 +261,44 @@ describe("phone authentication through the installed plugin", () => {
     expect((await h.send()).status).toBe(429)
     expect(h.sentTo()).toBe("")
     expect(h.db.verification).toHaveLength(0)
+  })
+  test("a release failure after delivery still accepts the code", async () => {
+    const h = harness()
+    h.failRelease()
+    expect((await h.send()).status).toBe(200)
+    expect((await h.verify()).status).toBe(200)
+    expect(h.db.session).toHaveLength(1)
+  })
+  test("password and email sign-in are refused before anything is stored", async () => {
+    const h = harness()
+    for (const path of [
+      "sign-in/phone-number",
+      "phone-number/request-password-reset",
+      "phone-number/reset-password",
+      "sign-in/email",
+      "sign-up/email",
+      "request-password-reset",
+      "reset-password",
+      "change-password",
+      "change-email",
+      "sign-in/social",
+    ]) {
+      const response = await h.post(path, {
+        phoneNumber: "+919876543210",
+        password: "a-long-secret",
+        email: "person@example.com",
+        otp: "000000",
+        newPassword: "another-long-secret",
+        provider: "google",
+      })
+      expect(response.status).toBe(403)
+    }
+    expect(h.db.verification).toHaveLength(0)
+    expect(h.db.user).toHaveLength(0)
+    expect(h.db.account).toHaveLength(0)
+    expect(
+      await h.persons.run((ctx) => ctx.db.query("otpSendLeases").collect())
+    ).toHaveLength(0)
   })
   test("Person callback failure never issues a session", async () => {
     const h = harness()

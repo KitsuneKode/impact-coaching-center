@@ -13,14 +13,43 @@ import { toE164 } from "./leads"
  */
 const REFUSAL_MESSAGES = {
   phone:
-    "Too many codes were requested for this number. Wait a few minutes and try again.",
+    "Too many WhatsApp codes were requested for this number. Wait a few minutes and try again.",
   address:
-    "Too many codes were requested from this internet connection. Wait a while, or call ICT instead.",
+    "Too many WhatsApp codes were requested from this internet connection. Wait a while, or call ICT instead.",
   deployment:
-    "We cannot send verification codes at the moment. Please call or message ICT and they will help you directly.",
+    "We cannot send WhatsApp codes at the moment. Please call or message ICT and they will help you directly.",
   inflight:
-    "A code is already on its way to this number. Wait a moment and try again.",
+    "A WhatsApp code is already on its way to this number. Wait a moment and try again.",
 } as const
+
+/**
+ * Sign-in is a WhatsApp code. These routes belong to password, email, or
+ * social sign-in. The phone plugin registers the password ones even when
+ * we never configure a password sender, and reset-password can mint a
+ * credential account. Refuse them before any adapter write.
+ */
+const WHATSAPP_ONLY =
+  "Sign-in is a WhatsApp code to your mobile number. There is no email or password sign-in."
+
+const BLOCKED_AUTH_PATHS = new Set([
+  "/sign-in/phone-number",
+  "/phone-number/request-password-reset",
+  "/phone-number/reset-password",
+  "/sign-in/email",
+  "/sign-up/email",
+  "/sign-in/social",
+  "/change-email",
+  "/send-verification-email",
+  "/verify-email",
+  "/request-password-reset",
+  "/reset-password",
+  "/change-password",
+  "/verify-password",
+])
+
+function isOutsideWhatsApp(path: string) {
+  return BLOCKED_AUTH_PATHS.has(path) || path.startsWith("/reset-password/")
+}
 
 export type OtpSendRefusal = keyof typeof REFUSAL_MESSAGES
 
@@ -103,7 +132,7 @@ export function phoneAuthOptions(delivery: {
     generation: number
     codeHash: string
     codeExpiresAt: number
-  }) => Promise<boolean>
+  }) => Promise<"ok" | "lost" | "expired">
   release: (attempt: { phone: string; generation: number }) => Promise<void>
   abort: (attempt: { phone: string; generation: number }) => Promise<void>
   verify: (attempt: {
@@ -114,6 +143,9 @@ export function phoneAuthOptions(delivery: {
   return {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        if (isOutsideWhatsApp(ctx.path)) {
+          throw new APIError("FORBIDDEN", { message: WHATSAPP_ONLY })
+        }
         if (!ctx.path.startsWith("/phone-number/")) return
         // Reject before the plugin consumes the OTP or edits its account.
         if (ctx.body?.updatePhoneNumber) {
@@ -187,10 +219,12 @@ export function phoneAuthOptions(delivery: {
             codeHash: await hashOtpCode(delivery.secret, phone, code),
             codeExpiresAt: Date.now() + CODE_TTL_MS,
           })
-          if (!committed) {
+          if (committed !== "ok") {
             throw new APIError("CONFLICT", {
               message:
-                "That request was overtaken by a newer one. Ask for a code again.",
+                committed === "expired"
+                  ? "That request took too long. Ask for a code again."
+                  : "That request was overtaken by a newer one. Ask for a code again.",
             })
           }
           try {
@@ -199,7 +233,13 @@ export function phoneAuthOptions(delivery: {
             await delivery.abort({ phone, generation })
             throw error
           }
-          await delivery.release({ phone, generation })
+          try {
+            await delivery.release({ phone, generation })
+          } catch {
+            // The code is already on its way. Failing the request would
+            // invite another send, and aborting would erase a code the
+            // person can still enter. The lease expires on its own.
+          }
         },
         verifyOTP: async ({ phoneNumber: rawPhone, code }) => {
           const phone = toE164(rawPhone)

@@ -33,3 +33,6 @@ transport is enabled.
 - [x] Phone plugin uses the lease hash instead of its verification row
 - [x] Existing send-ceiling tests follow `claimOtpSend`
 - [x] Overlapping send, stale generation, replay and delivery failure covered
+- [x] Duplicate lease rows collapse onto the live code
+- [x] A slow send reports expired, not overtaken; a release failure after delivery still accepts the code
+- [x] Password, email, and social routes are refused before any write. Sign-in is a WhatsApp code only
