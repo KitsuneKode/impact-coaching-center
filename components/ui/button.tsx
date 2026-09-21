@@ -40,6 +40,9 @@ const buttonVariants = cva(
         md: "h-11 px-4.5 text-[0.9375rem] [&_svg]:size-[18px]",
         lg: "h-12 px-5.5 text-[0.9375rem] [&_svg]:size-[18px]",
         icon: "size-10 [&_svg]:size-5",
+        /* Added for registry components that ask for it (sidebar, sheet).
+           Additive - no existing call site changes size. */
+        "icon-sm": "size-8 [&_svg]:size-4",
       },
     },
     compoundVariants: [{ variant: "link", className: "h-auto px-0" }],

@@ -55,7 +55,16 @@ export default defineSchema({
   })
     .index("by_phone", ["phone"])
     // The follow-up queue: a lead status, then most recently active first.
-    .index("by_leadStatus", ["leadStatus", "lastEnquiryAt"]),
+    .index("by_leadStatus", ["leadStatus", "lastEnquiryAt"])
+    /*
+     * Staff and owners, for the admin surface and for last-owner protection.
+     *
+     * Indexed rather than filtered because the count is read inside the same
+     * mutation that would change it: two concurrent demotions must not both
+     * see two owners and both proceed, and a table scan under contention is
+     * how that goes wrong.
+     */
+    .index("by_role", ["role"]),
 
   /**
    * Status changes, notes and handoffs. Free text lives here and never on the

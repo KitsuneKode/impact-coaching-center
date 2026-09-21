@@ -59,6 +59,18 @@
       "rules": {
         "jsx-a11y/label-has-associated-control": "off"
       }
+    },
+    {
+      "files": ["components/ui/breadcrumb.tsx"],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off"
+      }
+    },
+    {
+      "files": ["hooks/use-mobile.ts"],
+      "rules": {
+        "react/set-state-in-effect": "off"
+      }
     }
   ]
 }

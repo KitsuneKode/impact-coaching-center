@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+
+import { AdminShell } from "@/components/admin/admin-shell"
 import type { ReactNode } from "react"
 
 /**
@@ -21,5 +23,5 @@ export const metadata: Metadata = {
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return children
+  return <AdminShell>{children}</AdminShell>
 }
