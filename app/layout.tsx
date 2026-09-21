@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Inter, Noto_Sans_Bengali } from "next/font/google"
+import { Fraunces, Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
 import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
@@ -19,6 +19,35 @@ const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+})
+
+/*
+ * Fraunces for headings only.
+ *
+ * Inter on every character is the single loudest tell of a generic template,
+ * and it was doing the hero, the section heads and the body text alike. A
+ * serif display also says what this institute actually is - books, syllabus,
+ * examinations - in a way no grotesque does, which is the "editorial
+ * academic direction" AGENTS.md asks to preserve rather than a departure
+ * from it.
+ *
+ * `opsz` is the reason it is this family and not a static serif: Fraunces
+ * redraws itself for the size it is set at, so the 60px hero gets high
+ * contrast and tight joins while a 24px section head stays sturdy. One
+ * variable file covers both.
+ *
+ * The payload is the honest cost. ADR-0003 puts this audience on budget
+ * Android over slow Assam connections, so it is latin-only, swap, and
+ * headings only - body text never waits on it.
+ */
+const display = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  // Only the axis that is actually varied. SOFT and WONK were requested and
+  // then pinned to 0 in the stylesheet, which is payload bought for nothing -
+  // on this audience's connections that is the difference that matters.
+  axes: ["opsz"],
 })
 
 /* Loaded because ICT genuinely teaches in Assamese. */
@@ -104,7 +133,12 @@ export default function RootLayout({
     <html
       lang="en-IN"
       data-scroll-behavior="smooth"
-      className={cn(sans.variable, assamese.variable, "antialiased")}
+      className={cn(
+        sans.variable,
+        display.variable,
+        assamese.variable,
+        "antialiased"
+      )}
       // Browser extensions write their own attributes onto <html> before React
       // hydrates - LanguageTool adds `data-lt-installed`, password managers and
       // translators do the same - and React reports every one as a mismatch the
