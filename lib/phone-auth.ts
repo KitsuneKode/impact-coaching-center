@@ -9,6 +9,7 @@ import { toE164 } from "./leads"
  * Each has to be true of the ceiling that actually fired. A shared college
  * connection hitting the address limit is not the visitor asking too often,
  * and the deployment cap is not something they can wait out in a few minutes.
+ * `inflight` is a send already underway, not a spent allowance.
  */
 const REFUSAL_MESSAGES = {
   phone:
@@ -17,20 +18,98 @@ const REFUSAL_MESSAGES = {
     "Too many codes were requested from this internet connection. Wait a while, or call ICT instead.",
   deployment:
     "We cannot send verification codes at the moment. Please call or message ICT and they will help you directly.",
+  inflight:
+    "A code is already on its way to this number. Wait a moment and try again.",
 } as const
+
+export type OtpSendRefusal = keyof typeof REFUSAL_MESSAGES
+
+export type OtpSendClaim =
+  | { ok: true; generation: number }
+  | { ok: false; reason: OtpSendRefusal }
+
+export type OtpVerifyVerdict =
+  | "ok"
+  | "missing"
+  | "expired"
+  | "exhausted"
+  | "invalid"
+
+/** Same lifetime the phone plugin is given. Acceptance uses our expiry. */
+const CODE_TTL_MS = 300_000
+
+type AttemptContext = { otpSendGeneration?: number }
+
+function attemptContext(ctx: { context: object }): AttemptContext {
+  return ctx.context
+}
+
+async function hashOtpCode(secret: string, phone: string, code: string) {
+  if (secret.length < 16)
+    throw new Error(
+      "Verification hashing requires BETTER_AUTH_SECRET or AUTH_SECRET."
+    )
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  )
+  const mac = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(`${phone}:${code}`)
+  )
+  return [...new Uint8Array(mac)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+}
+
+function verdictError(verdict: Exclude<OtpVerifyVerdict, "ok">) {
+  if (verdict === "expired")
+    return APIError.from("BAD_REQUEST", {
+      code: "OTP_EXPIRED",
+      message: "OTP expired",
+    })
+  if (verdict === "missing")
+    return APIError.from("BAD_REQUEST", {
+      code: "OTP_NOT_FOUND",
+      message: "OTP not found",
+    })
+  if (verdict === "exhausted")
+    return APIError.from("FORBIDDEN", {
+      code: "TOO_MANY_ATTEMPTS",
+      message: "Too many attempts",
+    })
+  return APIError.from("BAD_REQUEST", {
+    code: "INVALID_OTP",
+    message: "Invalid OTP",
+  })
+}
 
 /** Shared by the Convex adapter and the integration-test memory adapter. */
 export function phoneAuthOptions(delivery: {
+  secret: string
   send: (target: { phoneNumber: string; code: string }) => Promise<void>
   record: (person: { phone: string; name: string }) => Promise<void>
   /**
-   * Null allows the send; a scope refuses it and says which ceiling was hit,
-   * so the message the caller sees is true. See convex/otp.ts.
+   * One mutation: ceilings plus the per-phone lease. A refusal leaves any
+   * live code in place. See convex/otp.ts.
    */
-  throttle: (target: {
+  claim: (target: { phone: string; ip: string | null }) => Promise<OtpSendClaim>
+  commit: (attempt: {
     phone: string
-    ip: string | null
-  }) => Promise<"phone" | "address" | "deployment" | null>
+    generation: number
+    codeHash: string
+    codeExpiresAt: number
+  }) => Promise<boolean>
+  release: (attempt: { phone: string; generation: number }) => Promise<void>
+  abort: (attempt: { phone: string; generation: number }) => Promise<void>
+  verify: (attempt: {
+    phone: string
+    codeHash: string
+  }) => Promise<OtpVerifyVerdict>
 }) {
   return {
     hooks: {
@@ -48,42 +127,90 @@ export function phoneAuthOptions(delivery: {
           throw new APIError("BAD_REQUEST", {
             message: "Enter a valid Indian mobile number.",
           })
+        let otpSendGeneration: number | undefined
         if (ctx.path === "/phone-number/send-otp") {
-          // Checked before the delete below: a refused resend must leave the
-          // live code intact, or a flood of refused sends could be used to
-          // lock a real Person out of the code they already received.
           const ip = getIp(
             ctx.request ?? ctx.headers ?? new Headers(),
             ctx.context.options
           )
-          const refusal = await delivery.throttle({ phone, ip })
-          if (refusal) {
+          const decision = await delivery.claim({ phone, ip })
+          if (!decision.ok) {
             throw new APIError("TOO_MANY_REQUESTS", {
-              message: REFUSAL_MESSAGES[refusal],
+              message: REFUSAL_MESSAGES[decision.reason],
             })
           }
-        }
-        // Retire the previous code on sequential resends. The plugin inserts
-        // separately, so delete + insert is NOT atomic across concurrent
-        // requests. Hosted OTP requires a concurrency safeguard before launch;
-        // see docs/research/2026-09-20-implementation-and-merge-status.md.
-        if (ctx.path === "/phone-number/send-otp") {
-          await ctx.context.internalAdapter.deleteVerificationByIdentifier(
-            phone
-          )
+          // Plugin rows are not the acceptance record. Clearing them here only
+          // stops a leftover row from sitting beside the one this request
+          // inserts. A refused claim never reaches this delete.
+          try {
+            await ctx.context.internalAdapter.deleteVerificationByIdentifier(
+              phone
+            )
+          } catch (error) {
+            await delivery.release({ phone, generation: decision.generation })
+            throw error
+          }
+          otpSendGeneration = decision.generation
+          attemptContext(ctx).otpSendGeneration = decision.generation
         }
         return {
-          context: { ...ctx, body: { ...ctx.body, phoneNumber: phone } },
+          context: {
+            ...ctx,
+            body: { ...ctx.body, phoneNumber: phone },
+            otpSendGeneration,
+          },
         }
       }),
     },
     plugins: [
       phoneNumber({
         otpLength: 6,
-        expiresIn: 300,
+        expiresIn: CODE_TTL_MS / 1000,
         allowedAttempts: 5,
         phoneNumberValidator: (input) => toE164(input) === input,
-        sendOTP: delivery.send,
+        sendOTP: async ({ phoneNumber: rawPhone, code }, ctx) => {
+          const phone = toE164(rawPhone)
+          const carrier = ctx as
+            | { otpSendGeneration?: number; context: object }
+            | undefined
+          const generation = carrier
+            ? (carrier.otpSendGeneration ??
+              attemptContext(carrier).otpSendGeneration)
+            : undefined
+          if (!phone || generation === undefined)
+            throw new APIError("INTERNAL_SERVER_ERROR", {
+              message: "Could not start verification. Please try again.",
+            })
+          const committed = await delivery.commit({
+            phone,
+            generation,
+            codeHash: await hashOtpCode(delivery.secret, phone, code),
+            codeExpiresAt: Date.now() + CODE_TTL_MS,
+          })
+          if (!committed) {
+            throw new APIError("CONFLICT", {
+              message:
+                "That request was overtaken by a newer one. Ask for a code again.",
+            })
+          }
+          try {
+            await delivery.send({ phoneNumber: phone, code })
+          } catch (error) {
+            await delivery.abort({ phone, generation })
+            throw error
+          }
+          await delivery.release({ phone, generation })
+        },
+        verifyOTP: async ({ phoneNumber: rawPhone, code }) => {
+          const phone = toE164(rawPhone)
+          if (!phone) return false
+          const verdict = await delivery.verify({
+            phone,
+            codeHash: await hashOtpCode(delivery.secret, phone, code),
+          })
+          if (verdict === "ok") return true
+          throw verdictError(verdict)
+        },
         callbackOnVerification: async ({ phoneNumber: phone, user }) => {
           await delivery.record({ phone, name: user.name })
         },

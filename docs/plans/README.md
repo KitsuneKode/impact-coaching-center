@@ -22,15 +22,16 @@ editorial/state spec, the audit's remaining truthfulness fixes and the
 coordination documents. Reconcile branch contents before assigning a TODO row;
 do not duplicate completed slices. No merge/deployment is implied by this update.
 
-| Plan                                            | Title                                                               | Priority | Effort | Depends on                              | Status                                               |
-| ----------------------------------------------- | ------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | ---------------------------------------------------- |
-| `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)       | —        | —      | —                                       | DONE                                                 |
-| `2026-09-20-client-materials-reconciliation.md` | Client documents agree with the ADRs; change-note drafted           | P1       | S      | —                                       | DONE                                                 |
-| `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                      | P1       | M      | —                                       | DONE                                                 |
-| `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows   | P1       | M      | — (before KIT-46)                       | DONE                                                 |
-| `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                | P2       | M      | step 5 after/with the throttle plan     | DONE                                                 |
-| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan | P2       | M      | throttle plan before any shared preview | PARTIAL (build plan written; runtime half never run) |
-| `2026-09-20-sign-in-and-admin-leads.md`         | `/sign-in` + read-only `/admin/leads` (from the spike)              | P2       | L      | KIT-49 before any shared preview        | DONE (step 5, session lifetimes, deferred to KIT-46) |
+| Plan                                            | Title                                                                       | Priority | Effort | Depends on                              | Status                                               |
+| ----------------------------------------------- | --------------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | ---------------------------------------------------- |
+| `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)               | —        | —      | —                                       | DONE                                                 |
+| `2026-09-20-client-materials-reconciliation.md` | Client documents agree with the ADRs; change-note drafted                   | P1       | S      | —                                       | DONE                                                 |
+| `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                              | P1       | M      | —                                       | DONE                                                 |
+| `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows           | P1       | M      | — (before KIT-46)                       | DONE                                                 |
+| `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                        | P2       | M      | step 5 after/with the throttle plan     | DONE                                                 |
+| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan         | P2       | M      | throttle plan before any shared preview | PARTIAL (build plan written; runtime half never run) |
+| `2026-09-20-sign-in-and-admin-leads.md`         | `/sign-in` + read-only `/admin/leads` (from the spike)                      | P2       | L      | KIT-49 before any shared preview        | DONE (step 5, session lifetimes, deferred to KIT-46) |
+| `2026-09-22-otp-resend-safety.md`               | One acceptable verification code per phone under concurrent resend (KIT-53) | P1       | M      | throttle plan                           | DONE (hosted WhatsApp still waits on KIT-46)         |
 
 | `2026-09-20-library-draft.md` (no plan file) | `/library` as a draft plus its seven questions for ICT (KIT-50) | P2 | S | — | DONE (built to request, without a plan) |
 
@@ -40,9 +41,9 @@ Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJEC
 
 - Current implementation/PR separation and the approved editorial follow-on are
   recorded in `docs/research/2026-09-20-implementation-and-merge-status.md`.
-- Before hosted OTP, resolve concurrent resend replacement: deleting a verification
-  then inserting via the plugin is not atomic. Send ceilings alone are not a
-  per-phone concurrency guarantee.
+- Hosted OTP still waits on KIT-46. KIT-53 makes the per-phone send lease the
+  acceptance record, because the Convex auth adapter does not transactionally
+  replace verification rows. Send ceilings alone are not that guarantee.
 
 - The throttle plan must merge **before** the WhatsApp transport (KIT-46) — the first billed send must already be rate limited.
 - The spike can run locally without the throttle, but no sign-in UI should reach a shared preview URL before it.
