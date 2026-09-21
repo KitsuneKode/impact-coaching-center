@@ -66,7 +66,13 @@ function Themed({ children }: { children: ReactNode }) {
     <ThemeProvider
       attribute="data-theme"
       defaultTheme="current"
-      themes={["current", "elegance", "twilight"]}
+      themes={[
+        "current",
+        "elegance",
+        "elegance-dark",
+        "twilight",
+        "twilight-dark",
+      ]}
       enableSystem={false}
       disableTransitionOnChange
     >

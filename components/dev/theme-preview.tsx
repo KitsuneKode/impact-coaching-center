@@ -11,14 +11,16 @@ import { useTheme } from "next-themes"
  * rather than at five swatches.
  *
  * The state, the persistence and the no-flash script all come from
- * next-themes, configured in app/providers.tsx. This file is only the three
+ * next-themes, configured in app/providers.tsx. This file is only the five
  * buttons; delete it and its one call site once KIT-67 picks a palette, and
  * the provider stays for dark mode.
  */
 const THEMES = [
   { id: "current", label: "Current" },
   { id: "elegance", label: "Elegance" },
+  { id: "elegance-dark", label: "Elegance dark" },
   { id: "twilight", label: "Twilight" },
+  { id: "twilight-dark", label: "Twilight dark" },
 ] as const
 
 export function ThemePreview() {

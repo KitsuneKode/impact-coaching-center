@@ -105,6 +105,75 @@
   --input: oklch(0.252 0.056 264 / 18%);
 }
 
+/*
+ * The dark half of the same two palettes: navy as the ground rather than an
+ * accent. This is the direction both palettes were actually designed for.
+ *
+ * The number that decides it: gold is unusable as text on white (1.5-1.9:1)
+ * and comfortable on dark (7.9-12.5:1). On a light ground the gold can only
+ * ever be a highlighter; on a dark one it can carry a CTA, a link and a
+ * heading. Whether that is worth re-judging every photograph, every course
+ * poster and the full-colour logo raster is the KIT-67 decision.
+ *
+ *   #FFFFFF on #000000 21.00:1   #FCA311 on #000000 10.39:1
+ *   #FFFFFF on #000814 20.10:1   #FFC300 on #000814 12.50:1
+ *   #FCA311 on #14213D  7.90:1   #FFD60A on #001D3D 11.97:1
+ */
+
+/* Black & Gold Elegance, dark: black ground, navy panels, gold actions. */
+:root[data-theme="elegance-dark"] {
+  --background: oklch(0 0 0);
+  --surface: oklch(0.252 0.056 264);
+  --card: oklch(0.18 0.04 264);
+  --secondary: oklch(0.252 0.056 264);
+  --muted: oklch(0.252 0.056 264);
+  --accent: oklch(0.252 0.056 264);
+  --popover: oklch(0.18 0.04 264);
+  --popover-foreground: oklch(1 0 89.9);
+  --card-foreground: oklch(1 0 89.9);
+
+  --foreground: oklch(1 0 89.9);
+  --muted-foreground: oklch(0.75 0.01 264);
+
+  --primary: oklch(0.786 0.167 70);
+  --primary-foreground: oklch(0 0 0);
+  --secondary-foreground: oklch(1 0 89.9);
+  --accent-foreground: oklch(1 0 89.9);
+  --brand: oklch(0.786 0.167 70);
+  --highlight: oklch(0.786 0.167 70);
+  --verified: oklch(0.72 0.16 150);
+
+  --border: oklch(1 0 89.9 / 14%);
+  --input: oklch(1 0 89.9 / 20%);
+}
+
+/* Golden Twilight, dark: the palette read the way it was drawn. */
+:root[data-theme="twilight-dark"] {
+  --background: oklch(0.131 0.034 246.6);
+  --surface: oklch(0.231 0.071 252.9);
+  --card: oklch(0.19 0.06 250);
+  --secondary: oklch(0.231 0.071 252.9);
+  --muted: oklch(0.231 0.071 252.9);
+  --accent: oklch(0.328 0.1 252.6);
+  --popover: oklch(0.19 0.06 250);
+  --popover-foreground: oklch(0.99 0.002 90);
+  --card-foreground: oklch(0.99 0.002 90);
+
+  --foreground: oklch(0.99 0.002 90);
+  --muted-foreground: oklch(0.76 0.03 250);
+
+  --primary: oklch(0.848 0.174 86.1);
+  --primary-foreground: oklch(0.131 0.034 246.6);
+  --secondary-foreground: oklch(0.99 0.002 90);
+  --accent-foreground: oklch(0.99 0.002 90);
+  --brand: oklch(0.885 0.181 94.8);
+  --highlight: oklch(0.848 0.174 86.1);
+  --verified: oklch(0.72 0.16 150);
+
+  --border: oklch(0.99 0.002 90 / 14%);
+  --input: oklch(0.99 0.002 90 / 20%);
+}
+
 /* Golden Twilight: the same ground, a deeper ink and a brighter gold. */
 :root[data-theme="twilight"] {
   --foreground: oklch(0.131 0.034 246.6);
