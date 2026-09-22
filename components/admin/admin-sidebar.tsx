@@ -4,7 +4,6 @@ import { useQuery } from "convex/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
-import { AccountMenu } from "@/components/account/account-menu"
 import {
   Sidebar,
   SidebarContent,
@@ -16,8 +15,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
 } from "@/components/ui/sidebar"
 import { NAV, OWNER_NAV } from "@/components/admin/nav"
+import { NavUser } from "@/components/admin/nav-user"
 import { api } from "@/convex/_generated/api"
 import { brand } from "@/lib/brand"
 
@@ -92,10 +93,16 @@ export function AdminSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex items-center justify-center p-1">
-          <AccountMenu />
-        </div>
+        <NavUser />
       </SidebarFooter>
+
+      {/*
+       * The rail is the thin strip along the sidebar's edge: click it to
+       * collapse or expand, drag it to resize. It comes from the registry
+       * block and is the affordance that makes icon mode discoverable without
+       * hunting for the trigger in the header.
+       */}
+      <SidebarRail />
     </Sidebar>
   )
 }

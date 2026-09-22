@@ -21,6 +21,9 @@ const unapprovedPolicyRoutes = policies
 const noindexRoutes = [
   "/login",
   "/register",
+  // A Person's own record. Nothing on it is public, and it says nothing a
+  // stranger could act on, so there is nothing to rank.
+  "/account",
   "/admin",
   "/admin/leads",
   "/admin/people",

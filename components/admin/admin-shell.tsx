@@ -5,8 +5,9 @@ import { useQuery } from "convex/react"
 import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { AdminHeader } from "@/components/admin/admin-header"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
-import { AdminCommandMenu, CommandHint } from "@/components/admin/command-menu"
+import { AdminCommandMenu } from "@/components/admin/command-menu"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -16,11 +17,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { Section } from "@/components/ui/section"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 
@@ -102,17 +99,7 @@ function Shell({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <AdminSidebar />
       <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b border-border px-4">
-          <SidebarTrigger />
-          {/*
-           * The hint sits at the end of the header rather than beside the
-           * trigger: a keyboard shortcut nobody can see is a shortcut nobody
-           * uses, but it is also not the first thing on the screen.
-           */}
-          <div className="ml-auto">
-            <CommandHint />
-          </div>
-        </header>
+        <AdminHeader />
         {children}
       </SidebarInset>
       <AdminCommandMenu isOwner={viewer.role === "owner"} />

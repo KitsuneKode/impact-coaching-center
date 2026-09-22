@@ -21,3 +21,17 @@ export const NAV = [
 export const OWNER_NAV = [
   { href: "/admin/people", label: "People", icon: IconUsers },
 ] as const
+
+/**
+ * What to call the screen at this path, for the breadcrumb.
+ *
+ * Read from the same two lists the sidebar and the palette render, so a
+ * renamed screen is renamed in three places at once. Returns null for a path
+ * nothing here claims, and the breadcrumb then shows only the root - better
+ * than inventing a title from the URL segment, which turns /admin/people into
+ * "people" and every future hyphenated route into nonsense.
+ */
+export function labelForPath(pathname: string): string | null {
+  const match = [...NAV, ...OWNER_NAV].find((item) => item.href === pathname)
+  return match?.label ?? null
+}

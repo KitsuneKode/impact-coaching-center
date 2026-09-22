@@ -1,6 +1,11 @@
 "use client"
 
-import { IconInbox, IconLogout, IconUser } from "@tabler/icons-react"
+import {
+  IconInbox,
+  IconLogout,
+  IconUser,
+  IconUserCircle,
+} from "@tabler/icons-react"
 import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -21,6 +26,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
+import { initials } from "@/lib/person"
 
 /**
  * Who you are, and the way out.
@@ -37,24 +43,6 @@ import { formatPhone } from "@/lib/brand"
 export function AccountMenu({ className }: { className?: string }) {
   if (!convexConfigured) return null
   return <Menu className={className} />
-}
-
-/**
- * Initials, or null when there is no name to take them from.
- *
- * Null rather than a fallback string on purpose. This used to return the last
- * two digits of the phone number, which put a round badge reading "45" in the
- * header - two digits of somebody's phone number, presented as if they were a
- * monogram. A generic person mark says "we don't know your name yet", which is
- * true, instead of showing a fragment of the one identifier we do have.
- */
-function initials(name: string): string | null {
-  const trimmed = name.trim()
-  if (!trimmed) return null
-  const parts = trimmed.split(/\s+/)
-  const first = parts[0]?.[0] ?? ""
-  const last = parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : ""
-  return (first + last).toUpperCase() || null
 }
 
 function Menu({ className }: { className?: string }) {
@@ -149,6 +137,10 @@ function Menu({ className }: { className?: string }) {
             ) : null}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/account" />}>
+            <IconUserCircle stroke={1.75} />
+            Your details
+          </DropdownMenuItem>
           {viewer.role === "staff" || viewer.role === "owner" ? (
             <DropdownMenuItem render={<Link href="/admin/leads" />}>
               <IconInbox stroke={1.75} />
