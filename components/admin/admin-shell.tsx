@@ -2,7 +2,7 @@
 
 import { IconPlugConnectedX } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
-import { useEffect, useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
@@ -21,6 +21,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 
 /**
@@ -39,37 +40,6 @@ import { api } from "@/convex/_generated/api"
 export function AdminShell({ children }: { children: ReactNode }) {
   if (!convexConfigured) return children
   return <Shell>{children}</Shell>
-}
-
-/**
- * True once a wait has gone on long enough to stop being latency.
- *
- * Resets when the wait ends, so a fast navigation never trips it, and so a
- * wait that starts again later starts its own clock rather than inheriting a
- * verdict from the previous one.
- *
- * That reset is done during render, not in the effect. React documents
- * adjusting state while rendering for exactly this - a value derived from a
- * changed input - and it re-renders before touching the DOM, so nothing
- * flashes. Doing it in the effect instead means a committed render showing
- * the stale verdict, and it is what `react(set-state-in-effect)` objects to.
- */
-function useStalled(waiting: boolean, afterMs = 6000) {
-  const [stalled, setStalled] = useState(false)
-  const [watched, setWatched] = useState(waiting)
-
-  if (watched !== waiting) {
-    setWatched(waiting)
-    setStalled(false)
-  }
-
-  useEffect(() => {
-    if (!waiting) return
-    const timer = setTimeout(() => setStalled(true), afterMs)
-    return () => clearTimeout(timer)
-  }, [waiting, afterMs])
-
-  return stalled
 }
 
 /**

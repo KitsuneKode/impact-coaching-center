@@ -2,12 +2,9 @@ import type { Metadata, Viewport } from "next"
 import { Fraunces, Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
-import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
 import { Providers } from "@/app/providers"
 import { ThemePreview } from "@/components/dev/theme-preview"
-import { SiteFooter } from "@/components/marketing/site-footer"
-import { SiteHeader } from "@/components/marketing/site-header"
-import { EdgeBlur } from "@/components/motion/edge-blur"
+import { SiteChrome } from "@/components/marketing/site-chrome"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, siteUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -168,18 +165,22 @@ export default function RootLayout({
           >
             Skip to content
           </a>
-          <SiteHeader />
-          <EdgeBlur />
           {/*
+           * SiteChrome decides whether this route gets the public header,
+           * footer, edge blur and call bar. /admin gets none of them: it had
+           * all four, so the floating marketing header overlapped the admin
+           * sidebar trigger and the site footer ran underneath the enquiry
+           * table.
+           *
            * `tabIndex={-1}` so the skip link can move focus here. Without it
            * the browser scrolls to the target and leaves focus in the header,
            * so the next Tab returns to the navigation that was just skipped.
            */}
-          <div id="main" tabIndex={-1} className="outline-none">
-            {children}
-          </div>
-          <SiteFooter />
-          <MobileActionBar />
+          <SiteChrome>
+            <div id="main" tabIndex={-1} className="outline-none">
+              {children}
+            </div>
+          </SiteChrome>
           {/*
            * The intercepted /login and /register routes render here, over the
            * page the visitor was already on. app/@authModal/default.tsx keeps

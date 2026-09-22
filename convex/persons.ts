@@ -30,6 +30,17 @@ export async function findVerifiedPerson(
     phone: person.phone,
     role: person.role,
     verifiedAt: person.verifiedAt,
+    /*
+     * Carried so a Person can edit their own record. Every edit takes the
+     * revision it was read at (KIT-55), and a projection that omits it leaves
+     * the caller with nothing to send back - which forces either a second
+     * round trip or a blind write, and a blind write is how two tabs silently
+     * overwrite each other.
+     *
+     * `revisionOf` treats absent as zero, so rows written before the
+     * convention existed participate correctly in their first edit.
+     */
+    revision: person.revision ?? 0,
   }
 }
 

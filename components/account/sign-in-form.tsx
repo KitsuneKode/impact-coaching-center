@@ -1,9 +1,9 @@
 "use client"
 
 import { IconArrowRight, IconLoader2 } from "@tabler/icons-react"
-import { useRouter } from "next/navigation"
 import { useEffect, useId, useRef, useState } from "react"
 
+import { NameStep } from "@/components/account/name-step"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -70,11 +70,10 @@ function messageFor(error: { code?: string; message?: string } | null) {
  * has, and then stops talking.
  */
 export function SignInForm({ next }: { next: string }) {
-  const router = useRouter()
   const phoneId = useId()
   const codeId = useId()
 
-  const [step, setStep] = useState<"phone" | "code">("phone")
+  const [step, setStep] = useState<"phone" | "code" | "name">("phone")
   const [phone, setPhone] = useState("")
   const [code, setCode] = useState("")
   const [phoneError, setPhoneError] = useState<string | null>(null)
@@ -143,9 +142,19 @@ export function SignInForm({ next }: { next: string }) {
       setFormError(messageFor(error))
       return
     }
-    router.push(next)
-    router.refresh()
+    /*
+     * Hand over to the name step rather than redirecting here.
+     *
+     * It decides for itself whether it is needed - a returning Person already
+     * has a name and is sent straight on - so this is not a new gate on every
+     * sign-in. Doing the check here instead would mean reading the Person
+     * before the session has propagated, and guessing wrong either shows the
+     * form to someone who has a name or skips it for someone who does not.
+     */
+    setStep("name")
   }
+
+  if (step === "name") return <NameStep next={next} />
 
   if (step === "code") {
     return (

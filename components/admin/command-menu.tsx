@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 
 import { NAV, OWNER_NAV } from "@/components/admin/nav"
 import {
+  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -72,40 +73,49 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
       title="Admin commands"
       description="Jump to a screen, or sign out."
     >
-      <CommandInput placeholder="Go to a screen…" />
-      <CommandList>
-        <CommandEmpty>Nothing matched.</CommandEmpty>
-        <CommandGroup heading="Go to">
-          {destinations.map((item) => (
+      {/*
+       * The `Command` root is the caller's job here: this project's
+       * `CommandDialog` puts `children` straight into `DialogContent` without
+       * one, so the parts below would look up cmdk's store, find nothing, and
+       * throw "Cannot read properties of undefined (reading 'subscribe')" the
+       * first time anyone pressed the shortcut. Observed, then fixed.
+       */}
+      <Command>
+        <CommandInput placeholder="Go to a screen…" />
+        <CommandList>
+          <CommandEmpty>Nothing matched.</CommandEmpty>
+          <CommandGroup heading="Go to">
+            {destinations.map((item) => (
+              <CommandItem
+                key={item.href}
+                value={item.label}
+                onSelect={() => run(() => router.push(item.href))}
+              >
+                <item.icon stroke={1.75} />
+                {item.label}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading="Account">
             <CommandItem
-              key={item.href}
-              value={item.label}
-              onSelect={() => run(() => router.push(item.href))}
+              value="Log out"
+              onSelect={() =>
+                run(async () => {
+                  await authClient.signOut()
+                  // refresh as well as push: server components above this one
+                  // cached a signed-in render.
+                  router.push("/")
+                  router.refresh()
+                })
+              }
             >
-              <item.icon stroke={1.75} />
-              {item.label}
+              <IconLogout stroke={1.75} />
+              Log out
             </CommandItem>
-          ))}
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Account">
-          <CommandItem
-            value="Log out"
-            onSelect={() =>
-              run(async () => {
-                await authClient.signOut()
-                // refresh as well as push: server components above this one
-                // cached a signed-in render.
-                router.push("/")
-                router.refresh()
-              })
-            }
-          >
-            <IconLogout stroke={1.75} />
-            Log out
-          </CommandItem>
-        </CommandGroup>
-      </CommandList>
+          </CommandGroup>
+        </CommandList>
+      </Command>
     </CommandDialog>
   )
 }
