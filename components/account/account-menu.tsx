@@ -1,6 +1,6 @@
 "use client"
 
-import { IconInbox, IconLogout } from "@tabler/icons-react"
+import { IconInbox, IconLogout, IconUser } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -39,14 +39,22 @@ export function AccountMenu({ className }: { className?: string }) {
   return <Menu className={className} />
 }
 
-/** The two letters we can honestly show when nobody has given a name yet. */
-function initials(name: string, phone: string) {
+/**
+ * Initials, or null when there is no name to take them from.
+ *
+ * Null rather than a fallback string on purpose. This used to return the last
+ * two digits of the phone number, which put a round badge reading "45" in the
+ * header - two digits of somebody's phone number, presented as if they were a
+ * monogram. A generic person mark says "we don't know your name yet", which is
+ * true, instead of showing a fragment of the one identifier we do have.
+ */
+function initials(name: string): string | null {
   const trimmed = name.trim()
-  if (!trimmed) return phone.slice(-2)
+  if (!trimmed) return null
   const parts = trimmed.split(/\s+/)
   const first = parts[0]?.[0] ?? ""
   const last = parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : ""
-  return (first + last).toUpperCase()
+  return (first + last).toUpperCase() || null
 }
 
 function Menu({ className }: { className?: string }) {
@@ -88,7 +96,17 @@ function Menu({ className }: { className?: string }) {
       </Link>
     )
 
-  const label = viewer.name.trim() || formatPhone(viewer.phone)
+  const name = viewer.name.trim()
+  const phone = formatPhone(viewer.phone)
+  const mark = initials(name)
+  /*
+   * The number stands in for the name only when there is no name. It used to
+   * do both at once: `label` fell back to the phone, and the line beneath it
+   * was the phone, so an unnamed Person saw their own number printed twice,
+   * one above the other, in two different sizes. See the second line below -
+   * it renders only when it is saying something the first line did not.
+   */
+  const label = name || phone
 
   return (
     <DropdownMenu>
@@ -98,7 +116,7 @@ function Menu({ className }: { className?: string }) {
       >
         <Avatar className="size-8">
           <AvatarFallback className="text-xs">
-            {initials(viewer.name, viewer.phone)}
+            {mark ?? <IconUser stroke={1.75} className="size-4" />}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -118,13 +136,17 @@ function Menu({ className }: { className?: string }) {
           <DropdownMenuLabel>
             <span className="block truncate">{label}</span>
             {/*
-             * The number is shown under the name rather than instead of it,
+             * The number sits under the name rather than instead of it,
              * because a Person is keyed by their mobile number (ADR-0001) and
-             * staff on a shared handset need to see which account they are in.
+             * staff on a shared handset need to see which account they are
+             * in. When there is no name the line above is already the number,
+             * so this one would only repeat it.
              */}
-            <span className="tnum block text-xs font-normal text-muted-foreground">
-              {formatPhone(viewer.phone)}
-            </span>
+            {name ? (
+              <span className="tnum block text-xs font-normal text-muted-foreground">
+                {phone}
+              </span>
+            ) : null}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           {viewer.role === "staff" || viewer.role === "owner" ? (
