@@ -29,6 +29,7 @@
     "@tanstack/react-table": "^9.2.4",
     "better-auth": "1.6.33",
     "class-variance-authority": "^0.7.1",
+    "cmdk": "^1.1.1",
     "cn": "^0.3.2",
     "convex": "^1.46.0",
     "input-otp": "^1.5.0",

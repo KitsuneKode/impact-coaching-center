@@ -1,6 +1,5 @@
 "use client"
 
-import { IconInbox, IconLayoutDashboard, IconUsers } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -18,33 +17,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { NAV, OWNER_NAV } from "@/components/admin/nav"
 import { api } from "@/convex/_generated/api"
 import { brand } from "@/lib/brand"
-
-/**
- * The admin navigation.
- *
- * Built on the registry's sidebar primitive - the collapsible behaviour, the
- * mobile sheet, the keyboard shortcut and the rail are several hundred lines
- * worth having for free. The demo block's own contents are not: it shipped a
- * public /dashboard route, two charts, a set of invented metric cards and a
- * data.json of sample rows, and KIT-55 asks for the structure "without sample
- * metrics or unnecessary charts". AGENTS.md is firmer: invented figures must
- * never be mistaken for approved content.
- *
- * Only routes that exist appear here. A nav item pointing at an unwritten page
- * is a promise the product cannot keep, and this is the surface ICT's staff
- * will judge the tool by.
- */
-const NAV = [
-  { href: "/admin", label: "Overview", icon: IconLayoutDashboard },
-  { href: "/admin/leads", label: "Enquiries", icon: IconInbox },
-] as const
-
-/** Owner-only destinations, hidden from staff rather than merely disabled. */
-const OWNER_NAV = [
-  { href: "/admin/people", label: "People", icon: IconUsers },
-] as const
 
 export function AdminSidebar() {
   const pathname = usePathname()
