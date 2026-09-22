@@ -47,3 +47,9 @@ next-env.d.ts
 .convex
 
 Website Req.pdf
+
+# agent skills vendored by `npx convex ai-files install`
+# Reproducible from skills-lock.json, duplicated across both directories,
+# and ~770KB of third-party markdown. The lockfile is what we commit.
+/.agents/
+/.claude/skills/

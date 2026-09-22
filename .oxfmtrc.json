@@ -12,13 +12,15 @@
     "functions": ["cn", "cva"]
   },
   "ignorePatterns": [
+    ".agents/",
+    ".claude/",
+    ".next/",
+    ".pnpm-store/",
+    ".turbo/",
     "convex/_generated/",
+    "coverage/",
     "dist/",
     "node_modules/",
-    ".next/",
-    ".turbo/",
-    "coverage/",
-    "pnpm-lock.yaml",
-    ".pnpm-store/"
+    "pnpm-lock.yaml"
   ]
 }
