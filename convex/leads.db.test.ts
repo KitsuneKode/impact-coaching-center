@@ -111,3 +111,40 @@ describe("leads inbox authorization", () => {
     expect(result.leads).toEqual([])
   })
 })
+
+
+describe("bounded inbox pagination", () => {
+  test("can reach enquiries beyond the first hundred without mixing statuses", async () => {
+    const t = convexTest(schema, modules)
+    await seed(t, "staff")
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 110; i++) await ctx.db.insert("persons", {
+        phone: `+91900000${String(i).padStart(4, "0")}`, name: `Person ${i}`,
+        role: "student", source: "website", leadStatus: "new", lastEnquiryAt: i + 1,
+      })
+      await ctx.db.insert("persons", { phone: "+918000000001", name: "Closed",
+        role: "student", source: "website", leadStatus: "lost", lastEnquiryAt: Date.now() + 1000 })
+    })
+    const first = await t.run((ctx) => readInbox(ctx, VERIFIED, { status: "new", paginationOpts: { numItems: 25, cursor: null } }))
+    expect(first.leads).toHaveLength(25)
+    expect(first.isDone).toBe(false)
+    const ids = new Set(first.leads.map((row) => row.id))
+    let cursor = first.continueCursor
+    let done = false
+    for (let i = 0; i < 6 && !done; i++) {
+      const next = await t.run((ctx) => readInbox(ctx, VERIFIED, { status: "new", paginationOpts: { numItems: 25, cursor } }))
+      for (const row of next.leads) { expect(ids.has(row.id)).toBe(false); ids.add(row.id); expect(row.leadStatus).toBe("new") }
+      cursor = next.continueCursor; done = next.isDone
+    }
+    expect(done).toBe(true)
+    expect(ids.size).toBe(111)
+  })
+  test("a revoked role cannot reuse a cursor to read protected rows", async () => {
+    const t = convexTest(schema, modules)
+    const id = await seed(t, "staff")
+    await t.run((ctx) => ctx.db.patch(id, { role: "student" }))
+    const result = await t.run((ctx) => readInbox(ctx, VERIFIED, { status: "new", paginationOpts: {numItems: 25,cursor: null} }))
+    expect(result.authorized).toBe(false)
+    expect(result.leads).toEqual([])
+  })
+})

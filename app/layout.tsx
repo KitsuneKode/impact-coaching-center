@@ -2,11 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter, Noto_Sans_Bengali } from "next/font/google"
 
 import "./globals.css"
-import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
 import { Providers } from "@/app/providers"
-import { SiteFooter } from "@/components/marketing/site-footer"
-import { SiteHeader } from "@/components/marketing/site-header"
-import { EdgeBlur } from "@/components/motion/edge-blur"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, siteUrl } from "@/lib/site"
 import { cn } from "@/lib/utils"
@@ -118,13 +114,7 @@ export default function RootLayout({
             __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <Providers>
-          <SiteHeader />
-          <EdgeBlur />
-          {children}
-          <SiteFooter />
-          <MobileActionBar />
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

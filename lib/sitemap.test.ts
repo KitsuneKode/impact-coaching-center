@@ -18,7 +18,7 @@ const unapprovedPolicyRoutes = policies
  * entry asks a crawler to fetch a page that tells it to go away. Sign-in has
  * nothing worth ranking, and the leads inbox is staff-only.
  */
-const noindexRoutes = ["/sign-in", "/admin/leads"]
+const noindexRoutes = ["/sign-in", "/admin", "/admin/leads", "/admin/promotions"]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
 const draftRoutes = [
@@ -39,7 +39,7 @@ function staticRoutesOnDisk(): string[] {
   const glob = new Bun.Glob("app/**/page.tsx")
   return [...glob.scanSync(".")]
     .map(
-      (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
+      (file) => "/" + file.replace(/^app\//, "").replace(/\([^/]+\)\//g, "").replace(/\/?page\.tsx$/, "")
     )
     .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
     .filter((route) => !route.includes("["))
