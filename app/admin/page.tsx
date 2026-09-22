@@ -29,7 +29,7 @@ export default function AdminHome() {
 
 function Unavailable() {
   return (
-    <PageShell title="Admin">
+    <PageShell density="working" title="Admin">
       <StatePanel
         title="Not available here"
         description="This copy of the site has no connection to the database, so there is nothing to show. Nothing is wrong with your account."
@@ -46,7 +46,10 @@ function Home() {
 
   if (!isStaff)
     return (
-      <PageShell title={<span className="text-foreground">Staff only.</span>}>
+      <PageShell
+        density="working"
+        title={<span className="text-foreground">Staff only.</span>}
+      >
         <StatePanel
           icon={<IconLock stroke={1.75} />}
           title="This area is for ICT staff"
@@ -62,6 +65,7 @@ function Home() {
 
   return (
     <PageShell
+      density="working"
       title={
         <>
           <span className="text-foreground">Admin.</span>{" "}

@@ -55,7 +55,11 @@ const REFUSALS: Record<string, string> = {
 
 export default function AdminPeoplePage() {
   if (!convexConfigured)
-    return <PageShell title="People">Not available here.</PageShell>
+    return (
+      <PageShell density="working" title="People">
+        Not available here.
+      </PageShell>
+    )
   return <People />
 }
 
@@ -76,14 +80,20 @@ function People() {
 
   if (allowed === undefined || status === "LoadingFirstPage")
     return (
-      <PageShell title={<span className="text-foreground">People.</span>}>
+      <PageShell
+        density="working"
+        title={<span className="text-foreground">People.</span>}
+      >
         <ListSkeleton rows={4} />
       </PageShell>
     )
 
   if (!allowed)
     return (
-      <PageShell title={<span className="text-foreground">Owner only.</span>}>
+      <PageShell
+        density="working"
+        title={<span className="text-foreground">Owner only.</span>}
+      >
         <StatePanel
           icon={<IconLock stroke={1.75} />}
           title="Only an owner can manage access"
@@ -119,7 +129,10 @@ function People() {
   }
 
   return (
-    <PageShell title={<span className="text-foreground">People.</span>}>
+    <PageShell
+      density="working"
+      title={<span className="text-foreground">People.</span>}
+    >
       <form onSubmit={onGrant} noValidate className="max-w-112">
         <FieldGroup>
           <Field data-invalid={error ? true : undefined}>

@@ -50,13 +50,51 @@ function PageShell({
   title,
   children,
   className,
+  density = "editorial",
   ...props
-}: Omit<ComponentProps<typeof Section>, "title"> & { title: ReactNode }) {
+}: Omit<ComponentProps<typeof Section>, "title"> & {
+  title: ReactNode
+  /**
+   * How much room the heading gets.
+   *
+   * `editorial` clears the floating site header and gives a marketing page the
+   * air its type scale was drawn for.
+   *
+   * `working` is for screens inside the admin shell, which already has its own
+   * header naming the page in a breadcrumb. Repeating the marketing gap there
+   * spends a third of the first screen restating something the chrome just
+   * said, on a surface four people use for hours. Density is the point on a
+   * working screen: more rows above the fold is the whole benefit.
+   */
+  density?: "editorial" | "working"
+}) {
+  const working = density === "working"
+  const body = (
+    <>
+      <h1 className={working ? "type-display-sm" : "type-display"}>{title}</h1>
+      <div className={working ? "mt-6" : "mt-10"}>{children}</div>
+    </>
+  )
+
+  /*
+   * A working screen fills its inset; an editorial one keeps the measure.
+   *
+   * `Section` normally wraps its children in `container-page`, which caps at
+   * 76rem and centres - right for a marketing page, wrong inside the admin,
+   * where the sidebar has already taken its width and the cap then leaves a
+   * band of dead space down the right of every table. Bleeding and supplying
+   * the gutters here lets a table use the room it was given while keeping the
+   * left edge on the same axis as the heading.
+   */
   return (
     <main>
-      <Section size="sm" className={cn("pt-26 md:pt-30", className)} {...props}>
-        <h1 className="type-display">{title}</h1>
-        <div className="mt-10">{children}</div>
+      <Section
+        size="sm"
+        bleed={working}
+        className={cn(working ? "pt-8 md:pt-10" : "pt-26 md:pt-30", className)}
+        {...props}
+      >
+        {working ? <div className="w-full px-5 md:px-8">{body}</div> : body}
       </Section>
     </main>
   )
