@@ -1,10 +1,20 @@
 "use client"
 
+import { IconPlugConnectedX } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
-import type { ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
+import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import { Section } from "@/components/ui/section"
 import {
   SidebarInset,
   SidebarProvider,
@@ -30,14 +40,91 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return <Shell>{children}</Shell>
 }
 
+/**
+ * True once a wait has gone on long enough to stop being latency.
+ *
+ * Resets when the wait ends, so a fast navigation never trips it, and so a
+ * wait that starts again later starts its own clock rather than inheriting a
+ * verdict from the previous one.
+ *
+ * That reset is done during render, not in the effect. React documents
+ * adjusting state while rendering for exactly this - a value derived from a
+ * changed input - and it re-renders before touching the DOM, so nothing
+ * flashes. Doing it in the effect instead means a committed render showing
+ * the stale verdict, and it is what `react(set-state-in-effect)` objects to.
+ */
+function useStalled(waiting: boolean, afterMs = 6000) {
+  const [stalled, setStalled] = useState(false)
+  const [watched, setWatched] = useState(waiting)
+
+  if (watched !== waiting) {
+    setWatched(waiting)
+    setStalled(false)
+  }
+
+  useEffect(() => {
+    if (!waiting) return
+    const timer = setTimeout(() => setStalled(true), afterMs)
+    return () => clearTimeout(timer)
+  }, [waiting, afterMs])
+
+  return stalled
+}
+
+/**
+ * What an admin sees when the query never comes back.
+ *
+ * Distinct from `Unavailable` on the pages themselves: that one means the
+ * build has no Convex URL at all, this one means it has one and nothing is
+ * answering. Staff need to be able to tell "misconfigured" from "down",
+ * because only one of them is worth waiting out.
+ */
+function Unreachable() {
+  return (
+    <main>
+      <Section size="sm" className="pt-26 md:pt-30">
+        <h1 className="type-display">Not responding.</h1>
+        <div className="mt-10">
+          <Empty className="max-w-160 items-start rounded-card border border-border text-left">
+            <EmptyHeader className="max-w-none items-start">
+              <EmptyMedia variant="icon">
+                <IconPlugConnectedX stroke={1.75} />
+              </EmptyMedia>
+              <EmptyTitle>Cannot reach the enquiry database</EmptyTitle>
+              <EmptyDescription>
+                Nothing is wrong with your account, and nothing you did caused
+                this. The admin area needs the database to know who you are, so
+                it cannot show anything until it answers.
+              </EmptyDescription>
+            </EmptyHeader>
+            <Button onClick={() => globalThis.location.reload()} size="md">
+              Try again
+            </Button>
+          </Empty>
+        </div>
+      </Section>
+    </main>
+  )
+}
+
 function Shell({ children }: { children: ReactNode }) {
   const viewer = useQuery(api.auth.getCurrentPerson)
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"
+  const stalled = useStalled(viewer === undefined)
 
-  // `undefined` is still asking. Rendering the bare page first and then
-  // wrapping it in a sidebar is a visible jolt on every admin navigation, so
-  // the shell waits for an answer rather than guessing at one.
-  if (viewer === undefined) return null
+  /*
+   * `undefined` is still asking. Rendering the bare page first and then
+   * wrapping it in a sidebar is a visible jolt on every admin navigation, so
+   * the shell waits for an answer rather than guessing at one.
+   *
+   * It waits, but it does not wait forever. This returned a bare `null`, and
+   * because `undefined` is also what a query that never resolves looks like,
+   * an unreachable backend rendered the site header, an empty void and the
+   * footer - on every admin route, permanently, with nothing to click and
+   * nothing naming the problem. Observed, not theorised: it is what /admin
+   * did whenever the local Convex backend was not running.
+   */
+  if (viewer === undefined) return stalled ? <Unreachable /> : null
   if (!isStaff) return children
 
   return (

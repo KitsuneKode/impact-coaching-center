@@ -54,10 +54,29 @@ function Menu({ className }: { className?: string }) {
   const router = useRouter()
   const [leaving, setLeaving] = useState(false)
 
-  // `undefined` is "still asking", `null` is "asked, nobody is signed in".
-  // Collapsing the two would flash a Log in link at someone who is already
-  // signed in, on every page load.
-  if (viewer === undefined) return null
+  /*
+   * `undefined` is "still asking", `null` is "asked, nobody is signed in".
+   * Collapsing the two would flash a Log in link at someone who is already
+   * signed in, on every page load.
+   *
+   * Still asking reserves its space rather than rendering nothing. This is
+   * the only auth-dependent thing in the header, and it sits at the end of
+   * the nav row: returning nothing let the row settle at one width and then
+   * jump when the answer arrived, on every single page load. An inert
+   * placeholder of the avatar's own size keeps the header one shape whether
+   * or not anyone turns out to be signed in.
+   *
+   * `aria-hidden` and no label on purpose - it is a held space, not a
+   * control, and announcing "loading" here would interrupt the navigation
+   * for something the visitor never asked about.
+   */
+  if (viewer === undefined)
+    return (
+      <div
+        aria-hidden="true"
+        className={`size-9 shrink-0 ${className ?? ""}`}
+      />
+    )
 
   if (viewer === null)
     return (

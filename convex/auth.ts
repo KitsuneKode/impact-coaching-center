@@ -64,6 +64,40 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   })
   return betterAuth({
     database: authComponent.adapter(ctx),
+    /**
+     * Ninety days, sliding, refreshed at most once a day.
+     *
+     * Set deliberately rather than left at Better Auth's seven-day default,
+     * which is what made verification feel like it happened "every time":
+     * a student who studies weekly was being asked for a code roughly
+     * monthly, and every one of those is a billed WhatsApp authentication
+     * template once KIT-46 lands. Spec §10 asks for ninety.
+     *
+     * `updateAge` is what makes it sliding. At one day, an active Person is
+     * effectively never asked again; a dormant one is asked ninety days
+     * after they last opened the site, not ninety days after they first
+     * verified.
+     *
+     * Spec §10 also asks for **seven days for staff**, which is NOT
+     * implemented here, and deliberately not faked. Better Auth's expiry is
+     * a single global value: the documented refresh sets expiry to
+     * `now + expiresIn`, so a shorter per-session value written by a
+     * `databaseHooks.session.create.before` hook is silently restored to
+     * ninety days the first time that staff member uses the site. It would
+     * read as implemented and behave as absent, which is worse than the gap.
+     *
+     * Role is also usually wrong at create time: staff are promoted by an
+     * owner *after* they verify, so the session that needs the shorter life
+     * was created while they were still a student.
+     *
+     * The staff ceiling belongs where the boundary already is - the
+     * re-check in convex/authz.ts that every protected operation runs -
+     * because that cannot be undone by a refresh. Recorded on KIT-55.
+     */
+    session: {
+      expiresIn: 60 * 60 * 24 * 90,
+      updateAge: 60 * 60 * 24,
+    },
     ...phone,
     plugins: [...phone.plugins, convex({ authConfig })],
   })
