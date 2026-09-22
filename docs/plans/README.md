@@ -8,6 +8,13 @@ update your row here and the `status:` in the plan's header when done.
 
 ## Execution order and status
 
+### Current — 22 September 2026
+
+`2026-09-22-launch-plan.md` is the single active plan: integrate
+`fix/review-batch-1`, then ship leads, promotions (built upstream in
+Kitsu-Lab), Books and Resources as end-to-end journeys. It supersedes the
+wave/worktree dispatch below; the history is kept for reference.
+
 ### Delegation update — 21 September 2026
 
 Linear work packages KIT-53 through KIT-65 now cover auth concurrency/sign-in,
