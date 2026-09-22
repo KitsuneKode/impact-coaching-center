@@ -65,26 +65,6 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     database: authComponent.adapter(ctx),
     /**
-     * The origin that actually serves `/api/auth`.
-     *
-     * Better Auth logged "Base URL is not set… callbacks and redirects may not
-     * work correctly" on every single auth request, and its own documentation
-     * calls relying on request inference "not recommended… for security and
-     * stability". Inference means the origin comes from whatever host header
-     * arrives, which is the thing a fixed value exists to stop.
-     *
-     * `CONVEX_SITE_URL` is the right value rather than the site's own URL:
-     * these routes are registered on Convex's HTTP router, not on Next, so the
-     * origin serving them is the Convex deployment. `basePath` stays at its
-     * default `/api/auth`, which is where registerRoutesLazy mounts them - a
-     * path inside `baseURL` would silently override it.
-     *
-     * Read from the environment the same way the transport check above is,
-     * because Convex supplies it to the running function rather than to module
-     * scope.
-     */
-    baseURL: process.env.CONVEX_SITE_URL,
-    /**
      * Ninety days, sliding, refreshed at most once a day.
      *
      * Set deliberately rather than left at Better Auth's seven-day default,
