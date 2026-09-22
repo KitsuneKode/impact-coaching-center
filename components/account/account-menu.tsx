@@ -84,19 +84,30 @@ function Menu({ className }: { className?: string }) {
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-56">
-        <DropdownMenuLabel>
-          <span className="block truncate">{label}</span>
-          {/*
-           * The number is shown under the name rather than instead of it,
-           * because a Person is keyed by their mobile number (ADR-0001) and
-           * staff on a shared handset need to see which account they are in.
-           */}
-          <span className="tnum block text-xs font-normal text-muted-foreground">
-            {formatPhone(viewer.phone)}
-          </span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+        {/*
+         * One group, labelled by who you are. Base UI's GroupLabel reads
+         * MenuGroupContext and throws outright when it cannot find it, so a
+         * label outside a Group is not a style slip - it takes the whole menu
+         * down the moment anyone opens it. Only a signed-in visitor can do
+         * that, which is why no build, test or page load ever caught it.
+         *
+         * Labelling the group rather than floating a header above it is also
+         * the honest reading: these actions apply to this account, so a
+         * screen reader entering the group should hear whose it is first.
+         */}
         <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <span className="block truncate">{label}</span>
+            {/*
+             * The number is shown under the name rather than instead of it,
+             * because a Person is keyed by their mobile number (ADR-0001) and
+             * staff on a shared handset need to see which account they are in.
+             */}
+            <span className="tnum block text-xs font-normal text-muted-foreground">
+              {formatPhone(viewer.phone)}
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
           {viewer.role === "staff" || viewer.role === "owner" ? (
             <DropdownMenuItem render={<Link href="/admin/leads" />}>
               <IconInbox stroke={1.75} />
