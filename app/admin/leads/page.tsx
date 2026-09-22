@@ -4,66 +4,10 @@ import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
 
 import { convexConfigured } from "@/app/providers"
-import { StatusBadge } from "@/components/admin/status-badge"
+import { LeadsTable } from "@/components/admin/leads-table"
 import { ButtonLink } from "@/components/ui/button"
-import { Button } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
-import { Spinner } from "@/components/ui/spinner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
-import { formatPhone } from "@/lib/brand"
-
-/**
- * How long ago, with the exact moment on hover.
- *
- * A follow-up queue is read by age, not by date: "3 days ago" answers "is this
- * going cold" at a glance, where "19 Sept, 12:53 pm" makes the reader do
- * arithmetic on every row. The precise value stays in `title` and in the
- * machine-readable `dateTime`, so nothing is lost - it just stops being the
- * thing that has to be decoded first.
- */
-function ago(at: number) {
-  const seconds = Math.round((Date.now() - at) / 1000)
-  const minutes = Math.round(seconds / 60)
-  const hours = Math.round(minutes / 60)
-  const days = Math.round(hours / 24)
-  if (seconds < 90) return "just now"
-  if (minutes < 60) return `${minutes} min ago`
-  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`
-  if (days < 31) return `${days} ${days === 1 ? "day" : "days"} ago`
-  const months = Math.round(days / 30)
-  return `${months} ${months === 1 ? "month" : "months"} ago`
-}
-
-function exact(at: number) {
-  return new Date(at).toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
-}
-
-function When({ at }: { at: number | undefined }) {
-  if (!at) return <span className="text-muted-foreground">—</span>
-  return (
-    <time
-      dateTime={new Date(at).toISOString()}
-      title={exact(at)}
-      className="text-muted-foreground"
-    >
-      {ago(at)}
-    </time>
-  )
-}
 
 /**
  * The follow-up queue. Read-only by design.
@@ -174,77 +118,19 @@ function Inbox() {
     <PageShell
       density="working"
       /*
-       * No count. It used to read "N to follow up" from whatever the single
-       * query returned, which stopped being true the moment there was a
-       * second page - and a number derived from one page is worse than no
-       * number, because it looks authoritative.
+       * No count in the heading. It used to read "N to follow up" from
+       * whatever the single query returned, which stopped being true the
+       * moment there was a second page - and a number derived from one page
+       * is worse than no number, because it looks authoritative.
        */
       title={<span className="text-foreground">Enquiries.</span>}
     >
-      <div className="overflow-x-auto">
-        <Table className="min-w-160">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Mobile</TableHead>
-              <TableHead>Exam</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last enquiry</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leads.map((lead) => (
-              <TableRow key={lead.id}>
-                <TableCell className="font-medium">
-                  {lead.name || (
-                    <span className="text-muted-foreground">Not given</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {/*
-                   * A tel: link, not plain text. Staff read this queue on a
-                   * handset and the next action is always a call.
-                   */}
-                  {/*
-                   * Underlined on hover rather than always. Thirty underlined
-                   * numbers in a column is a wall of rules that fights the
-                   * data for attention; the affordance is still there the
-                   * moment a cursor or keyboard reaches it.
-                   */}
-                  <a
-                    href={`tel:${lead.phone}`}
-                    className="tnum whitespace-nowrap text-foreground underline-offset-4 hover:underline focus-visible:underline"
-                  >
-                    {formatPhone(lead.phone)}
-                  </a>
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {lead.interestTrack ?? "—"}
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={lead.leadStatus} />
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <When at={lead.lastEnquiryAt} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      {status === "CanLoadMore" || status === "LoadingMore" ? (
-        <div className="mt-6">
-          <Button
-            variant="secondary"
-            size="md"
-            disabled={status === "LoadingMore"}
-            onClick={() => loadMore(25)}
-          >
-            {status === "LoadingMore" ? <Spinner /> : null}
-            Load more
-          </Button>
-        </div>
-      ) : null}
+      <LeadsTable
+        leads={leads}
+        canLoadMore={status === "CanLoadMore"}
+        loadingMore={status === "LoadingMore"}
+        onLoadMore={() => loadMore(25)}
+      />
     </PageShell>
   )
 }
