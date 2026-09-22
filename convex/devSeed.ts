@@ -2,7 +2,7 @@ import { v } from "convex/values"
 
 import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
-import { ORDER_STATUS } from "./schema"
+import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
 
 /**
  * Development fixtures: Persons at each role, without a handset each.
@@ -57,14 +57,6 @@ function assertLocalDeployment() {
 /** Everything this module writes is stamped, so it can all be taken back. */
 const SEED_SOURCE = "dev-seed"
 
-const LEAD_STATUS = v.union(
-  v.literal("new"),
-  v.literal("contacted"),
-  v.literal("interested"),
-  v.literal("enrolled"),
-  v.literal("lost")
-)
-
 /**
  * Enquiries, so the staff screens can be looked at with something in them.
  *
@@ -100,6 +92,7 @@ export const seedEnquiries = internalMutation({
       })
     ),
   },
+  returns: v.object({ written: v.number() }),
   handler: async (ctx, args) => {
     assertLocalDeployment()
 
@@ -199,6 +192,7 @@ export const seedOrders = internalMutation({
       })
     ),
   },
+  returns: v.object({ written: v.number() }),
   handler: async (ctx, args) => {
     assertLocalDeployment()
 
@@ -290,6 +284,12 @@ export const seedOrders = internalMutation({
  */
 export const clearSeed = internalMutation({
   args: {},
+  returns: v.object({
+    removed: v.number(),
+    keptVerified: v.number(),
+    activities: v.number(),
+    orders: v.number(),
+  }),
   handler: async (ctx) => {
     assertLocalDeployment()
 
@@ -353,11 +353,7 @@ export const seedPeople = internalMutation({
       v.object({
         phone: v.string(),
         name: v.string(),
-        role: v.union(
-          v.literal("student"),
-          v.literal("staff"),
-          v.literal("owner")
-        ),
+        role: PERSON_ROLE,
         /**
          * Whether to stamp `verifiedAt`.
          *
@@ -372,6 +368,13 @@ export const seedPeople = internalMutation({
       })
     ),
   },
+  returns: v.array(
+    v.object({
+      phone: v.string(),
+      role: PERSON_ROLE,
+      created: v.boolean(),
+    })
+  ),
   handler: async (ctx, args) => {
     assertLocalDeployment()
 

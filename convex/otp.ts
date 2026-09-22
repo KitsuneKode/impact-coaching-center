@@ -47,6 +47,12 @@ export const SENDS_PER_DAY_GLOBAL = 500
  */
 export const consumeSendAllowance = internalMutation({
   args: { phone: v.string(), ip: v.optional(v.string()) },
+  returns: v.union(
+    v.literal("phone"),
+    v.literal("address"),
+    v.literal("deployment"),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     const phone = toE164(args.phone)
     if (!phone) return "phone" as SendRefusal

@@ -111,6 +111,7 @@ export const recordVerifiedPerson = internalMutation({
     phone: v.string(),
     name: v.optional(v.string()),
   },
+  returns: v.id("persons"),
   handler: async (ctx, args) => {
     const phone = toE164(args.phone)
     if (!phone) {
@@ -218,6 +219,7 @@ export const recordEnquiry = internalMutation({
      */
     ip: v.optional(v.string()),
   },
+  returns: v.literal("recorded"),
   handler: async (ctx, args) => {
     const parsed = parseLead(args)
     if (!parsed.ok) throw new Error("Invalid enquiry.")

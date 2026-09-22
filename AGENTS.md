@@ -73,7 +73,7 @@ Centralize analytics events behind a small typed adapter. Track meaningful funne
 
 ## Convex, admin, and payment boundaries
 
-Convex should own mutable business records that need an admin workflow: leads, resource-access consent, courses, books, inventory, orders, library applications, banners, and audit timestamps. Validate every public and admin mutation server-side. Authentication is not authorization; enforce roles and record-level access in backend functions. Return only fields the client needs and keep secrets in server-only modules.
+Convex should own mutable business records that need an admin workflow: leads, resource-access consent, courses, books, inventory, orders, library applications, banners, and audit timestamps. Validate every public and admin mutation server-side (`args` and `returns` validators on every registered function, so the client boundary is enforced rather than conventional). Authentication is not authorization; enforce roles and record-level access in backend functions. Return only fields the client needs and keep secrets in server-only modules. Closed validator unions (`PERSON_ROLE`, `LEAD_STATUS`, `ORDER_STATUS`) live in `convex/schema.ts` so schema, function args and return validators share one source; shared refusal/pagination result validators live in `convex/authz.ts`.
 
 The `activities` table is the audit trail and is **insert-only**: never patch or delete a row, and record a correction as a new row. Privileged writes (role changes, order status changes) must write an activity row in the same transaction, with `actorId` and the structured `from*`/`to*` fields populated - `body` is for reading, the structured fields are for querying.
 

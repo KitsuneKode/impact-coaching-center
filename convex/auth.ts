@@ -2,9 +2,10 @@ import { createClient, type GenericCtx } from "@convex-dev/better-auth"
 import { convex } from "@convex-dev/better-auth/plugins"
 import { betterAuth } from "better-auth/minimal"
 
+import { v } from "convex/values"
+
 import { chooseTransport, sendOtp } from "../lib/otp-transport"
 import { phoneAuthOptions } from "../lib/phone-auth"
-import { v } from "convex/values"
 
 import { components, internal } from "./_generated/api"
 import type { DataModel } from "./_generated/dataModel"
