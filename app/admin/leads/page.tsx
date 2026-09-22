@@ -57,6 +57,12 @@ function Inbox() {
   // fetching a page of enquiries and discarding it, so a student who opens
   // this URL costs one boolean rather than a read of the follow-up queue.
   const allowed = useQuery(api.leads.canSeeInbox)
+  /*
+   * Read here rather than inside the table: export is owner-only, and the
+   * table should be told what the viewer may do rather than work it out. The
+   * decision itself lives in convex/authz.ts - this only chooses chrome.
+   */
+  const viewer = useQuery(api.auth.getCurrentPerson)
   const {
     results: leads,
     status,
@@ -130,6 +136,7 @@ function Inbox() {
         canLoadMore={status === "CanLoadMore"}
         loadingMore={status === "LoadingMore"}
         onLoadMore={() => loadMore(25)}
+        isOwner={viewer?.role === "owner"}
       />
     </PageShell>
   )

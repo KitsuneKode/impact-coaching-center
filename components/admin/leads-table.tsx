@@ -5,6 +5,7 @@ import {
   IconChevronRight,
   IconChevronsLeft,
   IconChevronsRight,
+  IconDownload,
   IconLayoutColumns,
   IconSearch,
 } from "@tabler/icons-react"
@@ -47,6 +48,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Table,
   TableBody,
@@ -109,6 +111,22 @@ const features = tableFeatures({
 })
 
 const columnHelper = createColumnHelper<typeof features, Lead>()
+
+/**
+ * The status filters, in the order a queue is worked.
+ *
+ * "All" first because it is the default view, then the statuses in the order
+ * a lead moves through them, so the row reads as a pipeline rather than an
+ * alphabetised list.
+ */
+const STATUS_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "new", label: "New" },
+  { value: "contacted", label: "Contacted" },
+  { value: "interested", label: "Interested" },
+  { value: "enrolled", label: "Enrolled" },
+  { value: "lost", label: "Lost" },
+] as const
 
 /** Sort order for statuses: what needs doing first, settled last. */
 const STATUS_ORDER: Record<string, number> = {
@@ -214,6 +232,14 @@ const columns = columnHelper.columns([
   columnHelper.accessor("leadStatus", {
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.leadStatus} />,
+    /*
+     * Exact match, declared rather than inferred. v9 does not fall back to a
+     * default matcher the way v8's `auto` did, so a column with no `filterFn`
+     * silently ignores its filter value - the status buttons appeared to work
+     * and changed nothing. Exact is also what is wanted here: "new" must not
+     * match a status that merely contains it.
+     */
+    filterFn: (row, _id, value: string) => row.original.leadStatus === value,
     sortFn: (a, b) =>
       (STATUS_ORDER[a.original.leadStatus ?? ""] ?? 99) -
       (STATUS_ORDER[b.original.leadStatus ?? ""] ?? 99),
@@ -241,11 +267,14 @@ export function LeadsTable({
   canLoadMore,
   loadingMore,
   onLoadMore,
+  isOwner,
 }: {
   leads: Lead[]
   canLoadMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
+  /** Export is owner-only. See `exportRows`. */
+  isOwner: boolean
 }) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] =
@@ -298,6 +327,66 @@ export function LeadsTable({
   }
 
   const canGoNext = table.getCanNextPage() || canLoadMore
+
+  const statusFilter =
+    (table.getColumn("leadStatus")?.getFilterValue() as string) ?? "all"
+
+  function setStatusFilter(value: string) {
+    table
+      .getColumn("leadStatus")
+      ?.setFilterValue(value === "all" ? undefined : value)
+    table.setPageIndex(0)
+  }
+
+  /**
+   * Download what is on screen, as CSV.
+   *
+   * Owner-only, and narrow on purpose. It exports the rows the table is
+   * currently showing - after the search and the status filter, and only what
+   * has been loaded - rather than reaching past the interface for the whole
+   * table. An owner who wants more pages through them first, deliberately.
+   *
+   * Every row is a name and a mobile number, so a file of them is personal
+   * data leaving the system. The admin contract's "no automatic staff exports"
+   * is about the staff list, but the spirit holds here: nothing exports on a
+   * schedule, nothing exports without somebody choosing to, and `/privacy`
+   * says this can happen.
+   *
+   * Built in the browser from rows already rendered, so it adds no query and
+   * no server route - no path to this data that the person clicking did not
+   * already have.
+   */
+  function exportRows() {
+    const rows = table.getFilteredRowModel().rows.map((row) => row.original)
+    const header = ["Name", "Mobile", "Exam", "Status", "Last enquiry"]
+    const body = rows.map((lead) => [
+      lead.name,
+      lead.phone,
+      lead.interestTrack ?? "",
+      lead.leadStatus ?? "",
+      lead.lastEnquiryAt ? new Date(lead.lastEnquiryAt).toISOString() : "",
+    ])
+    /*
+     * Every field quoted, quotes doubled. A name with a comma in it would
+     * otherwise shift every later column by one, silently, and the reader
+     * would not find out until a phone number turned up in the status column.
+     */
+    const csv = [header, ...body]
+      .map((cells) =>
+        cells.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")
+      )
+      .join("\r\n")
+
+    const stamp = new Date().toISOString().slice(0, 10)
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    )
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `ict-enquiries-${stamp}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -355,12 +444,48 @@ export function LeadsTable({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {/*
+         * Owner-only, and it says what it will do. "Export" alone invites the
+         * reasonable assumption that it means everything; naming the filtered
+         * count means nobody opens the file expecting rows that were never in
+         * it.
+         */}
+        {isOwner ? (
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={exportRows}
+            disabled={matching === 0}
+          >
+            <IconDownload stroke={1.75} />
+            Export {matching}
+          </Button>
+        ) : null}
+
         <p aria-live="polite" className="ml-auto text-sm text-muted-foreground">
           {selected > 0
             ? `${selected} selected`
             : `${matching} of ${leads.length} loaded`}
         </p>
       </div>
+
+      {/*
+       * Status as a row of filters rather than a dropdown. There are five, they
+       * are the queue's primary axis, and a staff member wanting "just the new
+       * ones" should not have to open a menu to find out that is possible.
+       */}
+      <ToggleGroup
+        value={[statusFilter]}
+        onValueChange={(value) => setStatusFilter(value[0] ?? "all")}
+        aria-label="Filter by status"
+        className="flex-wrap"
+      >
+        {STATUS_FILTERS.map((option) => (
+          <ToggleGroupItem key={option.value} value={option.value}>
+            {option.label}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
 
       <div className="overflow-x-auto rounded-card border border-border">
         <Table className="min-w-200">

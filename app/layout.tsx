@@ -144,7 +144,21 @@ export default function RootLayout({
       // comparison; mismatches anywhere inside the tree are still reported.
       suppressHydrationWarning
     >
-      <body>
+      {/*
+       * `<body>` needs the same treatment as `<html>`, for the same reason and
+       * a different set of extensions. Grammarly writes
+       * `data-new-gr-c-s-check-loaded` and `data-gr-ext-installed` here before
+       * React hydrates, and React then reports a mismatch on every page load
+       * for something no change to this codebase can prevent.
+       *
+       * Suppressing it on the element the extensions actually touch is the
+       * narrow fix: attribute comparison is skipped for this one tag, and
+       * every mismatch inside the tree - the ones that would be our bugs - is
+       * still reported. Leaving it unsuppressed is worse than noisy: a console
+       * that cries wolf on every load is one nobody reads when a real
+       * hydration bug appears.
+       */}
+      <body suppressHydrationWarning>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
