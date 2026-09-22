@@ -1,6 +1,6 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { type ReactNode, useSyncExternalStore } from "react"
 
 import { nextBatch } from "@/lib/brand"
 
@@ -50,4 +50,19 @@ export function BatchCountdown() {
       {label}
     </span>
   )
+}
+
+/**
+ * Renders its children only until the batch starts.
+ *
+ * The hero is prerendered, so a banner built before the start date would keep
+ * advertising "Start date: 14 September" for as long as the build stays up.
+ * The server side of the check lives in the hero (it drops the banner from a
+ * build made after the start); this is the half that retires it in a build
+ * made before.
+ */
+export function UntilBatchStarts({ children }: { children: ReactNode }) {
+  const days = useDaysUntilBatch()
+  if (days !== null && days < 0) return null
+  return children
 }

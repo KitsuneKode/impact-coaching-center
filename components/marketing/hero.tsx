@@ -6,7 +6,10 @@ import {
 import Image from "next/image"
 import type { CSSProperties } from "react"
 
-import { BatchCountdown } from "@/components/marketing/batch-countdown"
+import {
+  BatchCountdown,
+  UntilBatchStarts,
+} from "@/components/marketing/batch-countdown"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { ButtonAnchor } from "@/components/ui/button"
 import {
@@ -22,6 +25,9 @@ import { contactHref } from "@/lib/contact"
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
 const startDate = new Date(`${nextBatch.startsOn}T00:00:00+05:30`)
+/** Settled at build: a build made after the start never renders the banner. */
+const startedAtBuild = Date.now() >= startDate.getTime()
+
 const startLabel = startDate.toLocaleDateString("en-IN", {
   weekday: "long",
   day: "numeric",
@@ -50,29 +56,36 @@ export function Hero() {
   return (
     <section className="relative pt-26 pb-16 md:pt-30 md:pb-24">
       <div className="container-page">
-        {/* the one eyebrow on the page: a real, dated batch */}
-        <a
-          href={contactHref({ kind: "workshop" })}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="enter group inline-flex max-w-full items-center gap-2.5 rounded-control border border-border bg-card py-1.5 pr-2.5 pl-3 text-sm shadow-frame transition-colors hover:bg-secondary"
-          style={delay(0)}
-        >
-          <span className="min-w-0 truncate">
-            <span className="font-medium">{nextBatch.name}</span>
-            <span className="text-muted-foreground">
-              <span className="hidden sm:inline"> for {nextBatch.exam}</span> ·
-              Start date: <span className="sm:hidden">{startShort}</span>
-              <span className="hidden sm:inline">{startLabel}</span>
-            </span>
-          </span>
-          <BatchCountdown />
-          <IconArrowRight
-            size={15}
-            stroke={1.75}
-            className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-          />
-        </a>
+        {/* the one eyebrow on the page: a real, dated batch, until it starts */}
+        {startedAtBuild ? null : (
+          <UntilBatchStarts>
+            <a
+              href={contactHref({ kind: "workshop" })}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="enter group inline-flex max-w-full items-center gap-2.5 rounded-control border border-border bg-card py-1.5 pr-2.5 pl-3 text-sm shadow-frame transition-colors hover:bg-secondary"
+              style={delay(0)}
+            >
+              <span className="min-w-0 truncate">
+                <span className="font-medium">{nextBatch.name}</span>
+                <span className="text-muted-foreground">
+                  <span className="hidden sm:inline">
+                    {" "}
+                    for {nextBatch.exam}
+                  </span>{" "}
+                  · Start date: <span className="sm:hidden">{startShort}</span>
+                  <span className="hidden sm:inline">{startLabel}</span>
+                </span>
+              </span>
+              <BatchCountdown />
+              <IconArrowRight
+                size={15}
+                stroke={1.75}
+                className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+              />
+            </a>
+          </UntilBatchStarts>
+        )}
 
         {/*
          * The claim and the explanation were one h1 at section-heading size,
@@ -83,7 +96,10 @@ export function Hero() {
          * Also better semantics - the heading is now the heading, rather than
          * a heading with a paragraph inside it.
          */}
-        <h1 className="enter type-hero mt-7 max-w-5xl" style={delay(80)}>
+        <h1
+          className="enter type-hero mt-7 max-w-5xl first:mt-0"
+          style={delay(80)}
+        >
           <span className="mark">Crack APSC</span> from North Lakhimpur.
         </h1>
         <p
