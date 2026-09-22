@@ -32,6 +32,7 @@ do not duplicate completed slices. No merge/deployment is implied by this update
 | `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan | P2       | M      | throttle plan before any shared preview | PARTIAL (build plan written; runtime half never run) |
 | `2026-09-20-sign-in-and-admin-leads.md`         | `/sign-in` + read-only `/admin/leads` (from the spike)              | P2       | L      | KIT-49 before any shared preview        | DONE (step 5, session lifetimes, deferred to KIT-46) |
 | `2026-09-22-shared-admin-contract.md`           | Shared admin contract and shell (KIT-55)                            | P1       | L      | — (unblocks KIT-56/57/58/59/63)         | DONE (owner bootstrap is a manual dashboard step)    |
+| `2026-09-22-commerce-and-account-surfaces.md`   | Settled UX direction for Books, cart, checkout, Reader, `/account`  | P1       | S      | — (read before KIT-57/58/59/60)         | DRAFT (decisions only; each ticket writes its steps) |
 
 | `2026-09-20-library-draft.md` (no plan file) | `/library` as a draft plus its seven questions for ICT (KIT-50) | P2 | S | — | DONE (built to request, without a plan) |
 
