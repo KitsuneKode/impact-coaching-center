@@ -26,7 +26,7 @@ import {
   type ColumnVisibilityState,
   type SortingState,
 } from "@tanstack/react-table"
-import { useMemo, useState } from "react"
+import { createContext, useContext, useMemo, useState } from "react"
 
 import { StatusBadge } from "@/components/admin/status-badge"
 import { Button } from "@/components/ui/button"
@@ -58,6 +58,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatPhone } from "@/lib/brand"
+import { isDueIst } from "@/lib/ist"
 
 export type Lead = {
   id: string
@@ -67,6 +68,8 @@ export type Lead = {
   interestTrack: string | undefined
   lastEnquiryAt: number | undefined
   verifiedAt: number | undefined
+  nextFollowUpAt: number | undefined
+  revision: number
 }
 
 /**
@@ -122,6 +125,7 @@ const columnHelper = createColumnHelper<typeof features, Lead>()
  */
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
+  { value: "due", label: "Follow-up due" },
   { value: "new", label: "New" },
   { value: "contacted", label: "Contacted" },
   { value: "interested", label: "Interested" },
@@ -161,6 +165,28 @@ function exact(at: number) {
   })
 }
 
+/**
+ * Columns are defined once at module scope, so the open handler reaches the
+ * name cell through context rather than being baked into a column.
+ */
+const OpenLeadContext = createContext<(id: string) => void>(() => {})
+
+function OpenLead({ lead }: { lead: Lead }) {
+  const open = useContext(OpenLeadContext)
+  return (
+    <button
+      type="button"
+      onClick={() => open(lead.id)}
+      className="rounded-control text-left font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
+      {lead.name || (
+        <span className="font-normal text-muted-foreground">Not given</span>
+      )}
+      <span className="sr-only">, open enquiry</span>
+    </button>
+  )
+}
+
 const columns = columnHelper.columns([
   columnHelper.display({
     id: "select",
@@ -186,10 +212,7 @@ const columns = columnHelper.columns([
   }),
   columnHelper.accessor("name", {
     header: "Name",
-    cell: ({ row }) =>
-      row.original.name || (
-        <span className="text-muted-foreground">Not given</span>
-      ),
+    cell: ({ row }) => <OpenLead lead={row.original} />,
     enableHiding: false,
   }),
   columnHelper.accessor("phone", {
@@ -241,7 +264,12 @@ const columns = columnHelper.columns([
      * and changed nothing. Exact is also what is wanted here: "new" must not
      * match a status that merely contains it.
      */
-    filterFn: (row, _id, value: string) => row.original.leadStatus === value,
+    filterFn: (row, _id, value: string) =>
+      value === "due"
+        ? isDueIst(row.original.nextFollowUpAt, Date.now()) &&
+          row.original.leadStatus !== "enrolled" &&
+          row.original.leadStatus !== "lost"
+        : row.original.leadStatus === value,
     sortFn: (a, b) =>
       (STATUS_ORDER[a.original.leadStatus ?? ""] ?? 99) -
       (STATUS_ORDER[b.original.leadStatus ?? ""] ?? 99),
@@ -262,6 +290,33 @@ const columns = columnHelper.columns([
       )
     },
   }),
+  columnHelper.accessor("nextFollowUpAt", {
+    header: "Follow-up",
+    cell: ({ row }) => {
+      const at = row.original.nextFollowUpAt
+      if (!at) return <span className="text-muted-foreground">—</span>
+      const due = isDueIst(at, Date.now())
+      return (
+        <time
+          dateTime={new Date(at).toISOString()}
+          title={exact(at)}
+          className={
+            due
+              ? "font-medium whitespace-nowrap"
+              : "whitespace-nowrap text-muted-foreground"
+          }
+        >
+          {due ? "Due " : ""}
+          {new Date(at).toLocaleDateString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            day: "numeric",
+            month: "short",
+          })}
+        </time>
+      )
+    },
+    sortUndefined: "last",
+  }),
 ])
 
 export function LeadsTable({
@@ -270,6 +325,7 @@ export function LeadsTable({
   loadingMore,
   onLoadMore,
   isOwner,
+  onOpen,
 }: {
   leads: Lead[]
   canLoadMore: boolean
@@ -277,6 +333,8 @@ export function LeadsTable({
   onLoadMore: () => void
   /** Export is owner-only. See `exportRows`. */
   isOwner: boolean
+  /** Opens one enquiry for follow-up. */
+  onOpen: (id: string) => void
 }) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] =
@@ -360,13 +418,21 @@ export function LeadsTable({
    */
   function exportRows() {
     const rows = table.getFilteredRowModel().rows.map((row) => row.original)
-    const header = ["Name", "Mobile", "Exam", "Status", "Last enquiry"]
+    const header = [
+      "Name",
+      "Mobile",
+      "Exam",
+      "Status",
+      "Last enquiry",
+      "Next follow-up",
+    ]
     const body = rows.map((lead) => [
       lead.name,
       lead.phone,
       lead.interestTrack ?? "",
       lead.leadStatus ?? "",
       lead.lastEnquiryAt ? new Date(lead.lastEnquiryAt).toISOString() : "",
+      lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toISOString() : "",
     ])
     /*
      * Every field quoted, quotes doubled. A name with a comma in it would
@@ -391,7 +457,9 @@ export function LeadsTable({
 
     const stamp = new Date().toISOString().slice(0, 10)
     const url = URL.createObjectURL(
-      new Blob([csv], { type: "text/csv;charset=utf-8" })
+      // The byte-order mark is what makes Excel read the file as UTF-8, so an
+      // Assamese or Bengali name opens as itself rather than as mojibake.
+      new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" })
     )
     const link = document.createElement("a")
     link.href = url
@@ -401,251 +469,258 @@ export function LeadsTable({
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <InputGroup className="w-full max-w-xs">
-          <InputGroupAddon className="pl-3">
-            <IconSearch
-              stroke={1.75}
-              className="size-4 text-muted-foreground"
+    <OpenLeadContext.Provider value={onOpen}>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <InputGroup className="w-full max-w-xs">
+            <InputGroupAddon className="pl-3">
+              <IconSearch
+                stroke={1.75}
+                className="size-4 text-muted-foreground"
+              />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Search name or number"
+              aria-label="Search enquiries by name or number"
+              value={
+                (table.getColumn("phone")?.getFilterValue() as string) ?? ""
+              }
+              onChange={(event) =>
+                table.getColumn("phone")?.setFilterValue(event.target.value)
+              }
             />
-          </InputGroupAddon>
-          <InputGroupInput
-            placeholder="Search name or number"
-            aria-label="Search enquiries by name or number"
-            value={(table.getColumn("phone")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("phone")?.setFilterValue(event.target.value)
-            }
-          />
-        </InputGroup>
+          </InputGroup>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={<Button variant="secondary" size="md" />}
-          >
-            <IconLayoutColumns stroke={1.75} />
-            Columns
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-44">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Show</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => (
-                  <DropdownMenuItem
-                    key={column.id}
-                    closeOnClick={false}
-                    onClick={() =>
-                      column.toggleVisibility(!column.getIsVisible())
-                    }
-                  >
-                    <Checkbox
-                      checked={column.getIsVisible()}
-                      aria-hidden="true"
-                      tabIndex={-1}
-                    />
-                    {typeof column.columnDef.header === "string"
-                      ? column.columnDef.header
-                      : column.id}
-                  </DropdownMenuItem>
-                ))}
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/*
-         * Owner-only, and it says what it will do. "Export" alone invites the
-         * reasonable assumption that it means everything; naming the filtered
-         * count means nobody opens the file expecting rows that were never in
-         * it.
-         */}
-        {isOwner ? (
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={exportRows}
-            disabled={matching === 0}
-          >
-            <IconDownload stroke={1.75} />
-            Export {matching}
-          </Button>
-        ) : null}
-
-        <p aria-live="polite" className="ml-auto text-sm text-muted-foreground">
-          {selected > 0
-            ? `${selected} selected`
-            : `${matching} of ${leads.length} loaded`}
-        </p>
-      </div>
-
-      {/*
-       * Status as a row of filters rather than a dropdown. There are five, they
-       * are the queue's primary axis, and a staff member wanting "just the new
-       * ones" should not have to open a menu to find out that is possible.
-       */}
-      <ToggleGroup
-        value={[statusFilter]}
-        onValueChange={(value) => setStatusFilter(value[0] ?? "all")}
-        aria-label="Filter by status"
-        className="flex-wrap"
-      >
-        {STATUS_FILTERS.map((option) => (
-          <ToggleGroupItem key={option.value} value={option.value}>
-            {option.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-
-      <div className="overflow-x-auto rounded-card border border-border">
-        <Table className="min-w-200">
-          <TableHeader className="bg-muted/40">
-            {table.getHeaderGroups().map((group) => (
-              <TableRow key={group.id}>
-                {group.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className="inline-flex items-center gap-1 rounded-control hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      >
-                        <FlexRender header={header} />
-                        <span aria-hidden="true" className="text-xs">
-                          {header.column.getIsSorted() === "asc"
-                            ? "▲"
-                            : header.column.getIsSorted() === "desc"
-                              ? "▼"
-                              : ""}
-                        </span>
-                      </button>
-                    ) : (
-                      <FlexRender header={header} />
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length === 0 ? (
-              <TableRow>
-                {/*
-                 * No-match, not empty. §6 insists these are different
-                 * problems with different words: the collection has rows,
-                 * this filter excluded them, and the way out is clearing it.
-                 */}
-                <TableCell colSpan={columns.length} className="h-24">
-                  <div className="flex flex-col items-start gap-3">
-                    <span className="text-muted-foreground">
-                      Nothing matched that search.
-                    </span>
-                    <Button
-                      variant="secondary"
-                      size="md"
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={<Button variant="secondary" size="md" />}
+            >
+              <IconLayoutColumns stroke={1.75} />
+              Columns
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Show</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => (
+                    <DropdownMenuItem
+                      key={column.id}
+                      closeOnClick={false}
                       onClick={() =>
-                        table.getColumn("phone")?.setFilterValue("")
+                        column.toggleVisibility(!column.getIsVisible())
                       }
                     >
-                      Clear search
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() ? "selected" : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      <FlexRender cell={cell} />
-                    </TableCell>
+                      <Checkbox
+                        checked={column.getIsVisible()}
+                        aria-hidden="true"
+                        tabIndex={-1}
+                      />
+                      {typeof column.columnDef.header === "string"
+                        ? column.columnDef.header
+                        : column.id}
+                    </DropdownMenuItem>
+                  ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/*
+           * Owner-only, and it says what it will do. "Export" alone invites the
+           * reasonable assumption that it means everything; naming the filtered
+           * count means nobody opens the file expecting rows that were never in
+           * it.
+           */}
+          {isOwner ? (
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={exportRows}
+              disabled={matching === 0}
+            >
+              <IconDownload stroke={1.75} />
+              Export {matching}
+            </Button>
+          ) : null}
+
+          <p
+            aria-live="polite"
+            className="ml-auto text-sm text-muted-foreground"
+          >
+            {selected > 0
+              ? `${selected} selected`
+              : `${matching} of ${leads.length} loaded`}
+          </p>
+        </div>
+
+        {/*
+         * Status as a row of filters rather than a dropdown. There are five, they
+         * are the queue's primary axis, and a staff member wanting "just the new
+         * ones" should not have to open a menu to find out that is possible.
+         */}
+        <ToggleGroup
+          value={[statusFilter]}
+          onValueChange={(value) => setStatusFilter(value[0] ?? "all")}
+          aria-label="Filter by status"
+          className="flex-wrap"
+        >
+          {STATUS_FILTERS.map((option) => (
+            <ToggleGroupItem key={option.value} value={option.value}>
+              {option.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+
+        <div className="overflow-x-auto rounded-card border border-border">
+          <Table className="min-w-200">
+            <TableHeader className="bg-muted/40">
+              {table.getHeaderGroups().map((group) => (
+                <TableRow key={group.id}>
+                  {group.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="inline-flex items-center gap-1 rounded-control hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        >
+                          <FlexRender header={header} />
+                          <span aria-hidden="true" className="text-xs">
+                            {header.column.getIsSorted() === "asc"
+                              ? "▲"
+                              : header.column.getIsSorted() === "desc"
+                                ? "▼"
+                                : ""}
+                          </span>
+                        </button>
+                      ) : (
+                        <FlexRender header={header} />
+                      )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="rows-per-page" className="text-sm">
-            Rows per page
-          </Label>
-          <Select
-            value={`${table.state.pagination.pageSize}`}
-            onValueChange={(value) => table.setPageSize(Number(value))}
-            items={[10, 20, 30, 50].map((size) => ({
-              label: `${size}`,
-              value: `${size}`,
-            }))}
-          >
-            <SelectTrigger id="rows-per-page" className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-          </Select>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.length === 0 ? (
+                <TableRow>
+                  {/*
+                   * No-match, not empty. §6 insists these are different
+                   * problems with different words: the collection has rows,
+                   * this filter excluded them, and the way out is clearing it.
+                   */}
+                  <TableCell colSpan={columns.length} className="h-24">
+                    <div className="flex flex-col items-start gap-3">
+                      <span className="text-muted-foreground">
+                        Nothing matched that search.
+                      </span>
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        onClick={() =>
+                          table.getColumn("phone")?.setFilterValue("")
+                        }
+                      >
+                        Clear search
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        <FlexRender cell={cell} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
 
-        <p className="text-sm text-muted-foreground">
-          Page {table.state.pagination.pageIndex + 1} of {pageCount}
-          {canLoadMore ? (
-            <>
-              <span aria-hidden="true">+</span>
-              <span className="sr-only">
-                {" "}
-                or more; the server has further enquiries not yet loaded
-              </span>
-            </>
-          ) : null}
-          {loadingMore ? (
-            <Spinner className="ml-2 inline align-[-2px]" />
-          ) : null}
-        </p>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="rows-per-page" className="text-sm">
+              Rows per page
+            </Label>
+            <Select
+              value={`${table.state.pagination.pageSize}`}
+              onValueChange={(value) => table.setPageSize(Number(value))}
+              items={[10, 20, 30, 50].map((size) => ({
+                label: `${size}`,
+                value: `${size}`,
+              }))}
+            >
+              <SelectTrigger id="rows-per-page" className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+            </Select>
+          </div>
 
-        <div className="flex items-center gap-1">
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="First page"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronsLeft stroke={1.75} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Previous page"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <IconChevronLeft stroke={1.75} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Next page"
-            onClick={goNext}
-            disabled={!canGoNext || loadingMore}
-          >
-            <IconChevronRight stroke={1.75} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Last loaded page"
-            onClick={() => table.setPageIndex(pageCount - 1)}
-            disabled={onLastLoadedPage}
-          >
-            <IconChevronsRight stroke={1.75} />
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            Page {table.state.pagination.pageIndex + 1} of {pageCount}
+            {canLoadMore ? (
+              <>
+                <span aria-hidden="true">+</span>
+                <span className="sr-only">
+                  {" "}
+                  or more; the server has further enquiries not yet loaded
+                </span>
+              </>
+            ) : null}
+            {loadingMore ? (
+              <Spinner className="ml-2 inline align-[-2px]" />
+            ) : null}
+          </p>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="First page"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <IconChevronsLeft stroke={1.75} />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Previous page"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <IconChevronLeft stroke={1.75} />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Next page"
+              onClick={goNext}
+              disabled={!canGoNext || loadingMore}
+            >
+              <IconChevronRight stroke={1.75} />
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Last loaded page"
+              onClick={() => table.setPageIndex(pageCount - 1)}
+              disabled={onLastLoadedPage}
+            >
+              <IconChevronsRight stroke={1.75} />
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+    </OpenLeadContext.Provider>
   )
 }

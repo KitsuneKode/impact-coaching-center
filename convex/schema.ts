@@ -109,6 +109,8 @@ export default defineSchema({
      * a descending scan; the query filters them out regardless.
      */
     .index("by_lastEnquiryAt", ["lastEnquiryAt"])
+    // Follow-ups due, for the admin home and the queue's "due" view.
+    .index("by_nextFollowUpAt", ["nextFollowUpAt"])
     /*
      * Staff and owners, for the admin surface and for last-owner protection.
      *

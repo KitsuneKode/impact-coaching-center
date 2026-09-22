@@ -2,19 +2,22 @@
 
 import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
+import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { LeadSheet } from "@/components/admin/lead-sheet"
 import { LeadsTable } from "@/components/admin/leads-table"
 import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 
 /**
- * The follow-up queue. Read-only by design.
+ * The follow-up queue.
  *
- * No status changes, notes or export yet: every one of those is a write, and
- * a write needs an audit record and a considered undo story. Seeing the queue
- * is the half that is safe to ship first.
+ * Staff open an enquiry in a sheet over the table to change its status, set
+ * the next follow-up, log a call or leave a note. Every write is revisioned
+ * and audited in `convex/leads.ts`; export stays owner-only.
  *
  * The role check is NOT here. `api.leads.inboxPage` refuses a non-staff
  * caller itself, because a guard in this component protects the markup and
@@ -57,6 +60,7 @@ function Inbox() {
   // fetching a page of enquiries and discarding it, so a student who opens
   // this URL costs one boolean rather than a read of the follow-up queue.
   const allowed = useQuery(api.leads.canSeeInbox)
+  const [openId, setOpenId] = useState<Id<"persons"> | null>(null)
   /*
    * Read here rather than inside the table: export is owner-only, and the
    * table should be told what the viewer may do rather than work it out. The
@@ -137,6 +141,13 @@ function Inbox() {
         loadingMore={status === "LoadingMore"}
         onLoadMore={() => loadMore(25)}
         isOwner={viewer?.role === "owner"}
+        onOpen={(id) => setOpenId(id as Id<"persons">)}
+      />
+      <LeadSheet
+        personId={openId}
+        onOpenChange={(open) => {
+          if (!open) setOpenId(null)
+        }}
       />
     </PageShell>
   )
