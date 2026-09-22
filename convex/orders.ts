@@ -1,14 +1,22 @@
 import { paginationOptsValidator } from "convex/server"
-import { v } from "convex/values"
+import { type Infer, v } from "convex/values"
 
 import {
   checkRevision,
+  forbidden,
   invalidInput,
   missingRecord,
   requireStaff,
   revisionOf,
+  type Viewer,
 } from "./authz"
-import { mutation, query } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
+import {
+  mutation,
+  type MutationCtx,
+  query,
+  type QueryCtx,
+} from "./_generated/server"
 import { ORDER_STATUS } from "./schema"
 
 /**
@@ -50,6 +58,11 @@ const TRANSITIONS: Record<string, readonly string[]> = {
  * signature and nothing else - a person clicking "mark paid" in a browser is
  * not evidence that money moved, and allowing it would make the one fact the
  * whole order rests on settable by anyone with a staff login.
+ *
+ * `refunded` is absent for the mirror-image reason: it asserts money moved
+ * *back*. Until a provider webhook can prove that, the closest honest thing
+ * is the owner marking it themselves, so it is gated to the owner below
+ * rather than offered to staff at all.
  */
 const STAFF_SETTABLE = new Set([
   "packed",
@@ -58,8 +71,10 @@ const STAFF_SETTABLE = new Set([
   "ready_for_collection",
   "collected",
   "cancelled",
-  "refunded",
 ])
+
+/** Asserts money moved back. Owner-only until a provider can prove it. */
+const OWNER_SETTABLE = new Set(["refunded"])
 
 /** Statuses that still need somebody to do something. */
 const OPEN_STATUSES = new Set([
@@ -78,55 +93,75 @@ const OPEN_STATUSES = new Set([
  * answered separately by `canSeeOrders`, so a screen can say "staff only"
  * without fetching a page of somebody's addresses to find out.
  *
- * Ordered newest first, on the table's own creation order - `placedAt` is
- * written at insert, so creation order is placement order. An earlier cut
- * scanned `by_person`, whose first key is the buyer: that reads the queue
- * grouped by person, not by time, and a new order could land mid-list.
- * `by_status` exists for status-scoped views; the admin filters client-side
- * across every status at once, which a status-scoped cursor cannot answer.
+ * Ordered newest first on `by_placedAt`. An earlier cut scanned `by_person`,
+ * whose first key is the buyer: that reads the queue grouped by person, not
+ * by time, and a new order could land mid-list. The index is on `placedAt`
+ * rather than implicit creation order so a backdated or imported order still
+ * sorts by when it was placed. `by_status` exists for status-scoped views;
+ * the admin filters client-side across every status at once, which a
+ * status-scoped cursor cannot answer.
  */
 export const adminOrdersPage = query({
   args: { paginationOpts: paginationOptsValidator },
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { page: [], isDone: true, continueCursor: "" }
-
-    const result = await ctx.db
-      .query("orders")
-      .order("desc")
-      .paginate(args.paginationOpts)
-
-    const page = await Promise.all(
-      result.page.map(async (order) => {
-        const person = await ctx.db.get(order.personId)
-        return {
-          id: order._id,
-          reference: order.reference,
-          status: order.status,
-          fulfilment: order.fulfilment,
-          items: order.items,
-          itemsPaise: order.itemsPaise,
-          deliveryPaise: order.deliveryPaise,
-          totalPaise: order.totalPaise,
-          address: order.address,
-          placedAt: order.placedAt,
-          seen: Boolean(order.seenAt),
-          revision: revisionOf(order),
-          /*
-           * The buyer's name and number travel with the order. Staff
-           * fulfilling a parcel need to reach the person about it, and making
-           * them open another screen to find a phone number is the kind of
-           * friction that turns into "I'll do it later".
-           */
-          buyerName: person?.name ?? "",
-          buyerPhone: person?.phone ?? "",
-        }
-      })
-    )
-
-    return { ...result, page }
+    return readOrdersPage(ctx, staff.value, args.paginationOpts)
   },
 })
+
+/**
+ * One page of the queue for an already-resolved viewer.
+ *
+ * Re-checks the role on whatever it is given rather than trusting the caller
+ * did, so the function is safe under a future caller that skipped
+ * `requireStaff`. The session-age cutoff is NOT repeated here - it lives in
+ * `requireStaff`, which is this page's only public door.
+ */
+export async function readOrdersPage(
+  ctx: QueryCtx,
+  viewer: Viewer,
+  paginationOpts: { numItems: number; cursor: string | null }
+) {
+  if (viewer.role !== "staff" && viewer.role !== "owner")
+    return { page: [], isDone: true, continueCursor: "" }
+
+  const result = await ctx.db
+    .query("orders")
+    .withIndex("by_placedAt")
+    .order("desc")
+    .paginate(paginationOpts)
+
+  const page = await Promise.all(
+    result.page.map(async (order) => {
+      const person = await ctx.db.get(order.personId)
+      return {
+        id: order._id,
+        reference: order.reference,
+        status: order.status,
+        fulfilment: order.fulfilment,
+        items: order.items,
+        itemsPaise: order.itemsPaise,
+        deliveryPaise: order.deliveryPaise,
+        totalPaise: order.totalPaise,
+        address: order.address,
+        placedAt: order.placedAt,
+        seen: Boolean(order.seenAt),
+        revision: revisionOf(order),
+        /*
+         * The buyer's name and number travel with the order. Staff
+         * fulfilling a parcel need to reach the person about it, and making
+         * them open another screen to find a phone number is the kind of
+         * friction that turns into "I'll do it later".
+         */
+        buyerName: person?.name ?? "",
+        buyerPhone: person?.phone ?? "",
+      }
+    })
+  )
+
+  return { ...result, page }
+}
 
 /** Whether this caller may see the fulfilment queue at all. */
 export const canSeeOrders = query({
@@ -190,35 +225,62 @@ export const setOrderStatus = mutation({
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return staff
-
-    const order = await ctx.db.get(args.orderId)
-    if (!order) return missingRecord
-
-    const conflict = checkRevision(order, args.expectedRevision)
-    if (conflict) return conflict
-
-    if (!STAFF_SETTABLE.has(args.status)) return invalidInput("status")
-
-    const allowed = TRANSITIONS[order.status] ?? []
-    if (!allowed.includes(args.status)) return invalidInput("transition")
-
-    const revision = revisionOf(order) + 1
-    await ctx.db.patch(args.orderId, {
-      status: args.status,
-      revision,
-      updatedAt: Date.now(),
-    })
-
-    await ctx.db.insert("activities", {
-      personId: order.personId,
-      kind: "status_change",
-      body: `Order ${order.reference}: ${order.status} → ${args.status}`,
-      actorId: staff.value.id,
-    })
-
-    return { ok: true as const, revision }
+    return applyStatusChange(ctx, staff.value, args)
   },
 })
+
+/**
+ * The status move itself, given an already-resolved staff viewer.
+ *
+ * Re-checks the role on whatever it is given rather than trusting the caller
+ * did, and returns the mutation's discriminated result - the public wrapper
+ * is only the session check.
+ */
+export async function applyStatusChange(
+  ctx: MutationCtx,
+  viewer: Viewer,
+  args: {
+    orderId: Id<"orders">
+    status: Infer<typeof ORDER_STATUS>
+    expectedRevision: number
+  }
+) {
+  if (viewer.role !== "staff" && viewer.role !== "owner") return forbidden
+
+  const order = await ctx.db.get(args.orderId)
+  if (!order) return missingRecord
+
+  const conflict = checkRevision(order, args.expectedRevision)
+  if (conflict) return conflict
+
+  if (!STAFF_SETTABLE.has(args.status) && !OWNER_SETTABLE.has(args.status))
+    return invalidInput("status")
+  // Money back out is the owner's call until a provider proves it - and
+  // a staff member asking is a role refusal, not a bad value.
+  if (OWNER_SETTABLE.has(args.status) && viewer.role !== "owner")
+    return forbidden
+
+  const allowed = TRANSITIONS[order.status] ?? []
+  if (!allowed.includes(args.status)) return invalidInput("transition")
+
+  const revision = revisionOf(order) + 1
+  await ctx.db.patch(args.orderId, {
+    status: args.status,
+    revision,
+    updatedAt: Date.now(),
+  })
+
+  await ctx.db.insert("activities", {
+    personId: order.personId,
+    kind: "status_change",
+    body: `Order ${order.reference}: ${order.status} → ${args.status}`,
+    actorId: viewer.id,
+    fromStatus: order.status,
+    toStatus: args.status,
+  })
+
+  return { ok: true as const, revision }
+}
 
 /**
  * Mark an order as seen, so it stops counting as new.

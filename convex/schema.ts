@@ -126,6 +126,20 @@ export default defineSchema({
     actorId: v.optional(v.id("persons")),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
+    /*
+     * The structured half of an audit row. `body` is for reading; these are
+     * for asking questions - "every role change this owner made" cannot be
+     * answered from a sentence. Populated by the mutations that write the
+     * row, so the fields exist only where a real transition produced them.
+     */
+    fromRole: v.optional(
+      v.union(v.literal("student"), v.literal("staff"), v.literal("owner"))
+    ),
+    toRole: v.optional(
+      v.union(v.literal("student"), v.literal("staff"), v.literal("owner"))
+    ),
+    fromStatus: v.optional(v.string()),
+    toStatus: v.optional(v.string()),
   }).index("by_person", ["personId"]),
 
   /**
@@ -202,6 +216,13 @@ export default defineSchema({
      */
     .index("by_status", ["status", "placedAt"])
     .index("by_person", ["personId", "placedAt"])
+    /*
+     * The queue order. Table creation order happens to agree with it today,
+     * because `placedAt` is written at insert - but the day an order is ever
+     * backdated or imported, creation order stops meaning placement order
+     * and nobody is told. The index makes the intent structural.
+     */
+    .index("by_placedAt", ["placedAt"])
     .index("by_reference", ["reference"]),
 
   rateLimits: defineTable({

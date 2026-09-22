@@ -42,13 +42,20 @@ function Unavailable() {
 
 function Orders() {
   const allowed = useQuery(api.orders.canSeeOrders)
+  // The viewer's own Person, for the one role split the screen needs: the
+  // refund move is offered only to an owner, matching the server gate.
+  const viewer = useQuery(api.auth.getCurrentPerson)
   const {
     results: orders,
     status,
     loadMore,
   } = usePaginatedQuery(api.orders.adminOrdersPage, {}, { initialNumItems: 25 })
 
-  if (allowed === undefined || status === "LoadingFirstPage")
+  if (
+    allowed === undefined ||
+    viewer === undefined ||
+    status === "LoadingFirstPage"
+  )
     return (
       <PageShell
         density="working"
@@ -95,6 +102,7 @@ function Orders() {
     >
       <OrdersTable
         orders={orders}
+        isOwner={viewer?.role === "owner"}
         canLoadMore={status === "CanLoadMore"}
         loadingMore={status === "LoadingMore"}
         onLoadMore={() => loadMore(25)}

@@ -141,8 +141,11 @@ describe("bootstrapOwner", () => {
         .collect()
     )
     expect(audit).toHaveLength(1)
-    expect(audit[0]!.kind).toBe("role_change")
-    expect(audit[0]!.body).toContain("owner")
+    expect(audit[0]).toMatchObject({
+      kind: "role_change",
+      fromRole: "student",
+      toRole: "owner",
+    })
   })
 
   test("refuses once any owner exists", async () => {

@@ -142,11 +142,14 @@ function exact(at: number) {
  */
 export function OrdersTable({
   orders,
+  isOwner,
   canLoadMore,
   loadingMore,
   onLoadMore,
 }: {
   orders: OrderRow[]
+  /** Drives whether "refunded" is offered - the server gates it to owners. */
+  isOwner: boolean
   canLoadMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
@@ -310,6 +313,7 @@ export function OrdersTable({
                 <OrderRows
                   key={order.id}
                   order={order}
+                  isOwner={isOwner}
                   expanded={expanded === order.id}
                   busy={busy === order.id}
                   onToggle={() => toggle(order)}
@@ -408,18 +412,20 @@ export function OrdersTable({
  */
 function OrderRows({
   order,
+  isOwner,
   expanded,
   busy,
   onToggle,
   onMove,
 }: {
   order: OrderRow
+  isOwner: boolean
   expanded: boolean
   busy: boolean
   onToggle: () => void
   onMove: (status: string) => void
 }) {
-  const moves = nextStatuses(order.status)
+  const moves = nextStatuses(order.status, isOwner)
 
   return (
     <>

@@ -371,10 +371,20 @@ export function LeadsTable({
      * Every field quoted, quotes doubled. A name with a comma in it would
      * otherwise shift every later column by one, silently, and the reader
      * would not find out until a phone number turned up in the status column.
+     *
+     * A leading = + - or @ is also escaped with a quote prefix: names come
+     * from the enquiry form, and a cell a spreadsheet reads as a formula is
+     * a cell that runs somebody else's input on the owner's machine.
      */
     const csv = [header, ...body]
       .map((cells) =>
-        cells.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")
+        cells
+          .map((cell) => {
+            const text = String(cell)
+            const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+            return `"${safe.replaceAll('"', '""')}"`
+          })
+          .join(",")
       )
       .join("\r\n")
 

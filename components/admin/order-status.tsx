@@ -141,23 +141,31 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
  *
  * `paid` is never offered: payment is established by a verified Razorpay
  * signature and nothing else, so it is not a thing a person clicks.
+ *
+ * `refunded` is offered only to an owner. Asserting money moved back is the
+ * same claim as `paid` in reverse, so the server gates it to the owner and
+ * this list hides it from everyone else - a staff member who is not offered
+ * a refund cannot produce one.
  */
-export function nextStatuses(status: string): string[] {
-  switch (status) {
-    case "awaiting_payment":
-      return ["cancelled"]
-    case "paid":
-      return ["packed", "ready_for_collection", "cancelled", "refunded"]
-    case "packed":
-      return ["shipped", "cancelled", "refunded"]
-    case "shipped":
-      return ["delivered", "refunded"]
-    case "ready_for_collection":
-      return ["collected", "cancelled", "refunded"]
-    case "delivered":
-    case "collected":
-      return ["refunded"]
-    default:
-      return []
-  }
+export function nextStatuses(status: string, isOwner: boolean): string[] {
+  const moves = (() => {
+    switch (status) {
+      case "awaiting_payment":
+        return ["cancelled"]
+      case "paid":
+        return ["packed", "ready_for_collection", "cancelled", "refunded"]
+      case "packed":
+        return ["shipped", "cancelled", "refunded"]
+      case "shipped":
+        return ["delivered", "refunded"]
+      case "ready_for_collection":
+        return ["collected", "cancelled", "refunded"]
+      case "delivered":
+      case "collected":
+        return ["refunded"]
+      default:
+        return []
+    }
+  })()
+  return isOwner ? moves : moves.filter((move) => move !== "refunded")
 }

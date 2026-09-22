@@ -107,6 +107,8 @@ async function recordRoleChange(
     personId: person._id,
     kind: "role_change",
     body: `Role: ${person.role} → ${toRole}`,
+    fromRole: person.role,
+    toRole,
     ...(actorId ? { actorId } : {}),
   })
 }
