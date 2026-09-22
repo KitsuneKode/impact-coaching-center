@@ -112,6 +112,45 @@ Uploads need Convex File Storage (none exists in this project), validation,
 resizing, and an answer to who takes down what a student uploads at 2am. That
 is its own ticket, not a line item here.
 
+## Why a Person is here: behaviour, not a survey question
+
+A Person who downloaded a free PDF and a Person who paid for a book are not
+the same lead, and staff working the queue need to tell them apart before they
+pick up the phone. The buyer has already proved they will pay ICT money; the
+reader has proved only curiosity.
+
+**This is not a questionnaire field.** Asking "what brought you here" returns a
+self-report, collected once, immediately stale, and skippable. The activity
+trail returns the truth, continuously, for free. A Person who has an order is a
+customer whatever they once ticked, and a Person with six resource opens and no
+order is a reader however they described themselves in September.
+
+So provenance is **derived from `activities`**, which already exists with a
+`kind` union and a `by_person` index. The kinds that matter get added as the
+features that produce them land:
+
+| Kind               | Written when            | What it tells staff                               |
+| ------------------ | ----------------------- | ------------------------------------------------- |
+| `enquiry`          | the form is sent        | they asked a question a document could not answer |
+| `resource_open`    | the gate is passed      | free-resource funnel; interest, not commitment    |
+| `sample_viewed`    | a book sample is opened | considering a purchase                            |
+| `order_placed`     | checkout completes      | **they have paid ICT money**                      |
+| `whatsapp_handoff` | the handoff fires       | conversation moved off-site                       |
+
+Two things follow for the inbox, and both are the Convex lane's to provide
+because the frontend must not derive them (§0): a **first-touch** value, which
+never changes and answers "how did we meet", and a **strongest-signal** value,
+which does change and answers "what have they actually done". A single "source"
+string collapses those into one field that is wrong for one of the two
+questions.
+
+`persons.source` is not that field and should not be repurposed: it records
+which code path created the row (`verification`, `enquiry`, `dev-seed`), which
+is an implementation detail, not a sales signal.
+
+The questionnaire stays three fields about **them** - target exam, attempt
+status, preferred batch. Nothing in it asks about us.
+
 ## Open, and deliberately not decided here
 
 - **Price at add versus price at pay.** With no stock counts this is the

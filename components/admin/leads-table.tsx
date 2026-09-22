@@ -81,14 +81,21 @@ export type Lead = {
  * ordered by when people got in touch, and the metric cards and area chart,
  * which had no real numbers behind them.
  *
- * **On pagination, and why it is not "Page 3 of 12".** The block paginates a
- * fixed array it already holds, so it can count pages. Convex pagination is
- * cursor-based: there is no total and no random access to page seven without
- * walking there. So the page controls below move through the rows *loaded so
- * far*, the count says exactly that, and fetching more from the server stays
- * an explicit action. A "Page 1 of 12" derived from one fetched page is the
- * same lie as the "N to follow up" count KIT-55 removed - it looks
- * authoritative and stops being true at the second page.
+ * **On pagination.** The block paginates an array it already holds, so it can
+ * count pages. Convex paginates with cursors: `usePaginatedQuery` accumulates
+ * results and reports whether more exist, but it cannot report a total -
+ * knowing there are exactly 214 enquiries means counting them, which a cursor
+ * does not do. (`@convex-dev/aggregate` maintains real counts and is how a
+ * true total would arrive; that is a backend change, recorded rather than
+ * faked.)
+ *
+ * So there is one set of controls, not two. An earlier revision had both
+ * these page buttons and a separate "Load more from server", which is two
+ * pagination systems stacked on one table and reads exactly as odd as it
+ * sounds. Paging past the last loaded row now fetches the next page itself,
+ * and the count reads "of 3+" while the server still has more - honest about
+ * the one thing cursors cannot tell us, and silent about it the moment they
+ * can.
  */
 const features = tableFeatures({
   columnFilteringFeature,
@@ -271,6 +278,26 @@ export function LeadsTable({
 
   const selected = table.getFilteredSelectedRowModel().rows.length
   const matching = table.getFilteredRowModel().rows.length
+  const pageCount = Math.max(1, table.getPageCount())
+  const onLastLoadedPage = table.state.pagination.pageIndex >= pageCount - 1
+
+  /*
+   * Next means next, whether or not the rows are here yet.
+   *
+   * On the last page we hold, "next" asks the server for another page instead
+   * of being disabled - the reader should not have to know which rows arrived
+   * in which fetch. `usePaginatedQuery` appends, so the row they were looking
+   * at does not move.
+   */
+  function goNext() {
+    if (table.getCanNextPage()) {
+      table.nextPage()
+      return
+    }
+    if (canLoadMore) onLoadMore()
+  }
+
+  const canGoNext = table.getCanNextPage() || canLoadMore
 
   return (
     <div className="flex flex-col gap-4">
@@ -428,9 +455,19 @@ export function LeadsTable({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          Page {table.state.pagination.pageIndex + 1} of{" "}
-          {Math.max(1, table.getPageCount())}
-          <span className="sr-only"> of the enquiries loaded so far</span>
+          Page {table.state.pagination.pageIndex + 1} of {pageCount}
+          {canLoadMore ? (
+            <>
+              <span aria-hidden="true">+</span>
+              <span className="sr-only">
+                {" "}
+                or more; the server has further enquiries not yet loaded
+              </span>
+            </>
+          ) : null}
+          {loadingMore ? (
+            <Spinner className="ml-2 inline align-[-2px]" />
+          ) : null}
         </p>
 
         <div className="flex items-center gap-1">
@@ -456,45 +493,21 @@ export function LeadsTable({
             variant="secondary"
             size="icon"
             aria-label="Next page"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={goNext}
+            disabled={!canGoNext || loadingMore}
           >
             <IconChevronRight stroke={1.75} />
           </Button>
           <Button
             variant="secondary"
             size="icon"
-            aria-label="Last page loaded"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
+            aria-label="Last loaded page"
+            onClick={() => table.setPageIndex(pageCount - 1)}
+            disabled={onLastLoadedPage}
           >
             <IconChevronsRight stroke={1.75} />
           </Button>
         </div>
-
-        {/*
-         * Server fetching stays a separate, named action. These page controls
-         * move through what is already here; this one goes and gets more.
-         * Collapsing the two would mean "Last page" silently meaning "last
-         * page we happen to hold", which is the kind of half-truth a queue
-         * cannot afford.
-         */}
-        {canLoadMore ? (
-          <Button
-            variant="secondary"
-            size="md"
-            className="ml-auto"
-            disabled={loadingMore}
-            onClick={onLoadMore}
-          >
-            {loadingMore ? <Spinner /> : null}
-            Load more from server
-          </Button>
-        ) : (
-          <p className="ml-auto text-sm text-muted-foreground">
-            All enquiries loaded.
-          </p>
-        )}
       </div>
     </div>
   )
