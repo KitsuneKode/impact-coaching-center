@@ -15,6 +15,25 @@ import { v } from "convex/values"
  * be cancelled before payment, and two booleans would make that a state of
  * "not paid, not cancelled, but also not live" that means nothing.
  */
+/**
+ * Where a lead is in the follow-up queue, as a closed set - same reasoning
+ * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
+ */
+/** Who a Person is, as a closed set. `student` is the default, not a grant. */
+export const PERSON_ROLE = v.union(
+  v.literal("student"),
+  v.literal("staff"),
+  v.literal("owner")
+)
+
+export const LEAD_STATUS = v.union(
+  v.literal("new"),
+  v.literal("contacted"),
+  v.literal("interested"),
+  v.literal("enrolled"),
+  v.literal("lost")
+)
+
 export const ORDER_STATUS = v.union(
   v.literal("awaiting_payment"),
   v.literal("paid"),
@@ -47,7 +66,7 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
     lastEnquiryAt: v.optional(v.number()),
     lastEnquiryKey: v.optional(v.string()),
-    role: v.union(v.literal("student"), v.literal("staff"), v.literal("owner")),
+    role: PERSON_ROLE,
     /**
      * Optimistic-concurrency counter, the convention the execution runbook
      * asks every editable record to share.
@@ -62,15 +81,7 @@ export default defineSchema({
      * Person but not a lead, or staff drown in casual readers and stop
      * trusting the queue.
      */
-    leadStatus: v.optional(
-      v.union(
-        v.literal("new"),
-        v.literal("contacted"),
-        v.literal("interested"),
-        v.literal("enrolled"),
-        v.literal("lost")
-      )
-    ),
+    leadStatus: v.optional(LEAD_STATUS),
     assigneeId: v.optional(v.id("persons")),
     nextFollowUpAt: v.optional(v.number()),
     source: v.string(),

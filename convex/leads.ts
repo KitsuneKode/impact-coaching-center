@@ -1,7 +1,20 @@
 import { paginationOptsValidator } from "convex/server"
+import { v } from "convex/values"
 
-import { requireStaff, type Viewer } from "./authz"
+import { paginated, requireStaff, type Viewer } from "./authz"
+import { LEAD_STATUS } from "./schema"
 import { query, type QueryCtx } from "./_generated/server"
+
+/** The inbox projection. Never the whole Person document. */
+const INBOX_ROW = v.object({
+  id: v.id("persons"),
+  name: v.string(),
+  phone: v.string(),
+  leadStatus: v.optional(LEAD_STATUS),
+  interestTrack: v.optional(v.string()),
+  lastEnquiryAt: v.optional(v.number()),
+  verifiedAt: v.optional(v.number()),
+})
 
 /**
  * The follow-up queue, paginated, as the shared contract requires.
@@ -69,6 +82,7 @@ export async function readInboxPage(
 
 export const inboxPage = query({
   args: { paginationOpts: paginationOptsValidator },
+  returns: paginated(INBOX_ROW),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { page: [], isDone: true, continueCursor: "" }
@@ -84,5 +98,6 @@ export const inboxPage = query({
  */
 export const canSeeInbox = query({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx) => (await requireStaff(ctx)).ok,
 })

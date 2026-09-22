@@ -6,6 +6,8 @@ import {
   forbidden,
   invalidInput,
   missingRecord,
+  mutationResult,
+  paginated,
   requireStaff,
   revisionOf,
   type Viewer,
@@ -101,8 +103,42 @@ const OPEN_STATUSES = new Set([
  * the admin filters client-side across every status at once, which a
  * status-scoped cursor cannot answer.
  */
+/** The queue-row projection. Never the whole order or Person document. */
+const ORDER_ROW = v.object({
+  id: v.id("orders"),
+  reference: v.string(),
+  status: ORDER_STATUS,
+  fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+  items: v.array(
+    v.object({
+      title: v.string(),
+      edition: v.optional(v.string()),
+      quantity: v.number(),
+      unitPaise: v.number(),
+    })
+  ),
+  itemsPaise: v.number(),
+  deliveryPaise: v.number(),
+  totalPaise: v.number(),
+  address: v.optional(
+    v.object({
+      line1: v.string(),
+      line2: v.optional(v.string()),
+      city: v.string(),
+      district: v.optional(v.string()),
+      pin: v.string(),
+    })
+  ),
+  placedAt: v.number(),
+  seen: v.boolean(),
+  revision: v.number(),
+  buyerName: v.string(),
+  buyerPhone: v.string(),
+})
+
 export const adminOrdersPage = query({
   args: { paginationOpts: paginationOptsValidator },
+  returns: paginated(ORDER_ROW),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { page: [], isDone: true, continueCursor: "" }
@@ -166,6 +202,7 @@ export async function readOrdersPage(
 /** Whether this caller may see the fulfilment queue at all. */
 export const canSeeOrders = query({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx) => (await requireStaff(ctx)).ok,
 })
 
@@ -185,6 +222,7 @@ export const canSeeOrders = query({
  */
 export const orderCounts = query({
   args: {},
+  returns: v.object({ open: v.number(), unseen: v.number() }),
   handler: async (ctx) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { open: 0, unseen: 0 }
@@ -222,6 +260,7 @@ export const setOrderStatus = mutation({
     status: ORDER_STATUS,
     expectedRevision: v.number(),
   },
+  returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return staff
@@ -292,6 +331,7 @@ export async function applyStatusChange(
  */
 export const markOrderSeen = mutation({
   args: { orderId: v.id("orders") },
+  returns: mutationResult({}),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return staff

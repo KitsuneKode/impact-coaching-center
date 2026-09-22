@@ -1,6 +1,12 @@
 import { v } from "convex/values"
 
-import { checkRevision, invalidInput, revisionOf, viewerPerson } from "./authz"
+import {
+  checkRevision,
+  invalidInput,
+  mutationResult,
+  revisionOf,
+  viewerPerson,
+} from "./authz"
 import { mutation } from "./_generated/server"
 
 /**
@@ -47,6 +53,7 @@ export const setOwnName = mutation({
     family: v.string(),
     expectedRevision: v.number(),
   },
+  returns: mutationResult({ revision: v.number(), name: v.string() }),
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
     if (!viewer.ok) return viewer

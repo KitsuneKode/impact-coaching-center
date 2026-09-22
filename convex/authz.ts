@@ -1,3 +1,6 @@
+import { v } from "convex/values"
+import type { GenericValidator, PropertyValidators } from "convex/values"
+
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"
 import { components } from "./_generated/api"
@@ -51,6 +54,39 @@ export const revisionConflict = (current: number): Refusal => ({
   reason: "revision-conflict",
   current,
 })
+
+/**
+ * The Refusal type as a returns validator, so a public mutation that
+ * accidentally returns something else - or a future field riding along on a
+ * projection - fails loudly at the boundary instead of reaching the client.
+ */
+export const REFUSAL = v.union(
+  v.object({ ok: v.literal(false), reason: v.literal("anonymous") }),
+  v.object({ ok: v.literal(false), reason: v.literal("forbidden") }),
+  v.object({ ok: v.literal(false), reason: v.literal("missing-record") }),
+  v.object({
+    ok: v.literal(false),
+    reason: v.literal("invalid-input"),
+    field: v.optional(v.string()),
+  }),
+  v.object({
+    ok: v.literal(false),
+    reason: v.literal("revision-conflict"),
+    current: v.number(),
+  })
+)
+
+/** `{ page, isDone, continueCursor }`, the shape `usePaginatedQuery` needs. */
+export const paginated = <V extends GenericValidator>(row: V) =>
+  v.object({
+    page: v.array(row),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  })
+
+/** `{ ok: true, ...fields }` on success, a Refusal otherwise. */
+export const mutationResult = <S extends PropertyValidators>(success: S) =>
+  v.union(v.object({ ok: v.literal(true), ...success }), REFUSAL)
 
 type Ctx = QueryCtx | MutationCtx
 export type Viewer = NonNullable<Awaited<ReturnType<typeof findVerifiedPerson>>>

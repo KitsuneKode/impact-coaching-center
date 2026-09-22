@@ -4,11 +4,14 @@ import { betterAuth } from "better-auth/minimal"
 
 import { chooseTransport, sendOtp } from "../lib/otp-transport"
 import { phoneAuthOptions } from "../lib/phone-auth"
+import { v } from "convex/values"
+
 import { components, internal } from "./_generated/api"
 import type { DataModel } from "./_generated/dataModel"
 import { query } from "./_generated/server"
 import authConfig from "./auth.config"
 import { findVerifiedPerson } from "./persons"
+import { PERSON_ROLE } from "./schema"
 
 export const authComponent = createClient<DataModel>(components.betterAuth)
 
@@ -113,6 +116,20 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
  */
 export const getCurrentPerson = query({
   args: {},
+  // The caller's own Person projection, or null when signed out. Never the
+  // auth-component document, which carries the synthetic @person.ict.invalid
+  // address ADR-0001 says must never surface.
+  returns: v.union(
+    v.object({
+      id: v.id("persons"),
+      name: v.string(),
+      phone: v.string(),
+      role: PERSON_ROLE,
+      verifiedAt: v.number(),
+      revision: v.number(),
+    }),
+    v.null()
+  ),
   handler: async (ctx) => {
     // safeGetAuthUser is deliberate: getAuthUser throws ConvexError
     // "Unauthenticated" for anonymous visitors, so a public page calling it

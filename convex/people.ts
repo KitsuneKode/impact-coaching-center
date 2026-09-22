@@ -7,11 +7,15 @@ import {
   forbidden,
   invalidInput,
   missingRecord,
+  mutationResult,
   ownerCount,
+  paginated,
   requireOwner,
   revisionOf,
   type Viewer,
 } from "./authz"
+import { PERSON_ROLE } from "./schema"
+import type { Id } from "./_generated/dataModel"
 import { internalMutation, mutation, query } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
 
@@ -26,7 +30,7 @@ import type { MutationCtx } from "./_generated/server"
 
 /** The fields the admin list needs. Never the whole Person document. */
 const project = (person: {
-  _id: string
+  _id: Id<"persons">
   name: string
   phone: string
   role: "student" | "staff" | "owner"
@@ -41,6 +45,16 @@ const project = (person: {
   verifiedAt: person.verifiedAt,
 })
 
+/** The admin-list projection, as a returns validator. Never the whole doc. */
+const ADMIN_ROW = v.object({
+  id: v.id("persons"),
+  name: v.string(),
+  phone: v.string(),
+  role: PERSON_ROLE,
+  revision: v.number(),
+  verifiedAt: v.optional(v.number()),
+})
+
 /**
  * Staff and owners, paginated.
  *
@@ -51,6 +65,7 @@ const project = (person: {
  */
 export const listAdmins = query({
   args: { paginationOpts: paginationOptsValidator },
+  returns: paginated(ADMIN_ROW),
   handler: async (ctx, args) => {
     // A plain PaginationResult, because `usePaginatedQuery` requires that
     // shape. `canManagePeople` answers access on its own, the same split the
@@ -113,12 +128,6 @@ async function recordRoleChange(
   })
 }
 
-const ROLE = v.union(
-  v.literal("student"),
-  v.literal("staff"),
-  v.literal("owner")
-)
-
 /**
  * Change somebody's role.
  *
@@ -133,9 +142,10 @@ const ROLE = v.union(
 export const setRole = mutation({
   args: {
     personId: v.id("persons"),
-    role: ROLE,
+    role: PERSON_ROLE,
     expectedRevision: v.number(),
   },
+  returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
     const owner = await requireOwner(ctx)
     if (!owner.ok) return owner
@@ -179,6 +189,7 @@ export const setRole = mutation({
  */
 export const grantStaffByPhone = mutation({
   args: { phone: v.string() },
+  returns: mutationResult({}),
   handler: async (ctx, args) => {
     const owner = await requireOwner(ctx)
     if (!owner.ok) return owner
@@ -226,6 +237,7 @@ export const grantStaffByPhone = mutation({
  */
 export const bootstrapOwner = internalMutation({
   args: { phone: v.string() },
+  returns: mutationResult({}),
   handler: async (ctx, args) => {
     if ((await ownerCount(ctx)) > 0) return forbidden
 
@@ -260,5 +272,6 @@ export const bootstrapOwner = internalMutation({
  */
 export const canManagePeople = query({
   args: {},
+  returns: v.boolean(),
   handler: async (ctx) => (await requireOwner(ctx)).ok,
 })
