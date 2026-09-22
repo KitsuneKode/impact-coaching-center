@@ -2,19 +2,11 @@
 
 import { IconLock, IconUserPlus } from "@tabler/icons-react"
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
-import type { ReactNode } from "react"
 import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { Badge } from "@/components/ui/badge"
 import { Button, ButtonLink } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import {
   Field,
   FieldDescription,
@@ -28,8 +20,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from "@/components/ui/input-group"
-import { Section } from "@/components/ui/section"
-import { Skeleton } from "@/components/ui/skeleton"
+import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -62,20 +53,9 @@ const REFUSALS: Record<string, string> = {
     "Somebody else changed this person while this page was open. Reload to see the current state.",
 }
 
-function Shell({ title, children }: { title: ReactNode; children: ReactNode }) {
-  return (
-    <main>
-      <Section size="sm">
-        <h1 className="type-display">{title}</h1>
-        <div className="mt-10">{children}</div>
-      </Section>
-    </main>
-  )
-}
-
 export default function AdminPeoplePage() {
   if (!convexConfigured)
-    return <Shell title="People">Not available here.</Shell>
+    return <PageShell title="People">Not available here.</PageShell>
   return <People />
 }
 
@@ -96,34 +76,26 @@ function People() {
 
   if (allowed === undefined || status === "LoadingFirstPage")
     return (
-      <Shell title={<span className="text-foreground">People.</span>}>
-        <div className="flex flex-col gap-3" aria-hidden="true">
-          {Array.from({ length: 4 }, (_, i) => (
-            <Skeleton key={i} className="h-11 w-full rounded-control" />
-          ))}
-        </div>
-      </Shell>
+      <PageShell title={<span className="text-foreground">People.</span>}>
+        <ListSkeleton rows={4} />
+      </PageShell>
     )
 
   if (!allowed)
     return (
-      <Shell title={<span className="text-foreground">Owner only.</span>}>
-        <Empty className="max-w-160 items-start rounded-card border border-border text-left">
-          <EmptyHeader className="max-w-none items-start">
-            <EmptyMedia variant="icon">
-              <IconLock stroke={1.75} />
-            </EmptyMedia>
-            <EmptyTitle>Only an owner can manage access</EmptyTitle>
-            <EmptyDescription>
-              Staff can read the enquiry queue. Granting and revoking access is
-              the owner&apos;s alone.
-            </EmptyDescription>
-          </EmptyHeader>
-          <ButtonLink href="/admin/leads" size="md">
-            Back to enquiries
-          </ButtonLink>
-        </Empty>
-      </Shell>
+      <PageShell title={<span className="text-foreground">Owner only.</span>}>
+        <StatePanel
+          icon={<IconLock stroke={1.75} />}
+          title="Only an owner can manage access"
+          description="Staff can read the enquiry queue. Granting and revoking access is the owner's alone."
+          action={
+            <ButtonLink href="/admin/leads" size="md">
+              {" "}
+              Back to enquiries{" "}
+            </ButtonLink>
+          }
+        />
+      </PageShell>
     )
 
   async function onGrant(event: React.FormEvent) {
@@ -147,7 +119,7 @@ function People() {
   }
 
   return (
-    <Shell title={<span className="text-foreground">People.</span>}>
+    <PageShell title={<span className="text-foreground">People.</span>}>
       <form onSubmit={onGrant} noValidate className="max-w-112">
         <FieldGroup>
           <Field data-invalid={error ? true : undefined}>
@@ -256,6 +228,6 @@ function People() {
           </Button>
         </div>
       ) : null}
-    </Shell>
+    </PageShell>
   )
 }

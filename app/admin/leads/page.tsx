@@ -2,21 +2,12 @@
 
 import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
-import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { Badge } from "@/components/ui/badge"
 import { ButtonLink } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Button } from "@/components/ui/button"
-import { Section } from "@/components/ui/section"
-import { Skeleton } from "@/components/ui/skeleton"
+import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -45,22 +36,6 @@ function when(at: number | undefined) {
     hour: "numeric",
     minute: "2-digit",
   })
-}
-
-/**
- * One shell for every state, so the page cannot change shape underneath the
- * reader as data arrives, and so the heading is present before it does -
- * docs/design-guide.md §6.
- */
-function Shell({ title, children }: { title: ReactNode; children: ReactNode }) {
-  return (
-    <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <h1 className="type-display">{title}</h1>
-        <div className="mt-10">{children}</div>
-      </Section>
-    </main>
-  )
 }
 
 /**
@@ -93,21 +68,13 @@ export default function AdminLeadsPage() {
  */
 function Unavailable() {
   return (
-    <Shell title={<span className="text-foreground">Enquiries.</span>}>
-      <Empty className="max-w-160 items-start rounded-card border border-border text-left">
-        <EmptyHeader className="max-w-none items-start">
-          <EmptyMedia variant="icon">
-            <IconPlugConnectedX stroke={1.75} />
-          </EmptyMedia>
-          <EmptyTitle>Not available here</EmptyTitle>
-          <EmptyDescription>
-            This copy of the site has no connection to the enquiry database, so
-            there is nothing to show. Nothing is wrong with your account. If you
-            are seeing this on the live site, tell whoever maintains it.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </Shell>
+    <PageShell title={<span className="text-foreground">Enquiries.</span>}>
+      <StatePanel
+        icon={<IconPlugConnectedX stroke={1.75} />}
+        title="Not available here"
+        description="This copy of the site has no connection to the enquiry database, so there is nothing to show. Nothing is wrong with your account. If you are seeing this on the live site, tell whoever maintains it."
+      />
+    </PageShell>
   )
 }
 
@@ -126,7 +93,7 @@ function Inbox() {
   // the page is a table of enquiries before the enquiries arrive.
   if (allowed === undefined || status === "LoadingFirstPage")
     return (
-      <Shell
+      <PageShell
         title={
           <>
             <span className="text-foreground">Enquiries.</span>{" "}
@@ -134,54 +101,40 @@ function Inbox() {
           </>
         }
       >
-        <div className="flex flex-col gap-3" aria-hidden="true">
-          {Array.from({ length: 5 }, (_, index) => (
-            <Skeleton key={index} className="h-11 w-full rounded-control" />
-          ))}
-        </div>
-      </Shell>
+        <ListSkeleton rows={5} />
+      </PageShell>
     )
 
   if (!allowed)
     return (
-      <Shell title={<span className="text-foreground">Staff only.</span>}>
-        <Empty className="max-w-160 items-start rounded-card border border-border text-left">
-          <EmptyHeader className="max-w-none items-start">
-            <EmptyMedia variant="icon">
-              <IconLock stroke={1.75} />
-            </EmptyMedia>
-            <EmptyTitle>This page is for ICT staff</EmptyTitle>
-            <EmptyDescription>
-              If you are staff and seeing this, log in with the number ICT has
-              on file for you.
-            </EmptyDescription>
-          </EmptyHeader>
-          <ButtonLink href="/login?next=/admin/leads" size="md">
-            Log in
-          </ButtonLink>
-        </Empty>
-      </Shell>
+      <PageShell title={<span className="text-foreground">Staff only.</span>}>
+        <StatePanel
+          icon={<IconLock stroke={1.75} />}
+          title="This page is for ICT staff"
+          description="If you are staff and seeing this, log in with the number ICT has on file for you."
+          action={
+            <ButtonLink href="/login?next=/admin/leads" size="md">
+              {" "}
+              Log in{" "}
+            </ButtonLink>
+          }
+        />
+      </PageShell>
     )
 
   if (leads.length === 0)
     return (
-      <Shell title={<span className="text-foreground">Enquiries.</span>}>
-        <Empty className="max-w-160 items-start rounded-card border border-border text-left">
-          <EmptyHeader className="max-w-none items-start">
-            <EmptyMedia variant="icon">
-              <IconInbox stroke={1.75} />
-            </EmptyMedia>
-            <EmptyTitle>No enquiries yet</EmptyTitle>
-            <EmptyDescription>
-              They appear here as soon as someone sends the form on the site.
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </Shell>
+      <PageShell title={<span className="text-foreground">Enquiries.</span>}>
+        <StatePanel
+          icon={<IconInbox stroke={1.75} />}
+          title="No enquiries yet"
+          description="They appear here as soon as someone sends the form on the site."
+        />
+      </PageShell>
     )
 
   return (
-    <Shell
+    <PageShell
       /*
        * No count. It used to read "N to follow up" from whatever the single
        * query returned, which stopped being true the moment there was a
@@ -249,6 +202,6 @@ function Inbox() {
           </Button>
         </div>
       ) : null}
-    </Shell>
+    </PageShell>
   )
 }

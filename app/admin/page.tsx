@@ -5,14 +5,7 @@ import { useQuery } from "convex/react"
 
 import { convexConfigured } from "@/app/providers"
 import { ButtonLink } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
-import { Section } from "@/components/ui/section"
+import { PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 
 /**
@@ -36,14 +29,12 @@ export default function AdminHome() {
 
 function Unavailable() {
   return (
-    <main>
-      <Section size="sm">
-        <h1 className="type-display">Admin</h1>
-        <p className="type-lede mt-4 text-muted-foreground">
-          This copy of the site has no connection to the database.
-        </p>
-      </Section>
-    </main>
+    <PageShell title="Admin">
+      <StatePanel
+        title="Not available here"
+        description="This copy of the site has no connection to the database, so there is nothing to show. Nothing is wrong with your account."
+      />
+    </PageShell>
   )
 }
 
@@ -55,52 +46,41 @@ function Home() {
 
   if (!isStaff)
     return (
-      <main>
-        <Section size="sm" className="pt-26 md:pt-30">
-          <h1 className="type-display">
-            <span className="text-foreground">Staff only.</span>
-          </h1>
-          <div className="mt-10">
-            <Empty className="max-w-160 items-start rounded-card border border-border text-left">
-              <EmptyHeader className="max-w-none items-start">
-                <EmptyMedia variant="icon">
-                  <IconLock stroke={1.75} />
-                </EmptyMedia>
-                <EmptyTitle>This area is for ICT staff</EmptyTitle>
-                <EmptyDescription>
-                  If you are staff and seeing this, log in with the number ICT
-                  has on file for you.
-                </EmptyDescription>
-              </EmptyHeader>
-              <ButtonLink href="/login?next=/admin" size="md">
-                Log in
-              </ButtonLink>
-            </Empty>
-          </div>
-        </Section>
-      </main>
+      <PageShell title={<span className="text-foreground">Staff only.</span>}>
+        <StatePanel
+          icon={<IconLock stroke={1.75} />}
+          title="This area is for ICT staff"
+          description="If you are staff and seeing this, log in with the number ICT has on file for you."
+          action={
+            <ButtonLink href="/login?next=/admin" size="md">
+              Log in
+            </ButtonLink>
+          }
+        />
+      </PageShell>
     )
 
   return (
-    <main>
-      <Section size="sm">
-        <h1 className="type-display">
+    <PageShell
+      title={
+        <>
           <span className="text-foreground">Admin.</span>{" "}
           <span className="text-muted-foreground">
             {viewer.name.trim() || "Signed in"}.
           </span>
-        </h1>
-        <div className="mt-10 max-w-160">
-          <ButtonLink href="/admin/leads" size="md">
-            <IconInbox stroke={1.75} />
-            Go to enquiries
-          </ButtonLink>
-          <p className="mt-6 text-sm text-muted-foreground">
-            Books, resources and orders appear here as they are built. Nothing
-            is hidden behind a placeholder.
-          </p>
-        </div>
-      </Section>
-    </main>
+        </>
+      }
+    >
+      <div className="max-w-160">
+        <ButtonLink href="/admin/leads" size="md">
+          <IconInbox stroke={1.75} />
+          Go to enquiries
+        </ButtonLink>
+        <p className="mt-6 text-sm text-muted-foreground">
+          Books, resources and orders appear here as they are built. Nothing is
+          hidden behind a placeholder.
+        </p>
+      </div>
+    </PageShell>
   )
 }
