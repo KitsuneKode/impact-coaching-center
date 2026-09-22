@@ -89,8 +89,15 @@ export default defineSchema({
     waWindowExpiresAt: v.optional(v.number()),
   })
     .index("by_phone", ["phone"])
-    // The follow-up queue: a lead status, then most recently active first.
+    // Status, then time within that status. Not the inbox order: the status
+    // string would put "lost" ahead of "interested".
     .index("by_leadStatus", ["leadStatus", "lastEnquiryAt"])
+    /*
+     * The inbox order: most recently active first, across every status.
+     * Persons with no enquiry carry no lastEnquiryAt and sort to the end of
+     * a descending scan; the query filters them out regardless.
+     */
+    .index("by_lastEnquiryAt", ["lastEnquiryAt"])
     /*
      * Staff and owners, for the admin surface and for last-owner protection.
      *
@@ -109,6 +116,7 @@ export default defineSchema({
     personId: v.id("persons"),
     kind: v.union(
       v.literal("status_change"),
+      v.literal("role_change"),
       v.literal("note"),
       v.literal("call"),
       v.literal("enquiry"),

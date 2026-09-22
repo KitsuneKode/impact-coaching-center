@@ -16,11 +16,7 @@ const original = { ...process.env }
 const fetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch")!
 afterEach(() => {
   Object.defineProperty(globalThis, "fetch", fetchDescriptor)
-  for (const key of [
-    "LEAD_INGEST_SECRET",
-    "LEAD_WEBHOOK_URL",
-    "NEXT_PUBLIC_CONVEX_SITE_URL",
-  ]) {
+  for (const key of ["LEAD_INGEST_SECRET", "NEXT_PUBLIC_CONVEX_SITE_URL"]) {
     if (original[key] === undefined) delete process.env[key]
     else process.env[key] = original[key]
   }
@@ -40,11 +36,34 @@ function form() {
 
 describe("enquiry action delivery", () => {
   test("missing configuration offers handoff without claiming receipt", async () => {
-    delete process.env.LEAD_INGEST_SECRET
-    delete process.env.LEAD_WEBHOOK_URL
-    const state = await submitLead({ status: "idle" }, form())
-    expect(state.status).toBe("handoff")
-    if (state.status === "handoff") expect(state.phone).toBe("+919876543210")
+    const mocked = mock((..._args: Parameters<typeof fetch>) =>
+      Promise.resolve(new Response(null, { status: 204 }))
+    )
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      value: mocked,
+    })
+    try {
+      const cases: Array<Record<string, string | undefined>> = [
+        {},
+        { LEAD_INGEST_SECRET: "test-only-ingestion-secret" },
+        { NEXT_PUBLIC_CONVEX_SITE_URL: "https://example.convex.site" },
+      ]
+      for (const env of cases) {
+        delete process.env.LEAD_INGEST_SECRET
+        delete process.env.NEXT_PUBLIC_CONVEX_SITE_URL
+        for (const [key, value] of Object.entries(env)) {
+          if (value) process.env[key] = value
+        }
+        const state = await submitLead({ status: "idle" }, form())
+        expect(state.status).toBe("handoff")
+        if (state.status === "handoff")
+          expect(state.phone).toBe("+919876543210")
+      }
+      expect(mocked).not.toHaveBeenCalled()
+    } finally {
+      Object.defineProperty(globalThis, "fetch", fetchDescriptor)
+    }
   })
   test("only acknowledged delivery succeeds; failures preserve the handoff", async () => {
     process.env.LEAD_INGEST_SECRET = "test-only-ingestion-secret"

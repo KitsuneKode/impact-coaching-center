@@ -78,10 +78,12 @@ const OPEN_STATUSES = new Set([
  * answered separately by `canSeeOrders`, so a screen can say "staff only"
  * without fetching a page of somebody's addresses to find out.
  *
- * Ordered newest first. The `by_status` index exists for the status-scoped
- * view; this one deliberately reads the whole queue in time order, because
- * the admin filters client-side across every status at once and a status-
- * scoped cursor cannot answer "everything, newest first".
+ * Ordered newest first, on the table's own creation order - `placedAt` is
+ * written at insert, so creation order is placement order. An earlier cut
+ * scanned `by_person`, whose first key is the buyer: that reads the queue
+ * grouped by person, not by time, and a new order could land mid-list.
+ * `by_status` exists for status-scoped views; the admin filters client-side
+ * across every status at once, which a status-scoped cursor cannot answer.
  */
 export const adminOrdersPage = query({
   args: { paginationOpts: paginationOptsValidator },
@@ -91,7 +93,6 @@ export const adminOrdersPage = query({
 
     const result = await ctx.db
       .query("orders")
-      .withIndex("by_person")
       .order("desc")
       .paginate(args.paginationOpts)
 

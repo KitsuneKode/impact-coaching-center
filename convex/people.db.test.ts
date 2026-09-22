@@ -1,7 +1,13 @@
 import { convexTest } from "convex-test"
 import { describe, expect, test } from "bun:test"
 
-import { checkRevision, ownerCount, revisionOf } from "./authz"
+import {
+  checkRevision,
+  ownerCount,
+  revisionOf,
+  sessionStale,
+  STAFF_SESSION_MAX_MS,
+} from "./authz"
 import { internal } from "./_generated/api"
 import schema from "./schema"
 
@@ -96,5 +102,76 @@ describe("the revision convention", () => {
     // a client holding a higher number than the database is reading something
     // this deployment did not write.
     expect(checkRevision({ revision: 2 }, 7)).not.toBeNull()
+  })
+})
+
+describe("the staff session cutoff", () => {
+  test("a session inside the window is fresh", () => {
+    const now = 1_000_000_000_000
+    expect(sessionStale(now - STAFF_SESSION_MAX_MS + 1, now)).toBe(false)
+  })
+
+  test("a session past seven days is stale, however active", () => {
+    // Hard-capped on createdAt: refresh bumps updatedAt, not the birthday,
+    // or a daily user would ride the sliding window forever.
+    const now = 1_000_000_000_000
+    expect(sessionStale(now - STAFF_SESSION_MAX_MS - 1, now)).toBe(true)
+    expect(sessionStale(0, now)).toBe(true)
+  })
+})
+
+describe("bootstrapOwner", () => {
+  test("grants the first owner, audited, from a verified Person", async () => {
+    const t = convexTest(schema, modules)
+    const id = await person(t, "+919876543210", "student")
+
+    const result = await t.mutation(internal.people.bootstrapOwner, {
+      phone: "98765 43210", // raw input is normalised before lookup
+    })
+    expect(result).toEqual({ ok: true })
+
+    const doc = await t.run((ctx) => ctx.db.get(id))
+    expect(doc?.role).toBe("owner")
+    expect(doc?.revision).toBe(1)
+
+    const audit = await t.run((ctx) =>
+      ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) => q.eq("personId", id))
+        .collect()
+    )
+    expect(audit).toHaveLength(1)
+    expect(audit[0]!.kind).toBe("role_change")
+    expect(audit[0]!.body).toContain("owner")
+  })
+
+  test("refuses once any owner exists", async () => {
+    const t = convexTest(schema, modules)
+    await person(t, "+919876543210", "owner")
+    const second = await person(t, "+919876543211", "student")
+
+    const result = await t.mutation(internal.people.bootstrapOwner, {
+      phone: "+919876543211",
+    })
+    expect(result).toEqual({ ok: false, reason: "forbidden" })
+
+    const doc = await t.run((ctx) => ctx.db.get(second))
+    expect(doc?.role).toBe("student")
+  })
+
+  test("never creates a Person and never promotes an unverified one", async () => {
+    const t = convexTest(schema, modules)
+    expect(
+      await t.mutation(internal.people.bootstrapOwner, {
+        phone: "+919999999999",
+      })
+    ).toEqual({ ok: false, reason: "missing-record" })
+
+    await person(t, "+919876543212", "student", { verified: false })
+    expect(
+      await t.mutation(internal.people.bootstrapOwner, {
+        phone: "+919876543212",
+      })
+    ).toEqual({ ok: false, reason: "invalid-input", field: "verification" })
   })
 })

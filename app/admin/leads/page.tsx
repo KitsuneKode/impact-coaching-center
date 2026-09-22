@@ -16,9 +16,9 @@ import { api } from "@/convex/_generated/api"
  * a write needs an audit record and a considered undo story. Seeing the queue
  * is the half that is safe to ship first.
  *
- * The role check is NOT here. `api.leads.inbox` refuses a non-staff caller
- * itself, because a guard in this component protects the markup and not the
- * data - the query is one fetch away for anyone with a session.
+ * The role check is NOT here. `api.leads.inboxPage` refuses a non-staff
+ * caller itself, because a guard in this component protects the markup and
+ * not the data - the query is one fetch away for anyone with a session.
  */
 export default function AdminLeadsPage() {
   // Checked before any hook runs, and in a parent rather than around the hook

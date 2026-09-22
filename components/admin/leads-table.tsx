@@ -72,16 +72,17 @@ export type Lead = {
 /**
  * The follow-up queue as a real data table.
  *
- * `@tanstack/react-table` and the four `@dnd-kit` packages have been in
- * package.json since dashboard-01 was installed, and nothing used them: the
- * block's own DataTable was stripped because it shipped with invented rows,
- * and a plain `<table>` went in instead. This is the table that was supposed
- * to replace it - sorting, filtering, column visibility and selection, built
- * on the dependency that was already being paid for.
+ * `@tanstack/react-table` came in with the dashboard-01 block and sat
+ * unused: the block's own DataTable was stripped because it shipped with
+ * invented rows, and a plain `<table>` went in instead. This is the table
+ * that was supposed to replace it - sorting, filtering, column visibility
+ * and selection, built on the dependency that was already being paid for.
+ * (The four `@dnd-kit` packages the block also installed were removed -
+ * drag-to-reorder is meaningless for a queue ordered by when people got in
+ * touch.)
  *
- * Not taken from the block: drag-to-reorder, which is meaningless for a queue
- * ordered by when people got in touch, and the metric cards and area chart,
- * which had no real numbers behind them.
+ * Not taken from the block: the metric cards and area chart, which had no
+ * real numbers behind them.
  *
  * **On pagination.** The block paginates an array it already holds, so it can
  * count pages. Convex paginates with cursors: `usePaginatedQuery` accumulates

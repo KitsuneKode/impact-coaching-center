@@ -26,18 +26,24 @@ staff or owner. `/admin/leads` is currently unreachable by every human being.
 
 ## Decisions taken 22 September
 
-**Owner bootstrap: by hand, in the Convex dashboard.** Whoever holds dashboard
-access patches one Person row to `role: "owner"`, once. Zero code and zero
-attack surface, for something that happens once in the life of the product.
-Recovery is the same action again. Every later staff member is granted by the
-owner in the admin UI, never by an environment variable and never by anything
-a public input can reach.
+**Owner bootstrap: `people.bootstrapOwner`, an internal mutation** — run once
+from the deployment owner's terminal (`npx convex run`). It grants `owner` to
+an E.164 phone only while zero owners exist, only onto an already-verified
+Person (the owner signs in once with WhatsApp OTP first), writes a
+`role_change` audit row, and re-opens automatically if every owner is ever
+removed — which is also the recovery path. No HTTP route, nothing public can
+reach it. **Break-glass fallback:** a direct Person-row edit in the Convex
+dashboard bypasses the audit row, so it is documented as emergency-only, not
+the procedure. Every later staff member is granted by the owner in the admin
+UI, never by an environment variable and never by anything a public input can
+reach.
 
 Rejected: an `OWNER_PHONES` allowlist (turns a one-time act into a standing
 privilege — anyone with deploy access can grant themselves owner); a one-time
 bootstrap token (most code and most to get wrong, for a single event);
 first-verified-Person-becomes-owner (races against any visitor who finds the
-site before ICT does).
+site before ICT does); dashboard-edit as the _only_ path (zero audit trail,
+no guard against patching the wrong row — retained as break-glass).
 
 **Shell: contract plus a real dashboard shell**, built from a registry sidebar
 block rather than composed by hand.

@@ -1,5 +1,6 @@
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"
+import { components } from "./_generated/api"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
 
 /**
@@ -80,14 +81,59 @@ export async function requireStaff(ctx: Ctx): Promise<Decision<Viewer>> {
   const viewer = await viewerPerson(ctx)
   if (!viewer.ok) return viewer
   const { role } = viewer.value
-  return role === "staff" || role === "owner" ? viewer : forbidden
+  if (role !== "staff" && role !== "owner") return forbidden
+  if (!(await privilegedSessionFresh(ctx))) return anonymous
+  return viewer
 }
 
 /** Owner only. Every write that changes who may do what goes through this. */
 export async function requireOwner(ctx: Ctx): Promise<Decision<Viewer>> {
   const viewer = await viewerPerson(ctx)
   if (!viewer.ok) return viewer
-  return viewer.value.role === "owner" ? viewer : forbidden
+  if (viewer.value.role !== "owner") return forbidden
+  if (!(await privilegedSessionFresh(ctx))) return anonymous
+  return viewer
+}
+
+/**
+ * Seven days, hard-capped from sign-in, for anyone touching staff data.
+ *
+ * Spec §10 asks for 7-day staff sessions against a 90-day student session.
+ * Better Auth cannot express the split - `session.expiresIn` is global, and
+ * shortening a staff row's expiry is silently undone by the next sliding
+ * refresh - so the boundary lives here instead, in the check every
+ * privileged call already makes. A stale session answers `anonymous`, which
+ * is the refusal that sends somebody through verification again, minting a
+ * fresh session. That is what "expired" is supposed to mean.
+ *
+ * Hard-capped on `createdAt`, not sliding on `updatedAt`: a cap that
+ * refreshes with activity is a cap a daily user never meets, which is a
+ * 7-day lifetime in name only.
+ */
+export const STAFF_SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Pure comparison, split out so the boundary is testable. */
+export function sessionStale(createdAt: number, now: number): boolean {
+  return now - createdAt > STAFF_SESSION_MAX_MS
+}
+
+/**
+ * Whether the caller's session is young enough for staff work.
+ *
+ * The session row is read through the component's adapter - the same
+ * `findOne` lookup `safeGetAuthUser` performs - because the Convex identity
+ * carries only the session id, not its age. A session that cannot be found
+ * is not fresh: the check fails closed.
+ */
+async function privilegedSessionFresh(ctx: Ctx): Promise<boolean> {
+  const identity = await ctx.auth.getUserIdentity()
+  if (!identity?.sessionId) return false
+  const session = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+    model: "session",
+    where: [{ field: "_id", value: identity.sessionId as string }],
+  })) as { createdAt?: number } | null
+  if (!session?.createdAt) return false
+  return !sessionStale(session.createdAt, Date.now())
 }
 
 /**

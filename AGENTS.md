@@ -43,7 +43,7 @@ Run `bun run check` after code changes and `bun run build` for changes that affe
 
 Oxlint is the sole lint runner. Its native `nextjs` plugin implements every rule in Next.js 16.3.5's `@next/eslint-plugin-next` recommended and Core Web Vitals sets, so retaining ESLint would duplicate coverage and dependency cost. Reassess this boundary when either tool changes; add a narrow ESLint layer only for a demonstrated rule gap.
 
-The two file-level JSX accessibility exceptions in `.oxlintrc.json` cover analyzer limitations: the polymorphic button anchor receives content through typed props, and the lead-success container intentionally uses `role="status"` because an HTML `output` element cannot contain its block layout. Do not broaden these exceptions.
+The file-level lint exceptions in `.oxlintrc.json` cover analyzer limitations and vendored primitives: the polymorphic button anchor receives content through typed props, the lead-success container intentionally uses `role="status"` because an HTML `output` element cannot contain its block layout, and the `components/ui` shadcn/Base-UI primitives carry narrow file-scoped exceptions (mostly `prefer-tag-over-role` on library markup the analyzer misreads). Each exception is scoped to a named file — do not broaden a rule globally, and add a file-scoped exception only when the markup is genuinely correct and the analyzer is wrong.
 
 ## Design system and composition
 

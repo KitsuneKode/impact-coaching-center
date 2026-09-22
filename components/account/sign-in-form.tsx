@@ -277,7 +277,8 @@ export function SignInForm({ next }: { next: string }) {
             <FieldError>{phoneError ?? formError}</FieldError>
           ) : (
             <FieldDescription>
-              New to ICT? This creates your account.
+              We send a WhatsApp code to this number — no password. New to ICT?
+              This creates your account.
             </FieldDescription>
           )}
         </Field>

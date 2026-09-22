@@ -1,3 +1,6 @@
+> **Snapshot, 11 Sep 2026.** This file records the pitch build. It is not the
+> current status of the project. Current status is `docs/plans/README.md`.
+
 # Checkpoint: pitch build 1
 
 **Date** 11 Sep 2026
@@ -93,9 +96,6 @@ checkout disagrees with.
 
 ## C. Conversion
 
-- [ ] **`LEAD_WEBHOOK_URL` is not set.** Leads currently reach the Vercel
-      function log only. Point it at a Google Sheet, Zapier or Slack before
-      showing the owner the form.
 - [ ] Test that a submitted lead actually arrives wherever it is pointed.
 - [ ] Confirm both phone numbers ring, and that WhatsApp is on
       +91 86380 61175.
