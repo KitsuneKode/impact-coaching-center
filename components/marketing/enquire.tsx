@@ -131,6 +131,13 @@ export function Enquire() {
                 src={`https://www.google.com/maps?q=${place.lat},${place.lng}&z=17&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
+                // The minimum a Maps embed needs to render and open "view
+                // larger map". Everything else - top navigation, forms,
+                // modals - stays denied. `allow-scripts` with
+                // `allow-same-origin` can technically lift its own sandbox,
+                // but the framed origin is google.com itself, so the escape
+                // hatch is held by the party we already trust to serve it.
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                 className="absolute inset-0 size-full border-0 grayscale-[0.2]"
               />
             </div>

@@ -286,9 +286,11 @@ export function trackForCourse(id: number) {
  * Courses that get their own page: every course a track points at. The older
  * Victor 5.0 to 7.0 intakes and the Rs 11 internship stay off the site.
  */
-export const listedCourseIds = tracks.flatMap((track) =>
-  [track.flagshipId, ...track.alsoIds, track.freeId].filter(
-    (id): id is number => id !== null
+export const listedCourseIds = new Set(
+  tracks.flatMap((track) =>
+    [track.flagshipId, ...track.alsoIds, track.freeId].filter(
+      (id): id is number => id !== null
+    )
   )
 )
 

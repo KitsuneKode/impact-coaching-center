@@ -8,7 +8,7 @@ import { siteUrl } from "@/lib/site"
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const courses = catalogue
-    .filter((course) => listedCourseIds.includes(course.id))
+    .filter((course) => listedCourseIds.has(course.id))
     .map((course) => ({
       url: `${siteUrl}/courses/${course.slug}`,
       changeFrequency: "weekly" as const,

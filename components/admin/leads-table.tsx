@@ -152,6 +152,7 @@ function ago(at: number) {
 
 function exact(at: number) {
   return new Date(at).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",

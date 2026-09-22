@@ -33,6 +33,13 @@ function ToggleGroup({
     spacing?: number
     orientation?: "horizontal" | "vertical"
   }) {
+  // A fresh object each render would wake every item even when nothing
+  // changed; the provider value is stable by construction.
+  const value = React.useMemo(
+    () => ({ variant, size, spacing, orientation }),
+    [variant, size, spacing, orientation]
+  )
+
   return (
     <ToggleGroupPrimitive
       data-slot="toggle-group"
@@ -47,9 +54,7 @@ function ToggleGroup({
       )}
       {...props}
     >
-      <ToggleGroupContext.Provider
-        value={{ variant, size, spacing, orientation }}
-      >
+      <ToggleGroupContext.Provider value={value}>
         {children}
       </ToggleGroupContext.Provider>
     </ToggleGroupPrimitive>

@@ -3,11 +3,11 @@
 import { IconPlayerPlayFilled } from "@tabler/icons-react"
 import {
   AnimatePresence,
-  motion,
   useMotionValue,
   useReducedMotion,
   useSpring,
 } from "motion/react"
+import * as m from "motion/react-m"
 import Image from "next/image"
 import { useRef, useState, type PointerEvent } from "react"
 
@@ -102,7 +102,7 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
       {/* floating preview, desktop pointers only */}
       <AnimatePresence>
         {active && !reduce ? (
-          <motion.div
+          <m.div
             aria-hidden
             className="pointer-events-none absolute top-0 left-0 z-10 hidden w-72 md:block"
             style={{ x: sx, y: sy }}
@@ -126,7 +126,7 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
                 />
               ))}
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </div>

@@ -13,11 +13,7 @@ import {
 import { useMutation } from "convex/react"
 import { useMemo, useState } from "react"
 
-import {
-  nextStatuses,
-  OrderStatusBadge,
-  ORDER_STATUS_LABELS,
-} from "@/components/admin/order-status"
+import { OrderStatusBadge } from "@/components/admin/order-status"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -49,6 +45,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatPhone } from "@/lib/brand"
 import { formatPaise } from "@/lib/money"
+import { nextStatuses, ORDER_STATUS_LABELS } from "@/lib/order-status"
 
 export type OrderRow = {
   id: Id<"orders">
@@ -122,6 +119,7 @@ function ago(at: number) {
 
 function exact(at: number) {
   return new Date(at).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",

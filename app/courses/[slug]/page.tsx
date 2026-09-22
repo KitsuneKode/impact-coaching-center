@@ -40,7 +40,7 @@ export const dynamicParams = false
 
 export function generateStaticParams() {
   return catalogue
-    .filter((course) => listedCourseIds.includes(course.id))
+    .filter((course) => listedCourseIds.has(course.id))
     .map((course) => ({ slug: course.slug }))
 }
 

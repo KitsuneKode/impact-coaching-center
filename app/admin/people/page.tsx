@@ -117,8 +117,15 @@ function People() {
       return
     }
     setBusy(true)
-    const result = await grant({ phone: e164 })
-    setBusy(false)
+    let result: Awaited<ReturnType<typeof grant>>
+    try {
+      result = await grant({ phone: e164 })
+    } catch {
+      setError("Could not reach the server. Try again.")
+      return
+    } finally {
+      setBusy(false)
+    }
     // The number is never cleared on failure: an owner who mistyped one digit
     // should fix that digit, not retype ten.
     if (!result.ok) {

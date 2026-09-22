@@ -170,7 +170,7 @@ export async function consumeRateLimit(
     .query("rateLimits")
     .withIndex("by_window", (q) => q.lt("windowStart", now - STALE_AFTER))
     .take(PRUNE_PER_CALL)
-  for (const row of stale) await ctx.db.delete(row._id)
+  await Promise.all(stale.map((row) => ctx.db.delete(row._id)))
 
   const existing = await ctx.db
     .query("rateLimits")

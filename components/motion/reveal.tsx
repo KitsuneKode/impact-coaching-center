@@ -1,6 +1,7 @@
 "use client"
 
-import { motion, useReducedMotion, type HTMLMotionProps } from "motion/react"
+import { useReducedMotion, type HTMLMotionProps } from "motion/react"
+import * as m from "motion/react-m"
 import { Children, type ReactNode } from "react"
 
 const EASE = [0.16, 1, 0.3, 1] as const
@@ -28,7 +29,7 @@ export function Reveal({
   as?: "div" | "li" | "section"
 }) {
   const reduce = useReducedMotion()
-  const Tag = motion[as] as React.ComponentType<HTMLMotionProps<"div">>
+  const Tag = m[as] as React.ComponentType<HTMLMotionProps<"div">>
 
   return (
     <Tag
@@ -66,7 +67,7 @@ export function RevealGroup({
   const reduce = useReducedMotion()
   const items = Children.toArray(children)
   const Wrapper = as
-  const Item = as === "div" ? motion.div : motion.li
+  const Item = as === "div" ? m.div : m.li
 
   return (
     <Wrapper className={className}>

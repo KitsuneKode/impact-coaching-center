@@ -7,7 +7,8 @@ import {
   IconInfoCircle,
   IconLoader2,
 } from "@tabler/icons-react"
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, useReducedMotion } from "motion/react"
+import * as m from "motion/react-m"
 import { useActionState, useEffect, useId, useRef, useState } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
@@ -130,7 +131,7 @@ export function LeadForm() {
     <div className="rounded-card border border-border bg-surface p-6 md:p-8">
       <AnimatePresence mode="wait" initial={false}>
         {state.status !== "idle" && state.status !== "error" && !again ? (
-          <motion.div key="done" {...swap} role="status" aria-live="polite">
+          <m.div key="done" {...swap} role="status" aria-live="polite">
             {state.status === "ok" ? (
               <IconCircleCheckFilled
                 size={28}
@@ -196,9 +197,9 @@ export function LeadForm() {
             >
               Ask about another exam
             </button>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div key="form" {...swap}>
+          <m.div key="form" {...swap}>
             <form ref={formRef} action={action} noValidate className="relative">
               {invalid.length > 0 ? (
                 <div
@@ -340,7 +341,7 @@ export function LeadForm() {
                 </Button>
               </div>
             </form>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

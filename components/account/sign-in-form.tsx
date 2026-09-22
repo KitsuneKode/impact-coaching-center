@@ -45,6 +45,12 @@ const CODE_MESSAGES: Record<string, string> = {
     "Changing a number needs ICT staff. Please call them.",
   SEND_OTP_NOT_IMPLEMENTED:
     "Verification is not available yet. Please call or message ICT.",
+  // Not server codes - thrown failures (offline, dropped request) caught and
+  // mapped in send/verify, because those never come back as {error} at all.
+  SEND_FAILED:
+    "The code could not be sent. Check your connection and try again.",
+  VERIFY_FAILED:
+    "The code could not be checked. Check your connection and try again.",
 }
 
 /** Spec §10. Courtesy only - the real ceiling is three sends per ten minutes. */
@@ -116,10 +122,13 @@ export function SignInForm({ next }: { next: string }) {
     if (!checkPhone(phone)) return
 
     setPending(true)
-    const { error } = await authClient.phoneNumber.sendOtp({
-      phoneNumber: phone,
-    })
-    setPending(false)
+    // A send that throws (offline, a dropped request) rather than returning
+    // {error} must not leave the button spinning forever or crash the submit
+    // with nothing shown - catch it into the same honest message.
+    const { error } = await authClient.phoneNumber
+      .sendOtp({ phoneNumber: phone })
+      .catch(() => ({ error: { code: "SEND_FAILED" } }))
+      .finally(() => setPending(false))
     // `phone` is never cleared on failure. Whatever went wrong, the visitor
     // should not have to type their number again to find out what.
     if (error) {
@@ -133,11 +142,10 @@ export function SignInForm({ next }: { next: string }) {
   async function verify(value: string) {
     setFormError(null)
     setPending(true)
-    const { error } = await authClient.phoneNumber.verify({
-      phoneNumber: phone,
-      code: value,
-    })
-    setPending(false)
+    const { error } = await authClient.phoneNumber
+      .verify({ phoneNumber: phone, code: value })
+      .catch(() => ({ error: { code: "VERIFY_FAILED" } }))
+      .finally(() => setPending(false))
     if (error) {
       setFormError(messageFor(error))
       return

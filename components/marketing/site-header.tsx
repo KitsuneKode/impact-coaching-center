@@ -6,7 +6,8 @@ import {
   IconPhone,
   IconX,
 } from "@tabler/icons-react"
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, useReducedMotion } from "motion/react"
+import * as m from "motion/react-m"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useId, useRef, useState } from "react"
@@ -142,7 +143,7 @@ export function SiteHeader() {
 
       <AnimatePresence>
         {open ? (
-          <motion.div
+          <m.div
             id={panelId}
             ref={panelRef}
             initial={
@@ -194,7 +195,7 @@ export function SiteHeader() {
                 {offer.cta}
               </ButtonAnchor>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </header>
