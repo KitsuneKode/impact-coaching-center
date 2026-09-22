@@ -4,7 +4,7 @@ import { IconLogout } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
-import { NAV, OWNER_NAV } from "@/components/admin/nav"
+import { COMMERCE_NAV, NAV, OWNER_NAV } from "@/components/admin/nav"
 import {
   Command,
   CommandDialog,
@@ -64,7 +64,9 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
     action()
   }
 
-  const destinations = isOwner ? [...NAV, ...OWNER_NAV] : NAV
+  const destinations = isOwner
+    ? [...NAV, ...COMMERCE_NAV, ...OWNER_NAV]
+    : [...NAV, ...COMMERCE_NAV]
 
   return (
     <CommandDialog

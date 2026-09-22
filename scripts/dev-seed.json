@@ -6,15 +6,26 @@
     "`daysAgo` is relative, so a reseed always produces an inbox that looks current. Fractions are allowed - 0.25 is six hours ago.",
     "`leadStatus` is one of: new, contacted, interested, enrolled, lost.",
     "`note` lands on the activity record, never on the Person, because staff notes must not sit on a row that could be exported.",
-    "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local."
+    "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local.",
+    "`orders` prices are in RUPEES here and stored as integer paise. `daysAgo` is relative like the enquiries. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address, by design."
   ],
-
   "people": [
-    { "phone": "8134827648", "name": "", "role": "owner" },
-    { "phone": "9435279647", "name": "", "role": "student" },
-    { "phone": "9999900001", "name": "Ritu Das", "role": "staff" }
+    {
+      "phone": "8134827648",
+      "name": "",
+      "role": "owner"
+    },
+    {
+      "phone": "9435279647",
+      "name": "",
+      "role": "student"
+    },
+    {
+      "phone": "9999900001",
+      "name": "Ritu Das",
+      "role": "staff"
+    }
   ],
-
   "enquiries": [
     {
       "name": "Nabajyoti Saikia",
@@ -267,6 +278,297 @@
       "daysAgo": 104,
       "note": "Asked for a call back in the new year.",
       "verified": true
+    }
+  ],
+  "orders": [
+    {
+      "reference": "ICT-2481",
+      "phone": "9999910001",
+      "name": "Nabajyoti Saikia",
+      "status": "paid",
+      "fulfilment": "delivery",
+      "daysAgo": 0.2,
+      "seen": false,
+      "items": [
+        {
+          "title": "APSC Prelims Companion",
+          "quantity": 1,
+          "unitRupees": 420,
+          "edition": "2026 edition"
+        },
+        {
+          "title": "ADRE Practice Papers",
+          "quantity": 1,
+          "unitRupees": 280
+        }
+      ],
+      "deliveryRupees": 60,
+      "address": {
+        "line1": "House 14, Milanpur Path",
+        "city": "North Lakhimpur",
+        "pin": "787001",
+        "district": "Lakhimpur"
+      }
+    },
+    {
+      "reference": "ICT-2480",
+      "phone": "9999910004",
+      "name": "Ankita Deka",
+      "status": "paid",
+      "fulfilment": "collection",
+      "daysAgo": 0.6,
+      "seen": false,
+      "items": [
+        {
+          "title": "Assam GK Compendium",
+          "quantity": 2,
+          "unitRupees": 360,
+          "edition": "5th edition"
+        }
+      ],
+      "deliveryRupees": 0
+    },
+    {
+      "reference": "ICT-2479",
+      "phone": "9999910007",
+      "name": "Mridusmita Kalita",
+      "status": "packed",
+      "fulfilment": "delivery",
+      "daysAgo": 1.4,
+      "seen": true,
+      "items": [
+        {
+          "title": "Polity in Focus",
+          "quantity": 1,
+          "unitRupees": 450,
+          "edition": "3rd edition"
+        }
+      ],
+      "deliveryRupees": 60,
+      "address": {
+        "line1": "Ward 6, Near Bihu Field",
+        "city": "Dhakuakhana",
+        "pin": "787055",
+        "district": "Lakhimpur"
+      }
+    },
+    {
+      "reference": "ICT-2478",
+      "phone": "9999910011",
+      "name": "Jyotishman Borah",
+      "status": "shipped",
+      "fulfilment": "delivery",
+      "daysAgo": 3.1,
+      "seen": true,
+      "items": [
+        {
+          "title": "APSC Prelims Companion",
+          "quantity": 1,
+          "unitRupees": 420,
+          "edition": "2026 edition"
+        },
+        {
+          "title": "Assamese Grammar Essentials",
+          "quantity": 1,
+          "unitRupees": 240
+        }
+      ],
+      "deliveryRupees": 70,
+      "address": {
+        "line1": "Qtr 3, Circuit House Road",
+        "city": "Dhemaji",
+        "pin": "787057",
+        "district": "Dhemaji"
+      }
+    },
+    {
+      "reference": "ICT-2477",
+      "phone": "9999910002",
+      "name": "Priyanka Bora",
+      "status": "ready_for_collection",
+      "fulfilment": "collection",
+      "daysAgo": 4.0,
+      "seen": true,
+      "items": [
+        {
+          "title": "ADRE Practice Papers",
+          "quantity": 3,
+          "unitRupees": 280
+        }
+      ],
+      "deliveryRupees": 0
+    },
+    {
+      "reference": "ICT-2476",
+      "phone": "9999910006",
+      "name": "Bhaskar Jyoti Baruah",
+      "status": "delivered",
+      "fulfilment": "delivery",
+      "daysAgo": 8.5,
+      "seen": true,
+      "items": [
+        {
+          "title": "Assam GK Compendium",
+          "quantity": 1,
+          "unitRupees": 360,
+          "edition": "5th edition"
+        }
+      ],
+      "deliveryRupees": 60,
+      "address": {
+        "line1": "Bhimpara, Ward 2",
+        "city": "North Lakhimpur",
+        "pin": "787001"
+      }
+    },
+    {
+      "reference": "ICT-2475",
+      "phone": "9999910012",
+      "name": "Kabita Rabha",
+      "status": "collected",
+      "fulfilment": "collection",
+      "daysAgo": 12.0,
+      "seen": true,
+      "items": [
+        {
+          "title": "Polity in Focus",
+          "quantity": 1,
+          "unitRupees": 450,
+          "edition": "3rd edition"
+        },
+        {
+          "title": "Assamese Grammar Essentials",
+          "quantity": 1,
+          "unitRupees": 240
+        }
+      ],
+      "deliveryRupees": 0
+    },
+    {
+      "reference": "ICT-2474",
+      "phone": "9999910016",
+      "name": "Chayanika Medhi",
+      "status": "awaiting_payment",
+      "fulfilment": "delivery",
+      "daysAgo": 0.05,
+      "seen": false,
+      "items": [
+        {
+          "title": "APSC Prelims Companion",
+          "quantity": 1,
+          "unitRupees": 420,
+          "edition": "2026 edition"
+        }
+      ],
+      "deliveryRupees": 60,
+      "address": {
+        "line1": "Sonapur Gaon",
+        "city": "Bihpuria",
+        "pin": "784161",
+        "district": "Lakhimpur"
+      }
+    },
+    {
+      "reference": "ICT-2473",
+      "phone": "9999910019",
+      "name": "Manash Pratim Sarma",
+      "status": "cancelled",
+      "fulfilment": "delivery",
+      "daysAgo": 16.0,
+      "seen": true,
+      "items": [
+        {
+          "title": "ADRE Practice Papers",
+          "quantity": 1,
+          "unitRupees": 280
+        }
+      ],
+      "deliveryRupees": 60,
+      "address": {
+        "line1": "Ward 9, Station Road",
+        "city": "North Lakhimpur",
+        "pin": "787001"
+      }
+    },
+    {
+      "reference": "ICT-2472",
+      "phone": "9999910023",
+      "name": "Rimpi Choudhury",
+      "status": "refunded",
+      "fulfilment": "delivery",
+      "daysAgo": 21.0,
+      "seen": true,
+      "items": [
+        {
+          "title": "Assam GK Compendium",
+          "quantity": 1,
+          "unitRupees": 360,
+          "edition": "5th edition"
+        },
+        {
+          "title": "Polity in Focus",
+          "quantity": 1,
+          "unitRupees": 450,
+          "edition": "3rd edition"
+        }
+      ],
+      "deliveryRupees": 70,
+      "address": {
+        "line1": "Near Girls College",
+        "city": "North Lakhimpur",
+        "pin": "787001"
+      }
+    },
+    {
+      "reference": "ICT-2471",
+      "phone": "9999910020",
+      "name": "Barsha Rani Talukdar",
+      "status": "paid",
+      "fulfilment": "delivery",
+      "daysAgo": 0.9,
+      "seen": false,
+      "items": [
+        {
+          "title": "Assamese Grammar Essentials",
+          "quantity": 2,
+          "unitRupees": 240
+        }
+      ],
+      "deliveryRupees": 60,
+      "address": {
+        "line1": "Panigaon Road",
+        "city": "North Lakhimpur",
+        "pin": "787001"
+      }
+    },
+    {
+      "reference": "ICT-2470",
+      "phone": "9999910028",
+      "name": "Himangshu Kashyap",
+      "status": "packed",
+      "fulfilment": "collection",
+      "daysAgo": 2.2,
+      "seen": true,
+      "items": [
+        {
+          "title": "APSC Prelims Companion",
+          "quantity": 1,
+          "unitRupees": 420,
+          "edition": "2026 edition"
+        },
+        {
+          "title": "Assam GK Compendium",
+          "quantity": 1,
+          "unitRupees": 360,
+          "edition": "5th edition"
+        },
+        {
+          "title": "ADRE Practice Papers",
+          "quantity": 1,
+          "unitRupees": 280
+        }
+      ],
+      "deliveryRupees": 0
     }
   ]
 }

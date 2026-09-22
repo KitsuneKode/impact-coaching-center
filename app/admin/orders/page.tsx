@@ -1,0 +1,104 @@
+"use client"
+
+import { IconLock, IconPlugConnectedX } from "@tabler/icons-react"
+import { usePaginatedQuery, useQuery } from "convex/react"
+
+import { convexConfigured } from "@/app/providers"
+import { OrdersTable } from "@/components/admin/orders-table"
+import { ButtonLink } from "@/components/ui/button"
+import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
+import { api } from "@/convex/_generated/api"
+
+/**
+ * The fulfilment queue.
+ *
+ * Same split as the enquiry inbox: `canSeeOrders` answers the access question
+ * on its own, so a student who guesses this URL is refused without a page of
+ * somebody's delivery addresses being fetched to find out.
+ *
+ * The role check is not here. `convex/orders.ts` refuses a non-staff caller
+ * itself, because a guard in this component protects the markup and not the
+ * data - the query is one fetch away for anyone with a session.
+ */
+export default function AdminOrdersPage() {
+  if (!convexConfigured) return <Unavailable />
+  return <Orders />
+}
+
+function Unavailable() {
+  return (
+    <PageShell
+      density="working"
+      title={<span className="text-foreground">Orders.</span>}
+    >
+      <StatePanel
+        icon={<IconPlugConnectedX stroke={1.75} />}
+        title="Not available here"
+        description="This copy of the site has no connection to the order database, so there is nothing to show. Nothing is wrong with your account."
+      />
+    </PageShell>
+  )
+}
+
+function Orders() {
+  const allowed = useQuery(api.orders.canSeeOrders)
+  const {
+    results: orders,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.orders.adminOrdersPage, {}, { initialNumItems: 25 })
+
+  if (allowed === undefined || status === "LoadingFirstPage")
+    return (
+      <PageShell
+        density="working"
+        title={
+          <>
+            <span className="text-foreground">Orders.</span>{" "}
+            <span className="text-muted-foreground">Loading…</span>
+          </>
+        }
+      >
+        <ListSkeleton rows={6} />
+      </PageShell>
+    )
+
+  if (!allowed)
+    return (
+      <PageShell
+        density="working"
+        title={<span className="text-foreground">Staff only.</span>}
+      >
+        <StatePanel
+          icon={<IconLock stroke={1.75} />}
+          title="This page is for ICT staff"
+          description="If you are staff and seeing this, log in with the number ICT has on file for you."
+          action={
+            <ButtonLink href="/login?next=/admin/orders" size="md">
+              Log in
+            </ButtonLink>
+          }
+        />
+      </PageShell>
+    )
+
+  return (
+    <PageShell
+      density="working"
+      /*
+       * No count in the heading, for the reason the inbox has none: a number
+       * derived from the page that happens to be loaded looks authoritative
+       * and stops being true at the second page. The filter row carries an
+       * honest "N of M loaded" instead.
+       */
+      title={<span className="text-foreground">Orders.</span>}
+    >
+      <OrdersTable
+        orders={orders}
+        canLoadMore={status === "CanLoadMore"}
+        loadingMore={status === "LoadingMore"}
+        onLoadMore={() => loadMore(25)}
+      />
+    </PageShell>
+  )
+}

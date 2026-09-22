@@ -17,8 +17,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { NAV, OWNER_NAV } from "@/components/admin/nav"
+import { COMMERCE_NAV, NAV, OWNER_NAV } from "@/components/admin/nav"
 import { NavUser } from "@/components/admin/nav-user"
+import { SidebarMenuBadge } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
 import { brand } from "@/lib/brand"
 
@@ -26,6 +27,13 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const viewer = useQuery(api.auth.getCurrentPerson)
   const isOwner = viewer?.role === "owner"
+  /*
+   * The closest thing to a notification this product can honestly offer.
+   * A real alert needs a channel, and the only one here is WhatsApp, which is
+   * not implemented (KIT-46). Rather than a bell that does nothing, the
+   * number staff actually act on sits on the nav item they would open anyway.
+   */
+  const counts = useQuery(api.orders.orderCounts)
 
   return (
     <Sidebar collapsible="icon">
@@ -57,6 +65,35 @@ export function AdminSidebar() {
                     <item.icon stroke={1.75} />
                     <span>{item.label}</span>
                   </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Commerce</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {COMMERCE_NAV.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    isActive={pathname === item.href}
+                    tooltip={item.label}
+                    render={<Link href={item.href} />}
+                  >
+                    <item.icon stroke={1.75} />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                  {/*
+                   * Unseen, not open. A badge counting everything still to do
+                   * never reaches zero on a working day, so it stops being
+                   * read; one counting orders nobody has looked at yet is a
+                   * thing a person can actually clear.
+                   */}
+                  {counts && counts.unseen > 0 ? (
+                    <SidebarMenuBadge>{counts.unseen}</SidebarMenuBadge>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

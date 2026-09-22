@@ -26,6 +26,7 @@ const noindexRoutes = [
   "/account",
   "/admin",
   "/admin/leads",
+  "/admin/orders",
   "/admin/people",
 ]
 

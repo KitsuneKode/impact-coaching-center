@@ -2,6 +2,7 @@ import { v } from "convex/values"
 
 import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
+import { ORDER_STATUS } from "./schema"
 
 /**
  * Development fixtures: Persons at each role, without a handset each.
@@ -154,6 +155,117 @@ export const seedEnquiries = internalMutation({
 })
 
 /**
+ * Orders, so the fulfilment queue can be designed against something.
+ *
+ * Items carry their own title and price exactly as a real order does - the
+ * snapshot is the point, and a fixture that referenced a books table would be
+ * modelling something the product does not do.
+ *
+ * Each order is attached to the seeded enquiry with the matching phone, so
+ * the queue shows real buyer names and the same Person appears in both
+ * screens. A phone with no seeded Person is created as one, because an order
+ * from nobody is not a state the product can produce.
+ */
+export const seedOrders = internalMutation({
+  args: {
+    orders: v.array(
+      v.object({
+        reference: v.string(),
+        phone: v.string(),
+        name: v.string(),
+        status: ORDER_STATUS,
+        fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+        daysAgo: v.number(),
+        seen: v.optional(v.boolean()),
+        items: v.array(
+          v.object({
+            title: v.string(),
+            edition: v.optional(v.string()),
+            quantity: v.number(),
+            /** Rupees in the fixture, paise in the database. */
+            unitRupees: v.number(),
+          })
+        ),
+        deliveryRupees: v.number(),
+        address: v.optional(
+          v.object({
+            line1: v.string(),
+            line2: v.optional(v.string()),
+            city: v.string(),
+            district: v.optional(v.string()),
+            pin: v.string(),
+          })
+        ),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+
+    const now = Date.now()
+    const day = 24 * 60 * 60 * 1000
+    let written = 0
+
+    for (const order of args.orders) {
+      const phone = toE164(order.phone)
+      if (!phone)
+        throw new Error(`Not a valid Indian mobile number: ${order.phone}`)
+
+      const existing = await ctx.db
+        .query("persons")
+        .withIndex("by_phone", (q) => q.eq("phone", phone))
+        .unique()
+
+      const placedAt = now - order.daysAgo * day
+      const personId =
+        existing?._id ??
+        (await ctx.db.insert("persons", {
+          phone,
+          name: order.name,
+          role: "student",
+          source: SEED_SOURCE,
+          revision: 0,
+          updatedAt: placedAt,
+        }))
+
+      // Rupees in the fixture because that is how a person writes a price;
+      // paise in the database because that is the only way to add them up
+      // without a rounding error turning into a wrong charge.
+      const items = order.items.map((item) => ({
+        title: item.title,
+        edition: item.edition,
+        quantity: item.quantity,
+        unitPaise: Math.round(item.unitRupees * 100),
+      }))
+      const itemsPaise = items.reduce(
+        (sum, item) => sum + item.unitPaise * item.quantity,
+        0
+      )
+      const deliveryPaise = Math.round(order.deliveryRupees * 100)
+
+      await ctx.db.insert("orders", {
+        personId,
+        reference: order.reference,
+        status: order.status,
+        fulfilment: order.fulfilment,
+        items,
+        itemsPaise,
+        deliveryPaise,
+        totalPaise: itemsPaise + deliveryPaise,
+        address: order.address,
+        placedAt,
+        updatedAt: placedAt,
+        seenAt: order.seen ? placedAt : undefined,
+        revision: 0,
+      })
+      written += 1
+    }
+
+    return { written }
+  },
+})
+
+/**
  * Take back what this module wrote, without destroying what a person earned.
  *
  * Seeding has to be repeatable to be useful - a fixture you can only apply
@@ -189,6 +301,7 @@ export const clearSeed = internalMutation({
     let removed = 0
     let kept = 0
     let activities = 0
+    let orders = 0
 
     for (const person of seeded) {
       const owned = await ctx.db
@@ -198,6 +311,21 @@ export const clearSeed = internalMutation({
       for (const activity of owned) {
         await ctx.db.delete(activity._id)
         activities += 1
+      }
+
+      /*
+       * Orders go with the Person whether or not the Person survives. An
+       * order is a record of a purchase that never happened, so nothing about
+       * it is worth keeping across a reset - and one whose buyer row was just
+       * deleted would be an orphan the queue still tries to render.
+       */
+      const placed = await ctx.db
+        .query("orders")
+        .withIndex("by_person", (q) => q.eq("personId", person._id))
+        .collect()
+      for (const order of placed) {
+        await ctx.db.delete(order._id)
+        orders += 1
       }
 
       if (person.verifiedAt) {
@@ -215,7 +343,7 @@ export const clearSeed = internalMutation({
       removed += 1
     }
 
-    return { removed, keptVerified: kept, activities }
+    return { removed, keptVerified: kept, activities, orders }
   },
 })
 

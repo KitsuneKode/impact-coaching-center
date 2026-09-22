@@ -49,6 +49,7 @@ async function run(fn: string, args: unknown) {
 type Fixture = {
   people?: unknown[]
   enquiries?: unknown[]
+  orders?: unknown[]
 }
 
 const flags = new Set(process.argv.slice(2))
@@ -74,6 +75,16 @@ if (!flags.has("--clear")) {
       await run("internal.devSeed.seedEnquiries", {
         enquiries: fixture.enquiries,
       })
+    )
+  }
+  /*
+   * Orders last: each attaches to the Person with its phone number, so the
+   * enquiries have to exist first or every order would create a bare Person
+   * of its own and the two screens would disagree about who these people are.
+   */
+  if (fixture.orders?.length) {
+    console.log(
+      await run("internal.devSeed.seedOrders", { orders: fixture.orders })
     )
   }
 }

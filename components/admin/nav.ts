@@ -1,4 +1,9 @@
-import { IconInbox, IconLayoutDashboard, IconUsers } from "@tabler/icons-react"
+import {
+  IconInbox,
+  IconLayoutDashboard,
+  IconPackage,
+  IconUsers,
+} from "@tabler/icons-react"
 
 /**
  * Where staff can go, in one place.
@@ -17,6 +22,19 @@ export const NAV = [
   { href: "/admin/leads", label: "Enquiries", icon: IconInbox },
 ] as const
 
+/**
+ * Fulfilment, kept apart from the enquiry work.
+ *
+ * Its own group rather than another row under "Work" because it is a
+ * different job with a different rhythm: enquiries are worked by calling
+ * people, orders by packing parcels, and the two are usually the same person
+ * at different times of day. A sidebar that separates them lets someone open
+ * the one they are in the middle of without reading past the other.
+ */
+export const COMMERCE_NAV = [
+  { href: "/admin/orders", label: "Orders", icon: IconPackage },
+] as const
+
 /** Owner-only destinations, hidden from staff rather than merely disabled. */
 export const OWNER_NAV = [
   { href: "/admin/people", label: "People", icon: IconUsers },
@@ -32,6 +50,8 @@ export const OWNER_NAV = [
  * "people" and every future hyphenated route into nonsense.
  */
 export function labelForPath(pathname: string): string | null {
-  const match = [...NAV, ...OWNER_NAV].find((item) => item.href === pathname)
+  const match = [...NAV, ...COMMERCE_NAV, ...OWNER_NAV].find(
+    (item) => item.href === pathname
+  )
   return match?.label ?? null
 }

@@ -254,6 +254,15 @@ components/.
 
 ### C3 — Cart, orders and Razorpay
 
+> **Orders already exist. Extend, do not create.** The frontend lane built
+> `convex/schema.ts`'s `orders` table, `convex/orders.ts` (paginated staff
+> query, a guarded status machine, seen-tracking, counts) and the `/admin/orders`
+> queue, because the fulfilment screen was needed before this lane started.
+> Read them first. What is deliberately absent and still yours: the cart, the
+> checkout that creates an order, the Razorpay flow, and everything that sets
+> an order to `paid` - which is why `paid` is the one status the admin cannot
+> set by hand.
+
 [KIT-59](https://linear.app/kitsunekode/issue/KIT-59) then
 [KIT-60](https://linear.app/kitsunekode/issue/KIT-60)
 
