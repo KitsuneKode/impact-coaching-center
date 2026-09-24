@@ -13,7 +13,7 @@ import { useActionState, useEffect, useId, useRef, useState } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Button, ButtonAnchor } from "@/components/ui/button"
-import { contact, formatPhone, offer, timings } from "@/lib/brand"
+import { contact, formatPhone, timings } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { enquiryTracks, HONEYPOT_FIELD, type LeadField } from "@/lib/leads"
 import { cn } from "@/lib/utils"
@@ -334,7 +334,7 @@ export function LeadForm() {
                     </>
                   ) : (
                     <>
-                      {offer.cta}
+                      Request a call back
                       <IconArrowRight data-nudge stroke={1.75} />
                     </>
                   )}

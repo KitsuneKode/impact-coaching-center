@@ -8,7 +8,7 @@ import type { CSSProperties } from "react"
 
 import {
   BatchCountdown,
-  UntilBatchStarts,
+  UntilDate,
 } from "@/components/marketing/batch-countdown"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { ButtonAnchor } from "@/components/ui/button"
@@ -20,13 +20,14 @@ import {
   nextBatch,
   offer,
 } from "@/lib/brand"
+import { hasStarted } from "@/lib/batch-date"
 import { contactHref } from "@/lib/contact"
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
 const startDate = new Date(`${nextBatch.startsOn}T00:00:00+05:30`)
 /** Settled at build: a build made after the start never renders the banner. */
-const startedAtBuild = Date.now() >= startDate.getTime()
+const startedAtBuild = hasStarted(nextBatch.startsOn)
 
 const startLabel = startDate.toLocaleDateString("en-IN", {
   weekday: "long",
@@ -58,7 +59,7 @@ export function Hero() {
       <div className="container-page">
         {/* the one eyebrow on the page: a real, dated batch, until it starts */}
         {startedAtBuild ? null : (
-          <UntilBatchStarts>
+          <UntilDate date={nextBatch.startsOn}>
             <a
               href={contactHref({ kind: "workshop" })}
               target="_blank"
@@ -84,7 +85,7 @@ export function Hero() {
                 className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
               />
             </a>
-          </UntilBatchStarts>
+          </UntilDate>
         )}
 
         {/*

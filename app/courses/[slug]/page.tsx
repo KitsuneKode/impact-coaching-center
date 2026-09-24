@@ -15,7 +15,6 @@ import type { CSSProperties } from "react"
 
 import { Enquire } from "@/components/marketing/enquire"
 import { Faq } from "@/components/marketing/faq"
-import { FinalCta } from "@/components/marketing/final-cta"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
@@ -439,7 +438,6 @@ export default async function CoursePage({
 
       <Faq />
       <Enquire />
-      <FinalCta />
     </main>
   )
 }

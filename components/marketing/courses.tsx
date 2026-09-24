@@ -7,16 +7,17 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 
+import { UntilDate } from "@/components/marketing/batch-countdown"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
+import { hasStarted } from "@/lib/batch-date"
 import { courseById, inr } from "@/lib/catalogue"
 import {
   facultyBySlug,
   fees,
   lectureStill,
-  offer,
   tracks,
   type Track,
 } from "@/lib/brand"
@@ -182,15 +183,17 @@ function TrackCard({
         </dl>
       ) : null}
 
-      {track.startsOn ? (
-        <p
-          className={cn(
-            "mt-5 rounded-control px-3 py-2 text-sm",
-            featured ? "bg-white/10" : "bg-highlight/25"
-          )}
-        >
-          Batch start date: {startsLabel(track.startsOn)}
-        </p>
+      {track.startsOn && !hasStarted(track.startsOn) ? (
+        <UntilDate date={track.startsOn}>
+          <p
+            className={cn(
+              "mt-5 rounded-control px-3 py-2 text-sm",
+              featured ? "bg-white/10" : "bg-highlight/25"
+            )}
+          >
+            Batch start date: {startsLabel(track.startsOn)}
+          </p>
+        </UntilDate>
       ) : null}
 
       <div className={cn("mt-auto border-t pt-5", rule)}>
@@ -280,12 +283,6 @@ export function Courses() {
             featured={track.slug === "apsc"}
           />
         ))}
-      </Reveal>
-
-      <Reveal delay={0.14}>
-        <p className="mt-6 text-sm text-muted-foreground">
-          {fees.scholarship} {offer.promise}
-        </p>
       </Reveal>
     </Section>
   )

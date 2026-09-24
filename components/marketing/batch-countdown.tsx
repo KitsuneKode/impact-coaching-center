@@ -4,12 +4,7 @@ import { type ReactNode, useSyncExternalStore } from "react"
 
 import { nextBatch } from "@/lib/brand"
 
-const DAY = 24 * 60 * 60 * 1000
-
-export function daysUntil(isoDate: string, now = Date.now()) {
-  const start = new Date(`${isoDate}T00:00:00+05:30`).getTime()
-  return Math.ceil((start - now) / DAY)
-}
+import { daysUntil } from "@/lib/batch-date"
 
 /* The clock is an external source: re-read it hourly, and never on the server. */
 function subscribe(onChange: () => void) {
@@ -17,12 +12,16 @@ function subscribe(onChange: () => void) {
   return () => window.clearInterval(timer)
 }
 
-export function useDaysUntilBatch() {
+export function useDaysUntil(isoDate: string) {
   return useSyncExternalStore(
     subscribe,
-    () => daysUntil(nextBatch.startsOn),
+    () => daysUntil(isoDate),
     () => null
   )
+}
+
+export function useDaysUntilBatch() {
+  return useDaysUntil(nextBatch.startsOn)
 }
 
 /**
@@ -53,16 +52,21 @@ export function BatchCountdown() {
 }
 
 /**
- * Renders its children only until the batch starts.
+ * Renders its children only until `date` (ISO, IST) has started.
  *
- * The hero is prerendered, so a banner built before the start date would keep
+ * Pages are prerendered, so a line built before the date would keep
  * advertising "Start date: 14 September" for as long as the build stays up.
- * The server side of the check lives in the hero (it drops the banner from a
- * build made after the start); this is the half that retires it in a build
- * made before.
+ * Server components drop it from builds made after the date (`hasStarted`);
+ * this retires it in builds made before.
  */
-export function UntilBatchStarts({ children }: { children: ReactNode }) {
-  const days = useDaysUntilBatch()
+export function UntilDate({
+  date,
+  children,
+}: {
+  date: string
+  children: ReactNode
+}) {
+  const days = useDaysUntil(date)
   if (days !== null && days < 0) return null
   return children
 }

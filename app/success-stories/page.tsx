@@ -7,7 +7,6 @@ import Image from "next/image"
 import type { CSSProperties } from "react"
 
 import { Enquire } from "@/components/marketing/enquire"
-import { FinalCta } from "@/components/marketing/final-cta"
 import { Guests } from "@/components/marketing/guests"
 import { SelectionCard } from "@/components/marketing/results"
 import { StudentVoices } from "@/components/marketing/student-voices"
@@ -163,7 +162,6 @@ export default function SuccessStoriesPage() {
       </div>
 
       <Enquire />
-      <FinalCta />
     </main>
   )
 }

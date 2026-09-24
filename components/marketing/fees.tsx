@@ -1,10 +1,9 @@
-import { IconPlus } from "@tabler/icons-react"
+import { IconArrowRight, IconPlus } from "@tabler/icons-react"
+import Link from "next/link"
 
 import { Reveal } from "@/components/motion/reveal"
-import { ButtonAnchor } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 import { fees, included, offer } from "@/lib/brand"
-import { contactHref } from "@/lib/contact"
 
 /**
  * What one fee covers, for every batch.
@@ -29,17 +28,16 @@ export function Fees() {
               </span>
             </h2>
 
-            <ButtonAnchor
-              href={contactHref({ kind: "workshop" })}
-              target="_blank"
-              size="lg"
-              className="mt-8 w-full sm:w-auto"
-            >
-              {offer.cta}
-            </ButtonAnchor>
-            <p className="mt-3 max-w-[26rem] text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-6 max-w-[26rem] text-sm leading-relaxed text-muted-foreground">
               {offer.promise}
             </p>
+            <Link
+              href="/courses"
+              className="link mt-4 inline-flex items-center gap-1 text-sm font-medium"
+            >
+              Compare every course and its fee
+              <IconArrowRight size={14} stroke={1.75} aria-hidden />
+            </Link>
           </div>
 
           <ul className="grid gap-x-8 gap-y-3.5 sm:grid-cols-2 lg:content-start">
