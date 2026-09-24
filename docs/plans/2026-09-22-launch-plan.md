@@ -39,7 +39,8 @@ the phase named.
    this folder, a real README, and the owner guide. No new runbooks or agent
    prompts.
 4. Light palette only at launch. Pick one of the two KIT-67 candidates and
-   delete `components/dev/theme-preview.tsx`.
+   delete `components/dev/theme-preview.tsx`. **24 Sep:** both candidates stay
+   and the switch stays until the owner has tried them longer.
 5. Resource gate: verify phone → required first/last name → a three-question,
    skippable, resumable questionnaire (target exam, first attempt or repeater,
    preferred batch). As already settled in
@@ -58,6 +59,13 @@ the phase named.
    policy sign-off, exterior photo, book scans).
 10. **Needs input (Phase 2):** confirm the ICT contract lets you reuse general
     components. Build nothing ICT-specific into Kitsu-Lab either way.
+11. **24 Sep, owner:**
+    - ICT waits on promotions. The owner is still improving `@kitsu/promotions`
+      in Kitsu-Lab and will say when it is ready. Only then does ICT install it
+      and add its adapters. Nothing promotion-related is built here before that.
+    - The past-dated Kouxal poster in "More in APSC" stays. It is revisited
+      with the course-sync work.
+    - "We reply the same day" stays as marketing copy.
 
 ## Architecture: two repositories, one direction of flow
 
@@ -121,6 +129,9 @@ The follow-up queue is the product the client bought first.
 - [ ] Mobile: rows collapse to cards below `md`.
 
 ## Phase 2 — promotions, upstream first (≈2–3 days)
+
+**On hold for ICT (24 Sep):** start the ICT half only when the owner says the
+Kitsu-Lab component is complete (decision 11).
 
 Build in Kitsu-Lab per its spec
 (`docs/superpowers/specs/2026-09-22-promotions-design.md` there), then install.
