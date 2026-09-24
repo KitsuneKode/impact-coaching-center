@@ -45,9 +45,8 @@ export default function SuccessStoriesPage() {
             </span>
             <span className="text-muted-foreground">
               {" "}
-              Three different things get called a result in this industry. Here
-              they are kept apart: what the commission printed, what ICT
-              published, and the officers who came to teach.
+              What the commission printed, what ICT published, and who came to
+              teach, kept apart.
             </span>
           </h1>
         </div>
