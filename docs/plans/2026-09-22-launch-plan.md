@@ -91,16 +91,17 @@ Rules that keep the two in sync without re-doing work:
 
 ## Phase 0 — integrate (≈1 day)
 
-- [ ] Merge `fix/review-batch-1` into the integration branch; resolve against
+- [x] Merge `fix/review-batch-1` into the integration branch; resolve against
       `main`.
-- [ ] Port PR #6's guarantee (at most one acceptable code per phone when sends
+- [x] Port PR #6's guarantee (at most one acceptable code per phone when sends
       overlap) onto `lib/phone-auth.ts` + `convex/otp.ts` as they exist on
-      the base. Keep the tests that express the guarantee; drop machinery the
-      tests do not need. Close PR #6 with a pointer.
-- [ ] Port `holding/ict-auth-completion`'s stale-response guard into
-      `components/account/sign-in-form.tsx`.
+      the base. Merged rather than re-written: only its two old sign-in files
+      conflicted, and its commits riding in means PR #6 shows as merged when
+      this branch lands.
+- [x] Port `holding/ict-auth-completion`'s stale-response guard into
+      `components/account/sign-in-form.tsx` (as `lib/phone-auth-flow.ts`).
 - [ ] Pick the palette; delete the dev switch and the unused palette block.
-- [ ] `/admin` home: replace "orders appear as they are built" with real
+- [x] `/admin` home: replace "orders appear as they are built" with real
       counts (new enquiries, follow-ups due, orders to pack).
 - [ ] Gates: `bun run check`, `bun run build`. Open one PR to `main`.
 - [ ] Archive the superseded branches after the PR merges.
