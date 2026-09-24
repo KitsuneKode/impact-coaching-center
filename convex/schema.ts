@@ -248,4 +248,24 @@ export default defineSchema({
     // find the stale ones this table only ever grows, one row per bucket ever
     // seen.
     .index("by_window", ["windowStart"]),
+
+  /**
+   * One in-flight send and one acceptable code per phone.
+   *
+   * Better Auth's Convex adapter sets `transaction: false`, so deleting a
+   * verification row and inserting the next one are separate mutations.
+   * This row is the acceptance record: a send may proceed only while it
+   * holds `generation`, and verify accepts only `codeHash`. See convex/otp.ts.
+   */
+  otpSendLeases: defineTable({
+    /** E.164. One row per number. */
+    phone: v.string(),
+    generation: v.number(),
+    /** Epoch ms. Zero means nobody is mid-send. */
+    inflightUntil: v.number(),
+    /** HMAC of the live code. Absent once the code is used, expired or aborted. */
+    codeHash: v.optional(v.string()),
+    codeExpiresAt: v.optional(v.number()),
+    attempts: v.number(),
+  }).index("by_phone", ["phone"]),
 })

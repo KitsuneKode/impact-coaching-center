@@ -6,7 +6,7 @@ import { safeReturnPath } from "@/lib/return-path"
 export const metadata: Metadata = {
   title: "Log in",
   description:
-    "Log in to Impact Career Tutorials with your mobile number and a one-time code.",
+    "Log in to Impact Career Tutorials with a WhatsApp code to your mobile number.",
   alternates: { canonical: "/login" },
   // Nothing here is worth a search result, and an indexed log-in page only
   // ever collects the wrong kind of traffic.

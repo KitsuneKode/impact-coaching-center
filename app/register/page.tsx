@@ -6,7 +6,7 @@ import { safeReturnPath } from "@/lib/return-path"
 export const metadata: Metadata = {
   title: "Create your account",
   description:
-    "Create an Impact Career Tutorials account with your mobile number and a one-time code.",
+    "Create an Impact Career Tutorials account with a WhatsApp code to your mobile number.",
   alternates: { canonical: "/register" },
   robots: { index: false, follow: true },
 }

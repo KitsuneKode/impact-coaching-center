@@ -1,7 +1,7 @@
 "use client"
 
 import { IconArrowRight, IconLoader2 } from "@tabler/icons-react"
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 
 import { NameStep } from "@/components/account/name-step"
 import { Button } from "@/components/ui/button"
@@ -25,46 +25,12 @@ import {
 } from "@/components/ui/input-otp"
 import { authClient } from "@/lib/auth-client"
 import { toE164 } from "@/lib/leads"
-
-/**
- * The plugin enumerates its error codes, so the UI maps them rather than
- * matching on prose that a library upgrade could reword.
- *
- * Anything unlisted falls back to the server's own message, which is already
- * written for a person - the send ceilings in convex/otp.ts return a sentence
- * naming the ceiling that actually fired.
- */
-const CODE_MESSAGES: Record<string, string> = {
-  INVALID_PHONE_NUMBER: "Enter a valid Indian mobile number.",
-  INVALID_OTP: "That code is not right. Check it and try again.",
-  OTP_EXPIRED: "That code has expired. Ask for a new one.",
-  OTP_NOT_FOUND: "Ask for a code first.",
-  TOO_MANY_ATTEMPTS:
-    "Too many attempts on this code. Ask for a new one in a few minutes.",
-  PHONE_NUMBER_CANNOT_BE_UPDATED:
-    "Changing a number needs ICT staff. Please call them.",
-  SEND_OTP_NOT_IMPLEMENTED:
-    "Verification is not available yet. Please call or message ICT.",
-  // Not server codes - thrown failures (offline, dropped request) caught and
-  // mapped in send/verify, because those never come back as {error} at all.
-  SEND_FAILED:
-    "The code could not be sent. Check your connection and try again.",
-  VERIFY_FAILED:
-    "The code could not be checked. Check your connection and try again.",
-}
-
-/** Spec §10. Courtesy only - the real ceiling is three sends per ten minutes. */
-const RESEND_SECONDS = 30
-const CODE_LENGTH = 6
-
-function messageFor(error: { code?: string; message?: string } | null) {
-  if (!error) return "Something went wrong. Please try again."
-  return (
-    (error.code && CODE_MESSAGES[error.code]) ||
-    error.message ||
-    "Something went wrong. Please try again."
-  )
-}
+import {
+  CODE_LENGTH,
+  createPhoneAuthFlow,
+  PHONE_AUTH_MESSAGES,
+  RESEND_MS,
+} from "@/lib/phone-auth-flow"
 
 /**
  * One flow, not two.
@@ -79,14 +45,27 @@ export function SignInForm({ next }: { next: string }) {
   const phoneId = useId()
   const codeId = useId()
 
-  const [step, setStep] = useState<"phone" | "code" | "name">("phone")
-  const [phone, setPhone] = useState("")
-  const [code, setCode] = useState("")
+  // One flow per mounted form. It owns every request, so a late answer for a
+  // number that has since been edited, or for a form that has gone, is dropped
+  // instead of moving the wrong number into the code step.
+  const [flow] = useState(() =>
+    createPhoneAuthFlow({
+      send: (phoneNumber) => authClient.phoneNumber.sendOtp({ phoneNumber }),
+      verify: (input) => authClient.phoneNumber.verify(input),
+    })
+  )
+  const { phone, code, sentTo, step, pending, error, resendAt } =
+    useSyncExternalStore(
+      flow.subscribe,
+      flow.getSnapshot,
+      flow.getServerSnapshot
+    )
+  const [verified, setVerified] = useState(false)
   const [phoneError, setPhoneError] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const [cooldown, setCooldown] = useState(0)
+  const cooldown = useSecondsUntil(resendAt)
   const codeRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => () => flow.cancelPending(), [flow])
 
   // Focused the moment the code box appears. Done here rather than with
   // `autoFocus` because that attribute moves focus on first paint wherever the
@@ -96,12 +75,6 @@ export function SignInForm({ next }: { next: string }) {
     if (step === "code") codeRef.current?.focus()
   }, [step])
 
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const timer = setTimeout(() => setCooldown(cooldown - 1), 1000)
-    return () => clearTimeout(timer)
-  }, [cooldown])
-
   /**
    * Validated on blur, never on keystroke: a ten-digit number is wrong for
    * nine of the ten characters it takes to type it, and saying so each time
@@ -110,66 +83,44 @@ export function SignInForm({ next }: { next: string }) {
    */
   function checkPhone(value: string) {
     const ok = Boolean(toE164(value))
-    setPhoneError(ok ? null : CODE_MESSAGES.INVALID_PHONE_NUMBER!)
+    setPhoneError(ok ? null : PHONE_AUTH_MESSAGES.INVALID_PHONE_NUMBER!)
     return ok
   }
 
-  async function send(event?: React.FormEvent) {
+  function send(event?: React.FormEvent) {
     event?.preventDefault()
-    setFormError(null)
     // Checked here as well as on the server so an obvious typo costs no round
-    // trip, and - once WhatsApp lands - no billed message.
-    if (!checkPhone(phone)) return
-
-    setPending(true)
-    // A send that throws (offline, a dropped request) rather than returning
-    // {error} must not leave the button spinning forever or crash the submit
-    // with nothing shown - catch it into the same honest message.
-    const { error } = await authClient.phoneNumber
-      .sendOtp({ phoneNumber: phone })
-      .catch(() => ({ error: { code: "SEND_FAILED" } }))
-      .finally(() => setPending(false))
-    // `phone` is never cleared on failure. Whatever went wrong, the visitor
-    // should not have to type their number again to find out what.
-    if (error) {
-      setFormError(messageFor(error))
-      return
-    }
-    setStep("code")
-    setCooldown(RESEND_SECONDS)
+    // trip, and - once WhatsApp lands - no billed message. `phone` is never
+    // cleared on failure: whatever went wrong, the visitor should not have to
+    // type their number again to find out what.
+    if (step === "phone" && !checkPhone(phone)) return
+    void flow.send()
   }
 
-  async function verify(value: string) {
-    setFormError(null)
-    setPending(true)
-    const { error } = await authClient.phoneNumber
-      .verify({ phoneNumber: phone, code: value })
-      .catch(() => ({ error: { code: "VERIFY_FAILED" } }))
-      .finally(() => setPending(false))
-    if (error) {
-      setFormError(messageFor(error))
-      return
-    }
-    /*
-     * Hand over to the name step rather than redirecting here.
-     *
-     * It decides for itself whether it is needed - a returning Person already
-     * has a name and is sent straight on - so this is not a new gate on every
-     * sign-in. Doing the check here instead would mean reading the Person
-     * before the session has propagated, and guessing wrong either shows the
-     * form to someone who has a name or skips it for someone who does not.
-     */
-    setStep("name")
+  /*
+   * Hand over to the name step rather than redirecting here.
+   *
+   * It decides for itself whether it is needed - a returning Person already
+   * has a name and is sent straight on - so this is not a new gate on every
+   * sign-in. Doing the check here instead would mean reading the Person
+   * before the session has propagated, and guessing wrong either shows the
+   * form to someone who has a name or skips it for someone who does not.
+   */
+  function verify() {
+    void flow.verify(() => setVerified(true))
   }
 
-  if (step === "name") return <NameStep next={next} />
+  const formError = error
+  const busy = pending !== null
+
+  if (verified) return <NameStep next={next} />
 
   if (step === "code") {
     return (
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          void verify(code)
+          verify()
         }}
         noValidate
       >
@@ -182,10 +133,10 @@ export function SignInForm({ next }: { next: string }) {
               id={codeId}
               maxLength={CODE_LENGTH}
               value={code}
-              onChange={setCode}
-              onComplete={(value) => void verify(value)}
+              onChange={flow.setCode}
+              onComplete={verify}
               ref={codeRef}
-              disabled={pending}
+              disabled={busy}
               aria-invalid={formError ? true : undefined}
               containerClassName="justify-start"
             >
@@ -199,14 +150,11 @@ export function SignInForm({ next }: { next: string }) {
               <FieldError>{formError}</FieldError>
             ) : (
               <FieldDescription>
-                Sent on WhatsApp to +91 {phone}.{" "}
+                Sent on WhatsApp to {formatSentTo(sentTo)}.{" "}
                 <button
                   type="button"
-                  onClick={() => {
-                    setStep("phone")
-                    setCode("")
-                    setFormError(null)
-                  }}
+                  onClick={flow.changeNumber}
+                  disabled={pending === "verify"}
                   className="link"
                 >
                   Change number
@@ -216,8 +164,8 @@ export function SignInForm({ next }: { next: string }) {
           </Field>
 
           <Field orientation="horizontal">
-            <Button type="submit" size="md" disabled={pending}>
-              {pending ? (
+            <Button type="submit" size="md" disabled={busy}>
+              {busy ? (
                 <>
                   <IconLoader2 className="animate-spin" stroke={1.75} />
                   Checking
@@ -233,7 +181,7 @@ export function SignInForm({ next }: { next: string }) {
               type="button"
               variant="ghost"
               size="md"
-              disabled={cooldown > 0 || pending}
+              disabled={cooldown > 0 || busy}
               onClick={() => void send()}
             >
               {cooldown > 0 ? `Send again in ${cooldown}s` : "Send a new code"}
@@ -271,7 +219,7 @@ export function SignInForm({ next }: { next: string }) {
               value={phone}
               onChange={(event) => {
                 const value = event.target.value
-                setPhone(value)
+                flow.setPhone(value)
                 if (phoneError) checkPhone(value)
               }}
               onBlur={(event) => {
@@ -292,8 +240,8 @@ export function SignInForm({ next }: { next: string }) {
         </Field>
 
         <Field>
-          <Button type="submit" size="md" disabled={pending}>
-            {pending ? (
+          <Button type="submit" size="md" disabled={busy}>
+            {busy ? (
               <>
                 <IconLoader2 className="animate-spin" stroke={1.75} />
                 Sending
@@ -309,4 +257,29 @@ export function SignInForm({ next }: { next: string }) {
       </FieldGroup>
     </form>
   )
+}
+
+/** "+919876543210" as the visitor typed it: "+91 98765 43210". */
+function formatSentTo(sentTo: string | null) {
+  const national = sentTo?.replace(/^\+91/, "") ?? ""
+  return national.length === 10
+    ? `+91 ${national.slice(0, 5)} ${national.slice(5)}`
+    : (sentTo ?? "")
+}
+
+/** Whole seconds left until `at`, ticking once a second while above zero. */
+function useSecondsUntil(at: number) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (at <= Date.now()) return
+    const timer = setInterval(() => {
+      const current = Date.now()
+      setNow(current)
+      if (current >= at) clearInterval(timer)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [at])
+  // Clamped because `now` is only as fresh as the last tick: right after a
+  // send it can trail the real time by up to a second.
+  return Math.min(RESEND_MS / 1000, Math.max(0, Math.ceil((at - now) / 1000)))
 }
