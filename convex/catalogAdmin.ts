@@ -306,11 +306,17 @@ export async function applySaveBook(
   )
     return invalidInput("sample pages")
 
+  /*
+   * Clash check reads all rows with the slug: `.unique()` throws on
+   * pre-existing corruption, `.first()` can return the record being saved
+   * and miss the duplicate. A slug is taken only when another row owns it.
+   */
   const clash = await ctx.db
     .query("books")
     .withIndex("by_slug", (q) => q.eq("slug", checked.value.slug))
-    .unique()
-  if (clash && clash._id !== args.id) return invalidInput("slug-taken")
+    .collect()
+  if (clash.some((row) => row._id !== args.id))
+    return invalidInput("slug-taken")
 
   const now = Date.now()
   if (!args.id) {
@@ -483,11 +489,13 @@ export async function applySaveResource(
   )
     return invalidInput("pages")
 
+  /* Same rule as saveBook: collect, and a clash is a *different* row. */
   const clash = await ctx.db
     .query("resources")
     .withIndex("by_slug", (q) => q.eq("slug", checked.value.slug))
-    .unique()
-  if (clash && clash._id !== args.id) return invalidInput("slug-taken")
+    .collect()
+  if (clash.some((row) => row._id !== args.id))
+    return invalidInput("slug-taken")
 
   const now = Date.now()
   if (!args.id) {

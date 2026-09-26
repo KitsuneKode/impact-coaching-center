@@ -68,7 +68,32 @@ export const useCart = create<CartState>()(
         set((state) => ({ lines: state.lines.filter((l) => l.slug !== slug) })),
       clear: () => set({ lines: [] }),
     }),
-    { name: "ict-cart", skipHydration: true }
+    {
+      name: "ict-cart",
+      skipHydration: true,
+      /*
+       * v0 carts carried {slug, quantity} with no timestamp. Upgrading in
+       * place with at:0 makes them the oldest copy, so a server line always
+       * wins the merge - anything else would let a stale ghost overwrite a
+       * deliberate server-side change.
+       */
+      version: 1,
+      migrate: (state) => ({
+        lines: (
+          (
+            state as {
+              lines?: { slug: string; quantity: number; at?: number }[]
+            }
+          ).lines ?? []
+        )
+          .filter((line) => line.slug && line.quantity > 0)
+          .map((line) => ({
+            slug: line.slug,
+            quantity: Math.min(MAX_QUANTITY, Math.floor(line.quantity)),
+            at: line.at ?? 0,
+          })),
+      }),
+    }
   )
 )
 
@@ -101,10 +126,22 @@ export function useCartSync() {
   const mergedFor = useRef<string | null>(null)
   const [synced, setSynced] = useState(false)
   const viewerId = viewer?.id ?? null
+  /*
+   * The merge must not run before rehydration: the persisted guest cart is
+   * what the merge is *for*. Merging first would send an empty cart and let
+   * the mirror overwrite the recovered lines.
+   */
+  const [hydrated, setHydrated] = useState(useCart.persist.hasHydrated())
+  useEffect(() => {
+    if (hydrated) return
+    void Promise.resolve(useCart.persist.rehydrate()).then(() =>
+      setHydrated(true)
+    )
+  }, [hydrated])
 
   // Signed-in only: merge this browser's lines into the server cart, once.
   useEffect(() => {
-    if (!viewerId || mergedFor.current === viewerId) return
+    if (!hydrated || !viewerId || mergedFor.current === viewerId) return
     mergedFor.current = viewerId
     mergeCart({ lines: useCart.getState().lines })
       .then((result) => {
@@ -117,14 +154,14 @@ export function useCartSync() {
          what checkout orders from anyway - refusing to proceed would only
          strand a shopper whose server cart was already correct. */
       .finally(() => setSynced(true))
-  }, [viewerId, mergeCart])
+  }, [hydrated, viewerId, mergeCart])
 
   // Server → local mirror. Skipped for guests and until the merge landed.
   useEffect(() => {
-    if (!viewerId || !serverCart) return
+    if (!hydrated || !viewerId || !serverCart) return
     if (!synced && useCart.getState().lines.length > 0) return
     useCart.setState({ lines: serverCart.lines })
-  }, [viewerId, serverCart, synced])
+  }, [hydrated, viewerId, serverCart, synced])
 
   return { synced: !viewerId || synced }
 }

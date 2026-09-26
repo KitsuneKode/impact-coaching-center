@@ -90,7 +90,7 @@ export const book = query({
     const row = await ctx.db
       .query("books")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique()
+      .first()
     return row?.published ? toBook(ctx, row) : null
   },
 })

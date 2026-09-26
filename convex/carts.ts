@@ -135,7 +135,9 @@ export async function setCartLineAs(
   const cart = await readCart(ctx, personId)
   const at = Date.now()
   const rest = (cart?.lines ?? []).filter((line) => line.slug !== slug)
-  if (rest.length >= MAX_LINES) return invalidInput("lines")
+  /* The cap guards additions; a removal must always go through, or a cart
+     at the ceiling could never be emptied. */
+  if (quantity > 0 && rest.length >= MAX_LINES) return invalidInput("lines")
   const lines =
     quantity > 0
       ? [...rest, { slug, quantity: Math.min(MAX_LINE_QUANTITY, quantity), at }]

@@ -96,21 +96,14 @@ export async function placeOrderAs(
     idempotencyKey: string
   }
 ) {
-  /*
-   * Rate-limit before the idempotency shortcut: a flood of identical
-   * requests must still cost budget, the same rule the enquiry intake
-   * applies.
-   */
-  const allowed = await consumeRateLimit(
-    ctx,
-    `order:person:${viewer.id}`,
-    ORDERS_PER_PERSON_HOUR,
-    HOUR
-  )
-  if (!allowed) return { ok: false as const, reason: "rate-limited" as const }
-
   if (!args.idempotencyKey || args.idempotencyKey.length > 80)
     return invalidInput("idempotencyKey")
+  /*
+   * Idempotency before the rate limit: a retry is not a new order, so it
+   * must not spend from the new-orders budget - it would turn "did that go
+   * through?" into a rate-limit refusal when the order exists. Distinct
+   * keys still hit the ceiling below, so a flood of real attempts costs.
+   */
   const prior = await ctx.db
     .query("orders")
     .withIndex("by_idempotency", (q) =>
@@ -127,6 +120,14 @@ export async function placeOrderAs(
       totalPaise: prior.totalPaise,
     }
   }
+
+  const allowed = await consumeRateLimit(
+    ctx,
+    `order:person:${viewer.id}`,
+    ORDERS_PER_PERSON_HOUR,
+    HOUR
+  )
+  if (!allowed) return { ok: false as const, reason: "rate-limited" as const }
 
   if (args.fulfilment === "collection" && args.address !== undefined)
     return invalidInput("address")
