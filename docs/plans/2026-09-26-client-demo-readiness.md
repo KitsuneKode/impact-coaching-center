@@ -112,3 +112,62 @@ Each item is checked by hand on the running app, not inferred from tests.
 8. **Books cart** (KIT-59) with Zustand + persist for the local cart.
 9. Deferred by decision: PostHog, promotions in ICT (shown from Kitsu-Lab),
    ebook reader in ICT (shown from Kitsu-Lab).
+
+## State at end of 26 September 2026
+
+Everything below is on `feat/client-demo-readiness` (PR #10, open,
+mergeable, `bun run check` green). Nothing here is on `main` or production.
+
+### Built after the plan above was written
+
+- Book, cart and free-resource screens under `/preview` (sample content,
+  labelled, noindexed): typographic book covers, exam filters in the URL,
+  quick add, a Zustand cart kept in the browser, one page-by-page reader
+  for book samples and resources.
+- Success stories redesigned: officers first, counted proof strip, one-line
+  trust notes, "Share your result" action.
+- Six homepage concepts at `/redesign/1` to `/redesign/6` (navy or royal
+  blue with gold), all from `app/redesign/_data.ts`.
+- shadcn Sonner toasts; FAQPage JSON-LD; guideline fixes; plain copy;
+  long comments trimmed; `bun run otp` and `bun run demo`.
+- Fixed: enquiries never reached Convex (`LEAD_INGEST_SECRET` unset on both
+  sides; now set on the dev deployment, locally and for this preview only);
+  the login modal stayed open after signing in (empty `@authModal` pages).
+
+### Not yet verified by hand
+
+- [ ] Login modal closes after sign-in (fix 2ea9bf8; browser tool was
+      rate-limited).
+- [ ] Concepts 2 to 6 viewed in a browser, desktop and phone.
+- [ ] `/preview` screens at phone width and in the dark palettes.
+- [ ] `bun run build` after the concepts were added.
+
+### Open, in order
+
+1. **Demo, then merge PR #10.** Close ImgBot PR #1 and delete the merged
+   and holding branches.
+2. **Design direction** (KIT-67): the owner reacts to `/redesign`; pick one
+   direction, then turn it into tokens in `app/globals.css` (colour, type
+   scale, radius, shadow, motion) before any page is restyled.
+3. **Home page cut** (KIT-66) in the new tokens.
+4. **Production readiness** (new): production Convex deployment in a region
+   near India; `SITE_URL`, `LEAD_INGEST_SECRET`, `BETTER_AUTH_SECRET` and
+   Vercel production env vars; Better Auth `baseURL` warning; t3-env so a
+   missing variable fails the build. Sign-in on the dev deployment takes
+   5 to 11 seconds.
+5. **Demo isolation** (new): a separate Convex deployment for client demos.
+6. **Lead workflow remainder**: actionable default view, an audit row per
+   export, card rows on phones.
+7. **Orders** (new): random human reference (`ICT-7K3F9`), courier and
+   tracking number required before "shipped".
+8. **Books and Resources for real** (KIT-57/58/59): Convex tables, admin
+   upload, the preview screens wired to them, Razorpay behind the adapter.
+9. **WhatsApp OTP** (KIT-46), Google Business Profile (KIT-43), device and
+   performance passes (KIT-44).
+
+### Waiting on ICT
+
+Everything in `docs/proposals/2026-09-26-what-we-need-from-ict.md`, most
+urgently: fact sign-off (KIT-41), consent for student names and photos,
+who answers enquiries, the domain, book titles, the first PDFs, the
+WhatsApp sender choice, and the Classplus questions (KIT-47).
