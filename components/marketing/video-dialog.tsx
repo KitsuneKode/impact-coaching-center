@@ -93,7 +93,7 @@ export function VideoDialog({
             <Dialog.Close
               ref={closeRef}
               aria-label="Close video"
-              className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-control border border-white/20 text-white transition-colors hover:bg-white/10"
+              className="relative grid size-9 shrink-0 cursor-pointer place-items-center rounded-control border border-white/20 text-white transition-colors after:absolute after:-inset-1 hover:bg-white/10"
             >
               <IconX size={18} stroke={1.75} />
             </Dialog.Close>

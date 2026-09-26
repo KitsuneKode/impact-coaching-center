@@ -1,7 +1,8 @@
-import { APIError, createAuthMiddleware, getIp } from "better-auth/api"
+import { APIError, createAuthMiddleware } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
 import { SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
+import { parseClientAddress } from "./client-address"
 import { toE164 } from "./leads"
 
 /*
@@ -141,10 +142,15 @@ export function phoneAuthOptions(delivery: {
           })
         let otpSendGeneration: number | undefined
         if (ctx.path === "/phone-number/send-otp") {
-          const ip = getIp(
-            ctx.request ?? ctx.headers ?? new Headers(),
-            ctx.context.options
-          )
+          /* Better Auth's getIp reads the leftmost XFF entry, which is the
+             one the client controls. parseClientAddress takes the last
+             well-formed entry - the address the edge actually saw - and
+             canonicalises it, so the ip bucket cannot be moved by spoofing. */
+          const forwarded =
+            ctx.request instanceof Request
+              ? ctx.request.headers.get("x-forwarded-for")
+              : (ctx.headers?.get("x-forwarded-for") ?? null)
+          const ip = parseClientAddress(forwarded)
           const decision = await delivery.claim({ phone, ip })
           if (!decision.ok) {
             throw new APIError("TOO_MANY_REQUESTS", {

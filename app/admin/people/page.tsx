@@ -152,13 +152,16 @@ function People() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 aria-invalid={error ? true : undefined}
+                aria-describedby={
+                  error ? "grant-phone-error" : "grant-phone-hint"
+                }
                 className="tnum"
               />
             </InputGroup>
             {error ? (
-              <FieldError>{error}</FieldError>
+              <FieldError id="grant-phone-error">{error}</FieldError>
             ) : (
-              <FieldDescription>
+              <FieldDescription id="grant-phone-hint">
                 They must already have verified this number. Access is never
                 created on somebody&apos;s behalf.
               </FieldDescription>
@@ -207,16 +210,20 @@ function People() {
                     size="sm"
                     onClick={async () => {
                       setError(null)
-                      const result = await setRole({
-                        personId: person.id as never,
-                        role: "student",
-                        // The revision the row was read at. If somebody else
-                        // changed this person meanwhile, the mutation refuses
-                        // rather than overwriting their change.
-                        expectedRevision: person.revision,
-                      })
-                      if (!result.ok)
-                        setError(REFUSALS[result.reason] ?? "Refused.")
+                      try {
+                        const result = await setRole({
+                          personId: person.id as never,
+                          role: "student",
+                          // The revision the row was read at. If somebody else
+                          // changed this person meanwhile, the mutation refuses
+                          // rather than overwriting their change.
+                          expectedRevision: person.revision,
+                        })
+                        if (!result.ok)
+                          setError(REFUSALS[result.reason] ?? "Refused.")
+                      } catch {
+                        setError("Could not reach the server. Try again.")
+                      }
                     }}
                   >
                     Remove access

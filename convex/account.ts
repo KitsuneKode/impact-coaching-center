@@ -84,11 +84,13 @@ export async function eraseAccount(
     actorId: person._id,
   })
 
-  const lease = await ctx.db
+  /* Collect rather than `unique()`: a duplicated lease must not throw and
+     leave the erasure half-done - delete every row for the number. */
+  const leases = await ctx.db
     .query("otpSendLeases")
     .withIndex("by_phone", (q) => q.eq("phone", person.phone))
-    .unique()
-  if (lease) await ctx.db.delete(lease._id)
+    .collect()
+  for (const lease of leases) await ctx.db.delete(lease._id)
 
   return { ok: true as const, phone: person.phone }
 }

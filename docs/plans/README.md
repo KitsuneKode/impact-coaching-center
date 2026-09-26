@@ -8,12 +8,14 @@ update your row here and the `status:` in the plan's header when done.
 
 ## Execution order and status
 
-### Current — 22 September 2026
+### Current — 27 September 2026
 
-`2026-09-22-launch-plan.md` is the single active plan: integrate
-`fix/review-batch-1`, then ship leads, promotions (built upstream in
-Kitsu-Lab), Books and Resources as end-to-end journeys. It supersedes the
-wave/worktree dispatch below; the history is kept for reference.
+`2026-09-22-launch-plan.md` remains the launch checklist;
+`2026-09-27-next-sessions.md` is the active sequencing document: session A
+(catalogue, PR #12 on `feat/catalog-backend`), session B (production
+readiness, KIT-69), session C (leads/orders Phase-1 leftovers + KIT-70),
+session D (home-page redesign, blocked on references). The worktree-era
+dispatch below is history; the history is kept for reference.
 
 ### Delegation update — 21 September 2026
 
@@ -45,8 +47,9 @@ do not duplicate completed slices. No merge/deployment is implied by this update
 | `2026-09-22-auth-admin-contract.md`             | Auth/admin contract: roles, refusal categories, pagination, revision        | P1       | S      | shared-admin-contract plan              | DONE (codified in `convex/authz.ts`)                                        |
 | `2026-09-22-commerce-and-account-surfaces.md`   | Settled UX direction for Books, cart, checkout, Reader, `/account`          | P1       | S      | — (read before KIT-57/58/59/60)         | DRAFT (decisions only; each ticket writes its steps)                        |
 | `2026-09-22-otp-resend-safety.md`               | One acceptable verification code per phone under concurrent resend (KIT-53) | P1       | M      | throttle plan                           | DONE (hosted WhatsApp still waits on KIT-46)                                |
-
-| `2026-09-20-library-draft.md` (no plan file) | `/library` as a draft plus its seven questions for ICT (KIT-50) | P2 | S | — | DONE (built to request, without a plan) |
+| `2026-09-20-library-draft.md` (no plan file)    | `/library` as a draft plus its seven questions for ICT (KIT-50)             | P2       | S      | —                                       | DONE (built to request, without a plan)                                     |
+| `2026-09-26-client-demo-readiness.md`           | Dev-deployment sign-in, policies, accounts, admin fixes for the client demo | P1       | L      | —                                       | DONE (merged as PR #10)                                                     |
+| `2026-09-27-next-sessions.md`                   | Sessions A-D: catalogue, production readiness, leads/orders, redesign       | P1       | L      | client-demo-readiness                   | IN PROGRESS (session A in PR #12)                                           |
 
 Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJECTED (one-line rationale).
 

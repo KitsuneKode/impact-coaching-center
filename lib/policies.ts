@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
+import { openGraphFor } from "./site"
+
 /** Visitor-facing policy text, loaded from `content/policies/<slug>.md`. */
 export type PolicySlug = "privacy" | "terms" | "shipping" | "refunds"
 
@@ -117,6 +119,7 @@ export function policyMetadata(doc: PolicyDocument) {
     title: doc.title,
     description: doc.description,
     alternates: { canonical: `/${doc.slug}` },
+    openGraph: openGraphFor(`/${doc.slug}`, doc.title, doc.description),
     ...(doc.approved ? {} : { robots: { index: false, follow: true } }),
   }
 }

@@ -52,11 +52,17 @@ function Inbox() {
     results: leads,
     status,
     loadMore,
-  } = usePaginatedQuery(api.leads.inboxPage, {}, { initialNumItems: 25 })
+  } = usePaginatedQuery(
+    api.leads.inboxPage,
+    // The server refuses non-staff anyway; skipping keeps a student who lands
+    // here from spending a subscription on a queue they may not read.
+    allowed === true ? {} : "skip",
+    { initialNumItems: 25 }
+  )
 
   // A skeleton in the shape of the answer, not a spinner: the reader learns
   // the page is a table of enquiries before the enquiries arrive.
-  if (allowed === undefined || status === "LoadingFirstPage")
+  if (allowed === undefined)
     return (
       <PageShell
         density="working"
@@ -88,6 +94,21 @@ function Inbox() {
             </ButtonLink>
           }
         />
+      </PageShell>
+    )
+
+  if (status === "LoadingFirstPage")
+    return (
+      <PageShell
+        density="working"
+        title={
+          <>
+            <span className="text-foreground">Enquiries.</span>{" "}
+            <span className="text-muted-foreground">Loading…</span>
+          </>
+        }
+      >
+        <ListSkeleton rows={5} />
       </PageShell>
     )
 

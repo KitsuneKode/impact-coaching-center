@@ -32,7 +32,7 @@ import {
 } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { catalogue, courseById, courseBySlug, inr } from "@/lib/catalogue"
-import { siteUrl } from "@/lib/site"
+import { openGraphFor, siteUrl } from "@/lib/site"
 
 /* only courses a track points at get a page; anything else is a 404 */
 export const dynamicParams = false
@@ -50,12 +50,15 @@ export async function generateMetadata({
   const course = courseBySlug(slug)
   if (!course) return {}
   const price = course.free ? "free" : inr(course.price)
+  const title = `${course.short}, ${price}`
+  const description = `${course.short}${course.subtitle ? `: ${course.subtitle}` : ""}. ${course.features
+    .slice(0, 3)
+    .join(". ")}. At Impact Career Tutorials, North Lakhimpur.`
   return {
-    title: `${course.short}, ${price}`,
-    description: `${course.short}${course.subtitle ? `: ${course.subtitle}` : ""}. ${course.features
-      .slice(0, 3)
-      .join(". ")}. At Impact Career Tutorials, North Lakhimpur.`,
+    title,
+    description,
     alternates: { canonical: `/courses/${course.slug}` },
+    openGraph: openGraphFor(`/courses/${course.slug}`, title, description),
   }
 }
 

@@ -511,7 +511,16 @@ export function LeadsTable({
               {table.getHeaderGroups().map((group) => (
                 <TableRow key={group.id}>
                   {group.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      aria-sort={
+                        header.column.getIsSorted() === "asc"
+                          ? "ascending"
+                          : header.column.getIsSorted() === "desc"
+                            ? "descending"
+                            : undefined
+                      }
+                    >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
                         <button
                           type="button"
@@ -551,11 +560,9 @@ export function LeadsTable({
                       <Button
                         variant="secondary"
                         size="md"
-                        onClick={() =>
-                          table.getColumn("phone")?.setFilterValue("")
-                        }
+                        onClick={() => table.resetColumnFilters()}
                       >
-                        Clear search
+                        Clear filters
                       </Button>
                     </div>
                   </TableCell>

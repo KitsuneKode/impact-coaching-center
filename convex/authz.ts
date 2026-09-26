@@ -94,6 +94,9 @@ export async function requireOwner(ctx: Ctx): Promise<Decision<Viewer>> {
   return viewer
 }
 
+/** Counts stop here: past this, "99+" is the honest answer on a home screen. */
+export const COUNT_CAP = 99
+
 /** Seven days, hard-capped from sign-in, for anyone touching staff data. */
 export const STAFF_SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000
 

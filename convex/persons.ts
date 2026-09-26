@@ -19,10 +19,13 @@ export async function findVerifiedPerson(
   if (!identity?.phoneNumberVerified || !identity.phoneNumber) return null
   const phone = toE164(identity.phoneNumber)
   if (!phone) return null
+  /* `.first()`, not `.unique()`: the phone key should never duplicate, but if
+     corruption ever did, `unique()` would throw and break sign-in entirely -
+     `first()` degrades to one row instead. */
   const person = await ctx.db
     .query("persons")
     .withIndex("by_phone", (q) => q.eq("phone", phone))
-    .unique()
+    .first()
   if (!person?.verifiedAt) return null
   return {
     id: person._id,
@@ -49,7 +52,7 @@ export async function upsertPersonByPhone(
   const existing = await ctx.db
     .query("persons")
     .withIndex("by_phone", (q) => q.eq("phone", args.phone))
-    .unique()
+    .first()
 
   if (existing) {
     // Repair only the exact generated phone placeholder, never a real name.
@@ -130,7 +133,7 @@ export async function consumeRateLimit(
   const existing = await ctx.db
     .query("rateLimits")
     .withIndex("by_key", (q) => q.eq("key", key))
-    .unique()
+    .first()
   if (!existing) {
     await ctx.db.insert("rateLimits", { key, count: 1, windowStart: now })
     return true
@@ -195,7 +198,7 @@ export const recordEnquiry = internalMutation({
     const existing = await ctx.db
       .query("persons")
       .withIndex("by_phone", (q) => q.eq("phone", lead.phone))
-      .unique()
+      .first()
     const now = Date.now()
     // Course and timing are validated against fixed option lists, so this key
     // holds no visitor-entered text. The name is deliberately left out: the

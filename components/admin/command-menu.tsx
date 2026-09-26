@@ -3,6 +3,7 @@
 import { IconLogout } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import { COMMERCE_NAV, NAV, OWNER_NAV } from "@/components/admin/nav"
 import {
@@ -76,7 +77,12 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
               value="Log out"
               onSelect={() =>
                 run(async () => {
-                  await authClient.signOut()
+                  try {
+                    await authClient.signOut()
+                  } catch {
+                    toast.error("Couldn't log you out. Try again.")
+                    return
+                  }
                   // refresh as well as push: server components above this one
                   // cached a signed-in render.
                   router.push("/")

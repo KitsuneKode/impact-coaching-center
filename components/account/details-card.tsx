@@ -86,10 +86,17 @@ function NameEditor({
     }
     setError(null)
     setPending(true)
-    const result = await setOwnName({
-      name,
-      expectedRevision: viewer.revision,
-    })
+    let result
+    try {
+      result = await setOwnName({
+        name,
+        expectedRevision: viewer.revision,
+      })
+    } catch {
+      setError("Couldn't save. Check your connection and try again.")
+      setPending(false)
+      return
+    }
     setPending(false)
 
     // Discriminate on the value: `Refusal` carries an `ok` key too, so
@@ -131,11 +138,12 @@ function NameEditor({
               if (error) setError(null)
             }}
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${nameId}-error` : `${nameId}-hint`}
           />
           {error ? (
-            <FieldError>{error}</FieldError>
+            <FieldError id={`${nameId}-error`}>{error}</FieldError>
           ) : (
-            <FieldDescription>
+            <FieldDescription id={`${nameId}-hint`}>
               As you&rsquo;d like ICT to address you.
             </FieldDescription>
           )}

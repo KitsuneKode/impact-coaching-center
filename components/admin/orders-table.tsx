@@ -72,6 +72,7 @@ export type OrderRow = {
   revision: number
   buyerName: string
   buyerPhone: string
+  buyerDeleted: boolean
 }
 
 /** The filter row, grouped by the question being asked. */
@@ -176,21 +177,28 @@ export function OrdersTable({
   async function move(order: OrderRow, status: string) {
     setBusy(order.id)
     setError(null)
-    const result = await setOrderStatus({
-      orderId: order.id,
-      status: status as never,
-      expectedRevision: order.revision,
-    })
-    setBusy(null)
-    // Discriminate on the value: `Refusal` carries an `ok` key too.
-    if (!result.ok) {
+    try {
+      const result = await setOrderStatus({
+        orderId: order.id,
+        status: status as never,
+        expectedRevision: order.revision,
+      })
+      // Discriminate on the value: `Refusal` carries an `ok` key too.
+      if (!result.ok) {
+        setError(
+          result.reason === "revision-conflict"
+            ? `${order.reference} changed somewhere else. It has been refreshed - check it and try again.`
+            : result.reason === "invalid-input"
+              ? `That is not a move ${order.reference} can make from ${ORDER_STATUS_LABELS[order.status]}.`
+              : "That change was refused. You may not have permission any more."
+        )
+      }
+    } catch {
       setError(
-        result.reason === "revision-conflict"
-          ? `${order.reference} changed somewhere else. It has been refreshed - check it and try again.`
-          : result.reason === "invalid-input"
-            ? `That is not a move ${order.reference} can make from ${ORDER_STATUS_LABELS[order.status]}.`
-            : "That change was refused. You may not have permission any more."
+        "Could not reach the server. The order is unchanged - try again."
       )
+    } finally {
+      setBusy(null)
     }
   }
 
@@ -415,16 +423,22 @@ function OrderRows({
         </TableCell>
         <TableCell>
           <span className="block">
-            {order.buyerName || (
-              <span className="text-muted-foreground">Not given</span>
+            {order.buyerDeleted ? (
+              <span className="text-muted-foreground">Account deleted</span>
+            ) : (
+              order.buyerName || (
+                <span className="text-muted-foreground">Not given</span>
+              )
             )}
           </span>
-          <a
-            href={`tel:${order.buyerPhone}`}
-            className="tnum text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
-          >
-            {formatPhone(order.buyerPhone)}
-          </a>
+          {order.buyerPhone ? (
+            <a
+              href={`tel:${order.buyerPhone}`}
+              className="tnum text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
+            >
+              {formatPhone(order.buyerPhone)}
+            </a>
+          ) : null}
         </TableCell>
         <TableCell>
           <span className="inline-flex items-center gap-1.5 text-muted-foreground">

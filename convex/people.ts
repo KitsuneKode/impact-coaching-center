@@ -161,7 +161,7 @@ export const grantStaffByPhone = mutation({
     const person = await ctx.db
       .query("persons")
       .withIndex("by_phone", (q) => q.eq("phone", phone))
-      .unique()
+      .first()
 
     if (!person) return missingRecord
     if (!person.verifiedAt) return invalidInput("verification")
@@ -191,7 +191,7 @@ export const bootstrapOwner = internalMutation({
     const person = await ctx.db
       .query("persons")
       .withIndex("by_phone", (q) => q.eq("phone", phone))
-      .unique()
+      .first()
 
     if (!person) return missingRecord
     if (!person.verifiedAt) return invalidInput("verification")

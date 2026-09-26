@@ -9,14 +9,9 @@ import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
 
 /** The same test the logger OTP transport applies. */
 function assertLocalDeployment() {
-  if (
-    !isDevelopmentDeployment(
-      process.env.CONVEX_SITE_URL,
-      process.env.DEV_DEPLOYMENT_NAME
-    )
-  ) {
+  if (!isDevelopmentDeployment(process.env.CONVEX_SITE_URL)) {
     throw new Error(
-      "devSeed refuses to run: this is not a local deployment, nor the hosted development deployment named by DEV_DEPLOYMENT_NAME. Roles on a hosted deployment are granted by an owner, or bootstrapped by hand in the dashboard."
+      "devSeed refuses to run: this is not a local deployment, nor the hosted development deployment named in lib/dev-deployment.ts. Roles on a hosted deployment are granted by an owner, or bootstrapped by hand in the dashboard."
     )
   }
 }
@@ -59,7 +54,7 @@ export const seedEnquiries = internalMutation({
       const existing = await ctx.db
         .query("persons")
         .withIndex("by_phone", (q) => q.eq("phone", phone))
-        .unique()
+        .first()
 
       const fields = {
         name: enquiry.name,
@@ -147,7 +142,7 @@ export const seedOrders = internalMutation({
       const existing = await ctx.db
         .query("persons")
         .withIndex("by_phone", (q) => q.eq("phone", phone))
-        .unique()
+        .first()
 
       const placedAt = now - order.daysAgo * day
       const personId =
@@ -290,7 +285,7 @@ export const seedPeople = internalMutation({
       const existing = await ctx.db
         .query("persons")
         .withIndex("by_phone", (q) => q.eq("phone", phone))
-        .unique()
+        .first()
 
       const now = Date.now()
       const verifiedAt = person.verified ? now : undefined

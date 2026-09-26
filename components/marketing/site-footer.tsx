@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Link from "next/link"
 
 import { brand, contact, formatPhone, links, place, tracks } from "@/lib/brand"
 import { courseById } from "@/lib/catalogue"
@@ -87,15 +88,25 @@ export function SiteFooter() {
               <ul className="mt-3 space-y-2">
                 {column.items.map((item) => (
                   <li key={item.label}>
-                    <a
-                      href={item.href}
-                      {...("external" in item && item.external
-                        ? { target: "_blank", rel: "noreferrer noopener" }
-                        : {})}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {item.label}
-                    </a>
+                    {"external" in item && item.external ? (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {item.label}
+                      </a>
+                    ) : (
+                      // Client-side navigation: a raw anchor reloads the whole
+                      // document for a route that could have been a swap.
+                      <Link
+                        href={item.href}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {item.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

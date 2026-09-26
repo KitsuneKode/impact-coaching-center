@@ -10,6 +10,7 @@ import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { convexConfigured } from "@/app/providers"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -75,7 +76,7 @@ function Menu({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={`Account: ${label}`}
-        className={`inline-flex size-9 items-center justify-center rounded-full transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
+        className={`relative inline-flex size-9 items-center justify-center rounded-full transition-colors after:absolute after:-inset-1 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
       >
         <Avatar className="size-8">
           <AvatarFallback className="text-xs">
@@ -115,7 +116,13 @@ function Menu({ className }: { className?: string }) {
             disabled={leaving}
             onClick={async () => {
               setLeaving(true)
-              await authClient.signOut()
+              try {
+                await authClient.signOut()
+              } catch {
+                setLeaving(false)
+                toast.error("Couldn't log you out. Try again.")
+                return
+              }
               // `refresh` as well as `push`: the server components above this
               // one cached a signed-in render, and leaving them in place shows
               // a logged-out person their own name.

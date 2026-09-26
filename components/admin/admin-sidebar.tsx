@@ -88,7 +88,10 @@ export function AdminSidebar() {
                     Unseen, not open.
                   */}
                   {counts && counts.unseen > 0 ? (
-                    <SidebarMenuBadge>{counts.unseen}</SidebarMenuBadge>
+                    <SidebarMenuBadge>
+                      {counts.unseen}
+                      {counts.capped ? "+" : ""}
+                    </SidebarMenuBadge>
                   ) : null}
                 </SidebarMenuItem>
               ))}

@@ -3,6 +3,7 @@ import { type Infer, v } from "convex/values"
 
 import {
   checkRevision,
+  COUNT_CAP,
   forbidden,
   invalidInput,
   missingRecord,
@@ -88,6 +89,8 @@ const ORDER_ROW = v.object({
   revision: v.number(),
   buyerName: v.string(),
   buyerPhone: v.string(),
+  /** The buyer deleted their account: no name or number to show or dial. */
+  buyerDeleted: v.boolean(),
 })
 
 export const adminOrdersPage = query({
@@ -131,9 +134,12 @@ export async function readOrdersPage(
         placedAt: order.placedAt,
         seen: Boolean(order.seenAt),
         revision: revisionOf(order),
-        /* The buyer's name and number travel with the order. */
+        /* The buyer's name and number travel with the order - unless the
+           account was erased, in which case the tombstone's `deleted:` phone
+           is not a number and must not become a tappable link. */
         buyerName: person?.name ?? "",
-        buyerPhone: person?.phone ?? "",
+        buyerPhone: person?.deletedAt ? "" : (person?.phone ?? ""),
+        buyerDeleted: Boolean(person?.deletedAt),
       }
     })
   )
@@ -151,23 +157,30 @@ export const canSeeOrders = query({
 /** How many orders still need somebody, and how many nobody has opened. */
 export const orderCounts = query({
   args: {},
-  returns: v.object({ open: v.number(), unseen: v.number() }),
+  returns: v.object({
+    open: v.number(),
+    unseen: v.number(),
+    capped: v.boolean(),
+  }),
   handler: async (ctx) => {
     const staff = await requireStaff(ctx)
-    if (!staff.ok) return { open: 0, unseen: 0 }
+    if (!staff.ok) return { open: 0, unseen: 0, capped: false }
 
+    /* Bounded reads: one capped page per open status, never a full collect of
+       a table that only ever grows. */
     const open = await Promise.all(
       [...OPEN_STATUSES].map((status) =>
         ctx.db
           .query("orders")
           .withIndex("by_status", (q) => q.eq("status", status as never))
-          .collect()
+          .take(COUNT_CAP + 1)
       )
     )
     const rows = open.flat()
     return {
-      open: rows.length,
-      unseen: rows.filter((order) => !order.seenAt).length,
+      open: Math.min(rows.length, COUNT_CAP),
+      unseen: Math.min(rows.filter((order) => !order.seenAt).length, COUNT_CAP),
+      capped: rows.length > COUNT_CAP,
     }
   },
 })

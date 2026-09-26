@@ -9,13 +9,18 @@ import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
 import { schedules, tracks } from "@/lib/brand"
 import { courseById, inr, type CatalogueCourse } from "@/lib/catalogue"
+import { openGraphFor } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
+const title = "Courses and fees"
+const description =
+  "Every live course at Impact Career Tutorials with its current fee: APSC (Lakhya 2027, PRAGATI 2027), ADRE and Assam Police (VICTOR 8.0), and Banking, SSC and Railway (Radiant 2.0, Diamond 3.0), plus free workshops."
+
 export const metadata: Metadata = {
-  title: "Courses and fees",
-  description:
-    "Every live course at Impact Career Tutorials with its current fee: APSC (Lakhya 2027, PRAGATI 2027), ADRE and Assam Police (VICTOR 8.0), and Banking, SSC and Railway (Radiant 2.0, Diamond 3.0), plus free workshops.",
+  title,
+  description,
   alternates: { canonical: "/courses" },
+  openGraph: openGraphFor("/courses", title, description),
 }
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties

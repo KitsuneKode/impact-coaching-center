@@ -50,8 +50,8 @@ account page. Staff and owners skip the questions.
 
 ## Without the laptop
 
-The branch preview runs on Vercel against the same deployment:
-`https://impact-coaching-center-git-feat-client-demo-3d5491-kitsunekode.vercel.app`
+Every PR gets a Vercel preview against the same development deployment - the
+URL is on the PR. Pick the preview for the current work-in-progress branch.
 
 Vercel Deployment Protection asks visitors to log in. Before the demo, open
 the deployment in the Vercel dashboard and use **Share** to make a link that
@@ -73,10 +73,11 @@ from the Convex dashboard Logs. Take the laptop anyway as the fallback.
 7. **Their homework.** `/privacy`, `/refunds`, `/shipping`: highlighted
    parts are theirs to fill. Hand over
    `docs/proposals/2026-09-26-what-we-need-from-ict.md`.
-8. **Books, cart and free resources** at `/preview`: browse, add to cart
-   (the cart survives closing the tab), filter resources, and "Verify to
-   open" sends a signed-out visitor to log in. Sample titles, clearly
-   labelled. `/preview` itself lists every surface built.
+8. **Books, cart and free resources** at `/books` and `/resources`: browse,
+   add to cart (the cart survives closing the tab), filter resources, and
+   "Verify to open" sends a signed-out visitor to log in. Sample titles are
+   clearly labelled, and checkout stays marked as a prototype until payment
+   and fulfilment are real.
 9. **Next phase, from Kitsu-Lab:** the promotions system and the book/PDF
    reader.
 10. **Colours.** The switcher at the bottom: neither palette is final.
@@ -92,4 +93,5 @@ online book payments are not live; the policy pages are drafts.
   missing from `SITE_URL` on the Convex deployment
   (`bunx convex env get SITE_URL`); add it comma-separated.
 - No code appears: check `bun run otp` is running against `peaceful-emu-861`
-  and `OTP_TRANSPORT=logger` and `DEV_DEPLOYMENT_NAME` are set there.
+  and `OTP_TRANSPORT=logger` is set there (the deployment name itself is
+  checked in code, in `lib/dev-deployment.ts`).

@@ -4,6 +4,7 @@ import { type Infer, v } from "convex/values"
 import {
   allow,
   checkRevision,
+  COUNT_CAP,
   forbidden,
   invalidInput,
   missingRecord,
@@ -344,9 +345,6 @@ export const setLeadFollowUp = mutation({
   },
 })
 
-/** Counts stop here: past this, "99+" is the honest answer on a home screen. */
-const COUNT_CAP = 99
-
 /**
  * What needs someone today: new enquiries nobody has touched, and follow-ups
  * that have come due. Bounded reads, capped counts - a home screen needs to
@@ -362,19 +360,36 @@ export async function readLeadCounts(
     .query("persons")
     .withIndex("by_leadStatus", (q) => q.eq("leadStatus", "new"))
     .take(COUNT_CAP + 1)
-  const dueRows = await ctx.db
-    .query("persons")
-    .withIndex("by_nextFollowUpAt", (q) =>
-      q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfTodayIst(now))
-    )
-    .take(COUNT_CAP * 2)
-  const due = dueRows.filter(
-    (person) => person.leadStatus !== "enrolled" && person.leadStatus !== "lost"
-  )
+  /* The follow-up index range also matches enrolled/lost leads, and they are
+     filtered after the read - a plain `take` can fill its window on closed
+     leads and under-count what is actually due. Page through instead and stop
+     as soon as the cap is reached. */
+  let due = 0
+  let capped = fresh.length > COUNT_CAP
+  let cursor: string | null = null
+  while (true) {
+    const chunk = await ctx.db
+      .query("persons")
+      .withIndex("by_nextFollowUpAt", (q) =>
+        q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfTodayIst(now))
+      )
+      .paginate({ numItems: 200, cursor })
+    due += chunk.page.filter(
+      (person) =>
+        person.leadStatus !== "enrolled" && person.leadStatus !== "lost"
+    ).length
+    if (due >= COUNT_CAP) {
+      due = COUNT_CAP
+      capped = true
+      break
+    }
+    if (chunk.isDone) break
+    cursor = chunk.continueCursor
+  }
   return {
     fresh: Math.min(fresh.length, COUNT_CAP),
-    due: Math.min(due.length, COUNT_CAP),
-    capped: fresh.length > COUNT_CAP || due.length > COUNT_CAP,
+    due,
+    capped,
   }
 }
 

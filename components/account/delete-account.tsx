@@ -138,11 +138,16 @@ export function DeleteAccount({ role }: { role: string }) {
                 autoCapitalize="characters"
                 spellCheck={false}
                 aria-invalid={error ? true : undefined}
+                aria-describedby={
+                  error ? `${inputId}-error` : `${inputId}-hint`
+                }
               />
               {error ? (
-                <FieldError>{error}</FieldError>
+                <FieldError id={`${inputId}-error`}>{error}</FieldError>
               ) : (
-                <FieldDescription>In capital letters.</FieldDescription>
+                <FieldDescription id={`${inputId}-hint`}>
+                  In capital letters.
+                </FieldDescription>
               )}
             </Field>
 

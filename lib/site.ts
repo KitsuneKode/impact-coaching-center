@@ -1,3 +1,7 @@
+import type { Metadata } from "next"
+
+import { brand } from "./brand"
+
 /** Where this build lives, and whether search engines may index it. */
 export function resolveSiteUrl(
   env: Record<string, string | undefined>
@@ -25,3 +29,25 @@ export const siteUrl = resolveSiteUrl(process.env)
  * official site.
  */
 export const indexable = process.env.SITE_INDEXABLE === "true"
+
+/**
+ * One complete Open Graph object per route. `openGraph` is a single metadata
+ * key, so a page that sets any of it replaces the root object wholesale -
+ * the shared fields (type, locale, siteName) have to come through here rather
+ * than be inherited. `url` resolves against `metadataBase`; the `opengraph-image`
+ * file convention supplies `images` on every route.
+ */
+export function openGraphFor(
+  path: string,
+  title: string,
+  description: string
+): NonNullable<Metadata["openGraph"]> {
+  return {
+    type: "website",
+    locale: "en_IN",
+    url: path,
+    siteName: brand.legalName,
+    title,
+    description,
+  }
+}
