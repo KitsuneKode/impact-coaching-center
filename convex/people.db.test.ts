@@ -178,3 +178,16 @@ describe("bootstrapOwner", () => {
     ).toEqual({ ok: false, reason: "invalid-input", field: "verification" })
   })
 })
+
+describe("paginated returns validator", () => {
+  test("accepts the split fields .paginate() adds to large pages", async () => {
+    const { paginated } = await import("./authz")
+    const { v } = await import("convex/values")
+    // Regression: a hand-written { page, isDone, continueCursor } rejected
+    // every result once Convex added splitCursor/pageStatus.
+    const fields = paginated(v.string()).fields
+    expect(Object.keys(fields)).toEqual(
+      expect.arrayContaining(["splitCursor", "pageStatus"])
+    )
+  })
+})

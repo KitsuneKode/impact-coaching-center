@@ -20,7 +20,7 @@ import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 
 /** What the form needs, which is less than the whole Person. */
-type Viewer = { name: string; revision: number }
+type Viewer = { name: string; revision: number; role?: string }
 
 /**
  * "What should ICT call you?" - asked once, immediately after verification.
@@ -74,8 +74,14 @@ export function NameStep({ next }: { next: string }) {
    * `answers === null` means never asked; skipped or answered is an object.
    * A returning Person passes straight through both steps.
    */
+  // Students only: the questions are about preparing for an exam, and staff
+  // signing in to work the queue should land on it, not on a survey.
   const asking =
-    hasName && !done && questionnaire != null && questionnaire.answers === null
+    hasName &&
+    !done &&
+    settled?.role === "student" &&
+    questionnaire != null &&
+    questionnaire.answers === null
 
   /*
    * In an effect rather than during render, because it navigates. A Person

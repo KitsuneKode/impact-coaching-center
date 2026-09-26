@@ -1,5 +1,10 @@
+import { paginationResultValidator } from "convex/server"
 import { v } from "convex/values"
-import type { GenericValidator, PropertyValidators } from "convex/values"
+import type {
+  PropertyValidators,
+  Validator,
+  Value,
+} from "convex/values"
 
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"
@@ -76,13 +81,18 @@ export const REFUSAL = v.union(
   })
 )
 
-/** `{ page, isDone, continueCursor }`, the shape `usePaginatedQuery` needs. */
-export const paginated = <V extends GenericValidator>(row: V) =>
-  v.object({
-    page: v.array(row),
-    isDone: v.boolean(),
-    continueCursor: v.string(),
-  })
+/**
+ * The shape `.paginate()` returns, for a returns validator.
+ *
+ * Convex's own validator rather than a hand-written `{ page, isDone,
+ * continueCursor }`: `.paginate()` also returns `splitCursor` and `pageStatus`
+ * once a page grows large, and a narrower validator rejects the whole result
+ * at exactly that moment - which is how /admin/leads broke on the first full
+ * page of seeded enquiries.
+ */
+export const paginated = <V extends Validator<Value, "required", string>>(
+  row: V
+) => paginationResultValidator(row)
 
 /** `{ ok: true, ...fields }` on success, a Refusal otherwise. */
 export const mutationResult = <S extends PropertyValidators>(success: S) =>
