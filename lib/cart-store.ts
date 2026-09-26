@@ -104,7 +104,9 @@ export const useCart = create<CartState>()(
 export function useCartHydrated() {
   const [hydrated, setHydrated] = useState(false)
   useEffect(() => {
-    void Promise.resolve(useCart.persist.rehydrate()).then(() =>
+    /* persist is absent when storage is unavailable - resolving undefined
+       counts as done rather than throwing on a missing rehydrate. */
+    void Promise.resolve(useCart.persist?.rehydrate()).then(() =>
       setHydrated(true)
     )
   }, [])
@@ -129,12 +131,16 @@ export function useCartSync() {
   /*
    * The merge must not run before rehydration: the persisted guest cart is
    * what the merge is *for*. Merging first would send an empty cart and let
-   * the mirror overwrite the recovered lines.
+   * the mirror overwrite the recovered lines. `persist` is undefined under
+   * SSR (zustand skips attaching the API when storage is unavailable), so
+   * the initializer must tolerate it.
    */
-  const [hydrated, setHydrated] = useState(useCart.persist.hasHydrated())
+  const [hydrated, setHydrated] = useState(
+    () => useCart.persist?.hasHydrated() ?? false
+  )
   useEffect(() => {
     if (hydrated) return
-    void Promise.resolve(useCart.persist.rehydrate()).then(() =>
+    void Promise.resolve(useCart.persist?.rehydrate()).then(() =>
       setHydrated(true)
     )
   }, [hydrated])
