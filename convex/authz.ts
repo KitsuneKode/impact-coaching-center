@@ -1,10 +1,6 @@
 import { paginationResultValidator } from "convex/server"
 import { v } from "convex/values"
-import type {
-  PropertyValidators,
-  Validator,
-  Value,
-} from "convex/values"
+import type { PropertyValidators, Validator, Value } from "convex/values"
 
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"

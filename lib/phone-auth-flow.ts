@@ -1,3 +1,8 @@
+import {
+  GENERIC_AUTH_FAILURE,
+  SPEAKABLE_SERVER_MESSAGES,
+} from "./auth-messages"
+
 import { toE164 } from "./leads"
 
 type AuthError = { code?: string; message?: string } | null
@@ -32,9 +37,10 @@ export const CODE_LENGTH = 6
  * The plugin enumerates its error codes, so the UI maps them rather than
  * matching on prose that a library upgrade could reword.
  *
- * Anything unlisted falls back to the server's own message, which is already
- * written for a person - the send ceilings in convex/otp.ts return a sentence
- * naming the ceiling that actually fired.
+ * A server message is shown only when it is one of ours
+ * (lib/auth-messages.ts) - the send ceilings return a sentence naming the
+ * ceiling that fired. Anything else, such as Better Auth's "Invalid origin",
+ * becomes a plain sentence rather than leaking an internal to the screen.
  */
 export const PHONE_AUTH_MESSAGES: Record<string, string> = {
   INVALID_PHONE_NUMBER: "Enter a valid Indian mobile number.",
@@ -56,12 +62,13 @@ const SEND_FAILED =
 const VERIFY_FAILED =
   "The code could not be checked. Check your connection and try again."
 
-function errorMessage(error: Exclude<AuthError, null>) {
-  return (
-    (error.code && PHONE_AUTH_MESSAGES[error.code]) ||
-    error.message ||
-    "Something went wrong. Please try again."
-  )
+export function errorMessage(error: Exclude<AuthError, null>) {
+  if (error.code && PHONE_AUTH_MESSAGES[error.code])
+    return PHONE_AUTH_MESSAGES[error.code]
+  // Only sentences we wrote ourselves; never a library's own wording.
+  if (error.message && SPEAKABLE_SERVER_MESSAGES.has(error.message))
+    return error.message
+  return GENERIC_AUTH_FAILURE
 }
 
 /**

@@ -139,12 +139,10 @@ export function NameStep({ next }: { next: string }) {
 function NameForm({ viewer }: { viewer: Viewer }) {
   const setOwnName = useMutation(api.profile.setOwnName)
 
-  const givenId = useId()
-  const familyId = useId()
-  const givenRef = useRef<HTMLInputElement>(null)
+  const nameId = useId()
+  const nameRef = useRef<HTMLInputElement>(null)
 
-  const [given, setGiven] = useState("")
-  const [family, setFamily] = useState("")
+  const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -156,20 +154,19 @@ function NameForm({ viewer }: { viewer: Viewer }) {
    * for.
    */
   useEffect(() => {
-    givenRef.current?.focus()
+    nameRef.current?.focus()
   }, [])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (!given.trim()) {
-      setError("Enter your first name.")
+    if (!name.trim()) {
+      setError("Enter your name.")
       return
     }
     setError(null)
     setPending(true)
     const result = await setOwnName({
-      given,
-      family,
+      name,
       // The revision this screen read the Person at. KIT-55's convention: an
       // edit names the version it is editing, so a concurrent change refuses
       // rather than overwrites.
@@ -205,37 +202,28 @@ function NameForm({ viewer }: { viewer: Viewer }) {
     <form onSubmit={submit} noValidate>
       <FieldGroup>
         <Field data-invalid={error ? true : undefined}>
-          <FieldLabel htmlFor={givenId}>First name</FieldLabel>
+          <FieldLabel htmlFor={nameId}>Your name</FieldLabel>
           <Input
-            id={givenId}
-            ref={givenRef}
-            name="given"
-            autoComplete="given-name"
+            id={nameId}
+            ref={nameRef}
+            name="name"
+            autoComplete="name"
+            autoCapitalize="words"
+            maxLength={120}
             required
-            value={given}
+            value={name}
             onChange={(event) => {
-              setGiven(event.target.value)
+              setName(event.target.value)
               if (error) setError(null)
             }}
             aria-invalid={error ? true : undefined}
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={familyId}>Last name</FieldLabel>
-          <Input
-            id={familyId}
-            name="family"
-            autoComplete="family-name"
-            value={family}
-            onChange={(event) => setFamily(event.target.value)}
           />
           {error ? (
             <FieldError>{error}</FieldError>
           ) : (
             <FieldDescription>
-              So ICT knows who they are speaking to. Only your first name is
-              needed.
+              The name ICT should call you by. One field is fine, however your
+              name is written.
             </FieldDescription>
           )}
         </Field>

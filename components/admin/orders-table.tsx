@@ -13,6 +13,7 @@ import {
 import { useMutation } from "convex/react"
 import { useMemo, useState } from "react"
 
+import { RowsPerPage } from "@/components/admin/rows-per-page"
 import { OrderStatusBadge } from "@/components/admin/order-status"
 import { Button } from "@/components/ui/button"
 import {
@@ -29,8 +30,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { Label } from "@/components/ui/label"
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -324,26 +323,14 @@ export function OrdersTable({
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Label htmlFor="orders-per-page" className="text-sm">
-            Rows per page
-          </Label>
-          <Select
-            value={`${pageSize}`}
-            onValueChange={(value) => {
-              setPageSize(Number(value))
-              setPageIndex(0)
-            }}
-            items={[10, 20, 30, 50].map((size) => ({
-              label: `${size}`,
-              value: `${size}`,
-            }))}
-          >
-            <SelectTrigger id="orders-per-page" className="w-20">
-              <SelectValue />
-            </SelectTrigger>
-          </Select>
-        </div>
+        <RowsPerPage
+          id="orders-per-page"
+          value={pageSize}
+          onChange={(size) => {
+            setPageSize(size)
+            setPageIndex(0)
+          }}
+        />
 
         <p className="text-sm text-muted-foreground">
           Page {safePage + 1} of {pageCount}

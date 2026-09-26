@@ -193,3 +193,18 @@ describe("phone verification flow", () => {
     )
   })
 })
+
+describe("errorMessage", () => {
+  test("never shows a library's own wording", async () => {
+    const { errorMessage } = await import("./phone-auth-flow")
+    const { GENERIC_AUTH_FAILURE, SEND_REFUSALS } =
+      await import("./auth-messages")
+    expect(errorMessage({ message: "Invalid origin" })).toBe(
+      GENERIC_AUTH_FAILURE
+    )
+    expect(errorMessage({ code: "INVALID_OTP" })).toMatch(/not right/)
+    expect(errorMessage({ message: SEND_REFUSALS.phone })).toBe(
+      SEND_REFUSALS.phone
+    )
+  })
+})

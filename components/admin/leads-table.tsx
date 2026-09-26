@@ -28,6 +28,7 @@ import {
 } from "@tanstack/react-table"
 import { createContext, useContext, useMemo, useState } from "react"
 
+import { RowsPerPage } from "@/components/admin/rows-per-page"
 import { StatusBadge } from "@/components/admin/status-badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -45,8 +46,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { Label } from "@/components/ui/label"
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -647,23 +646,15 @@ export function LeadsTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="rows-per-page" className="text-sm">
-              Rows per page
-            </Label>
-            <Select
-              value={`${table.state.pagination.pageSize}`}
-              onValueChange={(value) => table.setPageSize(Number(value))}
-              items={[10, 20, 30, 50].map((size) => ({
-                label: `${size}`,
-                value: `${size}`,
-              }))}
-            >
-              <SelectTrigger id="rows-per-page" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-            </Select>
-          </div>
+          <RowsPerPage
+            id="rows-per-page"
+            value={table.state.pagination.pageSize}
+            onChange={(size) => {
+              table.setPageSize(size)
+              // A bigger page may need rows the server has not sent yet.
+              if (size > leads.length && canLoadMore) onLoadMore()
+            }}
+          />
 
           <p className="text-sm text-muted-foreground">
             Page {table.state.pagination.pageIndex + 1} of {pageCount}

@@ -18,18 +18,6 @@ import { formatPhone } from "@/lib/brand"
 
 type Viewer = { name: string; phone: string; revision: number }
 
-/** Split a stored single-field name back into the two the form edits. */
-function parts(name: string) {
-  const trimmed = name.trim()
-  if (!trimmed) return { given: "", family: "" }
-  const words = trimmed.split(/\s+/)
-  if (words.length === 1) return { given: words[0] ?? "", family: "" }
-  return {
-    given: words.slice(0, -1).join(" "),
-    family: words.at(-1) ?? "",
-  }
-}
-
 /**
  * The details a Person can change about themselves, and the one they cannot.
  *
@@ -100,26 +88,21 @@ function NameEditor({
   onCancel: () => void
 }) {
   const setOwnName = useMutation(api.profile.setOwnName)
-  const givenId = useId()
-  const familyId = useId()
-
-  const initial = parts(viewer.name)
-  const [given, setGiven] = useState(initial.given)
-  const [family, setFamily] = useState(initial.family)
+  const nameId = useId()
+  const [name, setName] = useState(viewer.name.trim())
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (!given.trim()) {
-      setError("Enter your first name.")
+    if (!name.trim()) {
+      setError("Enter your name.")
       return
     }
     setError(null)
     setPending(true)
     const result = await setOwnName({
-      given,
-      family,
+      name,
       expectedRevision: viewer.revision,
     })
     setPending(false)
@@ -149,34 +132,27 @@ function NameEditor({
     >
       <FieldGroup>
         <Field data-invalid={error ? true : undefined}>
-          <FieldLabel htmlFor={givenId}>First name</FieldLabel>
+          <FieldLabel htmlFor={nameId}>Your name</FieldLabel>
           <Input
-            id={givenId}
-            name="given"
-            autoComplete="given-name"
+            id={nameId}
+            name="name"
+            autoComplete="name"
+            autoCapitalize="words"
+            maxLength={120}
             required
-            value={given}
+            value={name}
             onChange={(event) => {
-              setGiven(event.target.value)
+              setName(event.target.value)
               if (error) setError(null)
             }}
             aria-invalid={error ? true : undefined}
           />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={familyId}>Last name</FieldLabel>
-          <Input
-            id={familyId}
-            name="family"
-            autoComplete="family-name"
-            value={family}
-            onChange={(event) => setFamily(event.target.value)}
-          />
           {error ? (
             <FieldError>{error}</FieldError>
           ) : (
-            <FieldDescription>Only your first name is needed.</FieldDescription>
+            <FieldDescription>
+              The name ICT should call you by.
+            </FieldDescription>
           )}
         </Field>
 
