@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
+import { track } from "@/lib/analytics"
 import { useCart, useCartHydrated, useCartSync } from "@/lib/cart-store"
 import { DELIVERY_CHARGE_PAISE, FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
@@ -153,6 +154,7 @@ function CheckoutForm() {
     setPlacing(true)
     setError(null)
     try {
+      track({ name: "checkout_started", lines: rows.length })
       const result = await placeOrder({
         fulfilment,
         address:
@@ -168,6 +170,7 @@ function CheckoutForm() {
         idempotencyKey: idempotencyKey.current,
       })
       if (result.ok) {
+        track({ name: "order_placed", fulfilment })
         setPlaced({
           reference: result.reference,
           totalPaise: result.totalPaise,

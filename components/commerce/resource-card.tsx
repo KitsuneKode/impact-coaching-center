@@ -12,6 +12,7 @@ import { PaperPage } from "@/components/commerce/paper-page"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
+import { track } from "@/lib/analytics"
 import type { Resource } from "@/lib/catalog"
 
 type Opened = { title: string; pages: ViewerPage[]; placeholder: boolean }
@@ -40,6 +41,7 @@ function OpenButton({
     try {
       const result = await openResource({ slug: resource.slug })
       if (result.ok) {
+        track({ name: "resource_opened", slug: resource.slug })
         const placeholder = result.pageUrls.length === 0
         onOpened({
           title: result.title,

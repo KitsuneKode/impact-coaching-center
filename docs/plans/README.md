@@ -16,11 +16,14 @@ update your row here and the `status:` in the plan's header when done.
 readiness, KIT-69), session C (leads/orders Phase-1 leftovers + KIT-70),
 session D (home-page redesign, blocked on references). Sessions A and C are
 implemented and pushed - awaiting merge. Order creation itself (KIT-59) is
-on `feat/checkout-orders`: server cart + merge, server-priced `placeOrder`
-with idempotency and rate limiting, `/checkout` collecting
+on `feat/checkout-orders` (PR #15): server cart + merge, server-priced
+`placeOrder` with idempotency and rate limiting, `/checkout` collecting
 delivery/collection. Payment stays a labelled prototype until KIT-60's
-Razorpay integration. The worktree-era dispatch below is history; the
-history is kept for reference.
+Razorpay integration. Session B landed on `feat/production-readiness`:
+t3-env, Better Auth baseURL, the static CSP, Turnstile wiring, the
+analytics adapter, PDF import for resources, and `docs/production.md`;
+only the manual provider steps remain. The worktree-era dispatch below is
+history; the history is kept for reference.
 
 ### Delegation update — 21 September 2026
 

@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 
 import { brand } from "./brand"
+import { clientEnv } from "./env.client"
+import { serverEnv } from "./env.server"
 
 /** Where this build lives, and whether search engines may index it. */
 export function resolveSiteUrl(
@@ -21,14 +23,17 @@ export function resolveSiteUrl(
   return "http://localhost:3000"
 }
 
-export const siteUrl = resolveSiteUrl(process.env)
+export const siteUrl = resolveSiteUrl({
+  NEXT_PUBLIC_SITE_URL: clientEnv.NEXT_PUBLIC_SITE_URL,
+  SITE_INDEXABLE: serverEnv.SITE_INDEXABLE,
+})
 
 /**
  * Off until launch. The page carries offers the owner has not yet confirmed
  * (see `toConfirm` in lib/brand.ts), so it must not be indexed as ICT's
  * official site.
  */
-export const indexable = process.env.SITE_INDEXABLE === "true"
+export const indexable = serverEnv.SITE_INDEXABLE === "true"
 
 /**
  * One complete Open Graph object per route. `openGraph` is a single metadata

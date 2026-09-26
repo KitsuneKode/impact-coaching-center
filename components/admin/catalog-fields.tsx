@@ -3,6 +3,7 @@
 import {
   IconArrowLeft,
   IconArrowRight,
+  IconFileImport,
   IconPhoto,
   IconPhotoPlus,
   IconTrash,
@@ -233,26 +234,63 @@ export function PageImagesField({
   const upload = useImageUpload()
   const release = useReleaseUpload()
   const input = useRef<HTMLInputElement>(null)
+  const pdfInput = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState(0)
+  const [rendering, setRendering] = useState(false)
   const id = useId()
   const room = max - value.length
 
-  async function pick(list: FileList | null) {
-    const files = [...(list ?? [])].sort(byName)
-    if (!files.length) return
-    if (files.length > room)
-      toast.error(`Only ${max} pages fit. The first ${room} were added.`)
-    const chosen = files.slice(0, room)
-    setPending(chosen.length)
+  async function uploadFiles(files: File[]) {
+    setPending(files.length)
     onBusyChange(true)
     const added: StoredImage[] = []
-    for (const file of chosen) {
+    for (const file of files) {
       const stored = await upload(file)
       if (stored) added.push(stored)
       setPending((n) => n - 1)
     }
     onBusyChange(false)
     onChange([...value, ...added])
+  }
+
+  async function pick(list: FileList | null) {
+    const files = [...(list ?? [])].sort(byName)
+    if (!files.length) return
+    if (files.length > room)
+      toast.error(`Only ${max} pages fit. The first ${room} were added.`)
+    await uploadFiles(files.slice(0, room))
+  }
+
+  /** A PDF becomes page images in the browser; only the images are stored. */
+  async function pickPdf(file: File | undefined) {
+    if (!file) return
+    if (file.type !== "application/pdf") {
+      toast.error(`${file.name} is not a PDF.`)
+      return
+    }
+    setRendering(true)
+    onBusyChange(true)
+    try {
+      const { renderPdfPages } = await import("@/lib/pdf-pages")
+      const pages = await renderPdfPages(file, room)
+      if (!pages.length) {
+        toast.error("That PDF has no pages.")
+        return
+      }
+      setRendering(false)
+      toast.success(
+        `${pages.length} page${pages.length === 1 ? "" : "s"} rendered - uploading.`
+      )
+      await uploadFiles(pages)
+      return
+    } catch {
+      toast.error(
+        "Could not read that PDF. Export the pages as images instead."
+      )
+    } finally {
+      setRendering(false)
+      onBusyChange(false)
+    }
   }
 
   const move = (from: number, to: number) => {
@@ -332,17 +370,31 @@ export function PageImagesField({
           ))}
         </ol>
       ) : null}
-      <div>
+      <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="secondary"
           size="sm"
-          disabled={pending > 0 || room <= 0}
+          disabled={pending > 0 || rendering || room <= 0}
           aria-describedby={id}
           onClick={() => input.current?.click()}
         >
           <IconPhotoPlus stroke={1.75} aria-hidden />
           Add pages
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={pending > 0 || rendering || room <= 0}
+          onClick={() => pdfInput.current?.click()}
+        >
+          {rendering ? (
+            <Spinner />
+          ) : (
+            <IconFileImport stroke={1.75} aria-hidden />
+          )}
+          {rendering ? "Reading PDF…" : "Import PDF"}
         </Button>
       </div>
       <input
@@ -354,6 +406,17 @@ export function PageImagesField({
         aria-labelledby={id}
         onChange={(event) => {
           void pick(event.target.files)
+          event.target.value = ""
+        }}
+      />
+      <input
+        ref={pdfInput}
+        type="file"
+        accept="application/pdf"
+        hidden
+        aria-label="Import pages from a PDF"
+        onChange={(event) => {
+          void pickPdf(event.target.files?.[0])
           event.target.value = ""
         }}
       />

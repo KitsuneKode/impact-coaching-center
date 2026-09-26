@@ -4,9 +4,10 @@ import { cache } from "react"
 import { api } from "@/convex/_generated/api"
 
 import type { Book, Resource } from "./catalog"
+import { clientEnv } from "./env.client"
 
 /** Published catalogue for server-rendered pages; empty when Convex is absent. */
-const configured = () => Boolean(process.env.NEXT_PUBLIC_CONVEX_URL)
+const configured = () => Boolean(clientEnv.NEXT_PUBLIC_CONVEX_URL)
 
 /* `cache` so a page and its metadata share one request. */
 export const publishedBooks = cache(async (): Promise<Book[]> =>

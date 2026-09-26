@@ -12,8 +12,11 @@ import * as m from "motion/react-m"
 import { useActionState, useEffect, useId, useRef, useState } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
+import { Turnstile } from "@/components/marketing/turnstile"
 import { Button, ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, timings } from "@/lib/brand"
+import { track } from "@/lib/analytics"
+import { clientEnv } from "@/lib/env.client"
 import { contactHref } from "@/lib/contact"
 import { enquiryTracks, HONEYPOT_FIELD, type LeadField } from "@/lib/leads"
 import { cn } from "@/lib/utils"
@@ -93,9 +96,13 @@ export function LeadForm() {
   // the success panel and there is no way back to it.
   const [again, setAgain] = useState(false)
   const [shown, setShown] = useState(state)
+  const [turnstileEpoch, setTurnstileEpoch] = useState(0)
   if (shown !== state) {
     setShown(state)
     setAgain(false)
+    /* A submission consumes the widget token; a rejected form must mint a
+       fresh one or the retry fails verification with the spent token. */
+    if (state.status === "error") setTurnstileEpoch((epoch) => epoch + 1)
   }
 
   const errors = state.status === "error" ? state.errors : {}
@@ -111,6 +118,8 @@ export function LeadForm() {
       ?.focus({ preventScroll: false })
 
   useEffect(() => {
+    if (state.status === "ok")
+      track({ name: "enquiry_submitted", track: state.track })
     if (state.status !== "error") return
     const first = FIELD_ORDER.find((f) => state.errors[f])
     if (first) focusField(first)
@@ -197,16 +206,19 @@ export function LeadForm() {
         ) : (
           <m.div key="form" {...swap}>
             <form ref={formRef} action={action} noValidate className="relative">
-              {invalid.length > 0 ? (
+              {invalid.length > 0 ||
+              (state.status === "error" && state.formError) ? (
                 <div
                   id={summaryId}
                   role="alert"
                   className="mb-6 rounded-control border border-destructive/40 bg-destructive/5 p-4"
                 >
                   <p className="text-sm font-medium text-destructive">
-                    {invalid.length === 1
-                      ? "One field needs attention before we can send this:"
-                      : `${invalid.length} fields need attention before we can send this:`}
+                    {state.status === "error" && state.formError
+                      ? state.formError
+                      : invalid.length === 1
+                        ? "One field needs attention before we can send this:"
+                        : `${invalid.length} fields need attention before we can send this:`}
                   </p>
                   <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                     {invalid.map((name) => (
@@ -312,6 +324,15 @@ export function LeadForm() {
                   />
                 </label>
               </div>
+
+              {clientEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+                <div className="mt-6">
+                  <Turnstile
+                    siteKey={clientEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    resetKey={turnstileEpoch}
+                  />
+                </div>
+              ) : null}
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">

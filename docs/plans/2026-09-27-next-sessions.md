@@ -58,18 +58,19 @@ one reads its pages and the open shows on their lead sheet.
 
 ## B. Production readiness (KIT-69)
 
-Branch: `feat/production-readiness`.
+Branch: `feat/production-readiness` — **done on that branch**: t3-env split
+(`lib/env.client.ts` + `lib/env.server.ts`; `lib/env.ts` stays for the
+Convex-side helpers), Better Auth `baseURL` set to `CONVEX_SITE_URL`
+(warning gone, trustedOrigins untouched), static CSP in `next.config.ts`
+(nonce CSP rejected — it forces all pages dynamic; the doc comment carries
+the reasoning), Turnstile on the enquiry form gated on
+`NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`, typed analytics
+adapter `lib/analytics.ts`, PDF→page-image import in the admin editors, and
+`docs/production.md` covering every variable and the manual provider steps.
 
-Paste to start:
-
-> Work KIT-69 from docs/plans/2026-09-27-next-sessions.md section B. Add
-> t3-env (@t3-oss/env-nextjs) for the Next side, replacing the checks in
-> lib/env.ts, so a missing variable fails the build. Fix the Better Auth
-> "Base URL is not set" warning without breaking the trustedOrigins fix in
-> convex/auth.ts. Write docs/production.md: every Convex and Vercel variable
-> for production, where each comes from, and that DEV_DEPLOYMENT_NAME must
-> never be set there. Do not create production deployments or change
-> provider settings; list those steps for me to approve.
+What remains is operator work, not code: create the Convex production
+deployment, provision Turnstile/WhatsApp/Razorpay credentials, set the
+variables from `docs/production.md`, and do the live click-through.
 
 ## C. Lead workflow and orders (launch plan Phase 1, KIT-70)
 
