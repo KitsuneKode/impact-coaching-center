@@ -1,33 +1,76 @@
 "use client"
 
 import { IconArrowRight, IconLock } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
 import { convexConfigured } from "@/app/providers"
-import { PageViewer } from "@/components/commerce/page-viewer"
+import { PageViewer, type ViewerPage } from "@/components/commerce/page-viewer"
 import { PaperPage } from "@/components/commerce/paper-page"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
-import type { PreviewResource } from "@/lib/preview-catalogue"
+import type { Resource } from "@/lib/catalog"
 
-function pagesOf(resource: PreviewResource) {
-  return Array.from({ length: Math.min(resource.pages, 6) }, (_, i) => ({
-    heading: i === 0 ? resource.title : undefined,
-  }))
-}
+type Opened = { title: string; pages: ViewerPage[]; placeholder: boolean }
+
+/** Where log-in sends the visitor back to: this list, with the reader open. */
+const returnTo = (slug: string) =>
+  `/login?next=${encodeURIComponent(`/resources?open=${slug}`)}`
 
 function OpenButton({
   resource,
-  onOpen,
+  autoOpen,
+  onOpened,
 }: {
-  resource: PreviewResource
-  onOpen: () => void
+  resource: Resource
+  autoOpen: boolean
+  onOpened: (opened: Opened) => void
 }) {
   const router = useRouter()
   const viewer = useQuery(api.auth.getCurrentPerson)
+  const openResource = useMutation(api.catalog.openResource)
+  const [busy, setBusy] = useState(false)
   const signedIn = !!viewer
+
+  async function open() {
+    setBusy(true)
+    try {
+      const result = await openResource({ slug: resource.slug })
+      if (result.ok) {
+        const placeholder = result.pageUrls.length === 0
+        onOpened({
+          title: result.title,
+          placeholder,
+          pages: placeholder
+            ? Array.from({ length: result.pages }, (_, i) => ({
+                heading: i === 0 ? result.title : undefined,
+              }))
+            : result.pageUrls.map((src) => ({ src })),
+        })
+      } else if (result.reason === "anonymous") {
+        router.push(returnTo(resource.slug))
+      } else {
+        toast.error("This resource is no longer available.")
+      }
+    } catch {
+      toast.error("Could not open it. Check your connection and try again.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Back from log-in with ?open=<slug>: open it once, then tidy the URL.
+  const opened = useRef(false)
+  useEffect(() => {
+    if (!autoOpen || !signedIn || opened.current) return
+    opened.current = true
+    router.replace("/resources", { scroll: false })
+    void open()
+  })
+
   // Until we know, show neither state rather than flashing the wrong one.
   if (viewer === undefined)
     return (
@@ -39,18 +82,18 @@ function OpenButton({
     <Button
       variant={signedIn ? "primary" : "secondary"}
       size="sm"
+      disabled={busy}
       aria-label={
-        signedIn ? `Open ${resource.title}` : `Verify to open ${resource.title}`
+        signedIn ? `Open ${resource.title}` : `Log in to open ${resource.title}`
       }
-      onClick={() =>
-        signedIn
-          ? onOpen()
-          : router.push(
-              `/login?next=${encodeURIComponent("/preview/resources")}`
-            )
-      }
+      onClick={() => (signedIn ? open() : router.push(returnTo(resource.slug)))}
     >
-      {signedIn ? (
+      {busy ? (
+        <>
+          <Spinner />
+          Opening
+        </>
+      ) : signedIn ? (
         <>
           Open
           <IconArrowRight stroke={1.75} data-nudge aria-hidden />
@@ -58,7 +101,7 @@ function OpenButton({
       ) : (
         <>
           <IconLock stroke={1.75} aria-hidden />
-          Verify to open
+          Log in to open
         </>
       )}
     </Button>
@@ -66,7 +109,14 @@ function OpenButton({
 }
 
 /** A free resource: a stacked-page thumbnail, what it is, and one action. */
-export function ResourceCard({ resource }: { resource: PreviewResource }) {
+export function ResourceCard({
+  resource,
+  autoOpen = false,
+}: {
+  resource: Resource
+  autoOpen?: boolean
+}) {
+  const [opened, setOpened] = useState<Opened | null>(null)
   const [open, setOpen] = useState(false)
   return (
     <article className="group grid h-full grid-rows-[auto_1fr] overflow-hidden rounded-card border border-border bg-card">
@@ -98,13 +148,20 @@ export function ResourceCard({ resource }: { resource: PreviewResource }) {
         <div className="grid gap-1">
           <h2 className="font-medium text-balance">{resource.title}</h2>
           <p className="tnum text-sm text-muted-foreground">
-            {resource.exam} · {resource.pages} pages · PDF
+            {resource.exam} · {resource.pages} pages
           </p>
         </div>
         <p className="text-sm text-muted-foreground">{resource.description}</p>
         <div className="mt-auto pt-1">
           {convexConfigured ? (
-            <OpenButton resource={resource} onOpen={() => setOpen(true)} />
+            <OpenButton
+              resource={resource}
+              autoOpen={autoOpen}
+              onOpened={(next) => {
+                setOpened(next)
+                setOpen(true)
+              }}
+            />
           ) : (
             <Button size="sm" variant="secondary" disabled>
               Open
@@ -113,13 +170,19 @@ export function ResourceCard({ resource }: { resource: PreviewResource }) {
         </div>
       </div>
 
-      <PageViewer
-        open={open}
-        onOpenChange={setOpen}
-        title={resource.title}
-        note="A sample of the reader. ICT's PDF pages appear here, readable on any phone."
-        pages={pagesOf(resource)}
-      />
+      {opened ? (
+        <PageViewer
+          open={open}
+          onOpenChange={setOpen}
+          title={opened.title}
+          note={
+            opened.placeholder
+              ? "Placeholder pages. The real pages appear here once uploaded."
+              : `${opened.pages.length} pages.`
+          }
+          pages={opened.pages}
+        />
+      ) : null}
     </article>
   )
 }

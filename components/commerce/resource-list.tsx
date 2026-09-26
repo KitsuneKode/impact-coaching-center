@@ -1,19 +1,23 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
+
 import { ResourceCard } from "@/components/commerce/resource-card"
 import { useExamFilter } from "@/components/commerce/use-exam-filter"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { previewResources } from "@/lib/preview-catalogue"
-
-const exams = ["All", ...new Set(previewResources.map((r) => r.exam))]
+import type { Resource } from "@/lib/catalog"
 
 /** Resources filtered by exam, one choice at a time. */
-export function ResourceList() {
+export function ResourceList({
+  resources,
+}: {
+  resources: readonly Resource[]
+}) {
+  const exams = ["All", ...new Set(resources.map((r) => r.exam))]
   const [exam, setExam] = useExamFilter(exams)
+  const toOpen = useSearchParams().get("open")
   const shown =
-    exam === "All"
-      ? previewResources
-      : previewResources.filter((r) => r.exam === exam)
+    exam === "All" ? resources : resources.filter((r) => r.exam === exam)
 
   return (
     <div className="mt-8 grid gap-6">
@@ -35,7 +39,7 @@ export function ResourceList() {
       <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((r) => (
           <li key={r.slug} className="grid">
-            <ResourceCard resource={r} />
+            <ResourceCard resource={r} autoOpen={r.slug === toOpen} />
           </li>
         ))}
       </ul>

@@ -1,6 +1,7 @@
 "use client"
 
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react"
+import Image from "next/image"
 import { useState } from "react"
 
 import { PaperPage } from "@/components/commerce/paper-page"
@@ -13,7 +14,8 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-export type ViewerPage = { heading?: string }
+/** A page image when there is one, otherwise a placeholder sheet. */
+export type ViewerPage = { heading?: string; src?: string }
 
 /**
  * A page-by-page reader: arrows, the keyboard's left and right keys, and a
@@ -77,11 +79,23 @@ export function PageViewer({
               direction === 1 ? "slide-in-from-right-4" : "slide-in-from-left-4"
             )}
           >
-            <PaperPage
-              running={title}
-              heading={page?.heading}
-              number={index + 1}
-            />
+            {page?.src ? (
+              <Image
+                src={page.src}
+                alt={`${title}, page ${index + 1}`}
+                width={760}
+                height={1075}
+                sizes="(min-width: 640px) 380px, 90vw"
+                priority
+                className="h-auto w-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_10px_30px_-12px_rgb(0_0_0/0.25)] ring-1 ring-border"
+              />
+            ) : (
+              <PaperPage
+                running={title}
+                heading={page?.heading}
+                number={index + 1}
+              />
+            )}
           </div>
         </div>
 

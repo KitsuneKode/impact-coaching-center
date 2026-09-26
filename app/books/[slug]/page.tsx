@@ -10,43 +10,57 @@ import { notFound } from "next/navigation"
 import { BookActions, SampleStrip } from "@/components/commerce/book-actions"
 import { BookCard } from "@/components/commerce/book-card"
 import { BookCover } from "@/components/commerce/book-cover"
+import { SampleNotice, ShopCartButton } from "@/components/commerce/shop-shell"
 import { Section } from "@/components/ui/section"
+import { publishedBook, publishedBooks } from "@/lib/catalog-server"
 import { formatPaise } from "@/lib/money"
-import { previewBookBySlug, previewBooks } from "@/lib/preview-catalogue"
-
-export function generateStaticParams() {
-  return previewBooks.map((book) => ({ slug: book.slug }))
-}
 
 export async function generateMetadata({
   params,
-}: PageProps<"/preview/books/[slug]">): Promise<Metadata> {
-  const { slug } = await params
-  return { title: previewBookBySlug(slug)?.title ?? "Book" }
+}: PageProps<"/books/[slug]">): Promise<Metadata> {
+  const book = await publishedBook((await params).slug)
+  if (!book) return { title: "Book not found" }
+  return {
+    title: book.title,
+    description: book.subtitle || undefined,
+    alternates: { canonical: `/books/${book.slug}` },
+    ...(book.sample ? { robots: { index: false, follow: false } } : {}),
+  }
 }
 
-export default async function PreviewBook({
-  params,
-}: PageProps<"/preview/books/[slug]">) {
+export default async function BookPage({ params }: PageProps<"/books/[slug]">) {
   const { slug } = await params
-  const book = previewBookBySlug(slug)
+  const [book, books] = await Promise.all([
+    publishedBook(slug),
+    publishedBooks(),
+  ])
   if (!book) notFound()
 
   const related = [
-    ...previewBooks.filter((b) => b.slug !== book.slug && b.exam === book.exam),
-    ...previewBooks.filter((b) => b.slug !== book.slug && b.exam !== book.exam),
+    ...books.filter((b) => b.slug !== book.slug && b.exam === book.exam),
+    ...books.filter((b) => b.slug !== book.slug && b.exam !== book.exam),
   ].slice(0, 3)
 
   return (
     <>
       <Section size="sm" className="pt-8 md:pt-10">
-        <Link
-          href="/preview/books"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <IconArrowLeft className="size-4" aria-hidden />
-          All books
-        </Link>
+        {book.sample ? (
+          <div className="mb-6">
+            <SampleNotice>
+              A placeholder title and price, to show how a book page works.
+            </SampleNotice>
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            href="/books"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <IconArrowLeft className="size-4" aria-hidden />
+            All books
+          </Link>
+          <ShopCartButton />
+        </div>
 
         <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
           <div className="grid content-start gap-6">
@@ -56,6 +70,7 @@ export default async function PreviewBook({
                 subtitle={book.subtitle}
                 exam={book.exam}
                 tone={book.tone}
+                coverUrl={book.coverUrl}
                 size="lg"
               />
             </div>
@@ -65,10 +80,16 @@ export default async function PreviewBook({
           <div className="grid content-start gap-7">
             <div className="grid gap-3">
               <p className="text-sm text-muted-foreground">
-                {book.exam} · {book.edition} · {book.pages} pages
+                {[book.exam, book.edition, `${book.pages} pages`]
+                  .filter(Boolean)
+                  .join(" · ")}
               </p>
               <h1 className="type-display text-balance">{book.title}</h1>
-              <p className="type-lede text-muted-foreground">{book.subtitle}</p>
+              {book.subtitle ? (
+                <p className="type-lede text-muted-foreground">
+                  {book.subtitle}
+                </p>
+              ) : null}
             </div>
 
             <p className="tnum font-display text-4xl">
@@ -106,26 +127,30 @@ export default async function PreviewBook({
               </li>
             </ul>
 
-            <p className="max-w-[62ch] text-muted-foreground">
-              {book.description}
-            </p>
+            {book.description ? (
+              <p className="max-w-[62ch] whitespace-pre-line text-muted-foreground">
+                {book.description}
+              </p>
+            ) : null}
 
-            <div className="grid gap-3">
-              <h2 className="font-medium">What&rsquo;s inside</h2>
-              <ol className="divide-y divide-border rounded-card border border-border">
-                {book.contents.map((chapter, i) => (
-                  <li
-                    key={chapter}
-                    className="flex items-baseline gap-4 px-5 py-3"
-                  >
-                    <span className="tnum w-6 text-sm text-muted-foreground">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    {chapter}
-                  </li>
-                ))}
-              </ol>
-            </div>
+            {book.contents.length ? (
+              <div className="grid gap-3">
+                <h2 className="font-medium">What&rsquo;s inside</h2>
+                <ol className="divide-y divide-border rounded-card border border-border">
+                  {book.contents.map((chapter, i) => (
+                    <li
+                      key={`${i}-${chapter}`}
+                      className="flex items-baseline gap-4 px-5 py-3"
+                    >
+                      <span className="tnum w-6 text-sm text-muted-foreground">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      {chapter}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
           </div>
         </div>
       </Section>

@@ -82,6 +82,7 @@ function describe(kind: string, from?: string, to?: string) {
   if (kind === "whatsapp_handoff") return "Opened WhatsApp from the site"
   if (kind === "role_change") return "Role changed"
   if (kind === "account_deleted") return "Deleted their account"
+  if (kind === "resource_open") return "Opened a free resource"
   return "Note"
 }
 

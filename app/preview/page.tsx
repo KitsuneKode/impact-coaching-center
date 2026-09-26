@@ -39,15 +39,15 @@ const surfaces = [
     icon: IconBook2,
     title: "Books and cart",
     body: "Browse, preview, add to cart. Checkout opens with payments.",
-    href: "/preview/books",
-    state: "Preview",
+    href: "/books",
+    state: "Sample",
   },
   {
     icon: IconFileText,
     title: "Free resources",
     body: "Notes and papers that open after a phone check.",
-    href: "/preview/resources",
-    state: "Preview",
+    href: "/resources",
+    state: "Sample",
   },
   {
     icon: IconShieldCheck,
@@ -65,8 +65,8 @@ export default function PreviewOverview() {
         Everything built for ICT so far.
       </h1>
       <p className="type-lede mt-3 max-w-160 text-muted-foreground">
-        Live screens work today. Previews show the next phase with sample
-        content.
+        Live screens work today. Sample screens work too, with placeholder
+        titles until ICT sends its own.
       </p>
       <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {surfaces.map((s) => (

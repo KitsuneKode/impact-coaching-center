@@ -1,6 +1,7 @@
 "use client"
 
 import { IconShoppingBag } from "@tabler/icons-react"
+import { useQuery } from "convex/react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -15,9 +16,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
+import { api } from "@/convex/_generated/api"
 import { useCart, useCartHydrated } from "@/lib/cart-store"
 import { formatPaise } from "@/lib/money"
-import { previewBookBySlug } from "@/lib/preview-catalogue"
 
 /** The cart button with its count, shown once the saved cart has loaded. */
 export function CartButton({ onOpen }: { onOpen: () => void }) {
@@ -42,7 +44,9 @@ export function CartButton({ onOpen }: { onOpen: () => void }) {
 
 /**
  * The cart as a side sheet, so the shopper never leaves the book they were
- * reading. Checkout is a labelled prototype until payments are live.
+ * reading. Prices are the published ones from Convex; a line whose book is no
+ * longer published drops out. Checkout is a labelled prototype until payments
+ * are live, and the server will price the real order.
  */
 export function CartSheet({
   open,
@@ -53,9 +57,11 @@ export function CartSheet({
 }) {
   const lines = useCart((s) => s.lines)
   const setQuantity = useCart((s) => s.setQuantity)
+  const books = useQuery(api.catalog.books)
+  const loading = books === undefined && lines.length > 0
 
   const rows = lines.flatMap((line) => {
-    const book = previewBookBySlug(line.slug)
+    const book = books?.find((b) => b.slug === line.slug)
     return book ? [{ line, book }] : []
   })
   const subtotal = rows.reduce(
@@ -69,13 +75,21 @@ export function CartSheet({
         <SheetHeader className="border-b border-border p-6">
           <SheetTitle className="text-lg font-medium">Your cart</SheetTitle>
           <SheetDescription>
-            {rows.length === 0
-              ? "Nothing here yet."
-              : "One delivery charge for the whole order, shown at checkout."}
+            {loading
+              ? "Checking prices…"
+              : rows.length === 0
+                ? "Nothing here yet."
+                : "One delivery charge for the whole order, shown at checkout."}
           </SheetDescription>
         </SheetHeader>
 
-        {rows.length === 0 ? (
+        {loading ? (
+          <div aria-hidden className="grid flex-1 content-start gap-4 p-6">
+            {lines.map((line) => (
+              <Skeleton key={line.slug} className="h-24 w-full" />
+            ))}
+          </div>
+        ) : rows.length === 0 ? (
           <div className="grid flex-1 place-content-center gap-4 p-6 text-center">
             <p className="text-muted-foreground">
               Add a book and it will wait here, even if you close the tab.
@@ -95,11 +109,16 @@ export function CartSheet({
                 key={book.slug}
                 className="grid grid-cols-[64px_1fr] gap-4 p-6"
               >
-                <BookCover title={book.title} tone={book.tone} size="sm" />
+                <BookCover
+                  title={book.title}
+                  tone={book.tone}
+                  coverUrl={book.coverUrl}
+                  size="sm"
+                />
                 <div className="grid min-w-0 gap-3">
                   <div className="min-w-0 break-words">
                     <Link
-                      href={`/preview/books/${book.slug}`}
+                      href={`/books/${book.slug}`}
                       onClick={() => onOpenChange(false)}
                       className="font-medium hover:underline"
                     >
@@ -136,7 +155,7 @@ export function CartSheet({
             <Button
               size="lg"
               onClick={() =>
-                toast("Checkout is next", {
+                toast("Checkout is not open yet", {
                   description:
                     "Payments open once ICT's Razorpay account is approved. Your cart stays saved.",
                 })
@@ -144,6 +163,9 @@ export function CartSheet({
             >
               Checkout
             </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Prototype. No payment is taken yet.
+            </p>
           </SheetFooter>
         ) : null}
       </SheetContent>

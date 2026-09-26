@@ -3,7 +3,13 @@ import { v } from "convex/values"
 import { isDevelopmentDeployment } from "../lib/dev-deployment"
 import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
-import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
+import {
+  BOOK_TONE,
+  LEAD_STATUS,
+  ORDER_STATUS,
+  PERSON_ROLE,
+  RESOURCE_KIND,
+} from "./schema"
 import { allocateOrderReference } from "./orders"
 
 /** Development fixtures: Persons at each role, without a handset each. */
@@ -212,6 +218,101 @@ export const seedOrders = internalMutation({
   },
 })
 
+/**
+ * Sample books and resources, published and marked `sample` so the public
+ * pages say so. A title the owner has since edited is real and left alone.
+ */
+export const seedCatalog = internalMutation({
+  args: {
+    books: v.array(
+      v.object({
+        slug: v.string(),
+        title: v.string(),
+        subtitle: v.string(),
+        exam: v.string(),
+        edition: v.string(),
+        pages: v.number(),
+        /** Rupees in the fixture, paise in the database. */
+        priceRupees: v.number(),
+        tone: BOOK_TONE,
+        description: v.string(),
+        contents: v.array(v.string()),
+      })
+    ),
+    resources: v.array(
+      v.object({
+        slug: v.string(),
+        title: v.string(),
+        exam: v.string(),
+        kind: RESOURCE_KIND,
+        description: v.string(),
+      })
+    ),
+  },
+  returns: v.object({ books: v.number(), resources: v.number() }),
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+    const now = Date.now()
+    let books = 0
+    let resources = 0
+
+    for (const { priceRupees, ...book } of args.books) {
+      const existing = await ctx.db
+        .query("books")
+        .withIndex("by_slug", (q) => q.eq("slug", book.slug))
+        .unique()
+      if (existing && !existing.sample) continue
+      const fields = {
+        ...book,
+        pricePaise: Math.round(priceRupees * 100),
+        published: true,
+        sample: true,
+        updatedAt: now,
+      }
+      if (existing)
+        await ctx.db.patch(existing._id, {
+          ...fields,
+          revision: existing.revision + 1,
+        })
+      else
+        await ctx.db.insert("books", {
+          ...fields,
+          samplePages: [],
+          revision: 0,
+        })
+      books += 1
+    }
+
+    for (const resource of args.resources) {
+      const existing = await ctx.db
+        .query("resources")
+        .withIndex("by_slug", (q) => q.eq("slug", resource.slug))
+        .unique()
+      if (existing && !existing.sample) continue
+      const fields = {
+        ...resource,
+        published: true,
+        sample: true,
+        updatedAt: now,
+      }
+      if (existing)
+        await ctx.db.patch(existing._id, {
+          ...fields,
+          revision: existing.revision + 1,
+        })
+      else
+        await ctx.db.insert("resources", {
+          ...fields,
+          pageImages: [],
+          revision: 0,
+        })
+      resources += 1
+    }
+
+    return { books, resources }
+  },
+})
+
 /** Take back what this module wrote, without destroying what a person earned. */
 export const clearSeed = internalMutation({
   args: {},
@@ -220,9 +321,28 @@ export const clearSeed = internalMutation({
     keptVerified: v.number(),
     activities: v.number(),
     orders: v.number(),
+    catalog: v.number(),
   }),
   handler: async (ctx) => {
     assertLocalDeployment()
+
+    /* Sample titles, and who opened the sample resources. */
+    let catalog = 0
+    for (const book of await ctx.db.query("books").collect()) {
+      if (!book.sample) continue
+      await ctx.db.delete(book._id)
+      catalog += 1
+    }
+    for (const resource of await ctx.db.query("resources").collect()) {
+      if (!resource.sample) continue
+      const opens = await ctx.db
+        .query("resourceOpens")
+        .filter((q) => q.eq(q.field("resourceId"), resource._id))
+        .collect()
+      for (const open of opens) await ctx.db.delete(open._id)
+      await ctx.db.delete(resource._id)
+      catalog += 1
+    }
 
     const seeded = await ctx.db
       .query("persons")
@@ -269,7 +389,7 @@ export const clearSeed = internalMutation({
       removed += 1
     }
 
-    return { removed, keptVerified: kept, activities, orders }
+    return { removed, keptVerified: kept, activities, orders, catalog }
   },
 })
 
