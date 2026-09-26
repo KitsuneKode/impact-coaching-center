@@ -12,6 +12,7 @@
     "lint": "oxlint --deny-warnings .",
     "materials:docs": "bun scripts/generate-final-quotation.mjs && bun scripts/generate-client-materials.mjs",
     "materials:pdf": "bun scripts/materials-to-pdf.mjs",
+    "otp": "bun run scripts/otp.ts",
     "seed:dev": "bun run scripts/seed-dev.ts",
     "start": "next start",
     "sync:courses": "bun run scripts/sync-courses.ts",

@@ -83,8 +83,11 @@ Each item is checked by hand on the running app, not inferred from tests.
 - [x] Staff sign-in skips the questionnaire, lands on /admin; leads table,
       lead sheet, orders queue load; rows per page 50 loads the rest.
 - [x] /privacy at mobile width renders markers legibly.
-- [ ] Owner: export, role change. Staff: export and role change refused.
-- [ ] Enquiry form → lead at the top of /admin/leads.
+- [x] Owner: Export visible, People page with grant/remove. Staff: no
+      Export, People says "Owner only". (Export file not downloaded; no role
+      actually changed.)
+- [x] Enquiry form → "received" → top of /admin/leads. Failed until
+      LEAD_INGEST_SECRET was set on both sides; it had never been set (KIT-40).
 
 ## Next, in order
 
