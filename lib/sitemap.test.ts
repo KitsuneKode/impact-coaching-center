@@ -18,7 +18,17 @@ const unapprovedPolicyRoutes = policies
  * entry asks a crawler to fetch a page that tells it to go away. Sign-in has
  * nothing worth ranking, and the leads inbox is staff-only.
  */
-const noindexRoutes = ["/sign-in", "/admin/leads"]
+const noindexRoutes = [
+  "/login",
+  "/register",
+  // A Person's own record. Nothing on it is public, and it says nothing a
+  // stranger could act on, so there is nothing to rank.
+  "/account",
+  "/admin",
+  "/admin/leads",
+  "/admin/orders",
+  "/admin/people",
+]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
 const draftRoutes = [
@@ -37,12 +47,21 @@ const draftRoutes = [
  */
 function staticRoutesOnDisk(): string[] {
   const glob = new Bun.Glob("app/**/page.tsx")
-  return [...glob.scanSync(".")]
-    .map(
-      (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
-    )
-    .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
-    .filter((route) => !route.includes("["))
+  return (
+    [...glob.scanSync(".")]
+      .map(
+        (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
+      )
+      .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
+      .filter((route) => !route.includes("["))
+      /*
+       * Parallel-route slots (@authModal) and intercepting routes ((.)login)
+       * are presentations of routes that already exist elsewhere in this list,
+       * not separate pages. Listing /@authModal/(.)login in a sitemap would ask
+       * a crawler to fetch a URL that does not exist.
+       */
+      .filter((route) => !route.includes("/@") && !route.includes("/(."))
+  )
 }
 
 const pathnames = () => sitemap().map((entry) => new URL(entry.url).pathname)

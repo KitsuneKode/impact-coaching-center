@@ -18,6 +18,23 @@ const nextConfig: NextConfig = {
    * needs a nonce and a frame-src. Add it with the sign-in UI, which is when
    * this origin starts carrying sessions worth stealing.
    */
+  /**
+   * /login and /register are the real routes, because those are the words
+   * people know. They render the same screen with different framing: there is
+   * one mechanism, since entering a mobile number either finds that Person or
+   * creates one (ADR-0001).
+   *
+   * The old /sign-in and /sign-up paths redirect rather than 404, because
+   * /sign-in was live and may already be linked from somewhere we do not
+   * control. Permanent, because this is the last time these move.
+   */
+  async redirects() {
+    return [
+      { source: "/sign-in", destination: "/login", permanent: true },
+      { source: "/sign-up", destination: "/register", permanent: true },
+    ]
+  },
+
   async headers() {
     return [
       {

@@ -8,29 +8,49 @@ import {
 import { LeadForm } from "@/components/marketing/lead-form"
 import { Reveal } from "@/components/motion/reveal"
 import { Section } from "@/components/ui/section"
-import { contact, formatPhone, joining, offer, place } from "@/lib/brand"
+import { contact, formatPhone, joining, place } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 
 /**
- * Where the page converts. The joining steps sit beside the form so the
- * visitor can see exactly what happens after they press the button, which is
- * the question that stops most people from pressing it.
+ * Where the page converts, and the page's only closing ask. The joining steps
+ * sit beside the form so the visitor can see exactly what happens after they
+ * press the button, which is the question that stops most people pressing it.
  */
 export function Enquire() {
   return (
     <Section id="enquire">
-      <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
-        <Reveal>
-          <h2 className="type-display max-w-[32rem]">
-            <span className="text-foreground">{offer.cta}.</span>
+      {/*
+       * Three blocks, not two columns: intro, form, then the details. On a
+       * phone that order puts the form right under its heading instead of
+       * three screens down past the steps and the map; on a desktop the grid
+       * places the form beside both.
+       */}
+      <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-x-16 lg:gap-y-10">
+        <Reveal className="lg:col-start-1 lg:row-start-1">
+          <p className="text-sm font-medium text-muted-foreground">
+            Talk to ICT
+          </p>
+          <h2 className="type-lede mt-4 max-w-[30rem]">
+            <span className="text-foreground">
+              Sit in on a class before you pay anything.
+            </span>
             <span className="text-muted-foreground">
               {" "}
-              Leave your number and ICT will call you to fix a time, or walk in
-              to the centre on {place.spoken}.
+              Leave your number and the centre will call you to fix a free
+              workshop, or walk in on {place.spoken}.
             </span>
           </h2>
+        </Reveal>
 
-          <ol className="mt-10 space-y-6">
+        <Reveal
+          delay={0.08}
+          className="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+        >
+          <LeadForm />
+        </Reveal>
+
+        <Reveal className="lg:col-start-1 lg:row-start-2">
+          <ol className="space-y-6">
             {joining.map((step, index) => (
               <li key={step.verb} className="relative flex gap-4">
                 <span className="relative flex flex-col items-center">
@@ -131,6 +151,13 @@ export function Enquire() {
                 src={`https://www.google.com/maps?q=${place.lat},${place.lng}&z=17&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
+                // The minimum a Maps embed needs to render and open "view
+                // larger map". Everything else - top navigation, forms,
+                // modals - stays denied. `allow-scripts` with
+                // `allow-same-origin` can technically lift its own sandbox,
+                // but the framed origin is google.com itself, so the escape
+                // hatch is held by the party we already trust to serve it.
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                 className="absolute inset-0 size-full border-0 grayscale-[0.2]"
               />
             </div>
@@ -148,10 +175,6 @@ export function Enquire() {
               </a>
             </div>
           </div>
-        </Reveal>
-
-        <Reveal delay={0.08}>
-          <LeadForm />
         </Reveal>
       </div>
     </Section>

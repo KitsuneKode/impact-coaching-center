@@ -7,32 +7,67 @@ import { internal } from "../convex/_generated/api"
 import schema from "../convex/schema"
 import { phoneAuthOptions } from "./phone-auth"
 
+const TEST_SECRET = "test-only-secret-not-used-outside-this-memory-adapter"
+
 function harness() {
   const db: MemoryDB = { user: [], session: [], account: [], verification: [] }
   const persons = convexTest(schema, {
     "../convex/_generated/server.ts": () =>
       import("../convex/_generated/server"),
     "../convex/persons.ts": () => import("../convex/persons"),
+    "../convex/otp.ts": () => import("../convex/otp"),
   })
   let code = ""
+  const codes: string[] = []
   let deliveredTo = ""
   let failRecord = false
-  let sendRefusal: "phone" | "address" | "deployment" | null = null
+  let failSend = false
+  let failRelease = false
+  let holdSend = false
+  let releaseHold = () => {}
+  const hold = new Promise<void>((resolve) => {
+    releaseHold = resolve
+  })
+  let markSendEntered = () => {}
+  const sendEntered = new Promise<void>((resolve) => {
+    markSendEntered = resolve
+  })
+  let sendRefusal: "phone" | "address" | "deployment" | "inflight" | null = null
   let throttled: { phone: string; ip: string | null } | null = null
   const auth = betterAuth({
     baseURL: "http://localhost:3000",
-    secret: "test-only-secret-not-used-outside-this-memory-adapter",
+    secret: TEST_SECRET,
     database: memoryAdapter(db),
     rateLimit: { enabled: false },
     logger: { disabled: true },
     ...phoneAuthOptions({
-      throttle: async (target) => {
+      secret: TEST_SECRET,
+      claim: async (target) => {
         throttled = target
-        return sendRefusal
+        if (sendRefusal) return { ok: false, reason: sendRefusal }
+        return await persons.mutation(internal.otp.claimOtpSend, {
+          phone: target.phone,
+          ip: target.ip ?? undefined,
+        })
       },
+      commit: (attempt) =>
+        persons.mutation(internal.otp.commitOtpCode, attempt),
+      release: async (attempt) => {
+        if (failRelease) throw new Error("release failed")
+        await persons.mutation(internal.otp.releaseOtpSend, attempt)
+      },
+      abort: async (attempt) => {
+        await persons.mutation(internal.otp.abortOtpCode, attempt)
+      },
+      verify: (attempt) =>
+        persons.mutation(internal.otp.verifyOtpCode, attempt),
       send: async (target) => {
+        if (failSend) throw new Error("delivery failed")
         code = target.code
+        codes.push(target.code)
         deliveredTo = target.phoneNumber
+        markSendEntered()
+        if (holdSend) await hold
       },
       record: async (person) => {
         if (failRecord) throw new Error("test callback failure")
@@ -41,8 +76,11 @@ function harness() {
     }),
   })
   async function request(path: string, body: Record<string, unknown>) {
+    return post(`phone-number/${path}`, body)
+  }
+  async function post(path: string, body: Record<string, unknown>) {
     return auth.handler(
-      new Request(`http://localhost:3000/api/auth/phone-number/${path}`, {
+      new Request(`http://localhost:3000/api/auth/${path}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
@@ -53,8 +91,21 @@ function harness() {
     db,
     persons,
     request,
+    post,
     sentTo: () => deliveredTo,
     lastCode: () => code,
+    codes: () => codes,
+    failSend: (value = true) => {
+      failSend = value
+    },
+    failRelease: (value = true) => {
+      failRelease = value
+    },
+    holdNextSend: () => {
+      holdSend = true
+    },
+    sendEntered: () => sendEntered,
+    releaseSend: () => releaseHold(),
     refuseSend: (scope: "phone" | "address" | "deployment" | null) => {
       sendRefusal = scope
     },
@@ -122,7 +173,7 @@ describe("phone authentication through the installed plugin", () => {
     expect((await h.verify()).status).not.toBe(200)
     expect(h.db.session).toHaveLength(1)
   })
-  test("resend replaces the live code instead of racing it", async () => {
+  test("a sequential resend leaves one live code", async () => {
     const h = harness()
     await h.send()
     await h.send()
@@ -143,8 +194,13 @@ describe("phone authentication through the installed plugin", () => {
   test("expired and exhausted codes cannot create accounts", async () => {
     const expired = harness()
     await expired.send()
-    expired.db.verification[0].expiresAt = new Date(0)
-    expect((await expired.verify()).status).not.toBe(200)
+    await expired.persons.run(async (ctx) => {
+      const row = await ctx.db.query("otpSendLeases").unique()
+      if (!row) throw new Error("expected a send lease")
+      await ctx.db.patch(row._id, { codeExpiresAt: 0 })
+    })
+    const expiredResponse = await expired.verify()
+    expect(expiredResponse.status).toBe(400)
     expect(expired.db.user).toHaveLength(0)
     const exhausted = harness()
     await exhausted.send()
@@ -152,6 +208,29 @@ describe("phone authentication through the installed plugin", () => {
       await exhausted.verify(undefined, { code: "invalid" })
     expect((await exhausted.verify()).status).not.toBe(200)
     expect(exhausted.db.user).toHaveLength(0)
+  })
+  test("a send already in flight refuses a second and keeps its code", async () => {
+    const h = harness()
+    h.holdNextSend()
+    const first = h.send()
+    await h.sendEntered()
+    expect((await h.send()).status).toBe(429)
+    expect(h.db.verification).toHaveLength(1)
+    h.releaseSend()
+    expect((await first).status).toBe(200)
+    expect(h.codes()).toHaveLength(1)
+    expect((await h.verify()).status).toBe(200)
+    expect(h.db.session).toHaveLength(1)
+  })
+  test("a delivery failure does not leave an acceptable code", async () => {
+    const h = harness()
+    h.failSend()
+    expect((await h.send()).status).not.toBe(200)
+    expect(h.codes()).toHaveLength(0)
+    expect((await h.verify(undefined, { code: "000000" })).status).not.toBe(200)
+    h.failSend(false)
+    expect((await h.send()).status).toBe(200)
+    expect((await h.verify()).status).toBe(200)
   })
   test("a refused send returns 429 and leaves the live code intact", async () => {
     const h = harness()
@@ -182,6 +261,44 @@ describe("phone authentication through the installed plugin", () => {
     expect((await h.send()).status).toBe(429)
     expect(h.sentTo()).toBe("")
     expect(h.db.verification).toHaveLength(0)
+  })
+  test("a release failure after delivery still accepts the code", async () => {
+    const h = harness()
+    h.failRelease()
+    expect((await h.send()).status).toBe(200)
+    expect((await h.verify()).status).toBe(200)
+    expect(h.db.session).toHaveLength(1)
+  })
+  test("password and email sign-in are refused before anything is stored", async () => {
+    const h = harness()
+    for (const path of [
+      "sign-in/phone-number",
+      "phone-number/request-password-reset",
+      "phone-number/reset-password",
+      "sign-in/email",
+      "sign-up/email",
+      "request-password-reset",
+      "reset-password",
+      "change-password",
+      "change-email",
+      "sign-in/social",
+    ]) {
+      const response = await h.post(path, {
+        phoneNumber: "+919876543210",
+        password: "a-long-secret",
+        email: "person@example.com",
+        otp: "000000",
+        newPassword: "another-long-secret",
+        provider: "google",
+      })
+      expect(response.status).toBe(403)
+    }
+    expect(h.db.verification).toHaveLength(0)
+    expect(h.db.user).toHaveLength(0)
+    expect(h.db.account).toHaveLength(0)
+    expect(
+      await h.persons.run((ctx) => ctx.db.query("otpSendLeases").collect())
+    ).toHaveLength(0)
   })
   test("Person callback failure never issues a session", async () => {
     const h = harness()

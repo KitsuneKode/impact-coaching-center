@@ -2,6 +2,8 @@ import { v } from "convex/values"
 
 import { parseClientAddress } from "../lib/client-address"
 import { toE164 } from "../lib/leads"
+import type { Doc } from "./_generated/dataModel"
+import type { MutationCtx } from "./_generated/server"
 import { internalMutation } from "./_generated/server"
 import { consumeRateLimit } from "./persons"
 
@@ -30,26 +32,115 @@ export const SENDS_PER_IP_HOUR = 15
 export const SENDS_PER_DAY_GLOBAL = 500
 
 /**
- * Spend one send of allowance for this number, this address and the whole
- * deployment. Returns false as soon as any ceiling is hit.
+ * How long a send may stay in flight before another request may take over.
  *
- * Fail closed: allowance already spent on a bucket that passed is not refunded
- * when a later bucket refuses. That is the conservative direction - it can
- * only ever refuse more, never fewer, and refusing a send costs a person a few
- * minutes while allowing one costs real money.
- *
- * The ceilings exist before the transport does on purpose. Today a send writes
- * a line to the Convex log and costs nothing; the moment WhatsApp lands every
- * send is a billed message, and an unthrottled endpoint is both a cost sink
- * and a way to harass any Indian mobile number with codes it did not ask for.
- *
- * Internal: only the auth hook in convex/auth.ts calls this.
+ * Long enough for the local logger. Before the WhatsApp transport (KIT-46),
+ * raise this above that provider's timeout. It stays far shorter than the
+ * five-minute code lifetime, so a crashed worker cannot hold the number.
  */
-export const consumeSendAllowance = internalMutation({
+export const SEND_LEASE_MS = 20_000
+
+/** Matches the phone plugin's allowedAttempts. A sixth guess finds nothing. */
+export const OTP_ATTEMPTS = 5
+
+const CODE_HASH = /^[0-9a-f]{64}$/
+
+const sendRefusal = v.union(
+  v.literal("inflight"),
+  v.literal("phone"),
+  v.literal("address"),
+  v.literal("deployment")
+)
+
+/**
+ * The lease for this phone. A lost insert race can leave extras; `.unique()`
+ * would then throw on every later send and lock the number out. Keep the
+ * unexpired code when one exists, otherwise the highest generation, and
+ * delete the rest.
+ *
+ * A deleted row's generation must never be minted again. The next claim is
+ * `kept.generation + 1`, so when a discarded row is newer than the one we
+ * keep, the kept row jumps to `max + 1` first. Otherwise that orphan still
+ * holds the number the next claim is about to issue, and can commit or
+ * release a lease it no longer owns.
+ */
+async function leaseByPhone(ctx: MutationCtx, phone: string) {
+  const rows = await ctx.db
+    .query("otpSendLeases")
+    .withIndex("by_phone", (q) => q.eq("phone", phone))
+    .take(32)
+  if (rows.length === 0) return null
+  if (rows.length === 1) return rows[0] ?? null
+  const now = Date.now()
+  const ranked = [...rows].sort((a, b) => b.generation - a.generation)
+  const keep =
+    ranked.find(
+      (row) => row.codeHash !== undefined && (row.codeExpiresAt ?? 0) > now
+    ) ??
+    ranked[0] ??
+    null
+  if (!keep) return null
+  const maxGeneration = ranked[0]?.generation ?? keep.generation
+  const discardsANewerOrEqualGeneration = rows.some(
+    (row) => row._id !== keep._id && row.generation >= keep.generation
+  )
+  for (const extra of rows) {
+    if (extra._id !== keep._id) await ctx.db.delete(extra._id)
+  }
+  if (!discardsANewerOrEqualGeneration) return keep
+  const generation = maxGeneration + 1
+  await ctx.db.patch(keep._id, { generation })
+  return { ...keep, generation }
+}
+
+function hashesMatch(left: string, right: string) {
+  if (left.length !== right.length) return false
+  let diff = 0
+  for (let index = 0; index < left.length; index++)
+    diff |= left.charCodeAt(index) ^ right.charCodeAt(index)
+  return diff === 0
+}
+
+/** Drop the acceptable code. The generation and any in-flight hold stay. */
+async function clearCode(
+  ctx: MutationCtx,
+  row: Doc<"otpSendLeases">,
+  inflightUntil: number
+) {
+  await ctx.db.replace(row._id, {
+    phone: row.phone,
+    generation: row.generation,
+    inflightUntil,
+    attempts: 0,
+  })
+}
+
+/**
+ * Spend allowance and take the per-phone send lease in one mutation.
+ *
+ * An overlapping send returns `inflight` before any write, so a double tap
+ * keeps the live code and does not burn a ceiling. A ceiling that refuses
+ * after an earlier bucket passed is not refunded: failing closed can only
+ * refuse more, never fewer.
+ *
+ * Convex serializes the two claims. The loser observes the winner's unexpired
+ * lease. There is no process-local lock. The ceilings exist before the
+ * WhatsApp transport on purpose: today a send only logs, and the moment that
+ * transport lands every send is a billed message.
+ */
+export const claimOtpSend = internalMutation({
   args: { phone: v.string(), ip: v.optional(v.string()) },
+  returns: v.union(
+    v.object({ ok: v.literal(true), generation: v.number() }),
+    v.object({ ok: v.literal(false), reason: sendRefusal })
+  ),
   handler: async (ctx, args) => {
     const phone = toE164(args.phone)
-    if (!phone) return "phone" as SendRefusal
+    if (!phone) return { ok: false as const, reason: "phone" as const }
+    const now = Date.now()
+    const existing = await leaseByPhone(ctx, phone)
+    if (existing && existing.inflightUntil > now)
+      return { ok: false as const, reason: "inflight" as const }
     // Validated exactly as the enquiry path does. The address arrives from a
     // header the caller controls, so an unchecked value would both evade this
     // ceiling and mint a counter row per made-up spelling. ADR-0004.
@@ -90,8 +181,124 @@ export const consumeSendAllowance = internalMutation({
       },
     ]
     for (const { key, limit, windowMs, refusal } of checks) {
-      if (!(await consumeRateLimit(ctx, key, limit, windowMs))) return refusal
+      if (!(await consumeRateLimit(ctx, key, limit, windowMs)))
+        return { ok: false as const, reason: refusal }
     }
+    const generation = (existing?.generation ?? 0) + 1
+    const inflightUntil = now + SEND_LEASE_MS
+    if (existing)
+      await ctx.db.patch(existing._id, { generation, inflightUntil })
+    else
+      await ctx.db.insert("otpSendLeases", {
+        phone,
+        generation,
+        inflightUntil,
+        attempts: 0,
+      })
+    return { ok: true as const, generation }
+  },
+})
+
+/**
+ * Record the code this generation may accept.
+ *
+ * `lost` means a newer send already holds the number: do not deliver.
+ * `expired` means this same send outlived its lease and nobody took over:
+ * the previous code, if any, stays, and the caller must not deliver.
+ */
+export const commitOtpCode = internalMutation({
+  args: {
+    phone: v.string(),
+    generation: v.number(),
+    codeHash: v.string(),
+    codeExpiresAt: v.number(),
+  },
+  returns: v.union(v.literal("ok"), v.literal("lost"), v.literal("expired")),
+  handler: async (ctx, args) => {
+    const phone = toE164(args.phone)
+    if (!phone || !CODE_HASH.test(args.codeHash)) return "lost"
+    const now = Date.now()
+    const ttl = args.codeExpiresAt - now
+    if (ttl <= 0 || ttl > 10 * MINUTE) return "lost"
+    const row = await leaseByPhone(ctx, phone)
+    if (!row || row.generation !== args.generation) return "lost"
+    if (row.inflightUntil <= now) return "expired"
+    await ctx.db.patch(row._id, {
+      codeHash: args.codeHash,
+      codeExpiresAt: args.codeExpiresAt,
+      attempts: 0,
+      inflightUntil: now + SEND_LEASE_MS,
+    })
+    return "ok"
+  },
+})
+
+/** The code was delivered. Release the hold and leave the hash verifiable. */
+export const releaseOtpSend = internalMutation({
+  args: { phone: v.string(), generation: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const phone = toE164(args.phone)
+    if (!phone) return null
+    const row = await leaseByPhone(ctx, phone)
+    if (!row || row.generation !== args.generation) return null
+    await ctx.db.patch(row._id, { inflightUntil: 0 })
     return null
+  },
+})
+
+/**
+ * Delivery failed after commit. Drop the code nobody received and release
+ * the hold. A previous code is already gone: commit replaced it.
+ */
+export const abortOtpCode = internalMutation({
+  args: { phone: v.string(), generation: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const phone = toE164(args.phone)
+    if (!phone) return null
+    const row = await leaseByPhone(ctx, phone)
+    if (!row || row.generation !== args.generation) return null
+    await clearCode(ctx, row, 0)
+    return null
+  },
+})
+
+export const verifyOtpCode = internalMutation({
+  args: { phone: v.string(), codeHash: v.string() },
+  returns: v.union(
+    v.literal("ok"),
+    v.literal("missing"),
+    v.literal("expired"),
+    v.literal("exhausted"),
+    v.literal("invalid")
+  ),
+  handler: async (ctx, args) => {
+    const phone = toE164(args.phone)
+    if (!phone) return "missing"
+    const row = await leaseByPhone(ctx, phone)
+    if (!row?.codeHash || row.codeExpiresAt === undefined) return "missing"
+    if (row.codeExpiresAt <= Date.now()) {
+      await clearCode(ctx, row, row.inflightUntil)
+      return "expired"
+    }
+    if (row.attempts >= OTP_ATTEMPTS) {
+      await clearCode(ctx, row, row.inflightUntil)
+      return "exhausted"
+    }
+    if (
+      !CODE_HASH.test(args.codeHash) ||
+      !hashesMatch(row.codeHash, args.codeHash)
+    ) {
+      const attempts = row.attempts + 1
+      if (attempts >= OTP_ATTEMPTS) {
+        await clearCode(ctx, row, row.inflightUntil)
+        return "exhausted"
+      }
+      await ctx.db.patch(row._id, { attempts })
+      return "invalid"
+    }
+    await clearCode(ctx, row, row.inflightUntil)
+    return "ok"
   },
 })

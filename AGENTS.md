@@ -43,7 +43,7 @@ Run `bun run check` after code changes and `bun run build` for changes that affe
 
 Oxlint is the sole lint runner. Its native `nextjs` plugin implements every rule in Next.js 16.3.5's `@next/eslint-plugin-next` recommended and Core Web Vitals sets, so retaining ESLint would duplicate coverage and dependency cost. Reassess this boundary when either tool changes; add a narrow ESLint layer only for a demonstrated rule gap.
 
-The two file-level JSX accessibility exceptions in `.oxlintrc.json` cover analyzer limitations: the polymorphic button anchor receives content through typed props, and the lead-success container intentionally uses `role="status"` because an HTML `output` element cannot contain its block layout. Do not broaden these exceptions.
+The file-level lint exceptions in `.oxlintrc.json` cover analyzer limitations and vendored primitives: the polymorphic button anchor receives content through typed props, the lead-success container intentionally uses `role="status"` because an HTML `output` element cannot contain its block layout, and the `components/ui` shadcn/Base-UI primitives carry narrow file-scoped exceptions (mostly `prefer-tag-over-role` on library markup the analyzer misreads). Each exception is scoped to a named file — do not broaden a rule globally, and add a file-scoped exception only when the markup is genuinely correct and the analyzer is wrong.
 
 ## Design system and composition
 
@@ -73,7 +73,9 @@ Centralize analytics events behind a small typed adapter. Track meaningful funne
 
 ## Convex, admin, and payment boundaries
 
-Convex should own mutable business records that need an admin workflow: leads, resource-access consent, courses, books, inventory, orders, library applications, banners, and audit timestamps. Validate every public and admin mutation server-side. Authentication is not authorization; enforce roles and record-level access in backend functions. Return only fields the client needs and keep secrets in server-only modules.
+Convex should own mutable business records that need an admin workflow: leads, resource-access consent, courses, books, inventory, orders, library applications, banners, and audit timestamps. Validate every public and admin mutation server-side (`args` and `returns` validators on every registered function, so the client boundary is enforced rather than conventional). Authentication is not authorization; enforce roles and record-level access in backend functions. Return only fields the client needs and keep secrets in server-only modules. Closed validator unions (`PERSON_ROLE`, `LEAD_STATUS`, `ORDER_STATUS`) live in `convex/schema.ts` so schema, function args and return validators share one source; shared refusal/pagination result validators live in `convex/authz.ts`.
+
+The `activities` table is the audit trail and is **insert-only**: never patch or delete a row, and record a correction as a new row. Privileged writes (role changes, order status changes) must write an activity row in the same transaction, with `actorId` and the structured `from*`/`to*` fields populated - `body` is for reading, the structured fields are for querying.
 
 The admin surface should remain deliberately small and task focused. Reuse shadcn blocks for navigation, tables, forms, dialogs, filters, and status badges, then adapt them to this design system. Prioritize the actions staff perform: update catalogue content, publish or schedule banners, review leads and enrollments, manage inventory and orders, and export operational data. Keep irreversible actions explicit and auditable.
 
@@ -106,3 +108,17 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

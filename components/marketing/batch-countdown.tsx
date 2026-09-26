@@ -1,15 +1,10 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
+import { type ReactNode, useSyncExternalStore } from "react"
 
 import { nextBatch } from "@/lib/brand"
 
-const DAY = 24 * 60 * 60 * 1000
-
-export function daysUntil(isoDate: string, now = Date.now()) {
-  const start = new Date(`${isoDate}T00:00:00+05:30`).getTime()
-  return Math.ceil((start - now) / DAY)
-}
+import { daysUntil } from "@/lib/batch-date"
 
 /* The clock is an external source: re-read it hourly, and never on the server. */
 function subscribe(onChange: () => void) {
@@ -17,12 +12,16 @@ function subscribe(onChange: () => void) {
   return () => window.clearInterval(timer)
 }
 
-export function useDaysUntilBatch() {
+export function useDaysUntil(isoDate: string) {
   return useSyncExternalStore(
     subscribe,
-    () => daysUntil(nextBatch.startsOn),
+    () => daysUntil(isoDate),
     () => null
   )
+}
+
+export function useDaysUntilBatch() {
+  return useDaysUntil(nextBatch.startsOn)
 }
 
 /**
@@ -46,8 +45,28 @@ export function BatchCountdown() {
   if (!label) return null
 
   return (
-    <span className="tnum shrink-0 rounded-[0.375rem] bg-highlight/40 px-1.5 py-0.5 text-[0.8125rem] font-medium whitespace-nowrap text-foreground">
+    <span className="tnum shrink-0 rounded-sm bg-highlight/40 px-1.5 py-0.5 text-[0.8125rem] font-medium whitespace-nowrap text-foreground">
       {label}
     </span>
   )
+}
+
+/**
+ * Renders its children only until `date` (ISO, IST) has started.
+ *
+ * Pages are prerendered, so a line built before the date would keep
+ * advertising "Start date: 14 September" for as long as the build stays up.
+ * Server components drop it from builds made after the date (`hasStarted`);
+ * this retires it in builds made before.
+ */
+export function UntilDate({
+  date,
+  children,
+}: {
+  date: string
+  children: ReactNode
+}) {
+  const days = useDaysUntil(date)
+  if (days !== null && days < 0) return null
+  return children
 }

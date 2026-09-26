@@ -7,13 +7,13 @@
  * motion.create call, which rebuilt the component on every render.
  */
 import {
-  motion,
   useInView,
   useReducedMotion,
   useSpring,
   useTransform,
   type SpringOptions,
 } from "motion/react"
+import * as m from "motion/react-m"
 import { useEffect, useRef } from "react"
 
 export type AnimatedNumberProps = {
@@ -61,9 +61,9 @@ export function AnimatedNumber({
   return (
     <span className={className}>
       <span className="sr-only">{formatValue(value, compact, suffix)}</span>
-      <motion.span ref={ref} aria-hidden className="tnum">
+      <m.span ref={ref} aria-hidden className="tnum">
         {display}
-      </motion.span>
+      </m.span>
     </span>
   )
 }

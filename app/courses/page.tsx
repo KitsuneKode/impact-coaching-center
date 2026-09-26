@@ -7,7 +7,7 @@ import type { CSSProperties } from "react"
 import { Enquire } from "@/components/marketing/enquire"
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import { fees, schedules, tracks } from "@/lib/brand"
+import { schedules, tracks } from "@/lib/brand"
 import { courseById, inr, type CatalogueCourse } from "@/lib/catalogue"
 import { cn } from "@/lib/utils"
 
@@ -112,8 +112,7 @@ export default function CoursesPage() {
             <span className="text-foreground">Courses and fees.</span>
             <span className="text-muted-foreground">
               {" "}
-              Every live course at ICT with its current price, the same figure
-              the app charges. {fees.scholarship}
+              Every live course, priced exactly as the ICT app charges.
             </span>
           </h1>
           <nav

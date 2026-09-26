@@ -66,7 +66,7 @@ export const app = {
  */
 export const offer = {
   cta: "Join a free workshop",
-  short: "Join free",
+  short: "Free workshop",
   promise: "Start with a free workshop. Pay only when you pick a batch.",
   confirmed: true,
 } as const
@@ -166,44 +166,6 @@ export const selections = [
   },
 ] as const
 
-/**
- * Real testimonials only. Selection quotes are from officers on the APSC list.
- * Reviews are from the ICT app's public Play Store listing, word for word except
- * one typo ("dedicates") corrected. The listing does not expose reviewer names,
- * so the source is credited instead of a made-up person.
- *
- * TODO: ICT's Instagram carries student video testimonials. Export them from a
- * logged-in session and add them here; they are the strongest proof ICT has.
- */
-export const testimonials = [
-  {
-    quote: selections[0].quote,
-    name: selections[0].name,
-    role: `${selections[0].post}, serial ${selections[0].serial}`,
-    verified: true,
-  },
-  {
-    quote:
-      "One of the finest institutes in Assam for different competitive exams like APSC and Banking with dedicated faculty and quality study environment.",
-    name: "Review on the ICT app",
-    role: "Google Play",
-    verified: false,
-  },
-  {
-    quote: selections[1].quote,
-    name: selections[1].name,
-    role: `${selections[1].post}, serial ${selections[1].serial}`,
-    verified: true,
-  },
-  {
-    quote:
-      "Awesome app with great content. Superb learning experience. Really really helpful!!",
-    name: "Review on the ICT app",
-    role: "Google Play",
-    verified: false,
-  },
-] as const
-
 /* -------------------------------------------------------------------------- */
 /*  Courses and what they include                                             */
 /* -------------------------------------------------------------------------- */
@@ -286,9 +248,11 @@ export function trackForCourse(id: number) {
  * Courses that get their own page: every course a track points at. The older
  * Victor 5.0 to 7.0 intakes and the Rs 11 internship stay off the site.
  */
-export const listedCourseIds = tracks.flatMap((track) =>
-  [track.flagshipId, ...track.alsoIds, track.freeId].filter(
-    (id): id is number => id !== null
+export const listedCourseIds = new Set(
+  tracks.flatMap((track) =>
+    [track.flagshipId, ...track.alsoIds, track.freeId].filter(
+      (id): id is number => id !== null
+    )
   )
 )
 

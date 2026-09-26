@@ -6,11 +6,13 @@ import {
   IconPhone,
   IconX,
 } from "@tabler/icons-react"
-import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { AnimatePresence, useReducedMotion } from "motion/react"
+import * as m from "motion/react-m"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useId, useRef, useState } from "react"
 
+import { AccountMenu } from "@/components/account/account-menu"
 import { ButtonAnchor } from "@/components/ui/button"
 import { brand, offer } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
@@ -71,7 +73,7 @@ export function SiteHeader() {
           aria-label={`${brand.legalName}, home`}
           className={`${group} flex h-12 items-center gap-2.5 pr-3.5 pl-1.5`}
         >
-          <span className="grid size-9 place-items-center rounded-[0.5rem] bg-white ring-1 ring-border">
+          <span className="grid size-9 place-items-center rounded-md bg-white ring-1 ring-border">
             <Image
               src={brand.mark}
               alt=""
@@ -97,16 +99,17 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-[0.5rem] px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               {item.label}
             </Link>
           ))}
+          <AccountMenu className="ml-1" />
           <ButtonAnchor
             href={contactHref({ kind: "workshop" })}
             target="_blank"
             size="sm"
-            className="ml-1 rounded-[0.5rem]"
+            className="ml-1 rounded-md"
           >
             {offer.short}
           </ButtonAnchor>
@@ -140,7 +143,7 @@ export function SiteHeader() {
 
       <AnimatePresence>
         {open ? (
-          <motion.div
+          <m.div
             id={panelId}
             ref={panelRef}
             initial={
@@ -174,6 +177,14 @@ export function SiteHeader() {
                   </li>
                 ))}
               </ul>
+              {/*
+               * The account control belongs in the mobile menu too. Without
+               * it /login is unreachable from a handset, which is most of
+               * this audience.
+               */}
+              <div className="mt-1 flex justify-start border-t border-border px-1 pt-2">
+                <AccountMenu />
+              </div>
               <ButtonAnchor
                 href={contactHref({ kind: "workshop" })}
                 target="_blank"
@@ -184,7 +195,7 @@ export function SiteHeader() {
                 {offer.cta}
               </ButtonAnchor>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </header>

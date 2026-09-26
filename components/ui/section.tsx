@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
  */
 const pad = {
   sm: "py-16 md:py-20",
-  md: "py-20 md:py-28",
+  md: "py-16 md:py-24",
   lg: "py-24 md:py-36",
 } as const
 

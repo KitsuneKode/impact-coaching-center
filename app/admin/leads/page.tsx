@@ -1,41 +1,27 @@
 "use client"
 
-import { useQuery } from "convex/react"
-import Link from "next/link"
+import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
+import { usePaginatedQuery, useQuery } from "convex/react"
+import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
-import { Section } from "@/components/ui/section"
+import { LeadSheet } from "@/components/admin/lead-sheet"
+import { LeadsTable } from "@/components/admin/leads-table"
+import { ButtonLink } from "@/components/ui/button"
+import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
-import { formatPhone } from "@/lib/brand"
-
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  interested: "Interested",
-  enrolled: "Enrolled",
-  lost: "Lost",
-}
-
-function when(at: number | undefined) {
-  if (!at) return "—"
-  return new Date(at).toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  })
-}
+import type { Id } from "@/convex/_generated/dataModel"
 
 /**
- * The follow-up queue. Read-only by design.
+ * The follow-up queue.
  *
- * No status changes, notes or export yet: every one of those is a write, and
- * a write needs an audit record and a considered undo story. Seeing the queue
- * is the half that is safe to ship first.
+ * Staff open an enquiry in a sheet over the table to change its status, set
+ * the next follow-up, log a call or leave a note. Every write is revisioned
+ * and audited in `convex/leads.ts`; export stays owner-only.
  *
- * The role check is NOT here. `api.leads.inbox` refuses a non-staff caller
- * itself, because a guard in this component protects the markup and not the
- * data - the query is one fetch away for anyone with a session.
+ * The role check is NOT here. `api.leads.inboxPage` refuses a non-staff
+ * caller itself, because a guard in this component protects the markup and
+ * not the data - the query is one fetch away for anyone with a session.
  */
 export default function AdminLeadsPage() {
   // Checked before any hook runs, and in a parent rather than around the hook
@@ -56,131 +42,113 @@ export default function AdminLeadsPage() {
  */
 function Unavailable() {
   return (
-    <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <h1 className="type-display">
-          <span className="text-foreground">Not available here.</span>
-        </h1>
-        <p className="type-lede mt-4 max-w-160 text-muted-foreground">
-          This copy of the site has no connection to the enquiry database, so
-          there is nothing to show. Nothing is wrong with your account. If you
-          are seeing this on the live site, tell whoever maintains it.
-        </p>
-      </Section>
-    </main>
+    <PageShell
+      density="working"
+      title={<span className="text-foreground">Enquiries.</span>}
+    >
+      <StatePanel
+        icon={<IconPlugConnectedX stroke={1.75} />}
+        title="Not available here"
+        description="This copy of the site has no connection to the enquiry database, so there is nothing to show. Nothing is wrong with your account. If you are seeing this on the live site, tell whoever maintains it."
+      />
+    </PageShell>
   )
 }
 
 function Inbox() {
-  const result = useQuery(api.leads.inbox)
+  // Two queries on purpose. `canSeeInbox` answers the access question without
+  // fetching a page of enquiries and discarding it, so a student who opens
+  // this URL costs one boolean rather than a read of the follow-up queue.
+  const allowed = useQuery(api.leads.canSeeInbox)
+  const [openId, setOpenId] = useState<Id<"persons"> | null>(null)
+  /*
+   * Read here rather than inside the table: export is owner-only, and the
+   * table should be told what the viewer may do rather than work it out. The
+   * decision itself lives in convex/authz.ts - this only chooses chrome.
+   */
+  const viewer = useQuery(api.auth.getCurrentPerson)
+  const {
+    results: leads,
+    status,
+    loadMore,
+  } = usePaginatedQuery(api.leads.inboxPage, {}, { initialNumItems: 25 })
 
-  // The heading is part of the loading state, not something that arrives with
-  // the data. This is the markup the server sends and the first thing a screen
-  // reader meets; every other route on the site answers "what page is this?"
-  // before anything loads, and a bare "Loading…" does not.
-  if (result === undefined)
+  // A skeleton in the shape of the answer, not a spinner: the reader learns
+  // the page is a table of enquiries before the enquiries arrive.
+  if (allowed === undefined || status === "LoadingFirstPage")
     return (
-      <main>
-        <Section size="sm" className="pt-26 md:pt-30">
-          <h1 className="type-display">
+      <PageShell
+        density="working"
+        title={
+          <>
             <span className="text-foreground">Enquiries.</span>{" "}
             <span className="text-muted-foreground">Loading…</span>
-          </h1>
-        </Section>
-      </main>
+          </>
+        }
+      >
+        <ListSkeleton rows={5} />
+      </PageShell>
     )
 
-  if (!result.authorized)
+  if (!allowed)
     return (
-      <main>
-        <Section size="sm" className="pt-26 md:pt-30">
-          <h1 className="type-display">
-            <span className="text-foreground">Staff only.</span>
-          </h1>
-          <p className="type-lede mt-4 max-w-160 text-muted-foreground">
-            This page is for Impact Career Tutorials staff. If you are staff and
-            seeing this,{" "}
-            <Link
-              href="/sign-in?next=/admin/leads"
-              className="text-foreground underline underline-offset-4"
-            >
-              sign in
-            </Link>{" "}
-            with the number ICT has on file for you.
-          </p>
-        </Section>
-      </main>
+      <PageShell
+        density="working"
+        title={<span className="text-foreground">Staff only.</span>}
+      >
+        <StatePanel
+          icon={<IconLock stroke={1.75} />}
+          title="This page is for ICT staff"
+          description="If you are staff and seeing this, log in with the number ICT has on file for you."
+          action={
+            <ButtonLink href="/login?next=/admin/leads" size="md">
+              {" "}
+              Log in{" "}
+            </ButtonLink>
+          }
+        />
+      </PageShell>
+    )
+
+  if (leads.length === 0)
+    return (
+      <PageShell
+        density="working"
+        title={<span className="text-foreground">Enquiries.</span>}
+      >
+        <StatePanel
+          icon={<IconInbox stroke={1.75} />}
+          title="No enquiries yet"
+          description="They appear here as soon as someone sends the form on the site."
+        />
+      </PageShell>
     )
 
   return (
-    <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <h1 className="type-display">
-          <span className="text-foreground">Enquiries.</span>{" "}
-          <span className="text-muted-foreground">
-            {result.leads.length} to follow up.
-          </span>
-        </h1>
-
-        {result.leads.length === 0 ? (
-          <p className="mt-10 text-muted-foreground">
-            No enquiries yet. They appear here as soon as someone sends the form
-            on the site.
-          </p>
-        ) : (
-          <div className="mt-10 overflow-x-auto">
-            <table className="w-full min-w-160 border-collapse text-left text-[0.9375rem]">
-              <thead>
-                <tr className="border-b border-border">
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Name
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Mobile
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Exam
-                  </th>
-                  <th scope="col" className="py-3 pr-4 font-medium">
-                    Status
-                  </th>
-                  <th scope="col" className="py-3 font-medium">
-                    Last enquiry
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.leads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-border/60">
-                    <td className="py-3 pr-4">
-                      {lead.name || (
-                        <span className="text-muted-foreground">Not given</span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4">
-                      <a
-                        href={`tel:${lead.phone}`}
-                        className="tnum underline underline-offset-4"
-                      >
-                        {formatPhone(lead.phone)}
-                      </a>
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {lead.interestTrack ?? "—"}
-                    </td>
-                    <td className="py-3 pr-4">
-                      {STATUS_LABELS[lead.leadStatus ?? ""] ?? "—"}
-                    </td>
-                    <td className="py-3 text-muted-foreground">
-                      {when(lead.lastEnquiryAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-    </main>
+    <PageShell
+      density="working"
+      /*
+       * No count in the heading. It used to read "N to follow up" from
+       * whatever the single query returned, which stopped being true the
+       * moment there was a second page - and a number derived from one page
+       * is worse than no number, because it looks authoritative.
+       */
+      title={<span className="text-foreground">Enquiries.</span>}
+    >
+      <LeadsTable
+        leads={leads}
+        canLoadMore={status === "CanLoadMore"}
+        loadingMore={status === "LoadingMore"}
+        onLoadMore={() => loadMore(25)}
+        isOwner={viewer?.role === "owner"}
+        onOpen={(id) => setOpenId(id as Id<"persons">)}
+      />
+      <LeadSheet
+        personId={openId}
+        onOpenChange={(open) => {
+          if (!open) setOpenId(null)
+        }}
+      />
+    </PageShell>
   )
 }

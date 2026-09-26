@@ -40,7 +40,7 @@ export const policies: readonly PolicyDocument[] = [
         heading: "What we collect",
         paragraphs: [
           "When you send an enquiry we collect your name, mobile number, the exam you are asking about and your preferred time of day. Your network address is used only to limit automated submissions and is not stored with your enquiry.",
-          "If you sign in, we verify that the mobile number is yours by sending a one-time code to it. We keep the number, the fact that it is verified, and the date. There is no password to store. You do not need to sign in to send an enquiry.",
+          "If you sign in, we verify that the mobile number is yours by sending a one-time code on WhatsApp. We keep the number, the fact that it is verified, and the date. There is no password to store. You do not need to sign in to send an enquiry.",
         ],
       },
       {
@@ -53,6 +53,14 @@ export const policies: readonly PolicyDocument[] = [
         heading: "Where it is kept",
         paragraphs: [
           "Enquiries are stored in a database operated for Impact Career Tutorials. Staff who follow up enquiries can see them.",
+          /*
+           * The admin can download the enquiries on screen as a spreadsheet.
+           * That is personal data leaving the system, so it is described here
+           * rather than left to be discovered. Written plainly, and limited in
+           * the same words the feature is limited in code: owner only, what is
+           * on screen, no schedule.
+           */
+          "The owner of Impact Career Tutorials can download a copy of the enquiries they are looking at, as a spreadsheet, to work from offline. This happens only when they choose it, never automatically, and it contains only the enquiries already shown on their screen.",
         ],
       },
       {

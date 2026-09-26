@@ -1,0 +1,169 @@
+"use client"
+
+import {
+  IconInbox,
+  IconLogout,
+  IconUser,
+  IconUserCircle,
+} from "@tabler/icons-react"
+import { useQuery } from "convex/react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+
+import { convexConfigured } from "@/app/providers"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Spinner } from "@/components/ui/spinner"
+import { api } from "@/convex/_generated/api"
+import { authClient } from "@/lib/auth-client"
+import { formatPhone } from "@/lib/brand"
+import { initials } from "@/lib/person"
+
+/**
+ * Who you are, and the way out.
+ *
+ * The site could sign a person in and then show them no evidence of it and no
+ * way to leave - the header had no session awareness at all, and /login was
+ * not reachable from anywhere in the chrome. This is the missing half of the
+ * log-in flow rather than an embellishment.
+ *
+ * Guarded on `convexConfigured` for the same reason /admin/leads is: this
+ * renders in the root layout on every page, and `useQuery` throws without a
+ * provider, which would take down a marketing site over a missing variable.
+ */
+export function AccountMenu({ className }: { className?: string }) {
+  if (!convexConfigured) return null
+  return <Menu className={className} />
+}
+
+function Menu({ className }: { className?: string }) {
+  const viewer = useQuery(api.auth.getCurrentPerson)
+  const router = useRouter()
+  const [leaving, setLeaving] = useState(false)
+
+  /*
+   * `undefined` is "still asking", `null` is "asked, nobody is signed in".
+   * Collapsing the two would flash a Log in link at someone who is already
+   * signed in, on every page load.
+   *
+   * Still asking reserves its space rather than rendering nothing. This is
+   * the only auth-dependent thing in the header, and it sits at the end of
+   * the nav row: returning nothing let the row settle at one width and then
+   * jump when the answer arrived, on every single page load. An inert
+   * placeholder of the avatar's own size keeps the header one shape whether
+   * or not anyone turns out to be signed in.
+   *
+   * `aria-hidden` and no label on purpose - it is a held space, not a
+   * control, and announcing "loading" here would interrupt the navigation
+   * for something the visitor never asked about.
+   */
+  if (viewer === undefined)
+    return (
+      <div
+        aria-hidden="true"
+        className={`size-9 shrink-0 ${className ?? ""}`}
+      />
+    )
+
+  if (viewer === null)
+    return (
+      <Link
+        href="/login"
+        className={`rounded-control px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
+      >
+        Log in
+      </Link>
+    )
+
+  const name = viewer.name.trim()
+  const phone = formatPhone(viewer.phone)
+  const mark = initials(name)
+  /*
+   * The number stands in for the name only when there is no name. It used to
+   * do both at once: `label` fell back to the phone, and the line beneath it
+   * was the phone, so an unnamed Person saw their own number printed twice,
+   * one above the other, in two different sizes. See the second line below -
+   * it renders only when it is saying something the first line did not.
+   */
+  const label = name || phone
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={`Account: ${label}`}
+        className={`inline-flex size-9 items-center justify-center rounded-full transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
+      >
+        <Avatar className="size-8">
+          <AvatarFallback className="text-xs">
+            {mark ?? <IconUser stroke={1.75} className="size-4" />}
+          </AvatarFallback>
+        </Avatar>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-56">
+        {/*
+         * One group, labelled by who you are. Base UI's GroupLabel reads
+         * MenuGroupContext and throws outright when it cannot find it, so a
+         * label outside a Group is not a style slip - it takes the whole menu
+         * down the moment anyone opens it. Only a signed-in visitor can do
+         * that, which is why no build, test or page load ever caught it.
+         *
+         * Labelling the group rather than floating a header above it is also
+         * the honest reading: these actions apply to this account, so a
+         * screen reader entering the group should hear whose it is first.
+         */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>
+            <span className="block truncate">{label}</span>
+            {/*
+             * The number sits under the name rather than instead of it,
+             * because a Person is keyed by their mobile number (ADR-0001) and
+             * staff on a shared handset need to see which account they are
+             * in. When there is no name the line above is already the number,
+             * so this one would only repeat it.
+             */}
+            {name ? (
+              <span className="tnum block text-xs font-normal text-muted-foreground">
+                {phone}
+              </span>
+            ) : null}
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem render={<Link href="/account" />}>
+            <IconUserCircle stroke={1.75} />
+            Your details
+          </DropdownMenuItem>
+          {viewer.role === "staff" || viewer.role === "owner" ? (
+            <DropdownMenuItem render={<Link href="/admin/leads" />}>
+              <IconInbox stroke={1.75} />
+              Enquiries
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem
+            disabled={leaving}
+            onClick={async () => {
+              setLeaving(true)
+              await authClient.signOut()
+              // `refresh` as well as `push`: the server components above this
+              // one cached a signed-in render, and leaving them in place shows
+              // a logged-out person their own name.
+              router.push("/")
+              router.refresh()
+            }}
+          >
+            {leaving ? <Spinner /> : <IconLogout stroke={1.75} />}
+            Log out
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}

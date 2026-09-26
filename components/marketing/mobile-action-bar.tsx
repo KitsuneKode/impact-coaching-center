@@ -3,11 +3,11 @@
 import { IconPhone } from "@tabler/icons-react"
 import {
   AnimatePresence,
-  motion,
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
 } from "motion/react"
+import * as m from "motion/react-m"
 import { useState } from "react"
 
 import { ButtonAnchor } from "@/components/ui/button"
@@ -32,7 +32,7 @@ export function MobileActionBar() {
   return (
     <AnimatePresence>
       {shown ? (
-        <motion.div
+        <m.div
           initial={reduce ? { opacity: 0 } : { y: "110%" }}
           animate={reduce ? { opacity: 1 } : { y: 0 }}
           exit={reduce ? { opacity: 0 } : { y: "110%" }}
@@ -58,7 +58,7 @@ export function MobileActionBar() {
               {offer.short}
             </ButtonAnchor>
           </div>
-        </motion.div>
+        </m.div>
       ) : null}
     </AnimatePresence>
   )

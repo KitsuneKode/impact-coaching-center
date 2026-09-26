@@ -559,6 +559,13 @@ The Leads screen defaults to actionable work: new leads and overdue follow-ups. 
 - Change status with a reason where useful.
 - Export the filtered dataset to CSV.
 
+**Launch rule, 22 September 2026.** Staff are read-only. The owner writes.
+The bullets above — status changes, notes, WhatsApp replies, and export —
+are not the launch rule. The inbox that ships is the read-only queue. Later
+CRM work has to reopen this section on purpose. See the 20 September
+storefront scope at the top of this spec and
+`docs/plans/2026-09-22-auth-admin-contract.md` §5.
+
 The system should not reproduce HubSpot. There are no custom pipeline builders, email sequences, complex automations, or drag-and-drop board in the first release.
 
 ## 13. Resource gate
@@ -825,6 +832,6 @@ Before production launch:
 
 - Platform and cost findings: `docs/research/posthog-convex-platform-research.md`.
 - Component, registry, licensing, and success-story findings: `docs/research/component-and-design-research.md`.
-- Existing content/source verification and launch gaps: `docs/CHECKPOINT.md` and `docs/PITCH.md`.
+- Existing content/source verification and launch gaps: `docs/CHECKPOINT.md` (11 Sep 2026 snapshot; not current status).
 - Compatibility spike, 19 September 2026: Next.js version floor for the Cloudflare adapter, incremental-cache trade-off, and the end-to-end Better Auth phone flow. Findings are recorded inline in §8, §10, and §11; the spike code was throwaway and has been deleted.
 - Identity, messaging, and free-tier cost decisions are recorded in §10 and §11 of this document. Per-message WhatsApp rates cited during design came from reseller pricing pages and must be verified against Meta's official rate card before any client-facing use.

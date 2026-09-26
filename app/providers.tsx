@@ -5,6 +5,8 @@ import {
   ConvexBetterAuthProvider,
 } from "@convex-dev/better-auth/react"
 import { ConvexReactClient } from "convex/react"
+import { LazyMotion } from "motion/react"
+import { ThemeProvider } from "next-themes"
 import type { ReactNode } from "react"
 
 import { authClient } from "@/lib/auth-client"
@@ -46,11 +48,65 @@ export const convexConfigured = convex !== null
  */
 const providerAuthClient = authClient as unknown as AuthClient
 
-export function Providers({ children }: { children: ReactNode }) {
-  if (!convex) return children
+/**
+ * next-themes drives the palette attribute, not a hand-rolled switcher.
+ *
+ * It writes `data-theme` on <html> and injects a blocking script so the value
+ * is set before first paint - without that, a chosen palette flashes the
+ * default one on every load. `defaultTheme` is "current", which matches no
+ * selector, so the tokens on :root apply untouched until something overrides
+ * them.
+ *
+ * Here rather than only in the dev harness because KIT-67 needs exactly this
+ * machinery for dark mode: the palette comparison is its first use, not its
+ * only one. <html> already carries suppressHydrationWarning, which the
+ * injected script requires.
+ */
+function Themed({ children }: { children: ReactNode }) {
   return (
-    <ConvexBetterAuthProvider client={convex} authClient={providerAuthClient}>
+    <ThemeProvider
+      attribute="data-theme"
+      defaultTheme="current"
+      themes={[
+        "current",
+        "elegance",
+        "elegance-dark",
+        "twilight",
+        "twilight-dark",
+      ]}
+      enableSystem={false}
+      disableTransitionOnChange
+    >
       {children}
-    </ConvexBetterAuthProvider>
+    </ThemeProvider>
+  )
+}
+
+/*
+ * `m.*` components render without the DOM feature bundle until this loads it,
+ * so the animation code is an async chunk instead of part of every page's
+ * first load - the site still paints and reads fine before it arrives.
+ * `strict` turns any forgotten `motion.*` import into a loud error rather
+ * than silently re-shipping the full bundle.
+ */
+const loadFeatures = () =>
+  import("@/components/motion/features").then((res) => res.default)
+
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <LazyMotion features={loadFeatures} strict>
+      <Themed>
+        {convex ? (
+          <ConvexBetterAuthProvider
+            client={convex}
+            authClient={providerAuthClient}
+          >
+            {children}
+          </ConvexBetterAuthProvider>
+        ) : (
+          children
+        )}
+      </Themed>
+    </LazyMotion>
   )
 }

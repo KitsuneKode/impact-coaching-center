@@ -4,7 +4,6 @@ import { Courses } from "@/components/marketing/courses"
 import { Enquire } from "@/components/marketing/enquire"
 import { Faq } from "@/components/marketing/faq"
 import { Fees } from "@/components/marketing/fees"
-import { FinalCta } from "@/components/marketing/final-cta"
 import { Hero } from "@/components/marketing/hero"
 import { Podcast } from "@/components/marketing/podcast"
 import { Posters } from "@/components/marketing/posters"
@@ -23,13 +22,13 @@ import { StudentVoices } from "@/components/marketing/student-voices"
  *   what do I get, what does it cost     Fees
  *   let me see for myself                Classes
  *   but what about...                    Faq
- *   how do I start                       Enquire (steps + form)
- *   last nudge                           FinalCta
+ *   how do I start                       Enquire (steps + form), which
+ *                                        is also the close: one ask, once
  *
  * Every section uses a different layout family, so the page never settles into
  * a repeating rhythm: text over a people strip, a stat row, a marquee, an
  * asymmetric card grid, a two-panel pricing block, a split list, an accordion,
- * a split form, a one-line close.
+ * a split form.
  */
 export default function Page() {
   return (
@@ -46,7 +45,6 @@ export default function Page() {
       <Podcast />
       <Faq />
       <Enquire />
-      <FinalCta />
     </main>
   )
 }

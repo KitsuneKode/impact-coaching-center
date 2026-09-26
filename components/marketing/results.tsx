@@ -1,18 +1,17 @@
 import { IconArrowUpRight, IconCircleCheckFilled } from "@tabler/icons-react"
 
 import { Reveal } from "@/components/motion/reveal"
-import { InfiniteSlider } from "@/components/motion-primitives/infinite-slider"
 import { Lede, Section } from "@/components/ui/section"
 import Link from "next/link"
 
-import { links, selections, testimonials } from "@/lib/brand"
-
-type Testimonial = (typeof testimonials)[number]
+import { links, selections } from "@/lib/brand"
 
 /**
  * One officer, one card. The serial is the proof, so it is the largest thing
  * on the card and it is the number printed in the commission's own result,
- * never a rank ICT's marketing has claimed elsewhere.
+ * never a rank ICT's marketing has claimed elsewhere. Their own words sit
+ * beside it: a quote next to a checkable serial is worth more than a rail of
+ * anonymous app reviews scrolling past.
  */
 export function SelectionCard({
   person,
@@ -36,7 +35,13 @@ export function SelectionCard({
         </span>
       </div>
 
-      <div className="mt-6 border-t border-border pt-5">
+      {person.quote ? (
+        <blockquote className="mt-6 text-[1.0625rem] leading-relaxed text-pretty text-foreground">
+          &ldquo;{person.quote}&rdquo;
+        </blockquote>
+      ) : null}
+
+      <div className="mt-auto border-t border-border pt-5 [blockquote+&]:mt-6">
         <p className="text-[1.0625rem] font-medium">{person.name}</p>
         <p className="mt-0.5 text-sm text-muted-foreground">{person.post}</p>
       </div>
@@ -44,38 +49,16 @@ export function SelectionCard({
   )
 }
 
-function QuoteCard({ item }: { item: Testimonial }) {
-  return (
-    <figure className="flex h-full w-[min(82vw,24rem)] flex-col rounded-card border border-border bg-card p-6 shadow-frame">
-      <blockquote className="text-[0.9875rem] leading-relaxed text-foreground">
-        &ldquo;{item.quote}&rdquo;
-      </blockquote>
-      <figcaption className="mt-auto flex items-end justify-between gap-3 pt-6">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{item.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{item.role}</p>
-        </div>
-        {item.verified ? (
-          <IconCircleCheckFilled
-            size={15}
-            className="shrink-0 text-verified"
-            aria-hidden
-          />
-        ) : null}
-      </figcaption>
-    </figure>
-  )
-}
-
 /**
  * Results: the numbers first, then the voices.
  *
- * The officer cards carry the checkable facts; the rail carries what people
- * said. Quotes appear once, in the rail, so nothing is repeated between them.
+ * Two cards, each a checkable serial with the officer's own words. No
+ * marquee: the spec rules out auto-moving content, and two verified people
+ * read as more than a carousel of anonymous ones.
  */
 export function Results() {
   return (
-    <Section id="results" bleed className="overflow-hidden">
+    <Section id="results" bleed>
       <div className="container-page">
         <Reveal>
           <Lede
@@ -92,27 +75,13 @@ export function Results() {
 
         <Reveal
           delay={0.08}
-          className="mt-10 grid gap-4 sm:grid-cols-2 lg:max-w-3xl"
+          className="mt-10 grid gap-4 md:grid-cols-2 lg:max-w-4xl"
         >
           {selections.map((person) => (
             <SelectionCard key={person.serial} person={person} />
           ))}
         </Reveal>
       </div>
-
-      <Reveal
-        delay={0.12}
-        className="mt-12 [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
-      >
-        <InfiniteSlider gap={16} speed={28} speedOnHover={4}>
-          {testimonials.map((item) => (
-            <QuoteCard
-              key={`${item.name}-${item.quote.slice(0, 20)}`}
-              item={item}
-            />
-          ))}
-        </InfiniteSlider>
-      </Reveal>
 
       <div className="container-page">
         <Reveal delay={0.16}>

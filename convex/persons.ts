@@ -30,6 +30,17 @@ export async function findVerifiedPerson(
     phone: person.phone,
     role: person.role,
     verifiedAt: person.verifiedAt,
+    /*
+     * Carried so a Person can edit their own record. Every edit takes the
+     * revision it was read at (KIT-55), and a projection that omits it leaves
+     * the caller with nothing to send back - which forces either a second
+     * round trip or a blind write, and a blind write is how two tabs silently
+     * overwrite each other.
+     *
+     * `revisionOf` treats absent as zero, so rows written before the
+     * convention existed participate correctly in their first edit.
+     */
+    revision: person.revision ?? 0,
   }
 }
 
@@ -100,6 +111,7 @@ export const recordVerifiedPerson = internalMutation({
     phone: v.string(),
     name: v.optional(v.string()),
   },
+  returns: v.id("persons"),
   handler: async (ctx, args) => {
     const phone = toE164(args.phone)
     if (!phone) {
@@ -159,7 +171,7 @@ export async function consumeRateLimit(
     .query("rateLimits")
     .withIndex("by_window", (q) => q.lt("windowStart", now - STALE_AFTER))
     .take(PRUNE_PER_CALL)
-  for (const row of stale) await ctx.db.delete(row._id)
+  await Promise.all(stale.map((row) => ctx.db.delete(row._id)))
 
   const existing = await ctx.db
     .query("rateLimits")
@@ -207,6 +219,7 @@ export const recordEnquiry = internalMutation({
      */
     ip: v.optional(v.string()),
   },
+  returns: v.literal("recorded"),
   handler: async (ctx, args) => {
     const parsed = parseLead(args)
     if (!parsed.ok) throw new Error("Invalid enquiry.")

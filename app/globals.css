@@ -54,6 +54,24 @@
   --input: oklch(0.205 0.006 262 / 14%);
   --ring: var(--brand);
 
+  /*
+   * The sidebar family the registry block expects.
+   *
+   * Declared as references rather than values, so every theme variant -
+   * elegance, twilight and both dark cuts - reaches the admin chrome without
+   * a second set of overrides. @shadcn/lint caught their absence: undeclared
+   * theme colours generate no CSS, so the sidebar would have rendered
+   * completely unstyled rather than merely off-palette.
+   */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+
   --radius: 0.625rem;
   --radius-control: 0.625rem;
   --radius-card: 1rem;
@@ -67,8 +85,130 @@
     0 24px 48px -20px oklch(0.205 0.006 262 / 0.22);
 }
 
+/*
+ * The two candidate palettes ICT picked, side by side, so the choice is made
+ * by looking rather than by describing. Applied with `data-theme` on <html>;
+ * the dev-only switcher in components/dev/theme-preview.tsx sets it.
+ *
+ * Both keep the near-white editorial ground. The palettes are dark-first, but
+ * making navy the *ground* is a redesign rather than a palette swap - every
+ * photograph, every course poster and the full-colour logo raster would have
+ * to be re-judged. This shows the reversible half of the decision, which is
+ * the half worth seeing first.
+ *
+ * Measured against the ground, not guessed:
+ *   #14213D 15.3:1   #000814 19.3:1   #003566 11.8:1   -> body text
+ *   #FCA311  1.94:1  #FFC300  1.54:1  #FFD60A  1.35:1  -> NEVER text
+ * The golds are a surface, a highlighter and an accent. Nothing else.
+ */
+
+/* Black & Gold Elegance: white ground, grey panels, black ink, navy actions. */
+:root[data-theme="elegance"] {
+  --background: oklch(1 0 89.9);
+  --surface: oklch(0.922 0 89.9);
+  --card: oklch(1 0 89.9);
+  --secondary: oklch(0.955 0 89.9);
+  --muted: oklch(0.955 0 89.9);
+  --accent: oklch(0.955 0 89.9);
+
+  --foreground: oklch(0 0 0);
+  --muted-foreground: oklch(0.48 0.012 264);
+
+  --primary: oklch(0.252 0.056 264);
+  --primary-foreground: oklch(1 0 89.9);
+  --brand: oklch(0.252 0.056 264);
+  --highlight: oklch(0.786 0.167 70);
+
+  --border: oklch(0.252 0.056 264 / 12%);
+  --input: oklch(0.252 0.056 264 / 18%);
+}
+
+/*
+ * The dark half of the same two palettes: navy as the ground rather than an
+ * accent. This is the direction both palettes were actually designed for.
+ *
+ * The number that decides it: gold is unusable as text on white (1.5-1.9:1)
+ * and comfortable on dark (7.9-12.5:1). On a light ground the gold can only
+ * ever be a highlighter; on a dark one it can carry a CTA, a link and a
+ * heading. Whether that is worth re-judging every photograph, every course
+ * poster and the full-colour logo raster is the KIT-67 decision.
+ *
+ *   #FFFFFF on #000000 21.00:1   #FCA311 on #000000 10.39:1
+ *   #FFFFFF on #000814 20.10:1   #FFC300 on #000814 12.50:1
+ *   #FCA311 on #14213D  7.90:1   #FFD60A on #001D3D 11.97:1
+ */
+
+/* Black & Gold Elegance, dark: black ground, navy panels, gold actions. */
+:root[data-theme="elegance-dark"] {
+  --background: oklch(0 0 0);
+  --surface: oklch(0.252 0.056 264);
+  --card: oklch(0.18 0.04 264);
+  --secondary: oklch(0.252 0.056 264);
+  --muted: oklch(0.252 0.056 264);
+  --accent: oklch(0.252 0.056 264);
+  --popover: oklch(0.18 0.04 264);
+  --popover-foreground: oklch(1 0 89.9);
+  --card-foreground: oklch(1 0 89.9);
+
+  --foreground: oklch(1 0 89.9);
+  --muted-foreground: oklch(0.75 0.01 264);
+
+  --primary: oklch(0.786 0.167 70);
+  --primary-foreground: oklch(0 0 0);
+  --secondary-foreground: oklch(1 0 89.9);
+  --accent-foreground: oklch(1 0 89.9);
+  --brand: oklch(0.786 0.167 70);
+  --highlight: oklch(0.786 0.167 70);
+  --verified: oklch(0.72 0.16 150);
+
+  --border: oklch(1 0 89.9 / 14%);
+  --input: oklch(1 0 89.9 / 20%);
+}
+
+/* Golden Twilight, dark: the palette read the way it was drawn. */
+:root[data-theme="twilight-dark"] {
+  --background: oklch(0.131 0.034 246.6);
+  --surface: oklch(0.231 0.071 252.9);
+  --card: oklch(0.19 0.06 250);
+  --secondary: oklch(0.231 0.071 252.9);
+  --muted: oklch(0.231 0.071 252.9);
+  --accent: oklch(0.328 0.1 252.6);
+  --popover: oklch(0.19 0.06 250);
+  --popover-foreground: oklch(0.99 0.002 90);
+  --card-foreground: oklch(0.99 0.002 90);
+
+  --foreground: oklch(0.99 0.002 90);
+  --muted-foreground: oklch(0.76 0.03 250);
+
+  --primary: oklch(0.848 0.174 86.1);
+  --primary-foreground: oklch(0.131 0.034 246.6);
+  --secondary-foreground: oklch(0.99 0.002 90);
+  --accent-foreground: oklch(0.99 0.002 90);
+  --brand: oklch(0.885 0.181 94.8);
+  --highlight: oklch(0.848 0.174 86.1);
+  --verified: oklch(0.72 0.16 150);
+
+  --border: oklch(0.99 0.002 90 / 14%);
+  --input: oklch(0.99 0.002 90 / 20%);
+}
+
+/* Golden Twilight: the same ground, a deeper ink and a brighter gold. */
+:root[data-theme="twilight"] {
+  --foreground: oklch(0.131 0.034 246.6);
+  --muted-foreground: oklch(0.46 0.03 250);
+
+  --primary: oklch(0.231 0.071 252.9);
+  --primary-foreground: oklch(0.985 0.002 85);
+  --brand: oklch(0.328 0.1 252.6);
+  --highlight: oklch(0.848 0.174 86.1);
+
+  --border: oklch(0.131 0.034 246.6 / 10%);
+  --input: oklch(0.131 0.034 246.6 / 16%);
+}
+
 @theme inline {
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
   --font-as: var(--font-as);
 
   --color-background: var(--background);
@@ -94,6 +234,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -109,6 +257,35 @@
 @layer base {
   * {
     border-color: var(--border);
+  }
+
+  /*
+   * Atmosphere for the dark palettes, after patterncraft.fun's dark radial
+   * glow. Flat #000 is the single most lifeless ground available and it was
+   * making a considered palette look like a default one; the glow gives the
+   * page a light source, so the hero sits in something rather than on it.
+   *
+   * The navy is the palette's own second colour, not a new one - patterncraft
+   * ships this shape as rgb(13,26,54), which is within a hair of ICT's
+   * #14213D. Fixed attachment so the source stays put while the page scrolls
+   * rather than repeating down it.
+   */
+  :root[data-theme="elegance-dark"] body {
+    background-image: radial-gradient(
+      125% 125% at 50% 90%,
+      oklch(0 0 0) 40%,
+      oklch(0.252 0.056 264) 100%
+    );
+    background-attachment: fixed;
+  }
+
+  :root[data-theme="twilight-dark"] body {
+    background-image: radial-gradient(
+      125% 125% at 50% 90%,
+      oklch(0.131 0.034 246.6) 40%,
+      oklch(0.328 0.1 252.6) 100%
+    );
+    background-attachment: fixed;
   }
 
   html {
@@ -190,6 +367,31 @@
     animation: mark-in 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.55s backwards;
   }
 
+  /*
+   * The highlighter has to change on a dark ground, not just change colour.
+   *
+   * At 62% over near-white it reads as a marker stroke. The same 62% over
+   * black is a solid gold block with white text sitting on it - the contrast
+   * is bad and the effect is a high-visibility vest. On dark it becomes a
+   * band under the text instead: the same gesture, drawn rather than filled.
+   */
+  :root[data-theme="elegance-dark"] .mark,
+  :root[data-theme="twilight-dark"] .mark {
+    /*
+     * Positioned in em rather than percent. Percentages resolve against the
+     * line box, so a band tuned at 36px cuts straight through the letterforms
+     * at the 60px hero size - it stopped reading as a highlight and started
+     * reading as a strikethrough. In em it keeps the same relationship to the
+     * baseline at every size.
+     */
+    background-image: linear-gradient(
+      transparent calc(100% - 0.22em),
+      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.22em),
+      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.06em),
+      transparent calc(100% - 0.06em)
+    );
+  }
+
   /* entry for above-the-fold content: CSS, so it paints without hydration */
   .enter {
     animation: enter-blur 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
@@ -202,11 +404,66 @@
    *   display  hero and closing CTA   clamp(24px, 2.5vw, 36px)
    *   lede     section openers        clamp(20px, 2vw, 21.6px)
    */
+  /*
+   * The hero scale, and the reason it exists.
+   *
+   * `.type-display` was doing every job on the site: the home hero, every
+   * section head, the policy pages, the 404, the staff inbox. One size for
+   * ten jobs is not a hierarchy, and at a 36px ceiling the hero read as a
+   * subheading with an accidental empty column beside it.
+   *
+   * This is the only place on the site that gets to be this size. If a second
+   * page wants it, that page is claiming to be as important as the front
+   * door, and it probably is not.
+   *
+   * Leading tightens as the size grows - 1.25 is right for a paragraph-shaped
+   * display line and far too loose for a three-word claim at 60px.
+   */
+  .type-hero {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
+    font-size: clamp(2.25rem, 5.2vw, 3.75rem);
+    font-weight: 400;
+    /* A serif sets tighter than a grotesque at the same measure: its
+       counters are smaller and its serifs already carry the eye along the
+       line, so the leading that felt right for Inter reads gappy here. */
+    line-height: 1.02;
+    /* Negative tracking is a grotesque habit. Fraunces at display opsz is
+       already tightly fitted; pulling it further closes the joins. */
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+  }
+
   .type-display {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
     font-size: clamp(1.5rem, 2.5vw, 2.25rem);
     font-weight: 400;
-    line-height: 1.25;
-    letter-spacing: -0.025em;
+    line-height: 1.18;
+    letter-spacing: -0.008em;
+    text-wrap: balance;
+  }
+
+  /*
+   * The working-screen heading: the same serif, one step down.
+   *
+   * Added as a member of the scale rather than as an arbitrary size on one
+   * page, which is what §4 asks for. It exists because the admin has a
+   * different job from the marketing site: its pages sit under a breadcrumb
+   * that already names them, they are read for hours rather than scanned
+   * once, and a 36px serif heading there spends most of the first screen
+   * restating what the chrome just said.
+   *
+   * It keeps `.type-display`'s family and fitting so the two read as one
+   * system seen at two distances, rather than as two typographic decisions.
+   */
+  .type-display-sm {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-optical-sizing: auto;
+    font-size: clamp(1.375rem, 1.8vw, 1.75rem);
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: -0.006em;
     text-wrap: balance;
   }
 

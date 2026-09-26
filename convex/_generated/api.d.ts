@@ -9,10 +9,15 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as authz from "../authz.js";
+import type * as devSeed from "../devSeed.js";
 import type * as http from "../http.js";
 import type * as leads from "../leads.js";
+import type * as orders from "../orders.js";
 import type * as otp from "../otp.js";
+import type * as people from "../people.js";
 import type * as persons from "../persons.js";
+import type * as profile from "../profile.js";
 
 import type {
   ApiFromModules,
@@ -22,10 +27,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  authz: typeof authz;
+  devSeed: typeof devSeed;
   http: typeof http;
   leads: typeof leads;
+  orders: typeof orders;
   otp: typeof otp;
+  people: typeof people;
   persons: typeof persons;
+  profile: typeof profile;
 }>;
 
 /**

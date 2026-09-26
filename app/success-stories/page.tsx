@@ -7,7 +7,6 @@ import Image from "next/image"
 import type { CSSProperties } from "react"
 
 import { Enquire } from "@/components/marketing/enquire"
-import { FinalCta } from "@/components/marketing/final-cta"
 import { Guests } from "@/components/marketing/guests"
 import { SelectionCard } from "@/components/marketing/results"
 import { StudentVoices } from "@/components/marketing/student-voices"
@@ -46,9 +45,8 @@ export default function SuccessStoriesPage() {
             </span>
             <span className="text-muted-foreground">
               {" "}
-              Three different things get called a result in this industry. Here
-              they are kept apart: what the commission printed, what ICT
-              published, and the officers who came to teach.
+              What the commission printed, what ICT published, and who came to
+              teach, kept apart.
             </span>
           </h1>
         </div>
@@ -163,7 +161,6 @@ export default function SuccessStoriesPage() {
       </div>
 
       <Enquire />
-      <FinalCta />
     </main>
   )
 }

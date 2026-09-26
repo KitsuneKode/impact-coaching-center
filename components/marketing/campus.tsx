@@ -14,8 +14,9 @@ import { campus } from "@/lib/stories"
  * no picture of it. These are frames from ICT's own clips of mock tests and
  * guest sessions, kept in colour: the point is that they are unstaged.
  *
- * Deliberately asymmetric, so a grid of six photos does not read as a stock
- * gallery. Each opens the clip it came from.
+ * Deliberately asymmetric, so the photos do not read as a stock gallery: a
+ * wide lead, a tall companion whose caption stays inside its own column, and
+ * one full row beneath. Each opens the clip it came from.
  */
 export function Campus() {
   const [lead, ...rest] = campus
@@ -35,9 +36,10 @@ export function Campus() {
           <Figure item={lead} className="aspect-[16/10]" priority />
         </Reveal>
         <Reveal delay={0.06}>
-          <Figure item={rest[0]} className="h-full min-h-56" />
+          <Figure item={rest[0]} className="min-h-56 flex-1" />
         </Reveal>
-        {rest.slice(1).map((item, index) => (
+        {/* Three, not four: a full row, never an orphan on its own line. */}
+        {rest.slice(1, 4).map((item, index) => (
           <Reveal key={item.src} delay={0.06 + index * 0.05}>
             <Figure item={item} className="aspect-[4/3]" />
           </Reveal>
@@ -57,13 +59,13 @@ function Figure({
   priority?: boolean
 }) {
   return (
-    <figure className="h-full">
+    <figure className="flex h-full flex-col">
       <VideoDialog
         id={item.video}
         title={item.caption}
         subtitle="At the ICT centre, North Lakhimpur"
         vertical
-        className="h-full w-full"
+        className="flex h-full w-full flex-col text-left"
       >
         <div
           className={`relative overflow-hidden rounded-card bg-surface ring-1 ring-border ${className ?? ""}`}

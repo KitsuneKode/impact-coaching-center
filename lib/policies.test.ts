@@ -38,13 +38,13 @@ describe("policies", () => {
   test("the privacy policy describes sign-in iff sign-in exists", () => {
     // This guard has already earned its place once: the policy said the site
     // "does not currently ask you to sign in and does not send verification
-    // codes", and the day app/sign-in landed the sentence became false. The
+    // codes", and the day the log-in route landed the sentence became false. The
     // wording and the code have to move together, in both directions.
     const privacy = policies.find((p) => p.slug === "privacy")!
     const text = privacy.sections.flatMap((s) => s.paragraphs).join(" ")
     const describesSignIn =
       text.includes("If you sign in") && text.includes("one-time code")
-    expect(describesSignIn).toBe(existsSync("app/sign-in"))
+    expect(describesSignIn).toBe(existsSync("app/login"))
   })
 
   test("the policy does not describe an account area that does not exist", () => {
