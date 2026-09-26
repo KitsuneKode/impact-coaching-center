@@ -243,7 +243,7 @@ export const schedules: Record<
     note: "Batch started in August",
   }, // Lakhya 2027
   804860: { when: "6 to 8 PM", note: "Built for working professionals" }, // PRAGATI 2027
-  896874: { when: "8 to 10 AM", note: "New batch from 14 September" }, // VICTOR 8.0
+  896874: { when: "8 to 10 AM", note: "Batch started 14 September" }, // VICTOR 8.0
   893950: {
     when: "4 to 5:30 PM",
     note: "Ran 2 to 4 September; still free on the app",
