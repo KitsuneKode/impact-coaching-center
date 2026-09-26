@@ -518,7 +518,7 @@ export const toConfirm = [
   "Whether the Play Store listing is still live (Classplus reports the Android app as delisted)",
   "Opening hours for the centre; /contact omits them because none is recorded anywhere",
   "Whether ICT has a Telegram channel; the spec lists one as a contact channel and no link exists",
-  "Wording of the four policy documents in lib/policies.ts; all four are drafts and stay noindex until approved",
+  "Wording of the four policy documents in content/policies/*.md; all four are drafts and stay noindex until approved",
   "Delivery areas, charges and dispatch times, and the cancellation and refund policy, before online ordering opens",
   // The library page has its own list, kept beside the content it gates:
   // `libraryQuestions` in lib/library.ts.
