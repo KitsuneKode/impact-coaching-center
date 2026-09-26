@@ -24,7 +24,7 @@ export function QuantityStepper({
         aria-label={value === 1 ? `Remove ${label}` : "One fewer"}
         onClick={() => onChange(value - 1)}
       >
-        <IconMinus stroke={1.75} />
+        <IconMinus stroke={1.75} aria-hidden />
       </Button>
       <output
         aria-live="polite"
@@ -39,7 +39,7 @@ export function QuantityStepper({
         disabled={value >= MAX_QUANTITY}
         onClick={() => onChange(value + 1)}
       >
-        <IconPlus stroke={1.75} />
+        <IconPlus stroke={1.75} aria-hidden />
       </Button>
     </fieldset>
   )

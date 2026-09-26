@@ -53,11 +53,11 @@ function OpenButton({
       {signedIn ? (
         <>
           Open
-          <IconArrowRight stroke={1.75} data-nudge />
+          <IconArrowRight stroke={1.75} data-nudge aria-hidden />
         </>
       ) : (
         <>
-          <IconLock stroke={1.75} />
+          <IconLock stroke={1.75} aria-hidden />
           Verify to open
         </>
       )}
@@ -96,7 +96,7 @@ export function ResourceCard({ resource }: { resource: PreviewResource }) {
 
       <div className="flex flex-col gap-3 p-5">
         <div className="grid gap-1">
-          <h3 className="font-medium text-balance">{resource.title}</h3>
+          <h2 className="font-medium text-balance">{resource.title}</h2>
           <p className="tnum text-sm text-muted-foreground">
             {resource.exam} · {resource.pages} pages · PDF
           </p>

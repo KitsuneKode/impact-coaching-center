@@ -31,7 +31,7 @@ export function CartButton({ onOpen }: { onOpen: () => void }) {
       onClick={onOpen}
       aria-label={`Cart, ${shown} ${shown === 1 ? "item" : "items"}`}
     >
-      <IconShoppingBag stroke={1.75} />
+      <IconShoppingBag stroke={1.75} aria-hidden />
       Cart
       <span className="tnum min-w-5 rounded-full bg-primary px-1.5 text-center text-[0.6875rem] leading-5 text-primary-foreground">
         {shown}
@@ -96,8 +96,8 @@ export function CartSheet({
                 className="grid grid-cols-[64px_1fr] gap-4 p-6"
               >
                 <BookCover title={book.title} tone={book.tone} size="sm" />
-                <div className="grid gap-3">
-                  <div>
+                <div className="grid min-w-0 gap-3">
+                  <div className="min-w-0 break-words">
                     <Link
                       href={`/preview/books/${book.slug}`}
                       onClick={() => onOpenChange(false)}

@@ -54,7 +54,7 @@ export function BookCard({ book }: { book: PreviewBook }) {
             })
           }}
         >
-          <IconPlus stroke={1.75} />
+          <IconPlus stroke={1.75} aria-hidden />
         </Button>
       </div>
     </article>

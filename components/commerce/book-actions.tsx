@@ -31,7 +31,7 @@ export function BookActions({ book }: { book: PreviewBook }) {
           size="lg"
         />
         <Button variant="secondary" size="lg" onClick={() => setReading(true)}>
-          <IconBook stroke={1.75} />
+          <IconBook stroke={1.75} aria-hidden />
           Read a sample
         </Button>
       </div>

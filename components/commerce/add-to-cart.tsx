@@ -45,12 +45,12 @@ export function AddToCart({
     >
       {added ? (
         <>
-          <IconCheck stroke={2} />
+          <IconCheck stroke={2} aria-hidden />
           Added
         </>
       ) : (
         <>
-          <IconShoppingBag stroke={1.75} />
+          <IconShoppingBag stroke={1.75} aria-hidden />
           Add to cart
         </>
       )}

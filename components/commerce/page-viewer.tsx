@@ -92,7 +92,7 @@ export function PageViewer({
             onClick={() => go(-1)}
             disabled={index === 0}
           >
-            <IconChevronLeft stroke={1.75} />
+            <IconChevronLeft stroke={1.75} aria-hidden />
             Previous
           </Button>
           <p aria-live="polite" className="tnum text-sm text-muted-foreground">
@@ -105,7 +105,7 @@ export function PageViewer({
             disabled={index === pages.length - 1}
           >
             Next
-            <IconChevronRight stroke={1.75} />
+            <IconChevronRight stroke={1.75} aria-hidden />
           </Button>
         </div>
       </DialogContent>

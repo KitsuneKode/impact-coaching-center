@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
 import { ResourceList } from "@/components/commerce/resource-list"
 import { Section } from "@/components/ui/section"
@@ -13,7 +14,10 @@ export default function PreviewResources() {
         Notes, past papers and practice sets. Verify your number once to open
         any of them.
       </p>
-      <ResourceList />
+      {/* The filter reads the URL; this keeps the rest of the page static. */}
+      <Suspense fallback={<div className="mt-10 h-[40rem]" />}>
+        <ResourceList />
+      </Suspense>
     </Section>
   )
 }

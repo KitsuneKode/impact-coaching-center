@@ -93,6 +93,7 @@ export function BookCover({
 
         {small ? null : (
           <span
+            translate="no"
             className={cn("text-[4cqw] tracking-[0.1em] uppercase", t.muted)}
           >
             Impact Career Tutorials

@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-
 import { ResourceCard } from "@/components/commerce/resource-card"
+import { useExamFilter } from "@/components/commerce/use-exam-filter"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { previewResources } from "@/lib/preview-catalogue"
 
@@ -10,7 +9,7 @@ const exams = ["All", ...new Set(previewResources.map((r) => r.exam))]
 
 /** Resources filtered by exam, one choice at a time. */
 export function ResourceList() {
-  const [exam, setExam] = useState("All")
+  const [exam, setExam] = useExamFilter(exams)
   const shown =
     exam === "All"
       ? previewResources

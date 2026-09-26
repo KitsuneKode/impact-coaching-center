@@ -4,6 +4,7 @@ import {
   IconTruckDelivery,
 } from "@tabler/icons-react"
 import type { Metadata } from "next"
+import { Suspense } from "react"
 
 import { BookGrid } from "@/components/commerce/book-grid"
 import { Section } from "@/components/ui/section"
@@ -44,7 +45,10 @@ export default function PreviewBooks() {
           ))}
         </ul>
       </div>
-      <BookGrid />
+      {/* The filter reads the URL; this keeps the rest of the page static. */}
+      <Suspense fallback={<div className="mt-10 h-[36rem]" />}>
+        <BookGrid />
+      </Suspense>
     </Section>
   )
 }

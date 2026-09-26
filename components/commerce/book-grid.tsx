@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-
 import { BookCard } from "@/components/commerce/book-card"
+import { useExamFilter } from "@/components/commerce/use-exam-filter"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { previewBooks } from "@/lib/preview-catalogue"
 
@@ -10,7 +9,7 @@ const exams = ["All", ...new Set(previewBooks.map((b) => b.exam))]
 
 /** Books filtered by exam. */
 export function BookGrid() {
-  const [exam, setExam] = useState("All")
+  const [exam, setExam] = useExamFilter(exams)
   const shown =
     exam === "All" ? previewBooks : previewBooks.filter((b) => b.exam === exam)
 
