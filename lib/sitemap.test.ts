@@ -32,6 +32,14 @@ const noindexRoutes = [
   "/preview",
   "/preview/books",
   "/preview/resources",
+  // Design concepts for review, noindexed by their layout.
+  "/redesign",
+  "/redesign/1",
+  "/redesign/2",
+  "/redesign/3",
+  "/redesign/4",
+  "/redesign/5",
+  "/redesign/6",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
