@@ -145,7 +145,7 @@ export async function openResourceAs(
   const resource = await ctx.db
     .query("resources")
     .withIndex("by_slug", (q) => q.eq("slug", slug))
-    .unique()
+    .first()
   if (!resource?.published) return missingRecord
 
   const seen = await ctx.db
@@ -153,7 +153,7 @@ export async function openResourceAs(
     .withIndex("by_person_resource", (q) =>
       q.eq("personId", viewer.id).eq("resourceId", resource._id)
     )
-    .unique()
+    .first()
   if (!seen) {
     await ctx.db.insert("resourceOpens", {
       personId: viewer.id,

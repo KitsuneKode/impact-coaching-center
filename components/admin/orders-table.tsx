@@ -317,7 +317,56 @@ export function OrdersTable({
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-card border border-border">
+      {/*
+        Two renderings of the same page of orders. Below md a row of cells
+        does not fit a phone, so each order is a card - same expansion, same
+        status moves, same courier dialog.
+      */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {page.length === 0 ? (
+          <div className="flex flex-col items-start gap-3 rounded-card border border-border p-4">
+            <span className="text-muted-foreground">
+              {orders.length === 0
+                ? "No orders yet. They appear here as soon as somebody buys a book."
+                : "Nothing matched that filter."}
+            </span>
+            {orders.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => {
+                  setSearch("")
+                  changeFilter("all")
+                }}
+              >
+                Show all orders
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          page.map((order) => (
+            <OrderCard
+              key={order.id}
+              order={order}
+              isOwner={isOwner}
+              expanded={expanded === order.id}
+              busy={busy === order.id}
+              onToggle={() => toggle(order)}
+              onMove={(status) => {
+                if (status === "shipped") setCourierFor({ order, mode: "ship" })
+                else void move(order, status)
+              }}
+              onCourier={
+                order.status === "shipped" || order.status === "delivered"
+                  ? () => setCourierFor({ order, mode: "correct" })
+                  : undefined
+              }
+            />
+          ))
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-card border border-border md:block">
         <Table className="min-w-200">
           <TableHeader className="bg-muted/40">
             <TableRow>
@@ -633,153 +682,289 @@ function OrderRows({
           </time>
         </TableCell>
         <TableCell className="text-right">
-          {moves.length === 0 ? (
-            <span className="text-sm text-muted-foreground">—</span>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<Button variant="ghost" size="icon" />}
-                aria-label={`Change status of ${order.reference}`}
-                disabled={busy}
-              >
-                {busy ? <Spinner /> : <IconDotsVertical stroke={1.75} />}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-52">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>Mark as</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {moves.map((status) => (
-                    <DropdownMenuItem
-                      key={status}
-                      onClick={() => onMove(status)}
-                    >
-                      {ORDER_STATUS_LABELS[status] ?? status}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <OrderActions
+            order={order}
+            moves={moves}
+            busy={busy}
+            onMove={onMove}
+          />
         </TableCell>
       </TableRow>
 
       {expanded ? (
         <TableRow>
           <TableCell colSpan={7} className="bg-muted/30">
-            <div className="grid gap-8 py-2 md:grid-cols-2">
-              <div>
-                <h3 className="text-sm font-medium">Items</h3>
-                <ul className="mt-3 flex flex-col gap-2">
-                  {order.items.map((item, index) => (
-                    <li
-                      key={`${item.title}-${index}`}
-                      className="flex items-baseline justify-between gap-4"
-                    >
-                      <span>
-                        {item.title}
-                        {item.edition ? (
-                          <span className="text-muted-foreground">
-                            {" "}
-                            · {item.edition}
-                          </span>
-                        ) : null}
-                        <span className="tnum text-muted-foreground">
-                          {" "}
-                          × {item.quantity}
-                        </span>
-                      </span>
-                      <span className="tnum whitespace-nowrap text-muted-foreground">
-                        {formatPaise(item.unitPaise * item.quantity)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <dl className="mt-4 flex flex-col gap-1 border-t border-border pt-3 text-sm">
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">Items</dt>
-                    <dd className="tnum">{formatPaise(order.itemsPaise)}</dd>
-                  </div>
-                  <div className="flex justify-between gap-4">
-                    <dt className="text-muted-foreground">
-                      {order.fulfilment === "delivery"
-                        ? "Delivery"
-                        : "Collection"}
-                    </dt>
-                    <dd className="tnum">
-                      {order.deliveryPaise === 0
-                        ? "Free"
-                        : formatPaise(order.deliveryPaise)}
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-4 font-medium">
-                    <dt>Total</dt>
-                    <dd className="tnum">{formatPaise(order.totalPaise)}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium">
-                  {order.fulfilment === "delivery"
-                    ? "Deliver to"
-                    : "Collection"}
-                </h3>
-                {order.address ? (
-                  <address className="mt-3 not-italic">
-                    {order.address.line1}
-                    <br />
-                    {order.address.line2 ? (
-                      <>
-                        {order.address.line2}
-                        <br />
-                      </>
-                    ) : null}
-                    {order.address.city}
-                    {order.address.district
-                      ? `, ${order.address.district}`
-                      : ""}
-                    <br />
-                    <span className="tnum">{order.address.pin}</span>
-                  </address>
-                ) : (
-                  <p className="mt-3 text-muted-foreground">
-                    {/*
-                      A collection order has no address, and that is a fact
-                      rather than missing data. Saying so is better than an
-                      empty panel that reads like something failed to load.
-                    */}
-                    Collecting from the centre. No delivery address was taken.
-                  </p>
-                )}
-
-                {order.courier ? (
-                  <div className="mt-6">
-                    <h3 className="text-sm font-medium">Courier</h3>
-                    <p className="mt-3 text-muted-foreground">
-                      {order.courier.name}
-                      {" · "}
-                      <span className="tnum">
-                        {order.courier.trackingNumber}
-                      </span>
-                    </p>
-                    {onCourier ? (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="mt-3"
-                        onClick={onCourier}
-                        disabled={busy}
-                      >
-                        Fix courier details
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            </div>
+            <OrderDetail order={order} busy={busy} onCourier={onCourier} />
           </TableCell>
         </TableRow>
       ) : null}
     </>
+  )
+}
+
+/** The status moves menu - same set on the table row and the phone card. */
+function OrderActions({
+  order,
+  moves,
+  busy,
+  onMove,
+}: {
+  order: OrderRow
+  moves: string[]
+  busy: boolean
+  onMove: (status: string) => void
+}) {
+  if (moves.length === 0)
+    return <span className="text-sm text-muted-foreground">—</span>
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={<Button variant="ghost" size="icon" />}
+        aria-label={`Change status of ${order.reference}`}
+        disabled={busy}
+      >
+        {busy ? <Spinner /> : <IconDotsVertical stroke={1.75} />}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Mark as</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {moves.map((status) => (
+            <DropdownMenuItem key={status} onClick={() => onMove(status)}>
+              {ORDER_STATUS_LABELS[status] ?? status}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+/** Items, money and destination - what "expand" means on either rendering. */
+function OrderDetail({
+  order,
+  busy,
+  onCourier,
+}: {
+  order: OrderRow
+  busy: boolean
+  onCourier?: () => void
+}) {
+  return (
+    <div className="grid gap-8 py-2 md:grid-cols-2">
+      <div>
+        <h3 className="text-sm font-medium">Items</h3>
+        <ul className="mt-3 flex flex-col gap-2">
+          {order.items.map((item, index) => (
+            <li
+              key={`${item.title}-${index}`}
+              className="flex items-baseline justify-between gap-4"
+            >
+              <span>
+                {item.title}
+                {item.edition ? (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    · {item.edition}
+                  </span>
+                ) : null}
+                <span className="tnum text-muted-foreground">
+                  {" "}
+                  × {item.quantity}
+                </span>
+              </span>
+              <span className="tnum whitespace-nowrap text-muted-foreground">
+                {formatPaise(item.unitPaise * item.quantity)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <dl className="mt-4 flex flex-col gap-1 border-t border-border pt-3 text-sm">
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">Items</dt>
+            <dd className="tnum">{formatPaise(order.itemsPaise)}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">
+              {order.fulfilment === "delivery" ? "Delivery" : "Collection"}
+            </dt>
+            <dd className="tnum">
+              {order.deliveryPaise === 0
+                ? "Free"
+                : formatPaise(order.deliveryPaise)}
+            </dd>
+          </div>
+          <div className="flex justify-between gap-4 font-medium">
+            <dt>Total</dt>
+            <dd className="tnum">{formatPaise(order.totalPaise)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium">
+          {order.fulfilment === "delivery" ? "Deliver to" : "Collection"}
+        </h3>
+        {order.address ? (
+          <address className="mt-3 not-italic">
+            {order.address.line1}
+            <br />
+            {order.address.line2 ? (
+              <>
+                {order.address.line2}
+                <br />
+              </>
+            ) : null}
+            {order.address.city}
+            {order.address.district ? `, ${order.address.district}` : ""}
+            <br />
+            <span className="tnum">{order.address.pin}</span>
+          </address>
+        ) : (
+          <p className="mt-3 text-muted-foreground">
+            {/*
+              A collection order has no address, and that is a fact
+              rather than missing data. Saying so is better than an
+              empty panel that reads like something failed to load.
+            */}
+            Collecting from the centre. No delivery address was taken.
+          </p>
+        )}
+
+        {order.courier ? (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium">Courier</h3>
+            <p className="mt-3 text-muted-foreground">
+              {order.courier.name}
+              {" · "}
+              <span className="tnum">{order.courier.trackingNumber}</span>
+            </p>
+            {onCourier ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="mt-3"
+                onClick={onCourier}
+                disabled={busy}
+              >
+                Fix courier details
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+/** One order as a phone-width card - the md-down rendering of OrderRows. */
+function OrderCard({
+  order,
+  isOwner,
+  expanded,
+  busy,
+  onToggle,
+  onMove,
+  onCourier,
+}: {
+  order: OrderRow
+  isOwner: boolean
+  expanded: boolean
+  busy: boolean
+  onToggle: () => void
+  onMove: (status: string) => void
+  onCourier?: () => void
+}) {
+  const moves = nextStatuses(order.status, isOwner, order.fulfilment)
+
+  return (
+    <div
+      data-state={expanded ? "selected" : undefined}
+      className="rounded-card border border-border p-4 data-[state=selected]:bg-muted/40"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          className="tnum font-medium underline-offset-4 hover:underline focus-visible:underline"
+        >
+          {order.reference}
+        </button>
+        <div className="flex items-center gap-2">
+          {order.seen ? null : (
+            <span className="text-xs text-muted-foreground">new</span>
+          )}
+          <OrderStatusBadge status={order.status} />
+        </div>
+      </div>
+
+      <div className="mt-1 text-sm">
+        {order.buyerDeleted ? (
+          <span className="text-muted-foreground">Account deleted</span>
+        ) : (
+          order.buyerName || (
+            <span className="text-muted-foreground">Not given</span>
+          )
+        )}
+        {order.buyerPhone ? (
+          <a
+            href={`tel:${order.buyerPhone}`}
+            className="tnum block text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
+          >
+            {formatPhone(order.buyerPhone)}
+          </a>
+        ) : null}
+      </div>
+
+      <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <dt className="sr-only">Fulfilment</dt>
+          <dd className="inline-flex items-center gap-1.5">
+            {order.fulfilment === "delivery" ? (
+              <IconTruck stroke={1.75} className="size-4" />
+            ) : (
+              <IconBuildingStore stroke={1.75} className="size-4" />
+            )}
+            {order.fulfilment === "delivery" ? "Delivery" : "Collection"}
+          </dd>
+        </div>
+        <div className="flex gap-1.5">
+          <dt>Total</dt>
+          <dd className="tnum text-foreground">
+            {formatPaise(order.totalPaise)}
+          </dd>
+        </div>
+        <div className="flex gap-1.5">
+          <dt>Placed</dt>
+          <dd>
+            <time
+              dateTime={new Date(order.placedAt).toISOString()}
+              title={exact(order.placedAt)}
+            >
+              {ago(order.placedAt)}
+            </time>
+          </dd>
+        </div>
+      </dl>
+
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onToggle}
+          aria-expanded={expanded}
+        >
+          {expanded ? "Hide details" : "Details"}
+        </Button>
+        <OrderActions order={order} moves={moves} busy={busy} onMove={onMove} />
+      </div>
+
+      {expanded ? (
+        <div className="mt-4 border-t border-border pt-4">
+          <OrderDetail order={order} busy={busy} onCourier={onCourier} />
+        </div>
+      ) : null}
+    </div>
   )
 }

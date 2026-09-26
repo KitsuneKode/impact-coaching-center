@@ -11,8 +11,10 @@
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
+import type * as carts from "../carts.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogAdmin from "../catalogAdmin.js";
+import type * as checkout from "../checkout.js";
 import type * as devSeed from "../devSeed.js";
 import type * as http from "../http.js";
 import type * as leads from "../leads.js";
@@ -32,8 +34,10 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
   authz: typeof authz;
+  carts: typeof carts;
   catalog: typeof catalog;
   catalogAdmin: typeof catalogAdmin;
+  checkout: typeof checkout;
   devSeed: typeof devSeed;
   http: typeof http;
   leads: typeof leads;

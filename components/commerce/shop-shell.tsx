@@ -4,11 +4,19 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { CartButton, CartSheet } from "@/components/commerce/cart-sheet"
+import { useCartSync } from "@/lib/cart-store"
 
 const OpenCart = createContext<() => void>(() => {})
 
 /** Opens the cart sheet from anywhere inside the shop. */
 export const useOpenCart = () => useContext(OpenCart)
+
+/* Sign-in merges the browser cart into the Person's server copy and keeps
+   the local store mirroring it. Exists only to own the hook. */
+function CartSync() {
+  useCartSync()
+  return null
+}
 
 /** The cart sheet, reachable from every page under /books. */
 export function ShopShell({ children }: { children: ReactNode }) {
@@ -17,7 +25,10 @@ export function ShopShell({ children }: { children: ReactNode }) {
     <OpenCart.Provider value={() => setCartOpen(true)}>
       {children}
       {convexConfigured ? (
-        <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
+        <>
+          <CartSync />
+          <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
+        </>
       ) : null}
     </OpenCart.Provider>
   )

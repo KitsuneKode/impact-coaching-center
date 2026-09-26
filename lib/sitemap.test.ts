@@ -34,6 +34,8 @@ const noindexRoutes = [
   "/admin/books/new",
   "/admin/resources",
   "/admin/resources/new",
+  // A buyer's own order flow - nothing public, nothing to rank.
+  "/checkout",
   // Noindexed while every title is a sample; list them once ICT's are in.
   "/books",
   "/resources",

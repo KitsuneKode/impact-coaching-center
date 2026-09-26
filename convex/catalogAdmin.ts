@@ -511,6 +511,14 @@ export async function applySaveResource(
   if (!current) return missingRecord
   const conflict = checkRevision(current, args.expectedRevision ?? -1)
   if (conflict) return conflict
+  /*
+   * applyPublish refuses to flip an empty resource on, but it cannot see a
+   * save that empties an already published one - same public broken state,
+   * different door. Refuse it here too, before the old pages are dropped,
+   * so a rejected save leaves the live copy untouched.
+   */
+  const nextPages = args.pageImages ?? current.pageImages
+  if (current.published && nextPages.length === 0) return invalidInput("pages")
   if (args.pageImages)
     await dropReplaced(ctx, current.pageImages, args.pageImages, {
       table: "resources",

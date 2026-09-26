@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test"
 
 import type { BookInput } from "../lib/catalog"
 import { openResourceAs } from "./catalog"
-import { applyPublish, applySaveBook } from "./catalogAdmin"
+import { applyPublish, applySaveBook, applySaveResource } from "./catalogAdmin"
 import { findVerifiedPerson } from "./persons"
 import { internal } from "./_generated/api"
 import schema from "./schema"
@@ -359,5 +359,69 @@ describe("catalogue audit trail", () => {
     })
     const doc = await t.run((ctx) => ctx.db.get(id))
     expect(doc?.published).toBe(false)
+  })
+
+  test("emptying a published resource's pages is refused, not saved", async () => {
+    /* The other door into an empty reader: publish is guarded, but a save
+       used to be able to strip every page off a live resource. */
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const image = await upload(t, "image/webp")
+    const id = await t.run((ctx) =>
+      ctx.db.insert("resources", {
+        slug: "polity-notes",
+        title: "Polity notes",
+        exam: "APSC",
+        kind: "Notes",
+        description: "",
+        pageImages: [image],
+        published: true,
+        revision: 0,
+        updatedAt: 0,
+      })
+    )
+
+    const result = await t.run((ctx) =>
+      applySaveResource(ctx, owner!, {
+        id,
+        expectedRevision: 0,
+        fields: {
+          slug: "polity-notes",
+          title: "Polity notes",
+          exam: "APSC",
+          kind: "Notes",
+          description: "",
+        },
+        pageImages: [],
+      })
+    )
+    expect(result).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "pages",
+    })
+    // The live copy is untouched: still published, still holding its page.
+    const doc = await t.run((ctx) => ctx.db.get(id))
+    expect(doc?.published).toBe(true)
+    expect(doc?.pageImages).toEqual([image])
+
+    // The same save on an unpublished draft is fine - drafts can be empty.
+    const draft = await resource(t, false)
+    expect(
+      await t.run((ctx) =>
+        applySaveResource(ctx, owner!, {
+          id: draft,
+          expectedRevision: 0,
+          fields: {
+            slug: "polity-notes-draft",
+            title: "Draft",
+            exam: "APSC",
+            kind: "Notes",
+            description: "",
+          },
+          pageImages: [],
+        })
+      )
+    ).toMatchObject({ ok: true })
   })
 })

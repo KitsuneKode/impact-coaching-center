@@ -143,6 +143,7 @@ export default defineSchema({
       v.literal("account_deleted"),
       v.literal("export"),
       v.literal("courier_update"),
+      v.literal("order_placed"),
       v.literal("resource_open"),
       v.literal("catalog_save"),
       v.literal("catalog_publish")
@@ -224,6 +225,11 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
     /** Cleared when a staff member first opens it. Drives the new-order badge. */
     seenAt: v.optional(v.number()),
+    /**
+     * Client-generated key that makes a retried or double-submitted checkout
+     * one order, not two. Unique per order.
+     */
+    idempotencyKey: v.optional(v.string()),
     revision: v.optional(v.number()),
   })
     /*
@@ -235,7 +241,8 @@ export default defineSchema({
     .index("by_person", ["personId", "placedAt"])
     /* The queue order. */
     .index("by_placedAt", ["placedAt"])
-    .index("by_reference", ["reference"]),
+    .index("by_reference", ["reference"])
+    .index("by_idempotency", ["idempotencyKey"]),
 
   rateLimits: defineTable({
     key: v.string(),
@@ -305,6 +312,24 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_published", ["published"]),
+
+  /**
+   * The signed-in shopper's cart. Guests keep theirs in localStorage; at
+   * sign-in the two merge here, union by slug keeping the newer `at`
+   * (commerce plan, 22 September). Emptied when it becomes an order.
+   */
+  carts: defineTable({
+    personId: v.id("persons"),
+    lines: v.array(
+      v.object({
+        slug: v.string(),
+        quantity: v.number(),
+        /** Write time, so the merge knows which copy is newer. */
+        at: v.number(),
+      })
+    ),
+    updatedAt: v.number(),
+  }).index("by_person", ["personId"]),
 
   /** One row per Person per resource: the first open, for staff to see. */
   resourceOpens: defineTable({

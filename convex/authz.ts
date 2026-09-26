@@ -14,6 +14,7 @@ export type Refusal =
   | { ok: false; reason: "missing-record" }
   | { ok: false; reason: "invalid-input"; field?: string }
   | { ok: false; reason: "revision-conflict"; current: number }
+  | { ok: false; reason: "rate-limited" }
 
 export type Allowed<T> = { ok: true; value: T }
 export type Decision<T> = Allowed<T> | Refusal
@@ -51,7 +52,8 @@ export const REFUSAL = v.union(
     ok: v.literal(false),
     reason: v.literal("revision-conflict"),
     current: v.number(),
-  })
+  }),
+  v.object({ ok: v.literal(false), reason: v.literal("rate-limited") })
 )
 
 /** The shape `.paginate()` returns, for a returns validator. */
@@ -141,6 +143,8 @@ export function refusalMessage(refusal: Refusal): string {
         : "Check the details and try again."
     case "revision-conflict":
       return "Somebody else changed this while you were editing. Your changes are still here - review them against the current version."
+    case "rate-limited":
+      return "Too many attempts just now - wait a little and try again."
   }
 }
 

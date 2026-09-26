@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react"
 
 import { OrderStatusBadge } from "@/components/admin/order-status"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import { formatPaise } from "@/lib/money"
 
@@ -14,6 +15,25 @@ import { formatPaise } from "@/lib/money"
 export function OrdersCard() {
   const orders = useQuery(api.orders.myOrders)
 
+  /* Loading shows the section's shape rather than nothing appearing after
+     the rest of the page has already painted. */
+  if (orders === undefined)
+    return (
+      <section
+        aria-busy="true"
+        aria-label="Your orders, loading"
+        className="max-w-160 rounded-card border border-border p-6"
+      >
+        <h2 className="text-lg font-medium">Your orders</h2>
+        <div className="mt-4 flex flex-col gap-4" aria-hidden>
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </section>
+    )
+
+  /* null means signed out (unreachable on /account, but honest); empty
+     means this Person has never ordered - the card simply is not there. */
   if (!orders || orders.length === 0) return null
 
   return (
