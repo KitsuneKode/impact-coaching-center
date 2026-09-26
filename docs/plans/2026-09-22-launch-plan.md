@@ -189,8 +189,14 @@ orders → owner fulfils (the orders queue already exists).
 - [ ] `/resources` (search + filters, indexable), `/resources/[slug]`
       (indexable description; the Reader opens behind the gate via the
       existing intercepting-route modal).
-- [ ] Short-lived URLs issued by a Convex query that checks the session and
-      consent version; access recorded once per Person/Resource.
+- [x] Gated reader access: `openResource` verifies a signed-in Person and
+      records the open once per Person/Resource (`resource_open` activity).
+      Shipped model differs from the original wording on purpose: Convex
+      storage URLs are signed but not expiring, and no consent-version scheme
+      exists yet - the protection is that only rasterized page images exist
+      in storage (source PDFs never reach the client), the URL itself is not
+      the gate. Revisit only if ICT asks for link-expiry, which would mean
+      proxying images through a route handler.
 - [ ] Questionnaire after name, as decided.
 
 ## Phase 5 — launch hardening

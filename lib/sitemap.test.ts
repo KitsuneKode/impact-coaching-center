@@ -30,8 +30,15 @@ const noindexRoutes = [
   "/admin/people",
   // Sample content, labelled as such and noindexed by its layout.
   "/preview",
-  "/preview/books",
-  "/preview/resources",
+  "/admin/books",
+  "/admin/books/new",
+  "/admin/resources",
+  "/admin/resources/new",
+  // A buyer's own order flow - nothing public, nothing to rank.
+  "/checkout",
+  // Noindexed while every title is a sample; list them once ICT's are in.
+  "/books",
+  "/resources",
   // Design concepts for review, noindexed by their layout.
   "/redesign",
   "/redesign/1",
