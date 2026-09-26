@@ -49,7 +49,7 @@ do not duplicate completed slices. No merge/deployment is implied by this update
 | `2026-09-22-otp-resend-safety.md`               | One acceptable verification code per phone under concurrent resend (KIT-53) | P1       | M      | throttle plan                           | DONE (hosted WhatsApp still waits on KIT-46)                                |
 | `2026-09-20-library-draft.md` (no plan file)    | `/library` as a draft plus its seven questions for ICT (KIT-50)             | P2       | S      | —                                       | DONE (built to request, without a plan)                                     |
 | `2026-09-26-client-demo-readiness.md`           | Dev-deployment sign-in, policies, accounts, admin fixes for the client demo | P1       | L      | —                                       | DONE (merged as PR #10)                                                     |
-| `2026-09-27-next-sessions.md`                   | Sessions A-D: catalogue, production readiness, leads/orders, redesign       | P1       | L      | client-demo-readiness                   | IN PROGRESS (session A in PR #12)                                           |
+| `2026-09-27-next-sessions.md`                   | Sessions A-D: catalogue, production readiness, leads/orders, redesign       | P1       | L      | client-demo-readiness                   | IN PROGRESS (A in PR #12; C in PR #14; audit-hardening batch in PR #13)       |
 
 Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJECTED (one-line rationale).
 
