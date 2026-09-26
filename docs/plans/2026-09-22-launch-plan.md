@@ -111,21 +111,23 @@ Rules that keep the two in sync without re-doing work:
 - [ ] Pick the palette; delete the dev switch and the unused palette block.
 - [x] `/admin` home: replace "orders appear as they are built" with real
       counts (new enquiries, follow-ups due, orders to pack).
-- [ ] Gates: `bun run check`, `bun run build`. Open one PR to `main`.
+- [x] Gates: `bun run check`, `bun run build`. Open one PR to `main` (#7).
 - [ ] Archive the superseded branches after the PR merges.
 
 ## Phase 1 — lead workflow staff can actually use (≈1–1.5 days)
 
 The follow-up queue is the product the client bought first.
 
-- [ ] Staff writes: status change, note, next follow-up — each an
+- [x] Staff writes: status change, note, next follow-up — each an
       `activities` row with actor, using the existing revision convention.
-- [ ] Lead detail as a Sheet from the table: timeline, status select, note
+- [x] Lead detail as a Sheet from the table: timeline, status select, note
       box, follow-up date picker, Call / WhatsApp buttons.
 - [ ] Default view = actionable (new + overdue follow-ups); filters for
-      status, exam, source, date; search by name/number.
+      status, exam, source, date; search by name/number. A "Follow-up due"
+      view exists; it is not yet the default.
 - [ ] Export stays owner-only; confirm CSV has a UTF-8 BOM (Assamese names in
-      Excel) and that each export writes an audit row.
+      Excel) and that each export writes an audit row. Owner-only and the BOM
+      are done; the audit row is not.
 - [ ] Mobile: rows collapse to cards below `md`.
 
 ## Phase 2 — promotions, upstream first (≈2–3 days)
@@ -136,8 +138,8 @@ Kitsu-Lab component is complete (decision 11).
 Build in Kitsu-Lab per its spec
 (`docs/superpowers/specs/2026-09-22-promotions-design.md` there), then install.
 
-- [ ] Lab: `promotion` core, provider, bar/card/dialog, editor, demo page,
-      tests, registry build.
+- [x] Lab: `promotion` core, provider, bar/card/dialog, editor, demo page,
+      tests, registry build (Kitsu-Lab #4, plus corner and sheet placements).
 - [ ] ICT: `convex/promotions.ts` (table, owner-only mutations with revision,
       public `live` HTTP route returning published records only).
 - [ ] ICT: adapters — allowed routes and CTA targets (moved from
@@ -177,7 +179,7 @@ orders → owner fulfils (the orders queue already exists).
 
 ## Phase 4 — Resources and the Reader (≈3 days)
 
-- [ ] Lab: `image` page kind for `BookPreview` (src, srcSet, width, height,
+- [x] Lab: `image` page kind for `BookPreview` (src, srcSet, width, height,
       alt) so page engines render rasters without `render` callbacks. Generic,
       useful to anyone.
 - [ ] ICT admin upload: the staff browser rasterizes the PDF with pdf.js
