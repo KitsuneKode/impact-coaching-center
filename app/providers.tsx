@@ -9,6 +9,7 @@ import { LazyMotion } from "motion/react"
 import { ThemeProvider } from "next-themes"
 import type { ReactNode } from "react"
 
+import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
 
 /**
@@ -68,6 +69,8 @@ export function Providers({ children }: { children: ReactNode }) {
         ) : (
           children
         )}
+        {/* Bottom-right on desktop; lifted on phones above the call bar. */}
+        <Toaster position="bottom-right" mobileOffset={{ bottom: 88 }} />
       </Themed>
     </LazyMotion>
   )

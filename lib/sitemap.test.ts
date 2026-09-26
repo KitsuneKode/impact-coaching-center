@@ -28,6 +28,10 @@ const noindexRoutes = [
   "/admin/leads",
   "/admin/orders",
   "/admin/people",
+  // Sample content, labelled as such and noindexed by its layout.
+  "/preview",
+  "/preview/books",
+  "/preview/resources",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */

@@ -73,9 +73,13 @@ from the Convex dashboard Logs. Take the laptop anyway as the fallback.
 7. **Their homework.** `/privacy`, `/refunds`, `/shipping`: highlighted
    parts are theirs to fill. Hand over
    `docs/proposals/2026-09-26-what-we-need-from-ict.md`.
-8. **Next phase, from Kitsu-Lab:** the promotions system and the book/PDF
+8. **Books, cart and free resources** at `/preview`: browse, add to cart
+   (the cart survives closing the tab), filter resources, and "Verify to
+   open" sends a signed-out visitor to log in. Sample titles, clearly
+   labelled. `/preview` itself lists every surface built.
+9. **Next phase, from Kitsu-Lab:** the promotions system and the book/PDF
    reader.
-9. **Colours.** The switcher at the bottom: neither palette is final.
+10. **Colours.** The switcher at the bottom: neither palette is final.
 
 Say plainly: sign-in codes go to WhatsApp once the WhatsApp sender is set up;
 online book payments are not live; the policy pages are drafts.
