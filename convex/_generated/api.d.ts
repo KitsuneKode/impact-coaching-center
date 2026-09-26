@@ -18,7 +18,6 @@ import type * as orders from "../orders.js";
 import type * as otp from "../otp.js";
 import type * as people from "../people.js";
 import type * as persons from "../persons.js";
-import type * as probe from "../probe.js";
 import type * as profile from "../profile.js";
 
 import type {
@@ -38,7 +37,6 @@ declare const fullApi: ApiFromModules<{
   otp: typeof otp;
   people: typeof people;
   persons: typeof persons;
-  probe: typeof probe;
   profile: typeof profile;
 }>;
 

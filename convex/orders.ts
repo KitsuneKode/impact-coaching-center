@@ -12,6 +12,7 @@ import {
   requireStaff,
   revisionOf,
   type Viewer,
+  viewerPerson,
 } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import {
@@ -21,6 +22,31 @@ import {
   type QueryCtx,
 } from "./_generated/server"
 import { ORDER_STATUS } from "./schema"
+import { newOrderReference } from "../lib/order-reference"
+
+/** Who carries the parcel. Shared by schema, args and projections. */
+const COURIER = v.object({
+  name: v.string(),
+  trackingNumber: v.string(),
+})
+
+/**
+ * A fresh reference that nothing else holds. The alphabet makes collisions
+ * rare; this loop makes them survivable - it retries rather than reusing.
+ */
+export async function allocateOrderReference(
+  ctx: MutationCtx
+): Promise<string> {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const reference = newOrderReference()
+    const taken = await ctx.db
+      .query("orders")
+      .withIndex("by_reference", (q) => q.eq("reference", reference))
+      .first()
+    if (!taken) return reference
+  }
+  throw new Error("Could not allocate a fresh order reference; try again.")
+}
 
 /** What may follow what. */
 const TRANSITIONS: Record<string, readonly string[]> = {
@@ -87,6 +113,7 @@ const ORDER_ROW = v.object({
   placedAt: v.number(),
   seen: v.boolean(),
   revision: v.number(),
+  courier: v.optional(COURIER),
   buyerName: v.string(),
   buyerPhone: v.string(),
   /** The buyer deleted their account: no name or number to show or dial. */
@@ -134,6 +161,7 @@ export async function readOrdersPage(
         placedAt: order.placedAt,
         seen: Boolean(order.seenAt),
         revision: revisionOf(order),
+        courier: order.courier,
         /* The buyer's name and number travel with the order - unless the
            account was erased, in which case the tombstone's `deleted:` phone
            is not a number and must not become a tappable link. */
@@ -191,6 +219,7 @@ export const setOrderStatus = mutation({
     orderId: v.id("orders"),
     status: ORDER_STATUS,
     expectedRevision: v.number(),
+    courier: v.optional(COURIER),
   },
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
@@ -208,6 +237,7 @@ export async function applyStatusChange(
     orderId: Id<"orders">
     status: Infer<typeof ORDER_STATUS>
     expectedRevision: number
+    courier?: { name: string; trackingNumber: string }
   }
 ) {
   if (viewer.role !== "staff" && viewer.role !== "owner") return forbidden
@@ -228,9 +258,37 @@ export async function applyStatusChange(
   const allowed = TRANSITIONS[order.status] ?? []
   if (!allowed.includes(args.status)) return invalidInput("transition")
 
+  /*
+   * A parcel move onto a collection order - or the other way round - is a
+   * data error, not a state the queue can hold. Shipping is also the moment
+   * the courier details become compulsory: "it is on its way" without a
+   * tracking number is a promise nobody can answer a question about.
+   */
+  if (
+    (args.status === "shipped" || args.status === "delivered") &&
+    order.fulfilment !== "delivery"
+  )
+    return invalidInput("fulfilment")
+  if (
+    (args.status === "ready_for_collection" || args.status === "collected") &&
+    order.fulfilment !== "collection"
+  )
+    return invalidInput("fulfilment")
+
+  let courier = order.courier
+  if (args.status === "shipped") {
+    const name = args.courier?.name.trim()
+    const trackingNumber = args.courier?.trackingNumber.trim()
+    if (!name || !trackingNumber) return invalidInput("courier")
+    courier = { name, trackingNumber }
+  } else if (args.courier) {
+    return invalidInput("courier")
+  }
+
   const revision = revisionOf(order) + 1
   await ctx.db.patch(args.orderId, {
     status: args.status,
+    courier,
     revision,
     updatedAt: Date.now(),
   })
@@ -246,6 +304,109 @@ export async function applyStatusChange(
 
   return { ok: true as const, revision }
 }
+
+/**
+ * Correct the courier on an order already on its way - a mistyped tracking
+ * number is not a new status, and the audit trail should say it was fixed.
+ */
+export const setOrderCourier = mutation({
+  args: {
+    orderId: v.id("orders"),
+    courier: COURIER,
+    expectedRevision: v.number(),
+  },
+  returns: mutationResult({ revision: v.number() }),
+  handler: async (ctx, args) => {
+    const staff = await requireStaff(ctx)
+    if (!staff.ok) return staff
+    return applyCourierChange(ctx, staff.value, args)
+  },
+})
+
+/** The courier correction itself, given an already-resolved staff viewer. */
+export async function applyCourierChange(
+  ctx: MutationCtx,
+  viewer: Viewer,
+  args: {
+    orderId: Id<"orders">
+    courier: { name: string; trackingNumber: string }
+    expectedRevision: number
+  }
+) {
+  if (viewer.role !== "staff" && viewer.role !== "owner") return forbidden
+
+  const order = await ctx.db.get(args.orderId)
+  if (!order) return missingRecord
+
+  const conflict = checkRevision(order, args.expectedRevision)
+  if (conflict) return conflict
+
+  if (order.status !== "shipped" && order.status !== "delivered")
+    return invalidInput("status")
+
+  const name = args.courier.name.trim()
+  const trackingNumber = args.courier.trackingNumber.trim()
+  if (!name || !trackingNumber) return invalidInput("courier")
+
+  const revision = revisionOf(order) + 1
+  await ctx.db.patch(args.orderId, {
+    courier: { name, trackingNumber },
+    revision,
+    updatedAt: Date.now(),
+  })
+  await ctx.db.insert("activities", {
+    personId: order.personId,
+    kind: "courier_update",
+    body: `Order ${order.reference}: courier set to ${name} · ${trackingNumber}`,
+    actorId: viewer.id,
+  })
+  return { ok: true as const, revision }
+}
+
+/** The signed-in buyer's own orders, newest first. */
+const MY_ORDER = v.object({
+  id: v.id("orders"),
+  reference: v.string(),
+  status: ORDER_STATUS,
+  fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+  items: v.array(
+    v.object({
+      title: v.string(),
+      edition: v.optional(v.string()),
+      quantity: v.number(),
+      unitPaise: v.number(),
+    })
+  ),
+  deliveryPaise: v.number(),
+  totalPaise: v.number(),
+  placedAt: v.number(),
+  courier: v.optional(COURIER),
+})
+
+export const myOrders = query({
+  args: {},
+  returns: v.union(v.null(), v.array(MY_ORDER)),
+  handler: async (ctx) => {
+    const viewer = await viewerPerson(ctx)
+    if (!viewer.ok) return null
+    const orders = await ctx.db
+      .query("orders")
+      .withIndex("by_person", (q) => q.eq("personId", viewer.value.id))
+      .order("desc")
+      .take(50)
+    return orders.map((order) => ({
+      id: order._id,
+      reference: order.reference,
+      status: order.status,
+      fulfilment: order.fulfilment,
+      items: order.items,
+      deliveryPaise: order.deliveryPaise,
+      totalPaise: order.totalPaise,
+      placedAt: order.placedAt,
+      courier: order.courier,
+    }))
+  },
+})
 
 /** Mark an order as seen, so it stops counting as new. */
 export const markOrderSeen = mutation({

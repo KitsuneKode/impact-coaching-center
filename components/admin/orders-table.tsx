@@ -26,6 +26,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -70,6 +80,7 @@ export type OrderRow = {
   placedAt: number
   seen: boolean
   revision: number
+  courier?: { name: string; trackingNumber: string }
   buyerName: string
   buyerPhone: string
   buyerDeleted: boolean
@@ -137,6 +148,7 @@ export function OrdersTable({
   onLoadMore: () => void
 }) {
   const setOrderStatus = useMutation(api.orders.setOrderStatus)
+  const setOrderCourier = useMutation(api.orders.setOrderCourier)
   const markSeen = useMutation(api.orders.markOrderSeen)
 
   const [filter, setFilter] = useState<string>("open")
@@ -146,6 +158,11 @@ export function OrdersTable({
   const [pageIndex, setPageIndex] = useState(0)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [courierFor, setCourierFor] = useState<{
+    order: OrderRow
+    /** Shipping writes courier and status together; correcting only fixes the details. */
+    mode: "ship" | "correct"
+  } | null>(null)
 
   const matching = useMemo(() => {
     const needle = search.toLowerCase().replaceAll(/\s/g, "")
@@ -174,7 +191,11 @@ export function OrdersTable({
     setPageIndex(0)
   }
 
-  async function move(order: OrderRow, status: string) {
+  async function move(
+    order: OrderRow,
+    status: string,
+    courier?: { name: string; trackingNumber: string }
+  ) {
     setBusy(order.id)
     setError(null)
     try {
@@ -182,6 +203,7 @@ export function OrdersTable({
         orderId: order.id,
         status: status as never,
         expectedRevision: order.revision,
+        courier,
       })
       // Discriminate on the value: `Refusal` carries an `ok` key too.
       if (!result.ok) {
@@ -192,11 +214,49 @@ export function OrdersTable({
               ? `That is not a move ${order.reference} can make from ${ORDER_STATUS_LABELS[order.status]}.`
               : "That change was refused. You may not have permission any more."
         )
+        return false
       }
+      return true
     } catch {
       setError(
         "Could not reach the server. The order is unchanged - try again."
       )
+      return false
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /* The staff answer to "it went out today" is always the same two facts:
+     who has it, and how anyone asks where it is. */
+  async function applyCourier(
+    order: OrderRow,
+    courier: { name: string; trackingNumber: string },
+    mode: "ship" | "correct"
+  ) {
+    if (mode === "ship") return move(order, "shipped", courier)
+    setBusy(order.id)
+    setError(null)
+    try {
+      const result = await setOrderCourier({
+        orderId: order.id,
+        courier,
+        expectedRevision: order.revision,
+      })
+      if (!result.ok) {
+        setError(
+          result.reason === "revision-conflict"
+            ? `${order.reference} changed somewhere else. It has been refreshed - check it and try again.`
+            : "That change was refused. You may not have permission any more."
+        )
+        return false
+      }
+      return true
+    } catch {
+      setError(
+        "Could not reach the server. The order is unchanged - try again."
+      )
+      return false
     } finally {
       setBusy(null)
     }
@@ -306,7 +366,19 @@ export function OrdersTable({
                   expanded={expanded === order.id}
                   busy={busy === order.id}
                   onToggle={() => toggle(order)}
-                  onMove={(status) => void move(order, status)}
+                  onMove={(status) => {
+                    /* "Shipped" is not a bare status - it needs the courier
+                       details the buyer will ask for, so it goes through
+                       the dialog rather than straight to the mutation. */
+                    if (status === "shipped")
+                      setCourierFor({ order, mode: "ship" })
+                    else void move(order, status)
+                  }}
+                  onCourier={
+                    order.status === "shipped" || order.status === "delivered"
+                      ? () => setCourierFor({ order, mode: "correct" })
+                      : undefined
+                  }
                 />
               ))
             )}
@@ -376,7 +448,99 @@ export function OrdersTable({
           </Button>
         </div>
       </div>
+
+      {courierFor ? (
+        <CourierDialog
+          order={courierFor.order}
+          mode={courierFor.mode}
+          busy={busy === courierFor.order.id}
+          onClose={() => setCourierFor(null)}
+          onSubmit={async (courier) => {
+            const done = await applyCourier(
+              courierFor.order,
+              courier,
+              courierFor.mode
+            )
+            if (done) setCourierFor(null)
+          }}
+        />
+      ) : null}
     </div>
+  )
+}
+
+/** Courier name and tracking number - the two facts "shipped" is made of. */
+function CourierDialog({
+  order,
+  mode,
+  busy,
+  onClose,
+  onSubmit,
+}: {
+  order: OrderRow
+  mode: "ship" | "correct"
+  busy: boolean
+  onClose: () => void
+  onSubmit: (courier: { name: string; trackingNumber: string }) => void
+}) {
+  const [name, setName] = useState(order.courier?.name ?? "")
+  const [tracking, setTracking] = useState(order.courier?.trackingNumber ?? "")
+  const ready = name.trim() !== "" && tracking.trim() !== ""
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "ship" ? `Ship ${order.reference}` : "Courier details"}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === "ship"
+              ? "Who is carrying it, and the tracking number the buyer can quote. Both are required before an order counts as shipped."
+              : `Fix who is carrying ${order.reference}, or the tracking number.`}
+          </DialogDescription>
+        </DialogHeader>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="courier-name">Courier</FieldLabel>
+            <Input
+              id="courier-name"
+              autoComplete="off"
+              placeholder="DTDC, India Post, Delhivery…"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="courier-tracking">Tracking number</FieldLabel>
+            <Input
+              id="courier-tracking"
+              autoComplete="off"
+              placeholder="As on the receipt or label"
+              value={tracking}
+              onChange={(event) => setTracking(event.target.value)}
+            />
+          </Field>
+        </FieldGroup>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!ready || busy}
+            onClick={() =>
+              onSubmit({
+                name: name.trim(),
+                trackingNumber: tracking.trim(),
+              })
+            }
+          >
+            {busy ? <Spinner /> : null}
+            {mode === "ship" ? "Mark shipped" : "Save"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -388,6 +552,7 @@ function OrderRows({
   busy,
   onToggle,
   onMove,
+  onCourier,
 }: {
   order: OrderRow
   isOwner: boolean
@@ -395,8 +560,10 @@ function OrderRows({
   busy: boolean
   onToggle: () => void
   onMove: (status: string) => void
+  /** Offered once the order is on its way - for fixing a mistyped number. */
+  onCourier?: () => void
 }) {
-  const moves = nextStatuses(order.status, isOwner)
+  const moves = nextStatuses(order.status, isOwner, order.fulfilment)
 
   return (
     <>
@@ -584,6 +751,30 @@ function OrderRows({
                     Collecting from the centre. No delivery address was taken.
                   </p>
                 )}
+
+                {order.courier ? (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-medium">Courier</h3>
+                    <p className="mt-3 text-muted-foreground">
+                      {order.courier.name}
+                      {" · "}
+                      <span className="tnum">
+                        {order.courier.trackingNumber}
+                      </span>
+                    </p>
+                    {onCourier ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="mt-3"
+                        onClick={onCourier}
+                        disabled={busy}
+                      >
+                        Fix courier details
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           </TableCell>

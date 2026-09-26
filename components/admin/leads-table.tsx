@@ -26,7 +26,9 @@ import {
   type ColumnVisibilityState,
   type SortingState,
 } from "@tanstack/react-table"
+import { useMutation } from "convex/react"
 import { createContext, useContext, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { RowsPerPage } from "@/components/admin/rows-per-page"
 import { StatusBadge } from "@/components/admin/status-badge"
@@ -56,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
 import { isDueIst } from "@/lib/ist"
 
@@ -87,6 +90,7 @@ const columnHelper = createColumnHelper<typeof features, Lead>()
 
 /** The status filters, in the order a queue is worked. */
 const STATUS_FILTERS = [
+  { value: "action", label: "Needs action" },
   { value: "all", label: "All" },
   { value: "due", label: "Follow-up due" },
   { value: "new", label: "New" },
@@ -133,6 +137,16 @@ function exact(at: number) {
  * name cell through context rather than being baked into a column.
  */
 const OpenLeadContext = createContext<(id: string) => void>(() => {})
+
+/** Whether this lead's follow-up has come due, evaluated for this render. */
+function dueNow(lead: Lead): boolean {
+  return (
+    lead.nextFollowUpAt !== undefined &&
+    lead.leadStatus !== "enrolled" &&
+    lead.leadStatus !== "lost" &&
+    isDueIst(lead.nextFollowUpAt, Date.now())
+  )
+}
 
 function OpenLead({ lead }: { lead: Lead }) {
   const open = useContext(OpenLeadContext)
@@ -220,13 +234,21 @@ const columns = columnHelper.columns([
   columnHelper.accessor("leadStatus", {
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.leadStatus} />,
-    /* Exact match, declared rather than inferred. */
-    filterFn: (row, _id, value: string) =>
-      value === "due"
-        ? isDueIst(row.original.nextFollowUpAt, Date.now()) &&
-          row.original.leadStatus !== "enrolled" &&
-          row.original.leadStatus !== "lost"
-        : row.original.leadStatus === value,
+    /*
+     * "Needs action" is the default view: untouched new enquiries plus
+     * anything whose follow-up has come due, because those are the rows a
+     * day of work starts from. Other values are exact status matches.
+     */
+    filterFn: (row, _id, value: string) => {
+      const lead = row.original
+      const due =
+        isDueIst(lead.nextFollowUpAt, Date.now()) &&
+        lead.leadStatus !== "enrolled" &&
+        lead.leadStatus !== "lost"
+      if (value === "action") return lead.leadStatus === "new" || due
+      if (value === "due") return due
+      return lead.leadStatus === value
+    },
     sortFn: (a, b) =>
       (STATUS_ORDER[a.original.leadStatus ?? ""] ?? 99) -
       (STATUS_ORDER[b.original.leadStatus ?? ""] ?? 99),
@@ -296,7 +318,11 @@ export function LeadsTable({
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({})
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  /* The queue opens on the work, not the archive: new enquiries and due
+     follow-ups. "All" is one tap away for everything else. */
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    { id: "leadStatus", value: "action" },
+  ])
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
 
@@ -339,7 +365,7 @@ export function LeadsTable({
   const canGoNext = table.getCanNextPage() || canLoadMore
 
   const statusFilter =
-    (table.getColumn("leadStatus")?.getFilterValue() as string) ?? "all"
+    (table.getColumn("leadStatus")?.getFilterValue() as string) ?? "action"
 
   function setStatusFilter(value: string) {
     table
@@ -350,9 +376,33 @@ export function LeadsTable({
 
   /** Download the ticked rows, as CSV. */
   const selectedCount = table.getSelectedRowModel().rows.length
+  const recordExport = useMutation(api.leads.recordExport)
+  const [exporting, setExporting] = useState(false)
 
-  function exportRows() {
+  async function exportRows() {
     const rows = table.getSelectedRowModel().rows.map((row) => row.original)
+    if (rows.length === 0) return
+    setExporting(true)
+    /* The audit row first: a CSV full of phone numbers leaves no trace of
+       itself, so if the bookkeeping cannot be written, the file does not
+       leave either. */
+    try {
+      const recorded = await recordExport({ count: rows.length })
+      if (!recorded.ok) {
+        toast.error(
+          "The export could not be recorded, so nothing was downloaded."
+        )
+        return
+      }
+    } catch {
+      toast.error(
+        "Could not reach the server - the export was not recorded, so nothing was downloaded."
+      )
+      return
+    } finally {
+      setExporting(false)
+    }
+
     const header = [
       "Name",
       "Mobile",
@@ -467,10 +517,10 @@ export function LeadsTable({
             <Button
               variant="secondary"
               size="md"
-              onClick={exportRows}
-              disabled={selectedCount === 0}
+              onClick={() => void exportRows()}
+              disabled={selectedCount === 0 || exporting}
             >
-              <IconDownload stroke={1.75} />
+              {exporting ? <Spinner /> : <IconDownload stroke={1.75} />}
               {selectedCount === 0
                 ? "Export selected"
                 : `Export ${selectedCount} selected`}
@@ -505,7 +555,109 @@ export function LeadsTable({
           ))}
         </ToggleGroup>
 
-        <div className="overflow-x-auto rounded-card border border-border">
+        {/*
+          Two renderings of the same row model. Below md a row of cells does
+          not fit a phone, so each enquiry is a card - same selection, same
+          filters, same open action.
+        */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {table.getRowModel().rows.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 rounded-card border border-border p-4">
+              <span className="text-muted-foreground">
+                Nothing matched that search.
+              </span>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => table.resetColumnFilters()}
+              >
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            table.getRowModel().rows.map((row) => {
+              const lead = row.original
+              const due = dueNow(lead)
+              return (
+                <div
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  className="rounded-card border border-border p-4 data-[state=selected]:border-foreground/40 data-[state=selected]:bg-muted/40"
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={row.getIsSelected()}
+                      onCheckedChange={(value) => row.toggleSelected(!!value)}
+                      aria-label={`Select ${lead.name || lead.phone}`}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <OpenLead lead={lead} />
+                        <StatusBadge status={lead.leadStatus} />
+                      </div>
+                      <a
+                        href={`tel:${lead.phone}`}
+                        className="tnum mt-1 block text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
+                      >
+                        {formatPhone(lead.phone)}
+                      </a>
+                      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        <div className="flex gap-1.5">
+                          <dt>Exam</dt>
+                          <dd>{lead.interestTrack ?? "—"}</dd>
+                        </div>
+                        {lead.lastEnquiryAt ? (
+                          <div className="flex gap-1.5">
+                            <dt>Enquired</dt>
+                            <dd>
+                              <time
+                                dateTime={new Date(
+                                  lead.lastEnquiryAt
+                                ).toISOString()}
+                                title={exact(lead.lastEnquiryAt)}
+                              >
+                                {ago(lead.lastEnquiryAt)}
+                              </time>
+                            </dd>
+                          </div>
+                        ) : null}
+                        {lead.nextFollowUpAt ? (
+                          <div className="flex gap-1.5">
+                            <dt>Follow-up</dt>
+                            <dd
+                              className={
+                                due ? "font-medium text-foreground" : ""
+                              }
+                            >
+                              <time
+                                dateTime={new Date(
+                                  lead.nextFollowUpAt
+                                ).toISOString()}
+                                title={exact(lead.nextFollowUpAt)}
+                              >
+                                {due ? "Due " : ""}
+                                {new Date(
+                                  lead.nextFollowUpAt
+                                ).toLocaleDateString("en-IN", {
+                                  timeZone: "Asia/Kolkata",
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                              </time>
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-card border border-border md:block">
           <Table className="min-w-200">
             <TableHeader className="bg-muted/40">
               {table.getHeaderGroups().map((group) => (

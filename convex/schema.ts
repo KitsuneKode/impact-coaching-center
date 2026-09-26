@@ -122,7 +122,9 @@ export default defineSchema({
       v.literal("call"),
       v.literal("enquiry"),
       v.literal("whatsapp_handoff"),
-      v.literal("account_deleted")
+      v.literal("account_deleted"),
+      v.literal("export"),
+      v.literal("courier_update")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
@@ -175,6 +177,17 @@ export default defineSchema({
         city: v.string(),
         district: v.optional(v.string()),
         pin: v.string(),
+      })
+    ),
+    /**
+     * Who is carrying the parcel, written when the order ships. A tracking
+     * number is the only "where is my book" answer that survives a phone
+     * call, so `shipped` refuses to apply without it (convex/orders.ts).
+     */
+    courier: v.optional(
+      v.object({
+        name: v.string(),
+        trackingNumber: v.string(),
       })
     ),
     /** Provider identifiers. Ours is `reference`; these are Razorpay's. */

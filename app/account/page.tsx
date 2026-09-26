@@ -13,6 +13,7 @@ import { convexConfigured } from "@/app/providers"
 import { AboutYouCard } from "@/components/account/about-you-card"
 import { DeleteAccount } from "@/components/account/delete-account"
 import { DetailsCard } from "@/components/account/details-card"
+import { OrdersCard } from "@/components/account/orders-card"
 import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
@@ -107,6 +108,7 @@ function Account() {
     >
       <div className="grid gap-6">
         <DetailsCard viewer={viewer} />
+        <OrdersCard />
         <AboutYouCard />
         <DeleteAccount role={viewer.role} />
       </div>
