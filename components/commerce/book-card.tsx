@@ -1,27 +1,62 @@
+"use client"
+
+import { IconPlus } from "@tabler/icons-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 import { BookCover } from "@/components/commerce/book-cover"
+import { useOpenCart } from "@/components/commerce/preview-shell"
+import { Button } from "@/components/ui/button"
+import { useCart } from "@/lib/cart-store"
 import { formatPaise } from "@/lib/money"
 import type { PreviewBook } from "@/lib/preview-catalogue"
 
-/** One book in a grid: cover, title, exam and price, all one link. */
+/** A book on its shelf: the cover, then title, exam and price, with quick add. */
 export function BookCard({ book }: { book: PreviewBook }) {
+  const add = useCart((s) => s.add)
+  const openCart = useOpenCart()
+  const href = `/preview/books/${book.slug}`
+
   return (
-    <Link
-      href={`/preview/books/${book.slug}`}
-      className="group grid gap-4 rounded-card outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
-    >
-      <BookCover
-        title={book.title}
-        subtitle={book.subtitle}
-        tone={book.tone}
-        className="transition-transform duration-200 ease-out group-active:scale-[0.98] [@media(hover:hover)]:group-hover:-translate-y-1"
-      />
-      <div className="grid gap-1">
-        <p className="text-xs text-muted-foreground">{book.exam}</p>
-        <p className="font-medium text-balance">{book.title}</p>
-        <p className="tnum text-sm">{formatPaise(book.pricePaise)}</p>
+    <article className="group grid gap-4">
+      <Link
+        href={href}
+        aria-label={book.title}
+        className="grid place-items-center rounded-card bg-surface px-[18%] py-8 outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+      >
+        <BookCover
+          title={book.title}
+          subtitle={book.subtitle}
+          exam={book.exam}
+          tone={book.tone}
+          className="transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:group-hover:-translate-y-1.5"
+        />
+      </Link>
+      <div className="flex items-start justify-between gap-3">
+        <div className="grid gap-0.5">
+          <p className="text-xs text-muted-foreground">{book.exam}</p>
+          <Link
+            href={href}
+            className="font-medium text-balance hover:underline"
+          >
+            {book.title}
+          </Link>
+          <p className="tnum text-sm">{formatPaise(book.pricePaise)}</p>
+        </div>
+        <Button
+          variant="secondary"
+          size="icon-sm"
+          aria-label={`Add ${book.title} to cart`}
+          onClick={() => {
+            add(book.slug)
+            toast.success(`${book.title} added to your cart`, {
+              action: { label: "View cart", onClick: openCart },
+            })
+          }}
+        >
+          <IconPlus stroke={1.75} />
+        </Button>
       </div>
-    </Link>
+    </article>
   )
 }

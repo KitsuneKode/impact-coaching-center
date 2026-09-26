@@ -33,7 +33,7 @@ export function ResourceList() {
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {shown.length} {shown.length === 1 ? "resource" : "resources"}
       </p>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((r) => (
           <li key={r.slug} className="grid">
             <ResourceCard resource={r} />

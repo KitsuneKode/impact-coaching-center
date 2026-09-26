@@ -95,11 +95,7 @@ export function CartSheet({
                 key={book.slug}
                 className="grid grid-cols-[64px_1fr] gap-4 p-6"
               >
-                <BookCover
-                  title={book.title}
-                  tone={book.tone}
-                  className="p-2 pl-3 [&_p]:text-[0.5rem] [&>span:nth-of-type(2)]:hidden"
-                />
+                <BookCover title={book.title} tone={book.tone} size="sm" />
                 <div className="grid gap-3">
                   <div>
                     <Link
