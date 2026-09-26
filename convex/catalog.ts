@@ -1,8 +1,19 @@
 import { v } from "convex/values"
 
-import { mutationResult, missingRecord, viewerPerson } from "./authz"
+import {
+  anonymous,
+  missingRecord,
+  mutationResult,
+  viewerPerson,
+  type Viewer,
+} from "./authz"
 import type { Doc } from "./_generated/dataModel"
-import { mutation, query, type QueryCtx } from "./_generated/server"
+import {
+  mutation,
+  type MutationCtx,
+  query,
+  type QueryCtx,
+} from "./_generated/server"
 import { BOOK_TONE, RESOURCE_KIND } from "./schema"
 
 /** Published catalogue, for the public pages. Nothing unpublished leaves here. */
@@ -106,9 +117,9 @@ export const resources = query({
 
 /**
  * Open a resource: the gate. Only a verified Person gets the page images, and
- * the first open is recorded once, on their activity trail, so staff can see
- * who is reading what. Storage URLs are signed by Convex but not short-lived;
- * the gate is the verification, not the URL.
+ * the first open is recorded once on their activity trail. It does not make
+ * them a lead (see `leadStatus` in the schema). Storage URLs are signed but not
+ * short-lived; the gate is the verification, not the URL.
  */
 export const openResource = mutation({
   args: { slug: v.string() },
@@ -119,43 +130,51 @@ export const openResource = mutation({
   }),
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
-    if (!viewer.ok) return viewer
-
-    const resource = await ctx.db
-      .query("resources")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique()
-    if (!resource?.published) return missingRecord
-
-    const seen = await ctx.db
-      .query("resourceOpens")
-      .withIndex("by_person_resource", (q) =>
-        q.eq("personId", viewer.value.id).eq("resourceId", resource._id)
-      )
-      .unique()
-    if (!seen) {
-      const now = Date.now()
-      await ctx.db.insert("resourceOpens", {
-        personId: viewer.value.id,
-        resourceId: resource._id,
-        at: now,
-      })
-      await ctx.db.insert("activities", {
-        personId: viewer.value.id,
-        kind: "resource_open",
-        body: resource.title,
-      })
-    }
-
-    const pageUrls = (
-      await Promise.all(resource.pageImages.map((id) => ctx.storage.getUrl(id)))
-    ).filter((url): url is string => url !== null)
-
-    return {
-      ok: true as const,
-      title: resource.title,
-      pageUrls,
-      pages: pageUrls.length || (resource.sample ? 6 : 0),
-    }
+    return openResourceAs(ctx, viewer.ok ? viewer.value : null, args.slug)
   },
 })
+
+/** The gate itself, split out so it can be tested without a session. */
+export async function openResourceAs(
+  ctx: MutationCtx,
+  viewer: Viewer | null,
+  slug: string
+) {
+  if (!viewer) return anonymous
+
+  const resource = await ctx.db
+    .query("resources")
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
+    .unique()
+  if (!resource?.published) return missingRecord
+
+  const seen = await ctx.db
+    .query("resourceOpens")
+    .withIndex("by_person_resource", (q) =>
+      q.eq("personId", viewer.id).eq("resourceId", resource._id)
+    )
+    .unique()
+  if (!seen) {
+    await ctx.db.insert("resourceOpens", {
+      personId: viewer.id,
+      resourceId: resource._id,
+      at: Date.now(),
+    })
+    await ctx.db.insert("activities", {
+      personId: viewer.id,
+      kind: "resource_open",
+      body: resource.title,
+    })
+  }
+
+  const pageUrls = (
+    await Promise.all(resource.pageImages.map((id) => ctx.storage.getUrl(id)))
+  ).filter((url): url is string => url !== null)
+
+  return {
+    ok: true as const,
+    title: resource.title,
+    pageUrls,
+    pages: pageUrls.length || (resource.sample ? 6 : 0),
+  }
+}

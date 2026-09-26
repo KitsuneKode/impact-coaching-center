@@ -64,6 +64,11 @@ export type ResourceInput = {
   description: string
 }
 
+/** A phone photo of a page is a few MB; anything bigger is the wrong file. */
+export const IMAGE_MAX_BYTES = 8 * 1024 * 1024
+export const SAMPLE_PAGES_MAX = 12
+export const RESOURCE_PAGES_MAX = 300
+
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /** "Assam GK Capsule" → "assam-gk-capsule". */

@@ -1,12 +1,6 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
-/** Where an order can be, as a closed set. */
-/**
- * Where a lead is in the follow-up queue, as a closed set - same reasoning
- * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
- */
-/** Who a Person is, as a closed set. `student` is the default, not a grant. */
 /** How a book cover is coloured until it has a photographed cover. */
 export const BOOK_TONE = v.union(
   v.literal("primary"),
@@ -21,12 +15,17 @@ export const RESOURCE_KIND = v.union(
   v.literal("Practice set")
 )
 
+/** Who a Person is, as a closed set. `student` is the default, not a grant. */
 export const PERSON_ROLE = v.union(
   v.literal("student"),
   v.literal("staff"),
   v.literal("owner")
 )
 
+/**
+ * Where a lead is in the follow-up queue, as a closed set - same reasoning
+ * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
+ */
 export const LEAD_STATUS = v.union(
   v.literal("new"),
   v.literal("contacted"),
@@ -35,6 +34,7 @@ export const LEAD_STATUS = v.union(
   v.literal("lost")
 )
 
+/** Where an order can be, as a closed set. */
 export const ORDER_STATUS = v.union(
   v.literal("awaiting_payment"),
   v.literal("paid"),
@@ -128,7 +128,11 @@ export default defineSchema({
    * Person, so an export of persons cannot leak staff notes.
    */
   activities: defineTable({
-    personId: v.id("persons"),
+    /**
+     * Who the row is about. Absent on catalogue rows: a price change is about
+     * a book, not a person, and `actorId` already names who did it.
+     */
+    personId: v.optional(v.id("persons")),
     kind: v.union(
       v.literal("status_change"),
       v.literal("role_change"),
@@ -137,12 +141,17 @@ export default defineSchema({
       v.literal("enquiry"),
       v.literal("whatsapp_handoff"),
       v.literal("account_deleted"),
-      v.literal("resource_open")
+      v.literal("resource_open"),
+      v.literal("catalog_save"),
+      v.literal("catalog_publish")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
+    /** Which catalogue record a catalog_* row changed. */
+    entity: v.optional(v.union(v.literal("book"), v.literal("resource"))),
+    entityId: v.optional(v.union(v.id("books"), v.id("resources"))),
     /*
      * The structured half of an audit row. `body` is for reading; these are for
      * asking questions - "every role change this owner made" cannot be answered
@@ -156,7 +165,10 @@ export default defineSchema({
     ),
     fromStatus: v.optional(v.string()),
     toStatus: v.optional(v.string()),
-  }).index("by_person", ["personId"]),
+  })
+    .index("by_person", ["personId"])
+    /* "Every catalogue change", "every publish" - questions with no Person. */
+    .index("by_kind", ["kind"]),
 
   /** Fixed-window counters for public submission paths. */
   /** Book orders, and the fulfilment trail staff work from. */

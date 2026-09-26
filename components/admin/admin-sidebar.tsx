@@ -17,7 +17,12 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { COMMERCE_NAV, NAV, OWNER_NAV } from "@/components/admin/nav"
+import {
+  COMMERCE_NAV,
+  isActivePath,
+  NAV,
+  OWNER_NAV,
+} from "@/components/admin/nav"
 import { NavUser } from "@/components/admin/nav-user"
 import { SidebarMenuBadge } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
@@ -57,7 +62,7 @@ export function AdminSidebar() {
               {NAV.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname === item.href}
+                    isActive={isActivePath(item.href, pathname)}
                     tooltip={item.label}
                     render={<Link href={item.href} />}
                   >
@@ -77,7 +82,7 @@ export function AdminSidebar() {
               {COMMERCE_NAV.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    isActive={pathname === item.href}
+                    isActive={isActivePath(item.href, pathname)}
                     tooltip={item.label}
                     render={<Link href={item.href} />}
                   >
@@ -109,7 +114,7 @@ export function AdminSidebar() {
                 {OWNER_NAV.map((item) => (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      isActive={pathname === item.href}
+                      isActive={isActivePath(item.href, pathname)}
                       tooltip={item.label}
                       render={<Link href={item.href} />}
                     >

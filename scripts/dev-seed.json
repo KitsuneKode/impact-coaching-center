@@ -7,7 +7,8 @@
     "`leadStatus` is one of: new, contacted, interested, enrolled, lost.",
     "`note` lands on the activity record, never on the Person, because staff notes must not sit on a row that could be exported.",
     "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local or the named hosted dev deployment (DEV_DEPLOYMENT_NAME).",
-    "`orders` prices are in RUPEES here and stored as integer paise. `daysAgo` is relative like the enquiries. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address, by design."
+    "`orders` prices are in RUPEES here and stored as integer paise. `daysAgo` is relative like the enquiries. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address, by design.",
+    "`books` and `resources` are the sample catalogue: published, marked sample, and replaced the moment the owner edits one. `priceRupees` is stored as paise."
   ],
   "people": [
     {
@@ -387,7 +388,7 @@
       "name": "Priyanka Bora",
       "status": "ready_for_collection",
       "fulfilment": "collection",
-      "daysAgo": 4.0,
+      "daysAgo": 4,
       "seen": true,
       "items": [
         {
@@ -427,7 +428,7 @@
       "name": "Kabita Rabha",
       "status": "collected",
       "fulfilment": "collection",
-      "daysAgo": 12.0,
+      "daysAgo": 12,
       "seen": true,
       "items": [
         {
@@ -474,7 +475,7 @@
       "name": "Manash Pratim Sarma",
       "status": "cancelled",
       "fulfilment": "delivery",
-      "daysAgo": 16.0,
+      "daysAgo": 16,
       "seen": true,
       "items": [
         {
@@ -496,7 +497,7 @@
       "name": "Rimpi Choudhury",
       "status": "refunded",
       "fulfilment": "delivery",
-      "daysAgo": 21.0,
+      "daysAgo": 21,
       "seen": true,
       "items": [
         {
@@ -569,6 +570,115 @@
         }
       ],
       "deliveryRupees": 0
+    }
+  ],
+  "books": [
+    {
+      "slug": "assam-history-culture",
+      "title": "Assam History and Culture",
+      "subtitle": "Study notes for APSC Prelims and Mains",
+      "exam": "APSC",
+      "edition": "Sample edition",
+      "pages": 240,
+      "tone": "primary",
+      "description": "Sample listing. ICT's own notes would describe the book here: what it covers, who it is for, and how it maps to the syllabus.",
+      "contents": [
+        "Ancient Assam",
+        "The Ahom kingdom",
+        "Colonial period",
+        "Freedom movement",
+        "Art, festivals and literature"
+      ],
+      "priceRupees": 349
+    },
+    {
+      "slug": "apsc-prelims-solved-papers",
+      "title": "APSC Prelims Solved Papers",
+      "subtitle": "Previous years with explanations",
+      "exam": "APSC",
+      "edition": "Sample edition",
+      "pages": 180,
+      "tone": "highlight",
+      "description": "Sample listing. A solved-papers book would list the years covered and how answers are explained.",
+      "contents": [
+        "How to use this book",
+        "General Studies I",
+        "General Studies II (CSAT)",
+        "Answer keys"
+      ],
+      "priceRupees": 299
+    },
+    {
+      "slug": "assam-gk-capsule",
+      "title": "Assam GK Capsule",
+      "subtitle": "Quick revision for ADRE and Assam Police",
+      "exam": "ADRE and Assam Police",
+      "edition": "Sample edition",
+      "pages": 120,
+      "tone": "muted",
+      "description": "Sample listing. A short revision book would show its format: one-liners, tables and practice questions.",
+      "contents": [
+        "Geography",
+        "Polity",
+        "Economy",
+        "Schemes",
+        "Practice MCQs"
+      ],
+      "priceRupees": 199
+    },
+    {
+      "slug": "quant-and-reasoning-drills",
+      "title": "Quant and Reasoning Drills",
+      "subtitle": "Timed sets for Bank, SSC and Railway",
+      "exam": "Bank, SSC, Railway",
+      "edition": "Sample edition",
+      "pages": 200,
+      "tone": "primary",
+      "description": "Sample listing. A practice book would say how many sets it has and how they are timed.",
+      "contents": [
+        "Number system",
+        "Percentages and ratios",
+        "Puzzles",
+        "Mock sets"
+      ],
+      "priceRupees": 249
+    }
+  ],
+  "resources": [
+    {
+      "slug": "apsc-prelims-gs-paper",
+      "title": "APSC Prelims GS paper",
+      "exam": "APSC",
+      "kind": "Question paper",
+      "description": "Sample item. A past paper with the official answer key."
+    },
+    {
+      "slug": "monthly-assam-current-affairs",
+      "title": "Assam current affairs, monthly",
+      "exam": "APSC",
+      "kind": "Current affairs",
+      "description": "Sample item. The month's Assam news that exams ask about."
+    },
+    {
+      "slug": "polity-one-page-notes",
+      "title": "Indian Polity one-page notes",
+      "exam": "ADRE and Assam Police",
+      "kind": "Notes",
+      "description": "Sample item. Articles, bodies and amendments on one sheet each."
+    },
+    {
+      "slug": "reasoning-warm-up-set",
+      "title": "Reasoning warm-up set",
+      "exam": "Bank, SSC, Railway",
+      "kind": "Practice set",
+      "description": "Sample item. Twenty timed questions with worked answers."
+    },
+    {
+      "slug": "assam-geography-maps",
+      "title": "Assam geography with maps",
+      "exam": "ADRE and Assam Police",
+      "kind": "Notes",
+      "description": "Sample item. Rivers, districts and parks, map by map."
     }
   ]
 }
