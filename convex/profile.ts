@@ -12,33 +12,9 @@ import { cleanName } from "../lib/person-name"
 import { cleanAnswers, type QuestionnaireAnswers } from "../lib/questionnaire"
 import { mutation, query, type MutationCtx } from "./_generated/server"
 
-/**
- * What a Person may change about themselves.
- *
- * Their own record, and only the parts that are theirs to set. Role,
- * verification and lead status are all absent by design: a Person must never
- * be able to promote themselves, mark their own number verified, or edit where
- * staff have got to with them. `viewerPerson` resolves identity from the
- * session, so there is no personId argument to tamper with.
- */
+/** What a Person may change about themselves. */
 
-/**
- * Give this Person a name.
- *
- * Better Auth creates the Person with `getTempName: () => ""`, and until now
- * nothing ever asked for a real one. The consequence was visible on every
- * page: the account menu showed a phone number where a name belongs, and the
- * avatar fell back to two digits of it. An empty name also means staff work a
- * queue of bare numbers, which is most of what makes a lead uncallable.
- *
- * One field: names in Assam do not reliably split into first and last, and
- * `persons.name` is one string. `cleanName` (lib/person-name.ts) tidies it and
- * refuses what is not a name.
- *
- * Revision-checked like every other edit. A conflict returns the current
- * revision rather than throwing, so the screen can re-present what the person
- * typed instead of discarding it.
- */
+/** Give this Person a name. */
 export const setOwnName = mutation({
   args: {
     name: v.string(),
@@ -78,9 +54,7 @@ const QUESTIONNAIRE = v.object({
 
 /**
  * The signed-in Person's onboarding answers, or `null` when they have never
- * been asked. `undefined` from the hook means loading, `null` means "ask", and
- * an object with only `skippedAt` means "asked, and they chose not to" - three
- * states the onboarding step and the account page both need to tell apart.
+ * been asked.
  */
 export const ownQuestionnaire = query({
   args: {},
@@ -103,16 +77,7 @@ export const ownQuestionnaire = query({
   },
 })
 
-/**
- * Save, change or skip the three onboarding questions.
- *
- * Every answer is optional, so a partial save is a save. `skip` records that
- * the Person was asked and declined, without discarding answers given earlier:
- * skipping from the account page must not erase what they told us last week.
- * Values are checked against the same lists the form renders
- * (lib/questionnaire.ts); an unknown value is refused rather than stored where
- * no filter can find it.
- */
+/** Save, change or skip the three onboarding questions. */
 export async function applyQuestionnaire(
   ctx: MutationCtx,
   viewer: Viewer,

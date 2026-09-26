@@ -18,15 +18,7 @@ function views(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${n}`
 }
 
-/**
- * Hairline list of real lectures with a floating preview.
- *
- * YouTube thumbnails are loud by design and would shout over a calm page, so
- * they stay hidden until the visitor reaches for a row; then the thumbnail
- * follows the cursor on a spring. Pointer position lives in motion values, not
- * React state, so moving the mouse never re-renders the list. On touch screens
- * the thumbnail shows inline instead, since there is no hover to reveal it.
- */
+/** Hairline list of real lectures with a floating preview. */
 export function LectureList({ limit = 6 }: { limit?: number }) {
   const reduce = useReducedMotion()
   const listRef = useRef<HTMLUListElement>(null)

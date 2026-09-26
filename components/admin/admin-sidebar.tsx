@@ -28,10 +28,9 @@ export function AdminSidebar() {
   const viewer = useQuery(api.auth.getCurrentPerson)
   const isOwner = viewer?.role === "owner"
   /*
-   * The closest thing to a notification this product can honestly offer.
-   * A real alert needs a channel, and the only one here is WhatsApp, which is
-   * not implemented (KIT-46). Rather than a bell that does nothing, the
-   * number staff actually act on sits on the nav item they would open anyway.
+   * The closest thing to a notification this product can honestly offer. A real
+   * alert needs a channel, and the only one here is WhatsApp, which is not
+   * implemented (KIT-46).
    */
   const counts = useQuery(api.orders.orderCounts)
 
@@ -86,11 +85,8 @@ export function AdminSidebar() {
                     <span>{item.label}</span>
                   </SidebarMenuButton>
                   {/*
-                   * Unseen, not open. A badge counting everything still to do
-                   * never reaches zero on a working day, so it stops being
-                   * read; one counting orders nobody has looked at yet is a
-                   * thing a person can actually clear.
-                   */}
+                    Unseen, not open.
+                  */}
                   {counts && counts.unseen > 0 ? (
                     <SidebarMenuBadge>{counts.unseen}</SidebarMenuBadge>
                   ) : null}
@@ -101,11 +97,10 @@ export function AdminSidebar() {
         </SidebarGroup>
 
         {/*
-         * Hidden rather than disabled. A disabled control tells a staff member
-         * a capability exists and is being withheld, which invites them to ask
-         * for it; the honest reading is that this is not part of their job.
-         * The backend refuses regardless - this is chrome, not the gate.
-         */}
+          Hidden rather than disabled. A disabled control tells a staff member a
+          capability exists and is being withheld, which invites them to ask for it;
+          the honest reading is that this is not part of their job.
+        */}
         {isOwner ? (
           <SidebarGroup>
             <SidebarGroupLabel>Owner</SidebarGroupLabel>
@@ -134,11 +129,9 @@ export function AdminSidebar() {
       </SidebarFooter>
 
       {/*
-       * The rail is the thin strip along the sidebar's edge: click it to
-       * collapse or expand, drag it to resize. It comes from the registry
-       * block and is the affordance that makes icon mode discoverable without
-       * hunting for the trigger in the header.
-       */}
+        The rail is the thin strip along the sidebar's edge: click it to collapse or
+        expand, drag it to resize.
+      */}
       <SidebarRail />
     </Sidebar>
   )

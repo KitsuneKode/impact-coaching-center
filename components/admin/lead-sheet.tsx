@@ -85,14 +85,7 @@ function describe(kind: string, from?: string, to?: string) {
   return "Note"
 }
 
-/**
- * One enquiry, and everything staff do with it.
- *
- * Opens over the table so the queue keeps its place. Reads are live, so a
- * second person working the same lead sees each change as it lands; writes
- * carry the revision they were made against and a conflict says so instead
- * of quietly overwriting.
- */
+/** One enquiry, and everything staff do with it. */
 export function LeadSheet({
   personId,
   onOpenChange,

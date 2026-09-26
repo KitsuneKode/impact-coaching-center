@@ -1,29 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 
-/**
- * A lead's status, weighted by whether it still needs someone.
- *
- * Every status rendered identically before, so a queue of thirty rows offered
- * no way to find the six that need a call - which is the only question a
- * follow-up queue exists to answer.
- *
- * Emphasis rather than hue, because the design guide reserves every colour
- * this would otherwise reach for: §3 says green means "verified", not "good",
- * amber means "the phrase that matters", not "warning", and it ends with
- * "never rely on colour alone for status". So the signal is weight. `new` is
- * the only filled badge on the screen; everything else recedes.
- *
- * The dot carries the same distinction a second way, in fill rather than
- * colour - solid while a lead is still someone's job, hollow once it is
- * settled. That survives greyscale, a cheap panel in sunlight, and colour
- * blindness, and the label is always present in words regardless.
- *
- * Classes are written out per branch rather than looked up. `shadcn/
- * require-static-classes` rejects a className assembled from a variable on a
- * registry component, and it is right to: a class string the linter cannot
- * read is one the Tailwind compiler may not emit, which is how a component
- * ships with no styles at all.
- */
+/** A lead's status, weighted by whether it still needs someone. */
 export function StatusBadge({ status }: { status: string | undefined }) {
   switch (status) {
     case "new":

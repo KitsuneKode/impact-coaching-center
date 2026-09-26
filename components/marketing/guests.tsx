@@ -6,14 +6,7 @@ import { Lede, Section } from "@/components/ui/section"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { guestSessions, thumb } from "@/lib/stories"
 
-/**
- * Bijoyee Bartalaap: serving officers who came to talk to ICT students.
- *
- * The wording here is load-bearing. ICT's own posters call each of them a
- * guest speaker, and this section says the same. They are people who sat with
- * students in that room, not results the institute produced, and a coaching
- * site that blurs the two has started lying.
- */
+/** Bijoyee Bartalaap: serving officers who came to talk to ICT students. */
 export function Guests() {
   return (
     <Section id="guests">

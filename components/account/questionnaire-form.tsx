@@ -21,14 +21,7 @@ import {
   type QuestionnaireAttempt,
 } from "@/lib/questionnaire"
 
-/**
- * One question as a set of native radios styled as options.
- *
- * Native inputs rather than a toggle group: a radio group is what this is,
- * and the browser gives arrow-key movement, a single tab stop and the right
- * announcement for free. Each option is a full-width label, so the target is
- * the whole row on a phone, not a small circle.
- */
+/** One question as a set of native radios styled as options. */
 function Choice<T extends string>({
   legend,
   name,
@@ -70,16 +63,7 @@ function Choice<T extends string>({
 const asOptions = (values: readonly string[]) =>
   values.map((value) => ({ value, label: value }))
 
-/**
- * The three onboarding questions: exam, attempt, batch.
- *
- * Every question is optional and the whole form is skippable. "Skip for now"
- * is recorded, not just dismissed, so the account page can offer it again
- * without nagging and staff can tell "declined" from "never asked".
- *
- * Used twice: straight after the first sign-in (`onboarding`), and on the
- * account page to answer or change later (`account`).
- */
+/** The three onboarding questions: exam, attempt, batch. */
 export function QuestionnaireForm({
   initial,
   revision,

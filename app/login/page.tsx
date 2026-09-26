@@ -16,8 +16,7 @@ export const metadata: Metadata = {
 /**
  * `next` is typed as it actually arrives. A repeated `?next=` gives an array,
  * which a `next?: string` signature denies can happen and `startsWith` would
- * throw on. `safeReturnPath` refuses both that and the off-site destinations
- * a prefix check misses.
+ * throw on.
  */
 export default async function LoginPage({
   searchParams,

@@ -9,9 +9,7 @@ import { links, selections } from "@/lib/brand"
 /**
  * One officer, one card. The serial is the proof, so it is the largest thing
  * on the card and it is the number printed in the commission's own result,
- * never a rank ICT's marketing has claimed elsewhere. Their own words sit
- * beside it: a quote next to a checkable serial is worth more than a rail of
- * anonymous app reviews scrolling past.
+ * never a rank ICT's marketing has claimed elsewhere.
  */
 export function SelectionCard({
   person,
@@ -49,13 +47,7 @@ export function SelectionCard({
   )
 }
 
-/**
- * Results: the numbers first, then the voices.
- *
- * Two cards, each a checkable serial with the officer's own words. No
- * marquee: the spec rules out auto-moving content, and two verified people
- * read as more than a carousel of anonymous ones.
- */
+/** Results: the numbers first, then the voices. */
 export function Results() {
   return (
     <Section id="results" bleed>

@@ -28,27 +28,8 @@ const CONFIRMATION = "DELETE"
 
 /**
  * Erase the signed-in Person's account, as the privacy policy promises.
- *
- * What goes:
- * - the name, number, email, onboarding answers, lead state and consent on the
- *   Person, which stays as a tombstone (`deletedAt`) so orders and the audit
- *   trail still point at something;
- * - the free text on their activity rows. The audit trail is otherwise
- *   insert-only (AGENTS.md); erasure is its one sanctioned exception, because a
- *   staff note about someone is their personal data. Who did what, and when,
- *   is kept;
- * - delivery addresses on their finished orders. Items, totals and payment
- *   references stay, because tax law requires the sale to be kept;
- * - their Better Auth user, sessions, linked accounts and OTP lease, so the
- *   number is signed out everywhere and verifies as new next time.
- *
- * What stays: rate-limit counters keyed by the number. They expire on their own
- * within a day, and erasing them early would let anyone reset the OTP send
- * ceiling by deleting and re-creating an account.
- *
- * Refused for staff and owners: their accounts carry access other people rely
- * on, and an owner deleting themselves could remove the last owner. Another
- * owner removes a staff member's access first, from /admin/people.
+ * Clearing their activity text is the audit trail's one sanctioned edit
+ * (AGENTS.md); who did what, and when, is kept.
  */
 export async function eraseAccount(
   ctx: MutationCtx,

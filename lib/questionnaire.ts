@@ -1,17 +1,6 @@
 import { enquiryTimings, enquiryTracks } from "./leads"
 
-/**
- * The three questions asked after the first sign-in.
- *
- * Each earns its place by changing what staff do on the call: which exam to
- * talk about, whether to talk about a first attempt or what went wrong last
- * time, and which batch to offer. Anything more is a survey
- * (docs/plans/2026-09-22-commerce-and-account-surfaces.md).
- *
- * Exam and batch reuse the enquiry form's lists, so a Person who enquired and
- * then signed in is described in the same words in both places, and adding a
- * Track adds it here too.
- */
+/** The three questions asked after the first sign-in. */
 export const questionnaireExams = enquiryTracks
 export const questionnaireBatches = enquiryTimings
 
@@ -32,10 +21,6 @@ export type QuestionnaireAnswers = {
 /**
  * Answers with anything outside the lists dropped, or `null` if a value was
  * not recognised.
- *
- * Every question is optional, so an absent answer is valid. An unrecognised
- * one is not: it means the client and server disagree about the options, and
- * storing it would put a value in the lead sheet no filter can find.
  */
 export function cleanAnswers(
   input: QuestionnaireAnswers

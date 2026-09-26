@@ -1,12 +1,4 @@
-/**
- * Every sentence the sign-in server may say to a person.
- *
- * Shared by the server (lib/phone-auth.ts, which throws them) and the client
- * (lib/phone-auth-flow.ts, which shows them). The client shows a server
- * message only if it is one of these; anything else - a library's own error
- * such as "Invalid origin", a stack detail, a misconfiguration - becomes a
- * plain sentence instead. Internals never reach the screen.
- */
+/** Every sentence the sign-in server may say to a person. */
 export const SEND_REFUSALS = {
   phone:
     "Too many codes requested for this number. Please try again in a few minutes.",

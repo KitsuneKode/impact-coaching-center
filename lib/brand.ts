@@ -1,15 +1,4 @@
-/**
- * Real, sourced ICT material.
- *
- * Pulled from ICT's own public channels on 10 and 11 Sep 2026: the YouTube
- * channel (UCeeCwaaW0pfiIGwtLqV88iQ), its lecture thumbnails, the Play Store
- * listing, and ICT's Feb 2025 admissions reel. Selection serials come from the
- * official APSC CCE 2022 result PDF.
- *
- * Rule: nothing here is invented. Anything proposed by us rather than
- * published by ICT is marked `confirmed: false` and listed in `toConfirm` at
- * the bottom, so the owner can sign it off in one pass.
- */
+/** Real, sourced ICT material. */
 
 export const brand = {
   legalName: "Impact Career Tutorials",
@@ -56,14 +45,7 @@ export const app = {
 /*  Offer                                                                     */
 /* -------------------------------------------------------------------------- */
 
-/**
- * The low-risk first step.
- *
- * This was a proposed "free demo class" until ICT's own storefront showed they
- * already run free workshops: Kouxal for APSC and ABHIGYAN for banking, both
- * listed at zero and both with real enrolments. Pointing at something the
- * institute actually sells beats inventing an offer for them.
- */
+/** The low-risk first step. */
 export const offer = {
   cta: "Join a free workshop",
   short: "Free workshop",
@@ -181,16 +163,7 @@ export const fees = {
   scholarship: "Scholarships through ICT's ASSIST test.",
 } as const
 
-/**
- * Three tracks, each pointing at real courses in ICT's Classplus catalogue.
- *
- * Names, prices and feature lists come from `lib/catalogue.ts`, snapshotted
- * from the store that actually takes the payment, so the site cannot quote a
- * price the checkout disagrees with. Run `bun run sync:courses` to refresh.
- *
- * The older Victor 5.0, 6.0 and 7.0 batches stay out of the page: they are
- * previous intakes, and listing them would make the current one ambiguous.
- */
+/** Three tracks, each pointing at real courses in ICT's Classplus catalogue. */
 export const tracks = [
   {
     slug: "apsc",
@@ -473,13 +446,6 @@ export type Poster = {
  * ICT designs result and admission posters every month for Instagram. They are
  * finished, authentic proof that costs the institute nothing to hand over, and
  * "send the poster on WhatsApp" is a workflow an owner will actually keep up.
- *
- * Drop files into public/posters and add a row here. The section hides itself
- * while this is empty.
- *
- * Before adding a result poster, check its claim against the official result.
- * ICT's own material has carried a rank that the APSC PDF does not support, so
- * a poster can republish a claim the rest of this site deliberately avoids.
  */
 export const posters: Poster[] = []
 
@@ -491,13 +457,7 @@ export function youtubeWatch(id: string) {
   return `https://www.youtube.com/watch?v=${id}`
 }
 
-/*
- * The five wa.me/tel helpers that used to live here moved to lib/contact.ts.
- * They were shallow - five builders differing only by message string - and
- * every call site had to pick one, then repeat target/rel itself, so adding
- * a single analytics event meant editing eleven files. Callers now state an
- * EnquiryIntent and one module owns the wording, the encoding and the channel.
- */
+/* The five wa.me/tel helpers that used to live here moved to lib/contact.ts. */
 
 /** "+918638061175" -> "+91 86380 61175" */
 export function formatPhone(phone: string) {

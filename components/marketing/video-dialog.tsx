@@ -7,18 +7,7 @@ import { useRef, useState, type ComponentProps, type ReactNode } from "react"
 import { youtubeWatch } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
-/**
- * Plays a video in place instead of throwing the visitor at YouTube.
- *
- * Sending someone to youtube.com mid-decision is the single easiest way to
- * lose them: they land in an infinite feed of other people's videos and the
- * enquiry never happens. Here the class plays over the page and closing it
- * puts them back exactly where they were.
- *
- * The iframe is only mounted once the dialog opens, so a page with a dozen
- * videos still ships zero players and costs nothing on a slow connection.
- * Base UI handles the focus trap, the scroll lock and Escape.
- */
+/** Plays a video in place instead of throwing the visitor at YouTube. */
 export function VideoDialog({
   id,
   title,

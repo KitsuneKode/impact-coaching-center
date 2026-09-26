@@ -46,12 +46,6 @@ const startShort = startDate.toLocaleDateString("en-IN", {
  * Hero, rendered on the server with CSS-only entry so the headline paints on
  * the first frame (it is the LCP element, and most of this audience is on a
  * mid-range Android phone).
- *
- * Structure follows kobbe.io: a two-tone paragraph instead of a shouting
- * headline, then a full-width strip of people. Where kobbe draws townsfolk,
- * ICT shows the five teachers a student will actually sit in front of, each
- * linking to a full class they taught. For a coaching centre, the faculty is
- * the product.
  */
 export function Hero() {
   return (
@@ -89,14 +83,10 @@ export function Hero() {
         )}
 
         {/*
-         * The claim and the explanation were one h1 at section-heading size,
-         * so they competed and neither won. Split: the claim gets the hero
-         * scale and the ink, the explanation becomes a lede beneath it. Two
-         * sizes where there was one is the whole of the hierarchy.
-         *
-         * Also better semantics - the heading is now the heading, rather than
-         * a heading with a paragraph inside it.
-         */}
+          The claim and the explanation were one h1 at section-heading size, so they
+          competed and neither won. Split: the claim gets the hero scale and the ink,
+          the explanation becomes a lede beneath it.
+        */}
         <h1
           className="enter type-hero mt-7 max-w-5xl first:mt-0"
           style={delay(80)}

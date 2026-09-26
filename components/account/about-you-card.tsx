@@ -10,13 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import { attemptLabel } from "@/lib/questionnaire"
 
-/**
- * The onboarding answers, readable and changeable.
- *
- * This is where a Person who skipped the questions after signing in can answer
- * them later, and where anyone can correct them. Read mode by default, like
- * the details card above it.
- */
+/** The onboarding answers, readable and changeable. */
 export function AboutYouCard() {
   const data = useQuery(api.profile.ownQuestionnaire)
   const [editing, setEditing] = useState(false)

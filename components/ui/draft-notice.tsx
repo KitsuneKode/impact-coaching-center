@@ -1,10 +1,4 @@
-/**
- * Says, in words, that what follows has not been approved.
- *
- * AGENTS.md requires a placeholder to be impossible to mistake for approved
- * content. `noindex` keeps a draft out of search results but is invisible to
- * the person reading it, so unapproved content carries this as well.
- */
+/** Says, in words, that what follows has not been approved. */
 export function DraftNotice({
   children,
   drafted,

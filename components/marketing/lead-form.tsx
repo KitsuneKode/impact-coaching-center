@@ -91,10 +91,6 @@ export function LeadForm() {
   // A Person may enquire about a second course; the server records that as a
   // real enquiry rather than a duplicate. Without this the form is replaced by
   // the success panel and there is no way back to it.
-  //
-  // Adjusted during render rather than in an effect: useActionState hands back
-  // a new object per submission, and comparing against the last one we showed
-  // resets the panel without a second commit.
   const [again, setAgain] = useState(false)
   const [shown, setShown] = useState(state)
   if (shown !== state) {

@@ -1,19 +1,4 @@
-/**
- * Student voices, guests, the podcast, and photographs of the centre.
- *
- * Everything here is published by ICT on their own YouTube channel. Names and
- * batches are read off ICT's own review cards, so nothing is inferred.
- *
- * The distinction that matters on this page:
- *
- *   verified   the claim can be checked in a primary source, today that means
- *              the APSC CCE 2022 result PDF
- *   published  ICT says it on their own channel, and we attribute it to them
- *   guest      an officer who came to speak to ICT students, never presented
- *              as an ICT result
- *
- * Collapsing those three is how a coaching site starts lying by accident.
- */
+/** Student voices, guests, the podcast, and photographs of the centre. */
 
 export type StudentReview = {
   id: string
@@ -80,12 +65,6 @@ export const publishedStories = [
  * Axom Dhwani, ICT's podcast, hosted by Raheef R Aowal with Izaaz Ahmed.
  * The most watched thing on the entire channel is an episode of this, not a
  * lecture, which is worth the owner knowing.
- *
- * Two episodes are deliberately not listed: one on whether Assamese Muslims
- * are indigenous, and one on Lower versus Upper Assam. Both are legitimate
- * public-affairs episodes and both are politically charged in Assam, so
- * whether a coaching site should foreground them is the owner's call, not
- * ours. `seriesViews` counts the whole series, including those two.
  */
 export const podcast = {
   name: "Axom Dhwani",
@@ -131,12 +110,7 @@ export const podcast = {
   ],
 } as const
 
-/**
- * Bijoyee Bartalaap: serving officers who came to talk to ICT students.
- *
- * ICT's own posters label every one of them "Guest Speaker". They are not ICT
- * results and this site never implies they are.
- */
+/** Bijoyee Bartalaap: serving officers who came to talk to ICT students. */
 export const guestSessions = [
   {
     id: "dc1FYXMg0vU",

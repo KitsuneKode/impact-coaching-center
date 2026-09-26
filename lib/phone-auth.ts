@@ -7,11 +7,7 @@ import { toE164 } from "./leads"
 /*
  * The refusal sentences live in lib/auth-messages.ts so the client can tell
  * them apart from library errors it must not show. Each has to be true of the
- * ceiling that actually fired: a shared college connection hitting the
- * address limit is not the visitor asking too often.
- *
- * Sign-in is a WhatsApp code. The password, email and social routes below
- * are refused before any adapter write.
+ * ceiling that actually fired:
  */
 const REFUSAL_MESSAGES = SEND_REFUSALS
 

@@ -25,15 +25,7 @@ export const metadata: Metadata = {
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
-/**
- * Results, sorted by how well each one can be checked.
- *
- * Most coaching sites pile every name into one wall and let the reader assume
- * the institute produced all of them. This page separates three things on
- * purpose: what the commission published, what ICT published, and who visited.
- * Saying which is which is the most persuasive thing on the page, because
- * anyone can verify the top tier in one click.
- */
+/** Results, sorted by how well each one can be checked. */
 export default function SuccessStoriesPage() {
   return (
     <main>

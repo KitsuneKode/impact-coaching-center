@@ -18,20 +18,7 @@ import { formatPhone } from "@/lib/brand"
 
 type Viewer = { name: string; phone: string; revision: number }
 
-/**
- * The details a Person can change about themselves, and the one they cannot.
- *
- * Read mode by default. An account screen is mostly visited to check something
- * rather than to change it, and a page of live inputs invites an accidental
- * edit and makes the current values harder to read at a glance.
- *
- * The mobile number is deliberately not editable here. It is the natural key
- * (ADR-0001) and the thing verification proved, so changing it is a
- * staff-assisted, audited operation - the spec requires actor, previous
- * number, new number and reason. Rendering it as a disabled input would
- * suggest it is nearly editable; a plain value with a sentence explaining who
- * can change it is honest.
- */
+/** The details a Person can change about themselves, and the one they cannot. */
 export function DetailsCard({ viewer }: { viewer: Viewer }) {
   const [editing, setEditing] = useState(false)
 

@@ -30,47 +30,18 @@ export async function findVerifiedPerson(
     phone: person.phone,
     role: person.role,
     verifiedAt: person.verifiedAt,
-    /*
-     * Carried so a Person can edit their own record. Every edit takes the
-     * revision it was read at (KIT-55), and a projection that omits it leaves
-     * the caller with nothing to send back - which forces either a second
-     * round trip or a blind write, and a blind write is how two tabs silently
-     * overwrite each other.
-     *
-     * `revisionOf` treats absent as zero, so rows written before the
-     * convention existed participate correctly in their first edit.
-     */
+    /* Carried so a Person can edit their own record. */
     revision: person.revision ?? 0,
   }
 }
 
-/**
- * A Person's name is whatever we learned first.
- *
- * A later enquiry often carries a worse name - an initial, a nickname typed
- * in a hurry - and must not overwrite a good one. An empty stored name should
- * still be filled, which is the case this exists to get right.
- */
+/** A Person's name is whatever we learned first. */
 export function mergePersonName(stored: string, incoming: string): string {
   if (stored.trim().length > 0) return stored
   return incoming.trim()
 }
 
-/**
- * Find the Person with this mobile number, or create them.
- *
- * Phone is the natural key, so every entry point - an enquiry, a verification,
- * a book order - lands on the same record. Convex mutations are serializable,
- * so two concurrent callers cannot both insert: the second conflicts and
- * retries, then finds the row the first wrote. That holds because the read
- * and the write are in the same mutation; splitting the lookup into a query
- * and the insert into a separate mutation would silently break it.
- *
- * `.unique()` throws if duplicates already exist, and Convex has no unique
- * index to prevent them. A duplicate introduced by hand in the dashboard
- * would therefore make every later upsert for that number throw until it is
- * reconciled - loudly, which is the right failure for a natural key.
- */
+/** Find the Person with this mobile number, or create them. */
 export async function upsertPersonByPhone(
   ctx: MutationCtx,
   args: { phone: E164; name: string; source: string }
@@ -99,13 +70,7 @@ export async function upsertPersonByPhone(
   })
 }
 
-/**
- * Attach a verified phone number to a Person.
- *
- * Called from the Phone Number plugin's verification callback, which is the
- * only place a number is known to belong to the person holding the handset.
- * Internal: nothing public may mark a Person verified.
- */
+/** Attach a verified phone number to a Person. */
 export const recordVerifiedPerson = internalMutation({
   args: {
     phone: v.string(),
@@ -136,11 +101,6 @@ export const recordVerifiedPerson = internalMutation({
 /**
  * Fixed-window rate limit. Returns false once `limit` is reached inside
  * `windowMs`, and starts a fresh window after it elapses.
- *
- * Fixed rather than sliding: a burst straddling a window boundary can briefly
- * reach twice the limit, which is an acceptable trade here for one document
- * read and one write per call. The public enquiry path is not hot enough to
- * justify the extra rows a sliding log would need.
  */
 /** Small enough to stay cheap on a hot path, large enough to keep up. */
 const PRUNE_PER_CALL = 10
@@ -161,12 +121,6 @@ export async function consumeRateLimit(
   const now = Date.now()
   // Opportunistic cleanup, a few rows per call: a public path that can mint
   // buckets would otherwise leave a row behind for every one it ever saw.
-  //
-  // The cutoff is absolute, NOT this caller's `windowMs`. Using the caller's
-  // window deleted every bucket with a longer one: a send checks its
-  // ten-minute bucket first, which wiped the per-day and global-per-day rows
-  // regardless of the counts sitting in them, so those two ceilings never
-  // fired at all. The cutoff must outlast the longest window any caller uses.
   const stale = await ctx.db
     .query("rateLimits")
     .withIndex("by_window", (q) => q.lt("windowStart", now - STALE_AFTER))
@@ -196,13 +150,7 @@ export const ENQUIRY_RATE_LIMITED = "Enquiry rate limit reached."
 const HOUR = 60 * 60 * 1000
 /** One shared connection (a college or a cafe) may hold several enquirers. */
 const ENQUIRIES_PER_IP_HOUR = 20
-/**
- * A single number has no legitimate reason to enquire this often. Set above
- * the handful of retries an impatient visitor might produce, because the
- * ceiling is checked before the idempotency shortcut below - an identical
- * resubmission still spends allowance, so that a flood cannot be laundered
- * through repeats.
- */
+/** A single number has no legitimate reason to enquire this often. */
 const ENQUIRIES_PER_PHONE_HOUR = 10
 
 /** Called only by the authenticated server-to-server ingestion route. */
@@ -254,12 +202,8 @@ export const recordEnquiry = internalMutation({
     // schema keeps free text on activities so an export of persons cannot leak
     // it, and a corrected spelling is the same enquiry anyway.
     const key = `${lead.track}\u0000${lead.timing}`
-    // Idempotency, not rate limiting: a double-click or a retried request
-    // repeats the identical enquiry, so acknowledge it without a second
-    // activity. A different course or timing inside the window is genuine new
-    // interest from the same Person and must be recorded - rejecting it told a
-    // real enquirer their message had failed. Abusive volume is bounded above
-    // by the per-address and per-number ceilings, not here.
+    // Idempotency, not rate limiting: a double-click or a retried request repeats
+    // the identical enquiry, so acknowledge it without a second activity.
     if (
       existing?.lastEnquiryAt !== undefined &&
       now - existing.lastEnquiryAt < 60_000 &&

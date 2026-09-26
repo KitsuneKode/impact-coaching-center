@@ -5,38 +5,7 @@ import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
 import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
 
-/**
- * Development fixtures: Persons at each role, without a handset each.
- *
- * Exercising staff and owner screens needs Persons who hold those roles, and
- * the only way to become one is for an owner to grant it - which needs an
- * owner to already exist. That circularity is what "bootstrap" means, and the
- * shared admin contract resolves it for real deployments by having whoever
- * holds dashboard access patch one row by hand: zero code, zero attack
- * surface, once in the life of the product.
- *
- * That procedure is unchanged. This is not a second way into production; it
- * is a way to populate a local database with the several Persons a developer
- * needs in order to see the screens at all, and it refuses to run anywhere
- * else.
- *
- * Three properties keep it honest:
- *
- * 1. `internalMutation`, so it is unreachable from any client. There is no
- *    HTTP route and no public API entry; it runs through the Convex CLI,
- *    which already requires deploy access - the same privilege as the
- *    dashboard patch it stands in for.
- * 2. It refuses any deployment that is not local or the one hosted
- *    development deployment named by DEV_DEPLOYMENT_NAME, mirroring
- *    `chooseTransport` in lib/otp-transport.ts (see lib/dev-deployment.ts). The same guard, for the same reason: a
- *    development affordance must not be one environment variable away from
- *    being a production one.
- * 3. It never marks anyone verified by itself. Seeded Persons carry a role
- *    and nothing else; signing in as one still requires completing the real
- *    OTP flow against that number. `upsertPersonByPhone` sets role only on
- *    insert, so verifying later keeps the seeded role rather than demoting
- *    the account to student.
- */
+/** Development fixtures: Persons at each role, without a handset each. */
 
 /** The same test the logger OTP transport applies. */
 function assertLocalDeployment() {
@@ -55,24 +24,7 @@ function assertLocalDeployment() {
 /** Everything this module writes is stamped, so it can all be taken back. */
 const SEED_SOURCE = "dev-seed"
 
-/**
- * Enquiries, so the staff screens can be looked at with something in them.
- *
- * An empty inbox is a real state and has its own panel, but it is not the
- * state anyone is designing for: spacing, column widths, status colours,
- * relative dates and the pagination boundary are all invisible until rows
- * exist. This produces those rows.
- *
- * Ages are given in days rather than timestamps, so a reseed always yields an
- * inbox that looks current instead of one frozen at whenever the fixture was
- * written. A queue whose newest enquiry is three months old reads as broken
- * even when it is only stale.
- *
- * Each enquiry also writes one `activity`, because a Person carrying a
- * `leadStatus` and no history is a shape the real product never produces -
- * `convex/leads.ts` records an activity on every enquiry - and screens built
- * against impossible data mislead.
- */
+/** Enquiries, so the staff screens can be looked at with something in them. */
 export const seedEnquiries = internalMutation({
   args: {
     enquiries: v.array(
@@ -145,18 +97,7 @@ export const seedEnquiries = internalMutation({
   },
 })
 
-/**
- * Orders, so the fulfilment queue can be designed against something.
- *
- * Items carry their own title and price exactly as a real order does - the
- * snapshot is the point, and a fixture that referenced a books table would be
- * modelling something the product does not do.
- *
- * Each order is attached to the seeded enquiry with the matching phone, so
- * the queue shows real buyer names and the same Person appears in both
- * screens. A phone with no seeded Person is created as one, because an order
- * from nobody is not a state the product can produce.
- */
+/** Orders, so the fulfilment queue can be designed against something. */
 export const seedOrders = internalMutation({
   args: {
     orders: v.array(
@@ -257,29 +198,7 @@ export const seedOrders = internalMutation({
   },
 })
 
-/**
- * Take back what this module wrote, without destroying what a person earned.
- *
- * Seeding has to be repeatable to be useful - a fixture you can only apply
- * once is one you stop trusting after the first edit. Only rows stamped with
- * this module's own source are touched, so a Person created by a real
- * enquiry or verification is never swept up by a developer resetting fixtures.
- *
- * **A verified seeded Person is kept.** The first version deleted every
- * seeded row, and it immediately ate the owner account: the row had been
- * seeded, but somebody had since completed a real OTP flow against it and
- * given it a name, and a reseed silently returned the admin area to
- * unreachable. Verification is the one thing in this system that cannot be
- * re-created by writing a row - it requires the handset - so it is the one
- * thing a fixture reset must not undo.
- *
- * Such a Person keeps their account, role, name and verification, and loses
- * only the fixture's own contribution: the lead fields and the seeded
- * activities. Everyone else is removed outright.
- *
- * Activities go first in both branches: an activity whose person no longer
- * exists is an orphan, and deleting the Person first is how you make one.
- */
+/** Take back what this module wrote, without destroying what a person earned. */
 export const clearSeed = internalMutation({
   args: {},
   returns: v.object({
@@ -311,12 +230,7 @@ export const clearSeed = internalMutation({
         activities += 1
       }
 
-      /*
-       * Orders go with the Person whether or not the Person survives. An
-       * order is a record of a purchase that never happened, so nothing about
-       * it is worth keeping across a reset - and one whose buyer row was just
-       * deleted would be an orphan the queue still tries to render.
-       */
+      /* Orders go with the Person whether or not the Person survives. */
       const placed = await ctx.db
         .query("orders")
         .withIndex("by_person", (q) => q.eq("personId", person._id))
@@ -352,16 +266,7 @@ export const seedPeople = internalMutation({
         phone: v.string(),
         name: v.string(),
         role: PERSON_ROLE,
-        /**
-         * Whether to stamp `verifiedAt`.
-         *
-         * Off by default. A verified stamp is a claim that somebody proved
-         * they hold that handset, and inventing one is exactly the kind of
-         * fiction the rest of this codebase refuses. Pass it only when the
-         * screen under test needs a verified Person and the OTP flow is not
-         * what is being tested - an unverified Person cannot be promoted
-         * past student by `setRole`, which is deliberate.
-         */
+        /** Whether to stamp `verifiedAt`. */
         verified: v.optional(v.boolean()),
       })
     ),
@@ -393,10 +298,8 @@ export const seedPeople = internalMutation({
       if (existing) {
         await ctx.db.patch(existing._id, {
           /*
-           * An empty name in the fixture means "do not set one", not "erase
-           * the one they have". Treating it as the latter wiped a name a
-           * person had entered through the real name step, which is the same
-           * class of mistake as deleting a verified account on reset.
+           * An empty name in the fixture means "do not set one", not "erase the one they
+           * have".
            */
           name: person.name.trim() || existing.name,
           role: person.role,

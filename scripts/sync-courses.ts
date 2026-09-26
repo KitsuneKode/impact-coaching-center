@@ -1,22 +1,4 @@
-/**
- * Snapshots ICT's live course catalogue into lib/catalogue.ts.
- *
- *   bun run sync:courses
- *
- * ICT already maintains courses, prices and descriptions in Classplus, which
- * is their LMS and their payment rail. That makes Classplus the single source
- * of truth, and re-typing prices into this repo by hand guarantees the site
- * will one day contradict the checkout.
- *
- * This reads the same public endpoint their own storefront calls, then writes
- * a plain TypeScript file and downloads the cover images. The snapshot is
- * committed, so the site never depends on an undocumented third-party API at
- * request time: if Classplus changes or goes down, the page still renders and
- * the only cost is stale data until someone re-runs this.
- *
- * Re-run it whenever ICT adds a course or changes a price, and review the diff
- * before committing, the same as any other content change.
- */
+/** Snapshots ICT's live course catalogue into lib/catalogue.ts. */
 
 import {
   assertUniqueSlugs,
@@ -61,10 +43,8 @@ async function main() {
     )
 
   // The directory is NOT cleared up front. It used to be, which meant a
-  // transient CDN failure deleted a committed cover and wrote cover: null -
-  // a silent content regression from a network blip. Files are overwritten in
-  // place, and only art belonging to no current course is removed, after every
-  // download has been attempted.
+  // transient CDN failure deleted a committed cover and wrote cover: null - a
+  // silent content regression from a network blip.
   await Bun.$`mkdir -p public/courses`.quiet()
   const keep = new Set<string>()
 

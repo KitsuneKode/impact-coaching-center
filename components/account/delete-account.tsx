@@ -34,14 +34,7 @@ const REFUSALS: Record<string, string> = {
   anonymous: "Your session expired. Please log in again.",
 }
 
-/**
- * Self-serve account deletion, as the privacy policy promises.
- *
- * Deliberately two steps: a plainly worded section on the page, then a dialog
- * that says exactly what goes and what stays and asks for the word DELETE.
- * Typing a word is slower than a second click, which is the point for
- * something that cannot be undone. The server checks the word too.
- */
+/** Self-serve account deletion, as the privacy policy promises. */
 export function DeleteAccount({ role }: { role: string }) {
   const erase = useMutation(api.account.deleteOwnAccount)
   const inputId = useId()

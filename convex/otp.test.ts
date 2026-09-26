@@ -11,13 +11,7 @@ import {
   SENDS_PER_PHONE_DAY,
 } from "./otp"
 
-/**
- * Ceilings on verification-code sends.
- *
- * These exist before the transport that makes them cost money, so there is no
- * billed path to observe yet. What is testable is the allowance arithmetic,
- * and that one bucket cannot spend another's.
- */
+/** Ceilings on verification-code sends. */
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
   if (file.endsWith(".test.ts")) continue

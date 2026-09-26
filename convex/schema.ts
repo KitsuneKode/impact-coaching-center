@@ -1,20 +1,7 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
-/**
- * Where an order can be, as a closed set.
- *
- * Deliberately not a free string. A status that can hold any value is a
- * status nobody can exhaustively handle: the badge falls through to a
- * default, the filter misses a case, and a typo in one mutation creates a
- * state no screen renders. The permitted moves between these live in
- * `convex/orders.ts` - the union says what exists, the machine says what may
- * follow what.
- *
- * `awaiting_payment` rather than a boolean `paid`, because an order can also
- * be cancelled before payment, and two booleans would make that a state of
- * "not paid, not cancelled, but also not live" that means nothing.
- */
+/** Where an order can be, as a closed set. */
 /**
  * Where a lead is in the follow-up queue, as a closed set - same reasoning
  * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
@@ -46,15 +33,7 @@ export const ORDER_STATUS = v.union(
   v.literal("refunded")
 )
 
-/**
- * One record per mobile number.
- *
- * See docs/adr/0001 and CONTEXT.md: an anonymous enquirer and a verified
- * account holder are the same Person, separated by verifiedAt rather than by
- * living in different tables. Two tables would force every staff screen to
- * answer "is this enquiry the same human as this account?", which is the
- * duplication this model exists to remove.
- */
+/** One record per mobile number. */
 export default defineSchema({
   persons: defineTable({
     /** E.164. The natural key, and the only phone shape stored. */
@@ -70,10 +49,6 @@ export default defineSchema({
     /**
      * Optimistic-concurrency counter, the convention the execution runbook
      * asks every editable record to share.
-     *
-     * Optional because rows already exist without it; `revisionOf` treats
-     * absent as 0 rather than backfilling, so no migration is needed and an
-     * untouched Person still participates in the first edit correctly.
      */
     revision: v.optional(v.number()),
     /**
@@ -131,14 +106,7 @@ export default defineSchema({
     .index("by_lastEnquiryAt", ["lastEnquiryAt"])
     // Follow-ups due, for the admin home and the queue's "due" view.
     .index("by_nextFollowUpAt", ["nextFollowUpAt"])
-    /*
-     * Staff and owners, for the admin surface and for last-owner protection.
-     *
-     * Indexed rather than filtered because the count is read inside the same
-     * mutation that would change it: two concurrent demotions must not both
-     * see two owners and both proceed, and a table scan under contention is
-     * how that goes wrong.
-     */
+    /* Staff and owners, for the admin surface and for last-owner protection. */
     .index("by_role", ["role"]),
 
   /**
@@ -161,10 +129,9 @@ export default defineSchema({
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
     /*
-     * The structured half of an audit row. `body` is for reading; these are
-     * for asking questions - "every role change this owner made" cannot be
-     * answered from a sentence. Populated by the mutations that write the
-     * row, so the fields exist only where a real transition produced them.
+     * The structured half of an audit row. `body` is for reading; these are for
+     * asking questions - "every role change this owner made" cannot be answered
+     * from a sentence.
      */
     fromRole: v.optional(
       v.union(v.literal("student"), v.literal("staff"), v.literal("owner"))
@@ -176,32 +143,8 @@ export default defineSchema({
     toStatus: v.optional(v.string()),
   }).index("by_person", ["personId"]),
 
-  /**
-   * Fixed-window counters for public submission paths.
-   *
-   * `key` is scoped by its own caller, e.g. `enquiry:ip:203.0.113.4` or
-   * `enquiry:phone:+919876543210`, so one bucket cannot consume another's
-   * allowance. Rows are rewritten in place when a window rolls over.
-   */
-  /**
-   * Book orders, and the fulfilment trail staff work from.
-   *
-   * **Items are snapshots, not references.** A line carries the title,
-   * edition and the price in paise as they were when the order was placed,
-   * rather than pointing at a Book whose price the owner may edit next week.
-   * ADR-0002 and the Razorpay integration both require an immutable order
-   * snapshot persisted before payment opens: what the buyer agreed to pay is
-   * a historical fact, and a receipt that silently re-prices itself is not a
-   * receipt. It also means orders do not wait on a books table to exist.
-   *
-   * **Money is integer paise.** Never a float and never rupees: 0.1 + 0.2 is
-   * not 0.3 in binary floating point, and a rounding error in a total is a
-   * rounding error in somebody's bank account.
-   *
-   * Payment identifiers stay separate from our own order id, because one
-   * order can have several attempts - a failed card, then a UPI that works -
-   * and collapsing them loses the trail when a payment has to be reconciled.
-   */
+  /** Fixed-window counters for public submission paths. */
+  /** Book orders, and the fulfilment trail staff work from. */
   orders: defineTable({
     personId: v.id("persons"),
     /** Short human-readable reference, spoken over the phone. */
@@ -250,12 +193,7 @@ export default defineSchema({
      */
     .index("by_status", ["status", "placedAt"])
     .index("by_person", ["personId", "placedAt"])
-    /*
-     * The queue order. Table creation order happens to agree with it today,
-     * because `placedAt` is written at insert - but the day an order is ever
-     * backdated or imported, creation order stops meaning placement order
-     * and nobody is told. The index makes the intent structural.
-     */
+    /* The queue order. */
     .index("by_placedAt", ["placedAt"])
     .index("by_reference", ["reference"]),
 
@@ -270,14 +208,7 @@ export default defineSchema({
     // seen.
     .index("by_window", ["windowStart"]),
 
-  /**
-   * One in-flight send and one acceptable code per phone.
-   *
-   * Better Auth's Convex adapter sets `transaction: false`, so deleting a
-   * verification row and inserting the next one are separate mutations.
-   * This row is the acceptance record: a send may proceed only while it
-   * holds `generation`, and verify accepts only `codeHash`. See convex/otp.ts.
-   */
+  /** One in-flight send and one acceptable code per phone. */
   otpSendLeases: defineTable({
     /** E.164. One row per number. */
     phone: v.string(),

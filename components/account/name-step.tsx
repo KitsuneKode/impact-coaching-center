@@ -22,30 +22,7 @@ import { api } from "@/convex/_generated/api"
 /** What the form needs, which is less than the whole Person. */
 type Viewer = { name: string; revision: number; role?: string }
 
-/**
- * "What should ICT call you?" - asked once, immediately after verification.
- *
- * Better Auth creates the Person with an empty name, and until this existed
- * nothing ever filled it. The cost was visible everywhere: the account menu
- * printed a phone number where a name belongs, the avatar fell back to two
- * digits of it, and staff worked a follow-up queue of bare numbers - which is
- * most of what makes a lead uncallable.
- *
- * Asked here rather than later because this is the one moment it is cheap.
- * The person has just proved their number and is already filling in a form;
- * that momentum does not come back. Asking after they have what they came for
- * asks at the moment they leave.
- *
- * Required, and deliberately so - see
- * docs/plans/2026-09-22-commerce-and-account-surfaces.md. The questionnaire
- * that follows is skippable; a name is not, because a lead without one cannot
- * be acted on.
- *
- * Split in two so the form can be handed a Person that definitely exists.
- * Keeping it in one component meant the submit handler closed over a value
- * TypeScript could still see as null, and the honest fix for that is the
- * structure rather than an assertion.
- */
+/** "What should ICT call you?" - asked once, immediately after verification. */
 export function NameStep({ next }: { next: string }) {
   const router = useRouter()
   const viewer = useQuery(api.auth.getCurrentPerson)
@@ -54,15 +31,7 @@ export function NameStep({ next }: { next: string }) {
 
   /*
    * `null` here does NOT mean "signed out", and treating it as if it did was a
-   * real bug: verification had just succeeded, but the Convex client reports
-   * no session for a beat before the new token propagates, so a freshly
-   * verified Person was redirected past this screen and kept their empty name.
-   * Observed against a real login, not theorised.
-   *
-   * So a settled answer is a Person. `null` is given the same grace as
-   * `undefined`, and only becomes final once it has persisted - at which point
-   * something genuinely went wrong with the session and sending them on is
-   * better than trapping them on a form that cannot save.
+   * real bug:
    */
   const settled = viewer ?? null
   const waiting = settled === null
@@ -146,13 +115,7 @@ function NameForm({ viewer }: { viewer: Viewer }) {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
-  /*
-   * Focused once the form is on screen, the same way the code step does it.
-   * `autoFocus` moves focus on first paint wherever the element renders, which
-   * is what the accessibility rule objects to; this component only mounts
-   * after verification succeeded, which is a transition the person just asked
-   * for.
-   */
+  /* Focused once the form is on screen, the same way the code step does it. */
   useEffect(() => {
     nameRef.current?.focus()
   }, [])
@@ -175,10 +138,8 @@ function NameForm({ viewer }: { viewer: Viewer }) {
     setPending(false)
 
     /*
-     * `Refusal` is `{ ok: false, ... }`, so `"ok" in result` would be true of
-     * both branches and narrow the error case to `never`. Discriminate on the
-     * value, not the key - that exact mistake already shipped once here, and
-     * typecheck was the only thing that caught it.
+     * `Refusal` is `{ ok: false, ... }`, so `"ok" in result` would be true of both
+     * branches and narrow the error case to `never`.
      */
     if (!result.ok) {
       setError(

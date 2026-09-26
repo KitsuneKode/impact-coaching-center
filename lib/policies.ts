@@ -1,23 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-/**
- * Visitor-facing policy text, loaded from `content/policies/<slug>.md`.
- *
- * The wording is ICT's to own, so it lives in Markdown they can edit without
- * touching code. Two markers carry what is not theirs yet:
- *
- *   {{proposed: 7 days}}   a researched default ICT must confirm or change
- *   {{fill: grievance officer name}}   a fact only ICT can supply
- *
- * Both render highlighted and labelled while a document is unapproved. An
- * approved document may contain neither: the tests fail if one survives
- * approval, so "approved" cannot quietly publish a guess.
- *
- * Unapproved documents render with a visible draft notice, are `noindex`, and
- * are absent from the sitemap. Flip `approved` in the front matter only with a
- * recorded approval, in the same commit that resolves every marker.
- */
+/** Visitor-facing policy text, loaded from `content/policies/<slug>.md`. */
 export type PolicySlug = "privacy" | "terms" | "shipping" | "refunds"
 
 export const POLICY_SLUGS: readonly PolicySlug[] = [
@@ -57,9 +41,7 @@ export function withoutMarkers(body: string) {
 
 /**
  * The body with markers rewritten as links to `#proposed` / `#fill`, which the
- * renderer turns into labelled highlights. Links, because Markdown has no
- * inline element of its own for "this span means something", and a link is
- * the one an override can recognise without a parser plugin.
+ * renderer turns into labelled highlights.
  */
 export function markersAsLinks(body: string) {
   return body.replace(
@@ -122,27 +104,14 @@ export const policies: readonly PolicyDocument[] = POLICY_SLUGS.map(load)
 export const policyBySlug = (slug: string) =>
   policies.find((policy) => policy.slug === slug)
 
-/**
- * The document behind a policy route, or a build failure.
- *
- * Each route knows its own slug at module scope, so a missing document is a
- * wiring mistake, not something a visitor can reach: failing the build names
- * the problem, where a runtime 404 would quietly drop a route that is supposed
- * to exist.
- */
+/** The document behind a policy route, or a build failure. */
 export function requirePolicy(slug: PolicySlug): PolicyDocument {
   const doc = policyBySlug(slug)
   if (!doc) throw new Error(`No policy document declared for "${slug}"`)
   return doc
 }
 
-/**
- * Metadata for one policy route.
- *
- * An unapproved document is kept out of search results. `robots` only ever
- * narrows what `lib/site.ts` already allows - a page cannot make itself
- * indexable on a site that is not.
- */
+/** Metadata for one policy route. */
 export function policyMetadata(doc: PolicyDocument) {
   return {
     title: doc.title,

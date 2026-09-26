@@ -14,11 +14,6 @@ import schema from "./schema"
 /**
  * The safeguards that stop ICT being locked out of their own product, and
  * stop anybody granting themselves access to it.
- *
- * These are the cases where a wrong answer is not a bug but a stranger
- * reading every lead ICT has, or nobody being able to grant anything ever
- * again. The mutations themselves are exercised through the same
- * `convex-test` harness the inbox tests use.
  */
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {

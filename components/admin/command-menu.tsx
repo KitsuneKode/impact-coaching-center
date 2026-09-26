@@ -18,25 +18,7 @@ import {
 } from "@/components/ui/command"
 import { authClient } from "@/lib/auth-client"
 
-/**
- * ⌘K / Ctrl+K in the admin.
- *
- * Staff live in these screens for hours; reaching for a mouse to change page
- * is the kind of friction that only shows up after the fiftieth time. The
- * destinations come from components/admin/nav.ts, the same list the sidebar
- * renders, so the palette cannot offer a page the menu does not - or miss one
- * it does.
- *
- * Deliberately navigation and account actions only. It does NOT search
- * enquiries yet, because searching leads needs a Convex query with its own
- * index and permission check, and a palette that looks like it searches but
- * quietly only matches menu labels is worse than one that does not pretend.
- * When that query exists, it becomes another CommandGroup here.
- *
- * Owner-only entries are omitted for staff rather than shown disabled - the
- * same rule the sidebar follows. This is chrome, not a gate: convex/authz.ts
- * refuses a non-owner regardless of what this renders.
- */
+/** ⌘K / Ctrl+K in the admin. */
 export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
@@ -52,13 +34,7 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [])
 
-  /**
-   * Close first, then act.
-   *
-   * Navigating with the dialog still mounted leaves it over the page it just
-   * moved to, and the focus trap keeps the new page unreachable by keyboard -
-   * which is exactly the audience this exists for.
-   */
+  /** Close first, then act. */
   function run(action: () => void) {
     setOpen(false)
     action()
@@ -76,12 +52,8 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
       description="Jump to a screen, or sign out."
     >
       {/*
-       * The `Command` root is the caller's job here: this project's
-       * `CommandDialog` puts `children` straight into `DialogContent` without
-       * one, so the parts below would look up cmdk's store, find nothing, and
-       * throw "Cannot read properties of undefined (reading 'subscribe')" the
-       * first time anyone pressed the shortcut. Observed, then fixed.
-       */}
+        The `Command` root is the caller's job here:
+      */}
       <Command>
         <CommandInput placeholder="Go to a screen…" />
         <CommandList>

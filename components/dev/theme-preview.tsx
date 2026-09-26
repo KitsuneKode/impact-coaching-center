@@ -2,19 +2,7 @@
 
 import { useTheme } from "next-themes"
 
-/**
- * A development-only switch between the two candidate palettes.
- *
- * Rendered by app/layout.tsx behind a NODE_ENV check, so it cannot reach a
- * visitor. It exists so the palette decision is made by looking at real pages
- * - the hero photographs, the course posters, the amber draft notices -
- * rather than at five swatches.
- *
- * The state, the persistence and the no-flash script all come from
- * next-themes, configured in app/providers.tsx. This file is only the five
- * buttons; delete it and its one call site once KIT-67 picks a palette, and
- * the provider stays for dark mode.
- */
+/** A development-only switch between the two candidate palettes. */
 const THEMES = [
   { id: "current", label: "Current" },
   { id: "elegance", label: "Elegance" },

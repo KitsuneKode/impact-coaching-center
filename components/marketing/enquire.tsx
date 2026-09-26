@@ -20,11 +20,8 @@ export function Enquire() {
   return (
     <Section id="enquire">
       {/*
-       * Three blocks, not two columns: intro, form, then the details. On a
-       * phone that order puts the form right under its heading instead of
-       * three screens down past the steps and the map; on a desktop the grid
-       * places the form beside both.
-       */}
+        Three blocks, not two columns: intro, form, then the details.
+      */}
       <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-x-16 lg:gap-y-10">
         <Reveal className="lg:col-start-1 lg:row-start-1">
           <p className="text-sm font-medium text-muted-foreground">
@@ -151,12 +148,8 @@ export function Enquire() {
                 src={`https://www.google.com/maps?q=${place.lat},${place.lng}&z=17&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
-                // The minimum a Maps embed needs to render and open "view
-                // larger map". Everything else - top navigation, forms,
-                // modals - stays denied. `allow-scripts` with
-                // `allow-same-origin` can technically lift its own sandbox,
-                // but the framed origin is google.com itself, so the escape
-                // hatch is held by the party we already trust to serve it.
+                // The minimum a Maps embed needs to render and open "view larger map".
+                // Everything else - top navigation, forms, modals - stays denied.
                 sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                 className="absolute inset-0 size-full border-0 grayscale-[0.2]"
               />

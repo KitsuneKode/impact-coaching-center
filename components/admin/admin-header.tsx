@@ -16,23 +16,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 
-/**
- * The admin's own header: where you are, and how to get around.
- *
- * Taken from the registry's sidebar-07 header - trigger, a vertical rule, then
- * a breadcrumb - because the pattern answers a real question on a screen with
- * no page title above the fold once you scroll. It replaces a bar that held a
- * lone trigger and nothing else.
- *
- * The trail is two levels because the admin is two levels deep. Inventing a
- * third from URL segments would produce "admin / people" with no page that
- * "admin" alone means, and a breadcrumb whose links go nowhere is worse than
- * no breadcrumb.
- *
- * It shrinks with the sidebar: `group-has-data-[collapsible=icon]` is the
- * block's own mechanism, so the header height follows icon mode rather than
- * staying tall above a collapsed rail.
- */
+/** The admin's own header: where you are, and how to get around. */
 export function AdminHeader() {
   const pathname = usePathname()
   const label = labelForPath(pathname)

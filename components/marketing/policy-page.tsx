@@ -102,14 +102,7 @@ const components: Components = {
   },
 }
 
-/**
- * One renderer for every policy document.
- *
- * An unapproved document says so at the top, in words rather than only in
- * metadata: AGENTS.md requires a placeholder to be impossible to mistake for
- * approved content, and a `noindex` tag is invisible to the person reading it.
- * It also counts what is left to settle, so ICT can see the size of the job.
- */
+/** One renderer for every policy document. */
 export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
   const markers = policyMarkers(doc.body)
   const proposed = markers.filter((m) => m.kind === "proposed").length

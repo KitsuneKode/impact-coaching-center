@@ -26,9 +26,7 @@ export function useDaysUntilBatch() {
 
 /**
  * Honest urgency. The page is statically built, so the count is computed in
- * the browser rather than frozen at build time. The server HTML carries the
- * date alone; the relative count appears once mounted, and disappears after
- * the batch starts instead of showing a stale deadline.
+ * the browser rather than frozen at build time.
  */
 export function BatchCountdown() {
   const days = useDaysUntilBatch()
@@ -51,14 +49,7 @@ export function BatchCountdown() {
   )
 }
 
-/**
- * Renders its children only until `date` (ISO, IST) has started.
- *
- * Pages are prerendered, so a line built before the date would keep
- * advertising "Start date: 14 September" for as long as the build stays up.
- * Server components drop it from builds made after the date (`hasStarted`);
- * this retires it in builds made before.
- */
+/** Renders its children only until `date` (ISO, IST) has started. */
 export function UntilDate({
   date,
   children,

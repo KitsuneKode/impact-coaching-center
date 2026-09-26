@@ -22,13 +22,7 @@ const socials = [
   { label: "Facebook", href: links.facebook },
 ] as const
 
-/**
- * Every fact here comes from `lib/brand.ts`.
- *
- * Deliberately absent: opening hours and a Telegram channel. Neither exists as
- * approved content anywhere in this repository, and AGENTS.md forbids
- * inventing one to fill a layout. Both are queued in `toConfirm`.
- */
+/** Every fact here comes from `lib/brand.ts`. */
 export default function ContactPage() {
   return (
     <main>

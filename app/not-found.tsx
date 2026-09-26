@@ -1,17 +1,7 @@
 import { ButtonLink } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 
-/**
- * The branded 404.
- *
- * Renders inside the root layout, so the header and footer stay - which is the
- * whole point. Someone who mistyped a URL is one tap from the courses; someone
- * who followed a dead link from outside can still see who ICT are.
- *
- * Next also serves this for any URL that matches no route, so it is the last
- * page a lost visitor sees. It offers the three destinations that are actually
- * useful rather than a single "go home" that discards their intent.
- */
+/** The branded 404. */
 export default function NotFound() {
   return (
     <main>

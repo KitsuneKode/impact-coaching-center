@@ -11,13 +11,7 @@ import {
 
 const SIZES = [10, 20, 30, 50] as const
 
-/**
- * The page-size picker both admin tables share.
- *
- * One component because the two copies had drifted into the same bug: each
- * rendered a trigger with no options inside it, so the menu opened empty and
- * the size could never change.
- */
+/** The page-size picker both admin tables share. */
 export function RowsPerPage({
   id,
   value,

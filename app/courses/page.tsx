@@ -95,14 +95,7 @@ function CourseTile({
   )
 }
 
-/**
- * Every live course, grouped by exam, priced from ICT's own catalogue.
- *
- * It mirrors the structure of ICT's Classplus storefront on purpose, so the
- * owner recognises their own offering, and fixes what that storefront does
- * not do: group by the exam a student is actually preparing for, and show the
- * timing, which the store omits.
- */
+/** Every live course, grouped by exam, priced from ICT's own catalogue. */
 export default function CoursesPage() {
   return (
     <main>

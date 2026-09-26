@@ -36,11 +36,6 @@ export const CODE_LENGTH = 6
 /**
  * The plugin enumerates its error codes, so the UI maps them rather than
  * matching on prose that a library upgrade could reword.
- *
- * A server message is shown only when it is one of ours
- * (lib/auth-messages.ts) - the send ceilings return a sentence naming the
- * ceiling that fired. Anything else, such as Better Auth's "Invalid origin",
- * becomes a plain sentence rather than leaking an internal to the screen.
  */
 export const PHONE_AUTH_MESSAGES: Record<string, string> = {
   INVALID_PHONE_NUMBER: "Enter a valid Indian mobile number.",
@@ -70,17 +65,7 @@ export function errorMessage(error: Exclude<AuthError, null>) {
   return GENERIC_AUTH_FAILURE
 }
 
-/**
- * One form's request lifecycle, kept outside React so its races are testable.
- *
- * The acknowledged send owns the phone used to verify, and every request
- * carries a generation: editing the number, changing it, or unmounting
- * invalidates whatever is in flight, so a late answer cannot move a different
- * number into the code step or navigate a form that has gone. This does not
- * cancel a message already sent or a session the server already created, and
- * it is not the server's cross-instance guarantee - that is the send lease in
- * convex/otp.ts.
- */
+/** One form's request lifecycle, kept outside React so its races are testable. */
 export function createPhoneAuthFlow(client: {
   send: (phoneNumber: string) => Promise<PhoneAuthResult>
   verify: (input: {

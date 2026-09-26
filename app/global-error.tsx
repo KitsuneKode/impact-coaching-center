@@ -1,22 +1,6 @@
 "use client"
 
-/**
- * The last resort: an error in the root layout itself.
- *
- * This file replaces the root layout when it fires, so it must supply its own
- * `<html>` and `<body>`, and - per the installed docs for 16.3.5 - it receives
- * **none** of the app's global styles, fonts or theme. Every value below is
- * therefore inline and duplicated from `app/globals.css` on purpose; importing
- * the stylesheet here would not help, because the layout that applies it is the
- * thing that failed.
- *
- * It also cannot export `metadata`, so the title is React's `<title>`.
- *
- * Tokens are hard-coded rather than referenced: `--background` and `--foreground`
- * are defined in a stylesheet this document does not load. They are the literal
- * values of the ICT ground and ink, and the comment is the only thing keeping
- * them honest if the palette changes.
- */
+/** The last resort: an error in the root layout itself. */
 export default function GlobalError({
   error,
   retry,

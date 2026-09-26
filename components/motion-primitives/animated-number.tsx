@@ -2,9 +2,7 @@
 
 /*
  * Adapted from motion-primitives (ibelick/motion-primitives, AnimatedNumber).
- * Changes: counts up only once it scrolls into view, formats with a custom
- * formatter so "16.2K" style labels work, and drops the per-render
- * motion.create call, which rebuilt the component on every render.
+ * Changes:
  */
 import {
   useInView,

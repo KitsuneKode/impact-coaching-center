@@ -74,14 +74,7 @@ export type OrderRow = {
   buyerPhone: string
 }
 
-/**
- * The filter row, grouped by the question being asked.
- *
- * "Needs you" first because it is the view somebody opens the screen to see:
- * everything still waiting on ICT, across both fulfilment routes, without
- * having to know that "paid" and "ready to collect" are both somebody's next
- * task. The individual statuses follow for when the question is narrower.
- */
+/** The filter row, grouped by the question being asked. */
 const FILTERS = [
   { value: "open", label: "Needs you" },
   { value: "all", label: "All" },
@@ -127,16 +120,7 @@ function exact(at: number) {
   })
 }
 
-/**
- * The fulfilment queue.
- *
- * Hand-rolled rather than on `@tanstack/react-table` like the lead queue, and
- * deliberately: an order row expands to show its items and delivery address,
- * which is a disclosure pattern rather than a grid, and bending a table
- * library around a row that is sometimes two rows tall costs more than it
- * saves at this size. The lead queue earns the library because it sorts,
- * hides columns and selects; this one filters and expands.
- */
+/** The fulfilment queue. */
 export function OrdersTable({
   orders,
   isOwner,
@@ -388,13 +372,7 @@ export function OrdersTable({
   )
 }
 
-/**
- * One order: the summary row, and the detail row when it is open.
- *
- * Two `<tr>`s rather than a nested table, so the columns of the open row stay
- * aligned with every other row's and the browser's own table layout does the
- * work.
- */
+/** One order: the summary row, and the detail row when it is open. */
 function OrderRows({
   order,
   isOwner,
@@ -425,10 +403,10 @@ function OrderRows({
             {order.reference}
           </button>
           {/*
-           * An unopened order gets a mark, not a colour. It is the same
-           * information the sidebar badge counts, in the place the reader is
-           * already looking.
-           */}
+            An unopened order gets a mark, not a colour. It is the same
+            information the sidebar badge counts, in the place the reader is
+            already looking.
+          */}
           {order.seen ? null : (
             <span className="ml-2 align-middle text-xs text-muted-foreground">
               new
@@ -585,10 +563,10 @@ function OrderRows({
                 ) : (
                   <p className="mt-3 text-muted-foreground">
                     {/*
-                     * A collection order has no address, and that is a fact
-                     * rather than missing data. Saying so is better than an
-                     * empty panel that reads like something failed to load.
-                     */}
+                      A collection order has no address, and that is a fact
+                      rather than missing data. Saying so is better than an
+                      empty panel that reads like something failed to load.
+                    */}
                     Collecting from the centre. No delivery address was taken.
                   </p>
                 )}

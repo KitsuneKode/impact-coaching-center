@@ -17,19 +17,7 @@ import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 
-/**
- * A Person's own record.
- *
- * Deliberately small. Orders, saved addresses and reading history all belong
- * here eventually - docs/plans/2026-09-22-commerce-and-account-surfaces.md
- * settles that - but none of them exists yet, and a page of empty sections
- * announcing features that are not built is the placeholder AGENTS.md rules
- * out. What is here is real and editable today.
- *
- * Reached from the account menu in the site header and from the admin
- * sidebar, because staff are Persons too and their own details live in the
- * same place as everyone's.
- */
+/** A Person's own record. */
 export default function AccountPage() {
   if (!convexConfigured) return <Unavailable />
   // useSearchParams needs a boundary for the static shell to prerender.

@@ -18,25 +18,7 @@ const sans = Inter({
   display: "swap",
 })
 
-/*
- * Fraunces for headings only.
- *
- * Inter on every character is the single loudest tell of a generic template,
- * and it was doing the hero, the section heads and the body text alike. A
- * serif display also says what this institute actually is - books, syllabus,
- * examinations - in a way no grotesque does, which is the "editorial
- * academic direction" AGENTS.md asks to preserve rather than a departure
- * from it.
- *
- * `opsz` is the reason it is this family and not a static serif: Fraunces
- * redraws itself for the size it is set at, so the 60px hero gets high
- * contrast and tight joins while a 24px section head stays sturdy. One
- * variable file covers both.
- *
- * The payload is the honest cost. ADR-0003 puts this audience on budget
- * Android over slow Assam connections, so it is latin-only, swap, and
- * headings only - body text never waits on it.
- */
+/* Fraunces for headings only. */
 const display = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
@@ -137,27 +119,14 @@ export default function RootLayout({
         assamese.variable,
         "antialiased"
       )}
-      // Browser extensions write their own attributes onto <html> before React
-      // hydrates - LanguageTool adds `data-lt-installed`, password managers and
-      // translators do the same - and React reports every one as a mismatch the
-      // site cannot fix. This suppresses exactly one element's attribute
-      // comparison; mismatches anywhere inside the tree are still reported.
+      // Browser extensions add attributes to <html> before React hydrates;
+      // without this React reports each one as a hydration mismatch.
       suppressHydrationWarning
     >
       {/*
-       * `<body>` needs the same treatment as `<html>`, for the same reason and
-       * a different set of extensions. Grammarly writes
-       * `data-new-gr-c-s-check-loaded` and `data-gr-ext-installed` here before
-       * React hydrates, and React then reports a mismatch on every page load
-       * for something no change to this codebase can prevent.
-       *
-       * Suppressing it on the element the extensions actually touch is the
-       * narrow fix: attribute comparison is skipped for this one tag, and
-       * every mismatch inside the tree - the ones that would be our bugs - is
-       * still reported. Leaving it unsuppressed is worse than noisy: a console
-       * that cries wolf on every load is one nobody reads when a real
-       * hydration bug appears.
-       */}
+        `<body>` needs the same treatment as `<html>`, for the same reason and a
+        different set of extensions.
+      */}
       <body suppressHydrationWarning>
         <script
           type="application/ld+json"
@@ -167,12 +136,10 @@ export default function RootLayout({
         />
         <Providers>
           {/*
-           * WCAG 2.4.1, Level A. The header renders the whole navigation
-           * before the content on every page, so without this a keyboard or
-           * switch user tabs through it again on each route. Visible only
-           * when focused, which is the point: it is for people who cannot
-           * scroll past it with their eyes.
-           */}
+            WCAG 2.4.1, Level A. The header renders the whole navigation before the
+            content on every page, so without this a keyboard or switch user tabs
+            through it again on each route.
+          */}
           <a
             href="#main"
             className="sr-only rounded-control bg-primary px-4 py-2 text-primary-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-100"
@@ -180,32 +147,25 @@ export default function RootLayout({
             Skip to content
           </a>
           {/*
-           * SiteChrome decides whether this route gets the public header,
-           * footer, edge blur and call bar. /admin gets none of them: it had
-           * all four, so the floating marketing header overlapped the admin
-           * sidebar trigger and the site footer ran underneath the enquiry
-           * table.
-           *
-           * `tabIndex={-1}` so the skip link can move focus here. Without it
-           * the browser scrolls to the target and leaves focus in the header,
-           * so the next Tab returns to the navigation that was just skipped.
-           */}
+            SiteChrome decides whether this route gets the public header, footer, edge
+            blur and call bar. /admin gets none of them:
+          */}
           <SiteChrome>
             <div id="main" tabIndex={-1} className="outline-none">
               {children}
             </div>
           </SiteChrome>
           {/*
-           * The intercepted /login and /register routes render here, over the
-           * page the visitor was already on. app/@authModal/default.tsx keeps
-           * this empty the rest of the time.
-           */}
+            The intercepted /login and /register routes render here, over the
+            page the visitor was already on. app/@authModal/default.tsx keeps
+            this empty the rest of the time.
+          */}
           {authModal}
           {/*
-           * Palette comparison harness, development only. Never reaches a
-           * visitor; delete with components/dev/theme-preview.tsx once KIT-67
-           * picks a palette.
-           */}
+            Palette comparison harness, development only. Never reaches a
+            visitor; delete with components/dev/theme-preview.tsx once KIT-67
+            picks a palette.
+          */}
           {process.env.NODE_ENV === "development" ? <ThemePreview /> : null}
         </Providers>
       </body>

@@ -1,18 +1,4 @@
-/**
- * Print sign-in codes from the development deployment as they are sent.
- *
- *   bun run otp            recent codes, then keep watching
- *
- * Until the WhatsApp transport exists (KIT-46), the logger transport writes
- * each code to the Convex function log, and only a development deployment is
- * allowed to (lib/dev-deployment.ts). Reading them meant scrolling
- * `convex logs` for an `[otp]` line among Better Auth warnings; this shows
- * only the codes, one line each, newest last.
- *
- * It reads through the Convex CLI, so it needs the same deploy access as the
- * dashboard. Nothing here can reach a production deployment's codes, because
- * production never logs them.
- */
+/** Print sign-in codes from the development deployment as they are sent. */
 const OTP_LINE = /\[otp\] (\+91)(\d{5})(\d{5}): (\d{6})/
 
 const proc = Bun.spawn(["bunx", "convex", "logs", "--history", "200"], {

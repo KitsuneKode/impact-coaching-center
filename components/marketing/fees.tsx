@@ -5,13 +5,7 @@ import { Reveal } from "@/components/motion/reveal"
 import { Section } from "@/components/ui/section"
 import { fees, included, offer } from "@/lib/brand"
 
-/**
- * What one fee covers, for every batch.
- *
- * The course cards carry the price and the few points that separate one course
- * from another. This panel carries the full list, which is the same whichever
- * course you pick, so it is stated once here instead of three times up there.
- */
+/** What one fee covers, for every batch. */
 export function Fees() {
   return (
     <Section id="fees">
