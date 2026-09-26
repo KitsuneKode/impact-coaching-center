@@ -7,12 +7,16 @@ codes (`lib/dev-deployment.ts`).
 
 ## Run it locally
 
-Two terminals in the repo:
+One terminal:
 
 ```sh
-bun run dev        # the site, http://localhost:3000
-bun run otp        # prints each sign-in code as it is sent
+bun run demo       # the site on http://localhost:3000, plus sign-in codes
 ```
+
+It runs `bun run dev` and `bun run otp` together; Ctrl+C stops both. Codes
+print as `+91 81348 27648  →  536122`; copy the six digits into the login
+screen. They are generated inside Convex, not by the Next.js server, which is
+why they come from the Convex log rather than the dev server's own output.
 
 `bunx convex dev` is only needed while changing files under `convex/`; it
 pushes them as you save. For a demo the deployment is already up to date.
