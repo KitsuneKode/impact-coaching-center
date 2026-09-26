@@ -21,7 +21,7 @@ This website is run by Impact Career Tutorials ("ICT", "we"), {{fill: legal form
 
 **What staff add.** When ICT staff follow up an enquiry they may record the status of the conversation, a note of the call and a date to call back. These notes are kept with the enquiry and are visible only to ICT staff.
 
-**Spreadsheet downloads.** The owner of ICT can download the enquiries they are looking at as a spreadsheet, to work from offline. This happens only when they choose it, never automatically, and contains only the enquiries already on their screen. Staff notes are not included.
+**Spreadsheet downloads.** The owner of ICT can download enquiries they select as a spreadsheet, to work from offline. This happens only when they choose it, never automatically, and contains only the enquiries they ticked. Staff notes are not included.
 
 ## Why we collect it
 

@@ -24,9 +24,12 @@ const proc = Bun.spawn(["bunx", "convex", "logs", "--history", "200"], {
 console.log("Watching for sign-in codes. Ctrl+C to stop.\n")
 
 const decoder = new TextDecoder()
+const reader = proc.stdout.getReader()
 let buffer = ""
-for await (const chunk of proc.stdout) {
-  buffer += decoder.decode(chunk, { stream: true })
+for (;;) {
+  const { done, value } = await reader.read()
+  if (done) break
+  buffer += decoder.decode(value, { stream: true })
   const lines = buffer.split("\n")
   buffer = lines.pop() ?? ""
   for (const line of lines) {

@@ -398,10 +398,10 @@ export function LeadsTable({
   }
 
   /**
-   * Download what is on screen, as CSV.
+   * Download the ticked rows, as CSV.
    *
-   * Owner-only, and narrow on purpose. It exports the rows the table is
-   * currently showing - after the search and the status filter, and only what
+   * Owner-only, and narrow on purpose. It exports only rows the owner selected,
+   * from what the table is showing - after the search and the status filter, and only what
    * has been loaded - rather than reaching past the interface for the whole
    * table. An owner who wants more pages through them first, deliberately.
    *
@@ -415,8 +415,10 @@ export function LeadsTable({
    * no server route - no path to this data that the person clicking did not
    * already have.
    */
+  const selectedCount = table.getSelectedRowModel().rows.length
+
   function exportRows() {
-    const rows = table.getFilteredRowModel().rows.map((row) => row.original)
+    const rows = table.getSelectedRowModel().rows.map((row) => row.original)
     const header = [
       "Name",
       "Mobile",
@@ -527,20 +529,22 @@ export function LeadsTable({
           </DropdownMenu>
 
           {/*
-           * Owner-only, and it says what it will do. "Export" alone invites the
-           * reasonable assumption that it means everything; naming the filtered
-           * count means nobody opens the file expecting rows that were never in
-           * it.
+           * Owner-only, and only what the owner ticked. Exporting the whole
+           * filtered list by default put more personal data in a file than the
+           * task needed; choosing rows keeps each file to the people it is for.
+           * The header checkbox still selects every row on the page.
            */}
           {isOwner ? (
             <Button
               variant="secondary"
               size="md"
               onClick={exportRows}
-              disabled={matching === 0}
+              disabled={selectedCount === 0}
             >
               <IconDownload stroke={1.75} />
-              Export {matching}
+              {selectedCount === 0
+                ? "Export selected"
+                : `Export ${selectedCount} selected`}
             </Button>
           ) : null}
 
