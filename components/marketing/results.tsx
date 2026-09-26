@@ -34,7 +34,7 @@ export function SelectionCard({
       </div>
 
       {person.quote ? (
-        <blockquote className="mt-6 text-[1.0625rem] leading-relaxed text-pretty text-foreground">
+        <blockquote className="mt-6 font-display text-[1.375rem] leading-snug text-pretty text-foreground">
           &ldquo;{person.quote}&rdquo;
         </blockquote>
       ) : null}
@@ -65,10 +65,7 @@ export function Results() {
           />
         </Reveal>
 
-        <Reveal
-          delay={0.08}
-          className="mt-10 grid gap-4 md:grid-cols-2 lg:max-w-4xl"
-        >
+        <Reveal delay={0.08} className="mt-10 grid gap-5 md:grid-cols-2">
           {selections.map((person) => (
             <SelectionCard key={person.serial} person={person} />
           ))}
