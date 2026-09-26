@@ -13,7 +13,7 @@ This website is run by Impact Career Tutorials ("ICT", "we"), {{fill: legal form
 
 **When you send an enquiry.** Your name, mobile number, the exam you are asking about and your preferred time of day. Your network address is used only to limit automated submissions and is not stored with your enquiry.
 
-**If you sign in.** We verify that the mobile number is yours by sending a one-time code on WhatsApp. There is no password. We keep the number, the fact that it is verified, the date, and the first and last name you give us. You do not need to sign in to send an enquiry.
+**If you sign in.** We verify that the mobile number is yours by sending a one-time code on WhatsApp. There is no password. We keep the number, the fact that it is verified, the date, and the name you give us. You do not need to sign in to send an enquiry.
 
 **If you answer the three short questions after signing in.** The exam you are preparing for, whether this is your first attempt, and the batch you prefer. Every question can be skipped, and you can change or clear your answers on your account page.
 
