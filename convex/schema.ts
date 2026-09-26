@@ -7,6 +7,20 @@ import { v } from "convex/values"
  * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
  */
 /** Who a Person is, as a closed set. `student` is the default, not a grant. */
+/** How a book cover is coloured until it has a photographed cover. */
+export const BOOK_TONE = v.union(
+  v.literal("primary"),
+  v.literal("highlight"),
+  v.literal("muted")
+)
+
+export const RESOURCE_KIND = v.union(
+  v.literal("Notes"),
+  v.literal("Question paper"),
+  v.literal("Current affairs"),
+  v.literal("Practice set")
+)
+
 export const PERSON_ROLE = v.union(
   v.literal("student"),
   v.literal("staff"),
@@ -122,7 +136,8 @@ export default defineSchema({
       v.literal("call"),
       v.literal("enquiry"),
       v.literal("whatsapp_handoff"),
-      v.literal("account_deleted")
+      v.literal("account_deleted"),
+      v.literal("resource_open")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
@@ -220,4 +235,56 @@ export default defineSchema({
     codeExpiresAt: v.optional(v.number()),
     attempts: v.number(),
   }).index("by_phone", ["phone"]),
+
+  /**
+   * Books ICT sells. Prices are integer paise and are read by the server when
+   * an order is priced, never taken from the browser. `sample` marks the
+   * placeholder titles seeded for demos so a page can say so.
+   */
+  books: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    subtitle: v.string(),
+    exam: v.string(),
+    edition: v.string(),
+    pages: v.number(),
+    pricePaise: v.number(),
+    tone: BOOK_TONE,
+    description: v.string(),
+    contents: v.array(v.string()),
+    cover: v.optional(v.id("_storage")),
+    samplePages: v.array(v.id("_storage")),
+    published: v.boolean(),
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published"]),
+
+  /**
+   * Free study material. Pages are images uploaded by staff (ADR-0003: the
+   * reader serves page images, never the PDF).
+   */
+  resources: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    exam: v.string(),
+    kind: RESOURCE_KIND,
+    description: v.string(),
+    pageImages: v.array(v.id("_storage")),
+    published: v.boolean(),
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published"]),
+
+  /** One row per Person per resource: the first open, for staff to see. */
+  resourceOpens: defineTable({
+    personId: v.id("persons"),
+    resourceId: v.id("resources"),
+    at: v.number(),
+  }).index("by_person_resource", ["personId", "resourceId"]),
 })
