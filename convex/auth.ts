@@ -33,7 +33,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
    */
   const transport = chooseTransport(
     process.env.OTP_TRANSPORT,
-    process.env.CONVEX_SITE_URL
+    process.env.CONVEX_SITE_URL,
+    process.env.DEV_DEPLOYMENT_NAME
   )
   const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET
   if (!secret)

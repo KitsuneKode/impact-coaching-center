@@ -1,3 +1,5 @@
+import { isDevelopmentDeployment } from "./dev-deployment"
+
 /**
  * How a verification code reaches a Person.
  *
@@ -23,21 +25,16 @@ export type TransportName = "logger" | "whatsapp"
  */
 export function chooseTransport(
   configured: string | undefined,
-  convexSiteUrl?: string
+  convexSiteUrl?: string,
+  devDeploymentName?: string
 ): TransportName {
   if (configured === "logger") {
     // Convex supplies its own origin. A user-set "development" flag alone
-    // must not turn on credential logging for a hosted production backend.
-    const url = convexSiteUrl ? URL.parse(convexSiteUrl) : null
-    if (
-      !url ||
-      url.protocol !== "http:" ||
-      !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) ||
-      url.username ||
-      url.password
-    ) {
+    // must not turn on credential logging for a hosted production backend;
+    // a hosted deployment qualifies only by its own name (lib/dev-deployment).
+    if (!isDevelopmentDeployment(convexSiteUrl, devDeploymentName)) {
       throw new Error(
-        "The logger OTP transport requires a local HTTP CONVEX_SITE_URL."
+        "The logger OTP transport requires a local HTTP CONVEX_SITE_URL, or DEV_DEPLOYMENT_NAME set to this deployment's own name."
       )
     }
     return "logger"

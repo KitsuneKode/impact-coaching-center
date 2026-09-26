@@ -1,5 +1,5 @@
 /**
- * Load `scripts/dev-seed.json` into the local Convex deployment.
+ * Load `scripts/dev-seed.json` into a development Convex deployment.
  *
  * The infrastructure is here; the content is not. Everything this writes comes
  * from that JSON file, which is meant to be regenerated - by hand or by a
@@ -22,7 +22,8 @@
  * dashboard patch the bootstrap procedure describes. Making these public to
  * suit a script would trade that away for convenience.
  *
- * `convex/devSeed.ts` refuses any deployment that is not local, so this cannot
+ * `convex/devSeed.ts` refuses any deployment that is not local or the one
+ * hosted dev deployment named by DEV_DEPLOYMENT_NAME, so this cannot
  * put invented people in front of real ones however it is invoked.
  */
 const here = new URL(".", import.meta.url).pathname

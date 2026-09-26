@@ -1,5 +1,6 @@
 import { v } from "convex/values"
 
+import { isDevelopmentDeployment } from "../lib/dev-deployment"
 import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
 import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
@@ -25,9 +26,9 @@ import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
  *    HTTP route and no public API entry; it runs through the Convex CLI,
  *    which already requires deploy access - the same privilege as the
  *    dashboard patch it stands in for.
- * 2. It refuses a non-local deployment, mirroring `chooseTransport` in
- *    lib/otp-transport.ts, which refuses to log verification codes unless
- *    CONVEX_SITE_URL is local. The same guard, for the same reason: a
+ * 2. It refuses any deployment that is not local or the one hosted
+ *    development deployment named by DEV_DEPLOYMENT_NAME, mirroring
+ *    `chooseTransport` in lib/otp-transport.ts (see lib/dev-deployment.ts). The same guard, for the same reason: a
  *    development affordance must not be one environment variable away from
  *    being a production one.
  * 3. It never marks anyone verified by itself. Seeded Persons carry a role
@@ -37,19 +38,16 @@ import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
  *    the account to student.
  */
 
-/** The same locality test the logger OTP transport applies. */
+/** The same test the logger OTP transport applies. */
 function assertLocalDeployment() {
-  const raw = process.env.CONVEX_SITE_URL
-  const url = raw ? URL.parse(raw) : null
   if (
-    !url ||
-    url.protocol !== "http:" ||
-    !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) ||
-    url.username ||
-    url.password
+    !isDevelopmentDeployment(
+      process.env.CONVEX_SITE_URL,
+      process.env.DEV_DEPLOYMENT_NAME
+    )
   ) {
     throw new Error(
-      "devSeed refuses to run: this is not a local deployment. Roles on a hosted deployment are granted by an owner, or bootstrapped by hand in the dashboard."
+      "devSeed refuses to run: this is not a local deployment, nor the hosted development deployment named by DEV_DEPLOYMENT_NAME. Roles on a hosted deployment are granted by an owner, or bootstrapped by hand in the dashboard."
     )
   }
 }

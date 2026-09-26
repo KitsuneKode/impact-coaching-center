@@ -26,6 +26,23 @@ describe("chooseTransport", () => {
     expect(chooseTransport("logger", "http://[::1]:3211")).toBe("logger")
   })
 
+  test("logger runs on the hosted deployment named as development", () => {
+    expect(
+      chooseTransport(
+        "logger",
+        "https://peaceful-emu-861.convex.site",
+        "peaceful-emu-861"
+      )
+    ).toBe("logger")
+    expect(() =>
+      chooseTransport(
+        "logger",
+        "https://brave-otter-123.convex.site",
+        "peaceful-emu-861"
+      )
+    ).toThrow(/local HTTP/)
+  })
+
   test("fails closed when no transport is configured", () => {
     expect(() => chooseTransport(undefined)).toThrow(/OTP_TRANSPORT/)
   })
