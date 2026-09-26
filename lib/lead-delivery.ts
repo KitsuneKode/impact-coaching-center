@@ -12,13 +12,7 @@ export class LeadThrottled extends Error {
   }
 }
 
-/**
- * Delivery stays server-side, and it has one destination.
- *
- * ADR-0004: an enquiry is posted to the Convex route with the ingest secret.
- * A missing secret or site URL fails closed. There is no webhook fallback,
- * including after an ambiguous timeout.
- */
+/** Delivery stays server-side, and it has one destination. */
 export function createLeadSink(
   env: Record<string, string | undefined>,
   fetcher: typeof fetch = fetch,

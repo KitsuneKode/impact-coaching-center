@@ -32,15 +32,7 @@ import {
   RESEND_MS,
 } from "@/lib/phone-auth-flow"
 
-/**
- * One flow, not two.
- *
- * There is no separate registration step to build: entering a number either
- * finds that Person or creates one (ADR-0001), so offering "log in" and
- * "register" as a choice would be two doors onto the same room. The single
- * line under the field answers the question a first-time visitor actually
- * has, and then stops talking.
- */
+/** One flow, not two. */
 export function SignInForm({ next }: { next: string }) {
   const phoneId = useId()
   const codeId = useId()
@@ -76,10 +68,9 @@ export function SignInForm({ next }: { next: string }) {
   }, [step])
 
   /**
-   * Validated on blur, never on keystroke: a ten-digit number is wrong for
-   * nine of the ten characters it takes to type it, and saying so each time
-   * is nagging rather than help. Once a field has failed, it re-checks on
-   * every change so the correction clears the error immediately.
+   * Validated on blur, never on keystroke: a ten-digit number is wrong for nine
+   * of the ten characters it takes to type it, and saying so each time is
+   * nagging rather than help.
    */
   function checkPhone(value: string) {
     const ok = Boolean(toE164(value))
@@ -97,15 +88,7 @@ export function SignInForm({ next }: { next: string }) {
     void flow.send()
   }
 
-  /*
-   * Hand over to the name step rather than redirecting here.
-   *
-   * It decides for itself whether it is needed - a returning Person already
-   * has a name and is sent straight on - so this is not a new gate on every
-   * sign-in. Doing the check here instead would mean reading the Person
-   * before the session has propagated, and guessing wrong either shows the
-   * form to someone who has a name or skips it for someone who does not.
-   */
+  /* Hand over to the name step rather than redirecting here. */
   function verify() {
     void flow.verify(() => setVerified(true))
   }
@@ -199,10 +182,10 @@ export function SignInForm({ next }: { next: string }) {
           <FieldLabel htmlFor={phoneId}>Mobile number</FieldLabel>
           <InputGroup>
             {/*
-             * +91 is an addon rather than placeholder text because it is not a
-             * choice: ADR-0001 keys a Person by an Indian mobile number, so a
-             * country field would offer a freedom the system does not have.
-             */}
+              +91 is an addon rather than placeholder text because it is not a
+              choice: ADR-0001 keys a Person by an Indian mobile number, so a
+              country field would offer a freedom the system does not have.
+            */}
             <InputGroupAddon className="pl-3.5">
               <InputGroupText className="tnum border-r border-border pr-3 text-[0.9375rem] text-foreground">
                 +91
@@ -233,8 +216,7 @@ export function SignInForm({ next }: { next: string }) {
             <FieldError>{phoneError ?? formError}</FieldError>
           ) : (
             <FieldDescription>
-              We send a WhatsApp code to this number — no password. New to ICT?
-              This creates your account.
+              We&rsquo;ll send a 6-digit code on WhatsApp.
             </FieldDescription>
           )}
         </Field>

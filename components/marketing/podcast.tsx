@@ -12,15 +12,7 @@ function views(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${n}`
 }
 
-/**
- * Axom Dhwani, ICT's podcast.
- *
- * Worth its own section because it is the most watched thing the institute
- * makes, ahead of every lecture, and because it is the part of ICT that speaks
- * to Assam rather than only to aspirants. For a parent deciding where to send
- * their child, an institute with a public voice reads differently from one
- * with a price list.
- */
+/** Axom Dhwani, ICT's podcast. */
 export function Podcast() {
   const [lead, ...rest] = podcast.episodes
 

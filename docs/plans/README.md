@@ -21,7 +21,9 @@ Linear work packages KIT-53 through KIT-65 now cover auth concurrency/sign-in,
 shared admin, editorial, Books/checkout/fulfilment, Resources, Classplus sync,
 library applications, promotions/analytics, operations and branded error
 screens. Dependencies are linked in Linear. Copy-paste prompts and shared-file
-ownership rules are in `docs/agents/2026-09-21-worktree-prompts.md`.
+ownership rules were in `docs/agents/2026-09-21-worktree-prompts.md`, removed on
+26 September 2026 with the other retired runbooks (see git history); the launch
+plan replaced them.
 
 The table below is reconciled to the merged state, and this branch's commit is
 the agreed baseline the delegation prompts require: it carries the approved

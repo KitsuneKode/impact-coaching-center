@@ -26,22 +26,14 @@ export type LeadState =
 /**
  * FormData values are `string | File`. A File stringifies to "[object File]",
  * thirteen characters, which passes the 2-80 length check on a name - so a
- * file part would have become a Person's name. Only strings are ever a field
- * value here, so anything else reads as absent.
+ * file part would have become a Person's name.
  */
 const text = (data: FormData, key: string) => {
   const value = data.get(key)
   return typeof value === "string" ? value : ""
 }
 
-/**
- * Records an enquiry before the visitor is handed to WhatsApp.
- *
- * Without this, an abandoned WhatsApp handoff is a lost lead and nobody can
- * tell which course drives enquiries. Validation lives in lib/leads.ts so it
- * can be tested without FormData or a request; this function only maps
- * between the form and that module.
- */
+/** Records an enquiry before the visitor is handed to WhatsApp. */
 export async function submitLead(
   _prev: LeadState,
   formData: FormData
@@ -66,16 +58,7 @@ export async function submitLead(
     timing: parsed.lead.timing,
   }
 
-  // Honeypot: real people never see this field, bots fill it. The reply is
-  // byte-identical to a real submission - same validation errors, same success
-  // payload - so a bot cannot detect the control by submitting twice and
-  // diffing the responses. Only the delivery is skipped.
-  //
-  // The field is named so that no autofill heuristic recognises it (see
-  // lead-form.tsx). An earlier revision called it "company", which maps to the
-  // standard `organization` token, so password managers filled it for real
-  // visitors; that false-positive is fixed at the field, not by weakening the
-  // reply here.
+  // Honeypot: real people never see this field, bots fill it.
   if (text(formData, HONEYPOT_FIELD).length > 0) {
     return success
   }

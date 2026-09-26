@@ -1,10 +1,4 @@
-/**
- * India Standard Time arithmetic for the admin.
- *
- * Staff work the queue by the day at the centre, so "due today" and
- * "tomorrow morning" mean IST whatever timezone the device or the server
- * reports. IST has no daylight saving, so a fixed offset is exact.
- */
+/** India Standard Time arithmetic for the admin. */
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
 
 function istParts(at: number) {

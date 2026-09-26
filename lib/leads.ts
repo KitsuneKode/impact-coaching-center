@@ -5,12 +5,6 @@ import { timings, tracks } from "./brand"
 /**
  * Parsing and validation for an enquiry, kept out of the server action so
  * every rule can be exercised without FormData, React or a request.
- *
- * The rules used to live in three places at once: the option list was
- * duplicated verbatim in the form and the action, the phone regex was written
- * twice, and the honeypot returned a raw number while the real path returned
- * E.164 - a divergence that only survived because formatPhone re-normalised
- * on the way out.
  */
 
 /** A mobile number in E.164. The only phone shape allowed to leave this module. */
@@ -45,13 +39,6 @@ export type ParseResult =
 /**
  * Indian mobile numbers start 6-9 and are ten digits, optionally written with
  * a +91 or 91 country code, or a trunk 0.
- *
- * The whole input must match. An earlier version stripped non-digits and took
- * the last ten, which silently turned "9876543210 ext 123" into
- * +916543210123 - a real but entirely different number - and turned foreign
- * numbers into Indian ones. This string is the natural key for a Person and
- * the destination of a verification code, so accepting a number nobody typed
- * means messaging a stranger.
  */
 const MOBILE = /^(?:\+?91)?0?([6-9]\d{9})$/
 
@@ -95,12 +82,7 @@ export function parseLead(input: Record<string, string>): ParseResult {
   }
 }
 
-/**
- * Where a parsed Lead goes.
- *
- * Two adapters make this a real seam rather than a hypothetical one: the
- * webhook today, Convex next.
- */
+/** Where a parsed Lead goes. */
 export interface LeadSink {
   submit(lead: Lead): Promise<void>
 }

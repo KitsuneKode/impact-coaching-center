@@ -6,16 +6,7 @@ import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import schema from "./schema"
 
-/**
- * The fulfilment queue's rules.
- *
- * `applyStatusChange` and `readOrdersPage` take the already-resolved viewer
- * rather than a session, so the role and transition decisions are testable
- * without standing up the Better Auth component. The live path's other half
- * - session freshness - is covered by `sessionStale` in people.db.test.ts;
- * the glue is `setOrderStatus`/`adminOrdersPage` → `requireStaff`, which
- * needs a real deployment to observe.
- */
+/** The fulfilment queue's rules. */
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
   if (file.endsWith(".test.ts")) continue

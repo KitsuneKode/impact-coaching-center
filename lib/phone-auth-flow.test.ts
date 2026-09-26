@@ -189,7 +189,22 @@ describe("phone verification flow", () => {
     expect(sends).toBe(1)
     expect(verifies).toBe(0)
     expect(flow.getSnapshot().error).toBe(
-      "Enter the six-digit code ICT sent you."
+      "Enter the 6-digit code from WhatsApp."
+    )
+  })
+})
+
+describe("errorMessage", () => {
+  test("never shows a library's own wording", async () => {
+    const { errorMessage } = await import("./phone-auth-flow")
+    const { GENERIC_AUTH_FAILURE, SEND_REFUSALS } =
+      await import("./auth-messages")
+    expect(errorMessage({ message: "Invalid origin" })).toBe(
+      GENERIC_AUTH_FAILURE
+    )
+    expect(errorMessage({ code: "INVALID_OTP" })).toMatch(/isn.t right/)
+    expect(errorMessage({ message: SEND_REFUSALS.phone })).toBe(
+      SEND_REFUSALS.phone
     )
   })
 })

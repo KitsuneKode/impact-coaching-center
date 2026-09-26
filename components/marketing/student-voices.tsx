@@ -9,9 +9,6 @@ import { studentReviews, thumb } from "@/lib/stories"
 /**
  * ICT's own student review videos, with the name and batch they print on each
  * card. Real faces saying real things beat any quote we could typeset.
- *
- * The source thumbnails are 16:9 frames with a vertical video centred in them,
- * so the tiles are 3:4 and object-cover crops the blurred sides away.
  */
 export function StudentVoices({
   limit,

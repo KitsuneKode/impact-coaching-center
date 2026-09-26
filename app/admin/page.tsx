@@ -15,14 +15,7 @@ import { ButtonLink } from "@/components/ui/button"
 import { PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 
-/**
- * The admin home: what needs somebody today.
- *
- * Not a dashboard of metrics. The registry block this shell came from shipped
- * cards and charts of invented data, and KIT-55 and AGENTS.md rule that out.
- * Each row here is a real, bounded count from Convex that ends in a place to
- * act on it, and a zero says "nothing waiting" rather than hiding the row.
- */
+/** The admin home: what needs somebody today. */
 export default function AdminHome() {
   if (!convexConfigured) return <Unavailable />
   return <Home />

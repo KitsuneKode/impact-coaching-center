@@ -1,20 +1,9 @@
 "use client"
 
 import { useTheme } from "next-themes"
+import { usePathname } from "next/navigation"
 
-/**
- * A development-only switch between the two candidate palettes.
- *
- * Rendered by app/layout.tsx behind a NODE_ENV check, so it cannot reach a
- * visitor. It exists so the palette decision is made by looking at real pages
- * - the hero photographs, the course posters, the amber draft notices -
- * rather than at five swatches.
- *
- * The state, the persistence and the no-flash script all come from
- * next-themes, configured in app/providers.tsx. This file is only the five
- * buttons; delete it and its one call site once KIT-67 picks a palette, and
- * the provider stays for dark mode.
- */
+/** A development-only switch between the two candidate palettes. */
 const THEMES = [
   { id: "current", label: "Current" },
   { id: "elegance", label: "Elegance" },
@@ -25,6 +14,8 @@ const THEMES = [
 
 export function ThemePreview() {
   const { theme, setTheme } = useTheme()
+  // The redesign concepts carry their own palettes and their own switcher.
+  if (usePathname().startsWith("/redesign")) return null
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-card border border-border bg-card p-1 shadow-lift">

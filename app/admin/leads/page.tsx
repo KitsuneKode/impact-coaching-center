@@ -12,34 +12,15 @@ import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 
-/**
- * The follow-up queue.
- *
- * Staff open an enquiry in a sheet over the table to change its status, set
- * the next follow-up, log a call or leave a note. Every write is revisioned
- * and audited in `convex/leads.ts`; export stays owner-only.
- *
- * The role check is NOT here. `api.leads.inboxPage` refuses a non-staff
- * caller itself, because a guard in this component protects the markup and
- * not the data - the query is one fetch away for anyone with a session.
- */
+/** The follow-up queue. */
 export default function AdminLeadsPage() {
   // Checked before any hook runs, and in a parent rather than around the hook
-  // itself: `useQuery` throws when no provider is mounted, and this page is
-  // prerendered, so an unconfigured build failed `next build` outright instead
-  // of degrading. The value is fixed when the bundle is built, so this branch
-  // cannot change between renders.
+  // itself:
   if (!convexConfigured) return <Unavailable />
   return <Inbox />
 }
 
-/**
- * What a build with no `NEXT_PUBLIC_CONVEX_URL` shows here.
- *
- * Expected on a preview deployment that was never given the variable. On the
- * live site it means the site cannot reach its own database, which is a
- * configuration fault and not something the person reading this can fix.
- */
+/** What a build with no `NEXT_PUBLIC_CONVEX_URL` shows here. */
 function Unavailable() {
   return (
     <PageShell
@@ -127,12 +108,7 @@ function Inbox() {
   return (
     <PageShell
       density="working"
-      /*
-       * No count in the heading. It used to read "N to follow up" from
-       * whatever the single query returned, which stopped being true the
-       * moment there was a second page - and a number derived from one page
-       * is worse than no number, because it looks authoritative.
-       */
+      /* No count in the heading. */
       title={<span className="text-foreground">Enquiries.</span>}
     >
       <LeadsTable

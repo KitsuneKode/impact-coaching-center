@@ -5,19 +5,7 @@ import { useEffect } from "react"
 import { Button, ButtonLink } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 
-/**
- * What a visitor sees when a route throws.
- *
- * Replaces Next's built-in fallback, which arrives with no header, no footer
- * and no indication that this is still ICT's site. Verified against a
- * production build on 21 September: a failing Convex query on /admin/leads
- * dropped straight to that bare screen.
- *
- * The recovery action is `retry()`, not `reset()`. Per the installed docs for
- * 16.3.5, `retry()` re-fetches and re-renders the boundary's children, while
- * `reset()` only re-renders what is already there - which for a failed fetch
- * reproduces the same failure. Training data says `reset`; it is wrong here.
- */
+/** What a visitor sees when a route throws. */
 export default function Error({
   error,
   retry,

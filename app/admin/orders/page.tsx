@@ -9,17 +9,7 @@ import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 
-/**
- * The fulfilment queue.
- *
- * Same split as the enquiry inbox: `canSeeOrders` answers the access question
- * on its own, so a student who guesses this URL is refused without a page of
- * somebody's delivery addresses being fetched to find out.
- *
- * The role check is not here. `convex/orders.ts` refuses a non-staff caller
- * itself, because a guard in this component protects the markup and not the
- * data - the query is one fetch away for anyone with a session.
- */
+/** The fulfilment queue. */
 export default function AdminOrdersPage() {
   if (!convexConfigured) return <Unavailable />
   return <Orders />
@@ -93,10 +83,9 @@ function Orders() {
     <PageShell
       density="working"
       /*
-       * No count in the heading, for the reason the inbox has none: a number
-       * derived from the page that happens to be loaded looks authoritative
-       * and stops being true at the second page. The filter row carries an
-       * honest "N of M loaded" instead.
+       * No count in the heading, for the reason the inbox has none: a number derived
+       * from the page that happens to be loaded looks authoritative and stops being
+       * true at the second page.
        */
       title={<span className="text-foreground">Orders.</span>}
     >

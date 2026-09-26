@@ -28,6 +28,7 @@ import {
 } from "@tanstack/react-table"
 import { createContext, useContext, useMemo, useState } from "react"
 
+import { RowsPerPage } from "@/components/admin/rows-per-page"
 import { StatusBadge } from "@/components/admin/status-badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -45,8 +46,6 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { Label } from "@/components/ui/label"
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -72,37 +71,7 @@ export type Lead = {
   revision: number
 }
 
-/**
- * The follow-up queue as a real data table.
- *
- * `@tanstack/react-table` came in with the dashboard-01 block and sat
- * unused: the block's own DataTable was stripped because it shipped with
- * invented rows, and a plain `<table>` went in instead. This is the table
- * that was supposed to replace it - sorting, filtering, column visibility
- * and selection, built on the dependency that was already being paid for.
- * (The four `@dnd-kit` packages the block also installed were removed -
- * drag-to-reorder is meaningless for a queue ordered by when people got in
- * touch.)
- *
- * Not taken from the block: the metric cards and area chart, which had no
- * real numbers behind them.
- *
- * **On pagination.** The block paginates an array it already holds, so it can
- * count pages. Convex paginates with cursors: `usePaginatedQuery` accumulates
- * results and reports whether more exist, but it cannot report a total -
- * knowing there are exactly 214 enquiries means counting them, which a cursor
- * does not do. (`@convex-dev/aggregate` maintains real counts and is how a
- * true total would arrive; that is a backend change, recorded rather than
- * faked.)
- *
- * So there is one set of controls, not two. An earlier revision had both
- * these page buttons and a separate "Load more from server", which is two
- * pagination systems stacked on one table and reads exactly as odd as it
- * sounds. Paging past the last loaded row now fetches the next page itself,
- * and the count reads "of 3+" while the server still has more - honest about
- * the one thing cursors cannot tell us, and silent about it the moment they
- * can.
- */
+/** The follow-up queue as a real data table. */
 const features = tableFeatures({
   columnFilteringFeature,
   columnVisibilityFeature,
@@ -116,13 +85,7 @@ const features = tableFeatures({
 
 const columnHelper = createColumnHelper<typeof features, Lead>()
 
-/**
- * The status filters, in the order a queue is worked.
- *
- * "All" first because it is the default view, then the statuses in the order
- * a lead moves through them, so the row reads as a pipeline rather than an
- * alphabetised list.
- */
+/** The status filters, in the order a queue is worked. */
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
   { value: "due", label: "Follow-up due" },
@@ -231,8 +194,8 @@ const columns = columnHelper.columns([
       </a>
     ),
     enableHiding: false,
-    // Matches on the stored E.164 and on what is displayed, so "94352" finds
-    // a number the reader can see even though the stored value is +9194352…
+    // Matches the stored E.164 and the displayed form, so "94352" finds
+    // "+91 94352 …" as well as "+9194352…".
     filterFn: (row, _id, value: string) => {
       const needle = value.toLowerCase().replaceAll(/\s/g, "")
       const lead = row.original
@@ -257,13 +220,7 @@ const columns = columnHelper.columns([
   columnHelper.accessor("leadStatus", {
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.leadStatus} />,
-    /*
-     * Exact match, declared rather than inferred. v9 does not fall back to a
-     * default matcher the way v8's `auto` did, so a column with no `filterFn`
-     * silently ignores its filter value - the status buttons appeared to work
-     * and changed nothing. Exact is also what is wanted here: "new" must not
-     * match a status that merely contains it.
-     */
+    /* Exact match, declared rather than inferred. */
     filterFn: (row, _id, value: string) =>
       value === "due"
         ? isDueIst(row.original.nextFollowUpAt, Date.now()) &&
@@ -370,14 +327,7 @@ export function LeadsTable({
   const pageCount = Math.max(1, table.getPageCount())
   const onLastLoadedPage = table.state.pagination.pageIndex >= pageCount - 1
 
-  /*
-   * Next means next, whether or not the rows are here yet.
-   *
-   * On the last page we hold, "next" asks the server for another page instead
-   * of being disabled - the reader should not have to know which rows arrived
-   * in which fetch. `usePaginatedQuery` appends, so the row they were looking
-   * at does not move.
-   */
+  /* Next means next, whether or not the rows are here yet. */
   function goNext() {
     if (table.getCanNextPage()) {
       table.nextPage()
@@ -398,26 +348,11 @@ export function LeadsTable({
     table.setPageIndex(0)
   }
 
-  /**
-   * Download what is on screen, as CSV.
-   *
-   * Owner-only, and narrow on purpose. It exports the rows the table is
-   * currently showing - after the search and the status filter, and only what
-   * has been loaded - rather than reaching past the interface for the whole
-   * table. An owner who wants more pages through them first, deliberately.
-   *
-   * Every row is a name and a mobile number, so a file of them is personal
-   * data leaving the system. The admin contract's "no automatic staff exports"
-   * is about the staff list, but the spirit holds here: nothing exports on a
-   * schedule, nothing exports without somebody choosing to, and `/privacy`
-   * says this can happen.
-   *
-   * Built in the browser from rows already rendered, so it adds no query and
-   * no server route - no path to this data that the person clicking did not
-   * already have.
-   */
+  /** Download the ticked rows, as CSV. */
+  const selectedCount = table.getSelectedRowModel().rows.length
+
   function exportRows() {
-    const rows = table.getFilteredRowModel().rows.map((row) => row.original)
+    const rows = table.getSelectedRowModel().rows.map((row) => row.original)
     const header = [
       "Name",
       "Mobile",
@@ -438,10 +373,6 @@ export function LeadsTable({
      * Every field quoted, quotes doubled. A name with a comma in it would
      * otherwise shift every later column by one, silently, and the reader
      * would not find out until a phone number turned up in the status column.
-     *
-     * A leading = + - or @ is also escaped with a quote prefix: names come
-     * from the enquiry form, and a cell a spreadsheet reads as a formula is
-     * a cell that runs somebody else's input on the owner's machine.
      */
     const csv = [header, ...body]
       .map((cells) =>
@@ -528,20 +459,21 @@ export function LeadsTable({
           </DropdownMenu>
 
           {/*
-           * Owner-only, and it says what it will do. "Export" alone invites the
-           * reasonable assumption that it means everything; naming the filtered
-           * count means nobody opens the file expecting rows that were never in
-           * it.
-           */}
+            Owner-only, and only what the owner ticked. Exporting the whole filtered
+            list by default put more personal data in a file than the task needed;
+            choosing rows keeps each file to the people it is for.
+          */}
           {isOwner ? (
             <Button
               variant="secondary"
               size="md"
               onClick={exportRows}
-              disabled={matching === 0}
+              disabled={selectedCount === 0}
             >
               <IconDownload stroke={1.75} />
-              Export {matching}
+              {selectedCount === 0
+                ? "Export selected"
+                : `Export ${selectedCount} selected`}
             </Button>
           ) : null}
 
@@ -556,10 +488,10 @@ export function LeadsTable({
         </div>
 
         {/*
-         * Status as a row of filters rather than a dropdown. There are five, they
-         * are the queue's primary axis, and a staff member wanting "just the new
-         * ones" should not have to open a menu to find out that is possible.
-         */}
+          Status as a row of filters rather than a dropdown. There are five, they
+          are the queue's primary axis, and a staff member wanting "just the new
+          ones" should not have to open a menu to find out that is possible.
+        */}
         <ToggleGroup
           value={[statusFilter]}
           onValueChange={(value) => setStatusFilter(value[0] ?? "all")}
@@ -607,10 +539,10 @@ export function LeadsTable({
               {table.getRowModel().rows.length === 0 ? (
                 <TableRow>
                   {/*
-                   * No-match, not empty. §6 insists these are different
-                   * problems with different words: the collection has rows,
-                   * this filter excluded them, and the way out is clearing it.
-                   */}
+                    No-match, not empty. §6 insists these are different
+                    problems with different words: the collection has rows,
+                    this filter excluded them, and the way out is clearing it.
+                  */}
                   <TableCell colSpan={columns.length} className="h-24">
                     <div className="flex flex-col items-start gap-3">
                       <span className="text-muted-foreground">
@@ -647,23 +579,15 @@ export function LeadsTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Label htmlFor="rows-per-page" className="text-sm">
-              Rows per page
-            </Label>
-            <Select
-              value={`${table.state.pagination.pageSize}`}
-              onValueChange={(value) => table.setPageSize(Number(value))}
-              items={[10, 20, 30, 50].map((size) => ({
-                label: `${size}`,
-                value: `${size}`,
-              }))}
-            >
-              <SelectTrigger id="rows-per-page" className="w-20">
-                <SelectValue />
-              </SelectTrigger>
-            </Select>
-          </div>
+          <RowsPerPage
+            id="rows-per-page"
+            value={table.state.pagination.pageSize}
+            onChange={(size) => {
+              table.setPageSize(size)
+              // A bigger page may need rows the server has not sent yet.
+              if (size > leads.length && canLoadMore) onLoadMore()
+            }}
+          />
 
           <p className="text-sm text-muted-foreground">
             Page {table.state.pagination.pageIndex + 1} of {pageCount}

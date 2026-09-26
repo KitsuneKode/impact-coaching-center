@@ -36,16 +36,7 @@ function views(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${n}`
 }
 
-/**
- * A pricing card per track, priced from ICT's own catalogue.
- *
- * Name, price, list price and feature list all come from the Classplus
- * snapshot, so the card cannot disagree with the checkout. The strike-through
- * is ICT's real standing discount, not a manufactured one.
- *
- * The flagship track is an ink panel. On a page this light it does the job a
- * "most popular" ribbon usually does, without the ribbon.
- */
+/** A pricing card per track, priced from ICT's own catalogue. */
 function TrackCard({
   track,
   featured = false,

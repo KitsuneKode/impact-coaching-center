@@ -6,21 +6,10 @@ import schema from "./schema"
 import { ENQUIRY_RATE_LIMITED, findVerifiedPerson } from "./persons"
 import { enquiryTracks, enquiryTimings } from "../lib/leads"
 
-/**
- * Database behaviour of the Person upsert.
- *
- * `mergePersonName` is tested in isolation, but the branch that matters -
- * whether a second arrival finds the existing row or inserts a duplicate
- * under the natural key - only exists against a real `ctx.db`.
- */
+/** Database behaviour of the Person upsert. */
 
 // convex-test's documented module map uses Vite's import.meta.glob, which
 // Bun does not provide, so the map is built explicitly.
-//
-// Loading every module includes convex/auth.ts, which resolves the OTP
-// transport at import time and throws when OTP_TRANSPORT is unset. Setting it
-// here is what makes the harness loadable - and is itself a demonstration
-// that the fail-closed guard fires at module load rather than at send time.
 
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {

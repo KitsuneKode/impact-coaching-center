@@ -4,16 +4,7 @@ import type { ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
-/**
- * One CTA definition for the whole site.
- *
- * `primary` is ink on near-white (about 15:1), the way kobbe.io does it: the
- * darkest thing on a calm page is the thing to press. `secondary` is a quiet
- * surface for the second action. Every control uses --radius-control.
- *
- * Arrow icons marked `data-nudge` slide a little on hover, a small cue that the
- * button goes somewhere.
- */
+/** One CTA definition for the whole site. */
 const buttonVariants = cva(
   [
     "group/button relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control",

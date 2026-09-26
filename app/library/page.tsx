@@ -24,14 +24,7 @@ const drafted = new Date(`${libraryUpdated}T00:00:00Z`).toLocaleDateString(
   { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }
 )
 
-/**
- * Deliberately thin.
- *
- * Plans, prices, seat counts, opening hours and rules are all unanswered - see
- * `libraryQuestions` in lib/library.ts. Rather than fill the layout with
- * invented values, the page says what is known and routes the rest to a person
- * who can answer. It stays a draft until those questions come back.
- */
+/** Deliberately thin. */
 export default function LibraryPage() {
   return (
     <main>

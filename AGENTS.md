@@ -75,11 +75,29 @@ Centralize analytics events behind a small typed adapter. Track meaningful funne
 
 Convex should own mutable business records that need an admin workflow: leads, resource-access consent, courses, books, inventory, orders, library applications, banners, and audit timestamps. Validate every public and admin mutation server-side (`args` and `returns` validators on every registered function, so the client boundary is enforced rather than conventional). Authentication is not authorization; enforce roles and record-level access in backend functions. Return only fields the client needs and keep secrets in server-only modules. Closed validator unions (`PERSON_ROLE`, `LEAD_STATUS`, `ORDER_STATUS`) live in `convex/schema.ts` so schema, function args and return validators share one source; shared refusal/pagination result validators live in `convex/authz.ts`.
 
-The `activities` table is the audit trail and is **insert-only**: never patch or delete a row, and record a correction as a new row. Privileged writes (role changes, order status changes) must write an activity row in the same transaction, with `actorId` and the structured `from*`/`to*` fields populated - `body` is for reading, the structured fields are for querying.
+The `activities` table is the audit trail and is **insert-only**: never patch or delete a row, and record a correction as a new row. The one exception is self-serve account erasure (`convex/account.ts`), which clears the free-text fields of that Person's rows because a staff note about someone is their personal data; it keeps who did what and when, and writes an `account_deleted` row. Privileged writes (role changes, order status changes) must write an activity row in the same transaction, with `actorId` and the structured `from*`/`to*` fields populated - `body` is for reading, the structured fields are for querying.
 
 The admin surface should remain deliberately small and task focused. Reuse shadcn blocks for navigation, tables, forms, dialogs, filters, and status badges, then adapt them to this design system. Prioritize the actions staff perform: update catalogue content, publish or schedule banners, review leads and enrollments, manage inventory and orders, and export operational data. Keep irreversible actions explicit and auditable.
 
 Payment amounts, inventory, discounts, and order ownership must be calculated and verified on the server. Create payment orders server-side, verify provider signatures or webhooks server-side, use idempotency keys, and record provider identifiers without storing card or UPI credentials. A client redirect or success screen is not proof of payment. Keep provider code behind a typed adapter so checkout UI and order state do not depend directly on Razorpay or another gateway. Until live credentials, webhook verification, refund handling, and failure recovery are tested, label checkout as a prototype and do not imply that money was captured.
+
+## Working agreement
+
+**Keep going; stop for the right reasons.** When a step doesn't need my input, keep going, and put status notes in the same message as your next action. Stop and ask only when you can't continue without me, or before anything destructive or outward-facing: merging or pushing to `main`, deploying, deleting branches, worktrees or data, changing Convex, Vercel, Classplus or WhatsApp provider settings, or sending anything to ICT.
+
+**Know the finish line before you start.** A task is done when its stated outcome holds and the gates above pass for it. If the request doesn't name an outcome, restate one in a line and work to it. When a gate could not run (no Convex deployment, no network), say which one and why rather than implying it passed.
+
+**Long runs track themselves in the plan.** The active plan in `docs/plans/` is the task list: tick each step as it lands and add anything new you find under it, so the work survives context summarization. Don't start a separate TASKS file, runbook or prompt pack; the launch plan retired those.
+
+**Truth over fluency.** In research, audits and content work, mark anything you couldn't confirm and say where you looked. The content-truth rules above apply to your reports as much as to the site.
+
+**Reviews list only blockers.** When asked to review a branch or PR, list only problems you'd block the merge for. For each one, give the file and line, why it's wrong, and how to show it fails. Put style preferences and nice-to-haves in a separate, short list, or leave them out.
+
+**Fan out only for independent work.** Use subagents for audits or sweeps that split cleanly, such as one per route group or Convex module, each in its own worktree if it writes. When a subagent reports back, check its evidence before you accept it, and finish with one table. Keep one writer per worktree.
+
+**Design briefs say what not to do.** `docs/design-guide.md` holds the register, tokens and the explicit "never" list for this brand; read it before UI work and extend its never list when a review rejects a pattern, rather than restating taste in a prompt.
+
+**End every run with three headings:** _Blocked on me_ (decisions or access only I can give), _Changed_ (files, branches, Linear issues), and _Found_ (bugs, risks or open questions noticed but not acted on). Leave a heading empty rather than padding it.
 
 ## Agent skills
 

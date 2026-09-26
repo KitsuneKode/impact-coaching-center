@@ -7,17 +7,7 @@ import { VideoDialog } from "@/components/marketing/video-dialog"
 import { place } from "@/lib/brand"
 import { campus } from "@/lib/stories"
 
-/**
- * The actual room, from ICT's own videos.
- *
- * A coaching centre is a place people walk into, and until now this site had
- * no picture of it. These are frames from ICT's own clips of mock tests and
- * guest sessions, kept in colour: the point is that they are unstaged.
- *
- * Deliberately asymmetric, so the photos do not read as a stock gallery: a
- * wide lead, a tall companion whose caption stays inside its own column, and
- * one full row beneath. Each opens the clip it came from.
- */
+/** The actual room, from ICT's own videos. */
 export function Campus() {
   const [lead, ...rest] = campus
 

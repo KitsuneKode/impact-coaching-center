@@ -33,25 +33,7 @@ import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
 import { initials } from "@/lib/person"
 
-/**
- * Who is signed in, at the foot of the admin sidebar.
- *
- * Adapted from the registry's sidebar-07 `NavUser`, which is the right shape
- * for this: a full-width row carrying identity, not a lone avatar floating in
- * a centred box, which is what this footer held before. In icon mode the
- * sidebar collapses it to the avatar on its own, and the dropdown moves to the
- * side rather than below - both behaviours come from the block.
- *
- * What the block offered and this does not: Upgrade to Pro, Billing and
- * Notifications. None of the three exists here, and a menu item that leads
- * nowhere is a promise the product cannot keep. AGENTS.md is explicit about
- * inventing surface.
- *
- * The identity line is name over number, both real. Where the block showed a
- * name and an email, a Person here is keyed by their mobile number (ADR-0001)
- * and may have no email at all, so the number is the second line - which also
- * tells staff sharing a handset which account they are in.
- */
+/** Who is signed in, at the foot of the admin sidebar. */
 export function NavUser() {
   const { isMobile } = useSidebar()
   const viewer = useQuery(api.auth.getCurrentPerson)

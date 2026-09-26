@@ -1,8 +1,14 @@
 import type { CSSProperties } from "react"
+import Markdown, { type Components } from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 import { DraftNotice } from "@/components/ui/draft-notice"
 import { Section } from "@/components/ui/section"
-import type { PolicyDocument } from "@/lib/policies"
+import {
+  markersAsLinks,
+  policyMarkers,
+  type PolicyDocument,
+} from "@/lib/policies"
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
@@ -17,13 +23,91 @@ function readableDate(iso: string) {
 }
 
 /**
- * One renderer for all four policy documents.
- *
- * An unapproved document says so at the top, in words rather than only in
- * metadata: AGENTS.md requires a placeholder to be impossible to mistake for
- * approved content, and a `noindex` tag is invisible to the person reading it.
+ * A marker as the reader sees it: highlighted, and labelled in words so the
+ * difference between "proposed" and "to fill" does not rest on colour alone.
  */
+function Marker({
+  kind,
+  children,
+}: {
+  kind: "proposed" | "fill"
+  children: React.ReactNode
+}) {
+  return kind === "proposed" ? (
+    <mark className="rounded-sm bg-highlight/35 [box-decoration-break:clone] px-1 text-foreground">
+      <span className="mr-1 text-[0.6875rem] font-semibold tracking-wide text-foreground/70 uppercase">
+        Proposed
+      </span>
+      {children}
+    </mark>
+  ) : (
+    <mark className="rounded-sm border border-dashed border-foreground/40 bg-transparent [box-decoration-break:clone] px-1 text-foreground">
+      <span className="mr-1 text-[0.6875rem] font-semibold tracking-wide text-foreground/70 uppercase">
+        ICT to fill
+      </span>
+      <span className="italic">{children}</span>
+    </mark>
+  )
+}
+
+const components: Components = {
+  h2: ({ children }) => (
+    <h2 className="mt-12 text-lg font-medium text-foreground first:mt-0">
+      {children}
+    </h2>
+  ),
+  p: ({ children }) => (
+    <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+      {children}
+    </p>
+  ),
+  ul: ({ children }) => (
+    <ul className="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed text-muted-foreground marker:text-foreground/40">
+      {children}
+    </ul>
+  ),
+  strong: ({ children }) => (
+    <strong className="font-medium text-foreground">{children}</strong>
+  ),
+  table: ({ children }) => (
+    <div className="mt-4 overflow-x-auto rounded-card border border-border">
+      <table className="w-full min-w-120 text-left text-sm">{children}</table>
+    </div>
+  ),
+  th: ({ children }) => (
+    <th className="border-b border-border bg-muted/50 px-4 py-3 font-medium text-foreground">
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td className="border-b border-border px-4 py-3 align-top text-muted-foreground">
+      {children}
+    </td>
+  ),
+  a: ({ href, children }) => {
+    if (href === "#proposed" || href === "#fill")
+      return (
+        <Marker kind={href === "#proposed" ? "proposed" : "fill"}>
+          {children}
+        </Marker>
+      )
+    return (
+      <a
+        href={href}
+        className="text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground"
+      >
+        {children}
+      </a>
+    )
+  },
+}
+
+/** One renderer for every policy document. */
 export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
+  const markers = policyMarkers(doc.body)
+  const proposed = markers.filter((m) => m.kind === "proposed").length
+  const toFill = markers.length - proposed
+
   return (
     <main>
       <Section size="sm" className="pt-26 md:pt-30">
@@ -47,32 +131,23 @@ export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
         ) : (
           <div className="enter mt-8" style={delay(90)}>
             <DraftNotice drafted={readableDate(doc.updated)}>
-              This wording describes how the website works today and has not
-              been signed off. It is not a contract. For anything that matters,
-              speak to ICT directly.
+              This wording has not been signed off and is not a contract. For
+              anything that matters, speak to ICT directly.
+              {markers.length > 0
+                ? ` ${proposed} proposed ${proposed === 1 ? "value needs" : "values need"} ICT to confirm, and ${toFill} ${toFill === 1 ? "detail is" : "details are"} left for ICT to fill in; both are highlighted below.`
+                : null}
             </DraftNotice>
           </div>
         )}
 
         <div className="mt-14 max-w-160">
-          {doc.sections.map((section, index) => (
-            <section
-              key={section.heading}
-              className={index > 0 ? "mt-10" : undefined}
-            >
-              <h2 className="text-lg font-medium text-foreground">
-                {section.heading}
-              </h2>
-              {section.paragraphs.map((paragraph) => (
-                <p
-                  key={paragraph}
-                  className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground"
-                >
-                  {paragraph}
-                </p>
-              ))}
-            </section>
-          ))}
+          <Markdown
+            remarkPlugins={[remarkGfm]}
+            components={components}
+            skipHtml
+          >
+            {markersAsLinks(doc.body)}
+          </Markdown>
         </div>
       </Section>
     </main>

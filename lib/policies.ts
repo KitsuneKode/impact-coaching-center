@@ -1,19 +1,15 @@
-import { contact, formatPhone } from "./brand"
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 
-/**
- * Visitor-facing policy text. Each document carries `approved`, which is false
- * until ICT signs the wording off; unapproved documents render with a visible
- * draft notice, are `noindex`, and are absent from the sitemap. Flip the flag
- * only with a recorded approval.
- *
- * PLACEHOLDER-AWARE: nothing below states a charge, a time window or an
- * opening hour, because none has been approved. Do not add one here; add it
- * once approved, in the same commit that sets `approved: true`. A test asserts
- * this for every unapproved document.
- */
-export type PolicySection = { heading: string; paragraphs: readonly string[] }
-
+/** Visitor-facing policy text, loaded from `content/policies/<slug>.md`. */
 export type PolicySlug = "privacy" | "terms" | "shipping" | "refunds"
+
+export const POLICY_SLUGS: readonly PolicySlug[] = [
+  "privacy",
+  "terms",
+  "shipping",
+  "refunds",
+]
 
 export type PolicyDocument = {
   slug: PolicySlug
@@ -22,150 +18,100 @@ export type PolicyDocument = {
   /** ISO date of the last wording change, shown to the visitor. */
   updated: string
   approved: boolean
-  sections: readonly PolicySection[]
+  /** The Markdown body, markers still in it. */
+  body: string
 }
 
-const UPDATED = "2026-09-20"
+export type PolicyMarker = { kind: "proposed" | "fill"; text: string }
 
-export const policies: readonly PolicyDocument[] = [
-  {
-    slug: "privacy",
-    title: "Privacy policy",
-    description:
-      "What Impact Career Tutorials collects through this website, why, and how to ask about it.",
-    updated: UPDATED,
-    approved: false,
-    sections: [
-      {
-        heading: "What we collect",
-        paragraphs: [
-          "When you send an enquiry we collect your name, mobile number, the exam you are asking about and your preferred time of day. Your network address is used only to limit automated submissions and is not stored with your enquiry.",
-          "If you sign in, we verify that the mobile number is yours by sending a one-time code on WhatsApp. We keep the number, the fact that it is verified, and the date. There is no password to store. You do not need to sign in to send an enquiry.",
-        ],
-      },
-      {
-        heading: "Why we collect it",
-        paragraphs: [
-          "To reply to your enquiry and to know which courses people ask about. We do not sell or share this information with anyone outside Impact Career Tutorials.",
-        ],
-      },
-      {
-        heading: "Where it is kept",
-        paragraphs: [
-          "Enquiries are stored in a database operated for Impact Career Tutorials. Staff who follow up enquiries can see them.",
-          /*
-           * The admin can download the enquiries on screen as a spreadsheet.
-           * That is personal data leaving the system, so it is described here
-           * rather than left to be discovered. Written plainly, and limited in
-           * the same words the feature is limited in code: owner only, what is
-           * on screen, no schedule.
-           */
-          "The owner of Impact Career Tutorials can download a copy of the enquiries they are looking at, as a spreadsheet, to work from offline. This happens only when they choose it, never automatically, and it contains only the enquiries already shown on their screen.",
-        ],
-      },
-      {
-        heading: "Analytics",
-        paragraphs: [
-          "This site does not currently run analytics or advertising scripts.",
-        ],
-      },
-      {
-        heading: "Your choices",
-        paragraphs: [
-          `Write to ${contact.email} or message ${formatPhone(contact.whatsapp)} on WhatsApp to see, correct or delete what we hold about you.`,
-        ],
-      },
-    ],
-  },
-  {
-    slug: "terms",
-    title: "Terms of use",
-    description: "The terms on which this website is provided.",
-    updated: UPDATED,
-    approved: false,
-    sections: [
-      {
-        heading: "About this site",
-        paragraphs: [
-          "This website is published by Impact Career Tutorials, North Lakhimpur, Assam. Course fees, batches and enrolment are handled through ICT's Classplus storefront and app, which have their own terms.",
-        ],
-      },
-      {
-        heading: "Accuracy",
-        paragraphs: [
-          "We try to keep course and batch information current. Where this site and ICT's storefront disagree, the storefront is correct.",
-        ],
-      },
-      {
-        heading: "Online purchases",
-        paragraphs: [
-          "This website does not currently sell anything online. Terms for online orders will be published here before that changes.",
-        ],
-      },
-      {
-        heading: "Contact",
-        paragraphs: [`Questions about these terms: ${contact.email}.`],
-      },
-    ],
-  },
-  {
-    slug: "shipping",
-    title: "Shipping and delivery",
-    description:
-      "How physical books ordered through this website would be delivered.",
-    updated: UPDATED,
-    approved: false,
-    sections: [
-      {
-        heading: "Not yet available",
-        paragraphs: [
-          "Impact Career Tutorials does not currently take online orders for books through this website. Books are available at the centre on DC Bungalow Road, North Lakhimpur. Delivery areas, charges and dispatch times will be published on this page before online ordering opens.",
-        ],
-      },
-    ],
-  },
-  {
-    slug: "refunds",
-    title: "Cancellations and refunds",
-    description:
-      "How cancellations and refunds are handled for orders placed through this website.",
-    updated: UPDATED,
-    approved: false,
-    sections: [
-      {
-        heading: "Not yet available",
-        paragraphs: [
-          "Impact Career Tutorials does not currently take online payments through this website, so there is nothing to cancel or refund here. Course fees paid through ICT's Classplus storefront or app are governed by the terms shown there. This page will be updated with the cancellation and refund policy before online ordering opens.",
-        ],
-      },
-    ],
-  },
-]
+const MARKER = /\{\{\s*(proposed|fill)\s*:\s*([^{}]+?)\s*\}\}/g
+
+/** Every marker left in a body, in reading order. */
+export function policyMarkers(body: string): PolicyMarker[] {
+  return [...body.matchAll(MARKER)].map((match) => ({
+    kind: match[1] as PolicyMarker["kind"],
+    text: match[2],
+  }))
+}
+
+/** The body with each marker replaced by its own text, for checks on prose. */
+export function withoutMarkers(body: string) {
+  return body.replace(MARKER, "")
+}
+
+/**
+ * The body with markers rewritten as links to `#proposed` / `#fill`, which the
+ * renderer turns into labelled highlights.
+ */
+export function markersAsLinks(body: string) {
+  return body.replace(
+    MARKER,
+    (_, kind: string, text: string) =>
+      `[${text.replaceAll("[", "(").replaceAll("]", ")")}](#${kind})`
+  )
+}
+
+/**
+ * The small front-matter subset these files use: `key: value` lines between
+ * `---` fences. A YAML parser would accept far more than the four keys this
+ * needs, and silently accept a typo in one of them.
+ */
+export function parsePolicy(slug: PolicySlug, source: string): PolicyDocument {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/.exec(source)
+  if (!match) throw new Error(`${slug}.md has no front matter`)
+
+  const fields = new Map<string, string>()
+  for (const line of match[1].split(/\r?\n/)) {
+    if (!line.trim()) continue
+    const colon = line.indexOf(":")
+    if (colon < 1) throw new Error(`${slug}.md: bad front matter "${line}"`)
+    fields.set(line.slice(0, colon).trim(), line.slice(colon + 1).trim())
+  }
+
+  const known = new Set(["title", "description", "updated", "approved"])
+  for (const key of fields.keys())
+    if (!known.has(key))
+      throw new Error(`${slug}.md: unknown front matter key "${key}"`)
+
+  const title = fields.get("title")
+  const description = fields.get("description")
+  const updated = fields.get("updated")
+  const approved = fields.get("approved")
+  if (!title || !description)
+    throw new Error(`${slug}.md needs a title and description`)
+  if (!updated || !/^\d{4}-\d{2}-\d{2}$/.test(updated))
+    throw new Error(`${slug}.md: updated must be YYYY-MM-DD`)
+  if (approved !== "true" && approved !== "false")
+    throw new Error(`${slug}.md: approved must be true or false`)
+
+  return {
+    slug,
+    title,
+    description,
+    updated,
+    approved: approved === "true",
+    body: match[2].trim(),
+  }
+}
+
+function load(slug: PolicySlug) {
+  const path = join(process.cwd(), "content", "policies", `${slug}.md`)
+  return parsePolicy(slug, readFileSync(path, "utf8"))
+}
+
+export const policies: readonly PolicyDocument[] = POLICY_SLUGS.map(load)
 
 export const policyBySlug = (slug: string) =>
   policies.find((policy) => policy.slug === slug)
 
-/**
- * The document behind a policy route, or a build failure.
- *
- * Each route knows its own slug at module scope, so a missing document is a
- * wiring mistake, not something a visitor can reach: failing the build names
- * the problem, where a runtime 404 would quietly drop a route that is supposed
- * to exist.
- */
+/** The document behind a policy route, or a build failure. */
 export function requirePolicy(slug: PolicySlug): PolicyDocument {
   const doc = policyBySlug(slug)
   if (!doc) throw new Error(`No policy document declared for "${slug}"`)
   return doc
 }
 
-/**
- * Metadata for one policy route.
- *
- * An unapproved document is kept out of search results. `robots` only ever
- * narrows what `lib/site.ts` already allows - a page cannot make itself
- * indexable on a site that is not.
- */
+/** Metadata for one policy route. */
 export function policyMetadata(doc: PolicyDocument) {
   return {
     title: doc.title,

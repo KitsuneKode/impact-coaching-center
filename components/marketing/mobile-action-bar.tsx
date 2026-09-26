@@ -14,14 +14,7 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { offer } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 
-/**
- * The mobile conversion bar: call, or book, one thumb away.
- *
- * Local businesses convert on the phone button, and on a phone the nav CTA is
- * folded into the menu, so this appears once the hero's own buttons have
- * scrolled off. Desktop does not need it; the nav CTA is always on screen.
- * Scroll is read through useScroll, not a scroll listener.
- */
+/** The mobile conversion bar: call, or book, one thumb away. */
 export function MobileActionBar() {
   const [shown, setShown] = useState(false)
   const reduce = useReducedMotion()

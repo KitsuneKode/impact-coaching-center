@@ -1,23 +1,6 @@
 import { Badge } from "@/components/ui/badge"
 
-/**
- * Where an order is, weighted by whether it still needs someone.
- *
- * Same rule as the lead queue: emphasis, never hue. §3 of the design guide
- * reserves green for "verified" and amber for the highlighter, and ends with
- * "never rely on colour alone for status" - so the signal is weight, and a
- * dot repeats it in fill.
- *
- * Three tiers, because that is how a fulfilment queue is actually read:
- * **waiting on us** (filled badge - awaiting payment, paid, packed,
- * ready for collection are all somebody's next task), **in motion or done**
- * (quiet - shipped, delivered, collected), and **ended badly** (faded -
- * cancelled, refunded, which should not draw the eye on a working day).
- *
- * Written out per branch rather than looked up: `shadcn/require-static-classes`
- * rejects a className assembled from a variable on a registry component, and
- * a class string the linter cannot read is one Tailwind may not emit.
- */
+/** Where an order is, weighted by whether it still needs someone. */
 export function OrderStatusBadge({ status }: { status: string }) {
   switch (status) {
     case "awaiting_payment":

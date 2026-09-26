@@ -14,15 +14,7 @@ import {
 import schema from "./schema"
 import { endOfTodayIst } from "../lib/ist"
 
-/**
- * Who may read the leads inbox, and what they see.
- *
- * `readInboxPage` takes the already-resolved viewer (or null) rather than a
- * session, so the role and data decisions are testable without standing up
- * the Better Auth component. The live path's other half - session freshness
- * - is covered by `sessionStale` in people.db.test.ts; the glue between them
- * is `inboxPage` → `requireStaff`, which needs a real deployment to observe.
- */
+/** Who may read the leads inbox, and what they see. */
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
   if (file.endsWith(".test.ts")) continue

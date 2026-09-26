@@ -13,9 +13,26 @@ import { faqs } from "@/lib/brand"
  * aspirant asks before they enquire: cost, risk, time, language, distance.
  * Answering them on the page removes the reasons to leave it.
  */
+// The same questions and answers the accordion shows, for search engines.
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+}
+
 export function Faq() {
   return (
     <Section id="questions">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <Reveal>
           <h2 className="type-lede max-w-[28rem]">

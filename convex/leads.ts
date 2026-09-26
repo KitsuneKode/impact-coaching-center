@@ -37,41 +37,9 @@ const INBOX_ROW = v.object({
   revision: v.number(),
 })
 
-/**
- * The follow-up queue, paginated, as the shared contract requires.
- *
- * Access goes through `requireStaff`, not a local check: role is read from
- * the Person record and the session is re-verified against its age on every
- * call, so a demoted staff member or a stale staff session stops answering
- * on the very next request. A refusal returns an empty page rather than an
- * `authorized` flag, because `usePaginatedQuery` requires a plain
- * PaginationResult; `canSeeInbox` answers the access question on its own,
- * which is why the page can say "staff only" without fetching rows.
- *
- * Projected, never whole documents: a Person carries the synthetic
- * @person.ict.invalid address that ADR-0001 says must never be presented as
- * contactable, and staff notes live on `activities` precisely so an export
- * of this screen cannot leak them.
- *
- * `by_lastEnquiryAt` gives most-recently-active-first across every status -
- * `by_leadStatus` would group the queue by the status string, which sorts
- * "lost" ahead of "interested". Filtering inside the query lets Convex keep
- * filling each page instead of taking a page and then dropping rows.
- *
- * There is deliberately no total count. Counting would mean reading every
- * matching row on every page load, and a number derived from one page is
- * worse than no number: it looks authoritative and is wrong.
- */
+/** The follow-up queue, paginated, as the shared contract requires. */
 
-/**
- * One page of the queue.
- *
- * Re-checks the role on whatever it is given rather than trusting that the
- * caller already did, so the function is safe under a future caller that
- * skipped `requireStaff`. The session-age cutoff is NOT repeated here - it
- * lives in `requireStaff`, which the public query above is the only caller
- * of.
- */
+/** One page of the queue. */
 export async function readInboxPage(
   ctx: Pick<QueryCtx, "db">,
   staff: Viewer | null,
@@ -113,12 +81,7 @@ export const inboxPage = query({
   },
 })
 
-/**
- * Whether the viewer may see the inbox at all, for the page shell.
- *
- * Separate from `inboxPage` so the screen can render a truthful "you do not
- * have access" without also asking for the rows and discarding them.
- */
+/** Whether the viewer may see the inbox at all, for the page shell. */
 export const canSeeInbox = query({
   args: {},
   returns: v.boolean(),
@@ -133,12 +96,6 @@ export const canSeeInbox = query({
  * Staff, not only the owner, may do everything below. Following up is the
  * daily work of whoever answers the phone at the centre; a queue only the
  * owner may update is a queue that is only worked when one person is free.
- * Export, roles and refunds stay owner-only elsewhere.
- *
- * Each write re-checks the role on the viewer it is given, so the helpers are
- * safe under a future caller that skipped `requireStaff`. The public wrappers
- * add only the session check, which is why the helpers are what the tests
- * exercise.
  */
 
 const isStaff = (viewer: Viewer) =>
@@ -172,18 +129,18 @@ const LEAD_DETAIL = v.object({
   lastEnquiryAt: v.optional(v.number()),
   verifiedAt: v.optional(v.number()),
   nextFollowUpAt: v.optional(v.number()),
+  /** The onboarding answers, so the caller knows what to talk about. */
+  targetExam: v.optional(v.string()),
+  attempt: v.optional(v.union(v.literal("first"), v.literal("repeat"))),
+  preferredBatch: v.optional(v.string()),
+  deletedAt: v.optional(v.number()),
   revision: v.number(),
 })
 
 /** How much history the detail sheet shows. Older rows stay in the table. */
 const HISTORY_LIMIT = 50
 
-/**
- * One lead and its recent history, newest first.
- *
- * Actor names are resolved here so the sheet can say who did what without a
- * second round trip; the actor's phone never leaves the server.
- */
+/** One lead and its recent history, newest first. */
 export async function readLeadDetail(
   ctx: Pick<QueryCtx, "db">,
   viewer: Viewer,
@@ -220,6 +177,10 @@ export async function readLeadDetail(
       lastEnquiryAt: person.lastEnquiryAt,
       verifiedAt: person.verifiedAt,
       nextFollowUpAt: person.nextFollowUpAt,
+      targetExam: person.questionnaire?.targetExam,
+      attempt: person.questionnaire?.attempt,
+      preferredBatch: person.questionnaire?.preferredBatch,
+      deletedAt: person.deletedAt,
       revision: revisionOf(person),
     },
     activities: rows.map((row) => ({
@@ -300,13 +261,7 @@ export const setLeadStatus = mutation({
   },
 })
 
-/**
- * Append a note or a call to a lead's history.
- *
- * Append-only, so no revision: two people writing notes at once should both
- * be kept, not have one refused. Free text lives on `activities` and never
- * on the Person, so an export of the queue cannot leak it.
- */
+/** Append a note or a call to a lead's history. */
 export async function appendLeadActivity(
   ctx: MutationCtx,
   viewer: Viewer,

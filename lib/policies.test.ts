@@ -2,7 +2,17 @@ import { existsSync } from "node:fs"
 
 import { describe, expect, test } from "bun:test"
 
-import { policies, policyBySlug } from "./policies"
+import { contact, formatPhone } from "./brand"
+import {
+  markersAsLinks,
+  parsePolicy,
+  policies,
+  policyBySlug,
+  policyMarkers,
+  withoutMarkers,
+} from "./policies"
+
+const prose = (slug: string) => withoutMarkers(policyBySlug(slug)!.body)
 
 describe("policies", () => {
   test("has the four required documents", () => {
@@ -14,24 +24,41 @@ describe("policies", () => {
     ])
   })
 
-  test("unapproved documents never state a charge, window or hour", () => {
-    // AGENTS.md: no invented prices, deadlines or hours. Approved text may
-    // contain them; unapproved text must not.
+  test("unapproved documents state a charge, window or hour only inside a marker", () => {
+    // AGENTS.md: no invented prices, deadlines or hours. A researched default
+    // is allowed only as {{proposed: ...}}, where it renders as a proposal.
     const forbidden =
-      /(₹|Rs\.?\s?\d|\d+\s?(days?|hours?|working days)|\d{1,2}(:\d{2})?\s?(am|pm))/i
+      /(₹|Rs\.?\s?\d|\d+\s?(days?|hours?|working days|months?|years?)|\d{1,2}(:\d{2})?\s?(am|pm))/i
     for (const doc of policies.filter((p) => !p.approved))
-      for (const section of doc.sections)
-        for (const para of section.paragraphs)
-          expect(para).not.toMatch(forbidden)
+      expect(withoutMarkers(doc.body)).not.toMatch(forbidden)
+  })
+
+  test("an approved document has no marker left in it", () => {
+    for (const doc of policies.filter((p) => p.approved))
+      expect(policyMarkers(doc.body)).toEqual([])
   })
 
   test("every document has a title, description and at least one section", () => {
     for (const doc of policies) {
       expect(doc.title.length).toBeGreaterThan(3)
       expect(doc.description.length).toBeGreaterThan(20)
-      expect(doc.sections.length).toBeGreaterThan(0)
-      for (const section of doc.sections)
-        expect(section.paragraphs.length).toBeGreaterThan(0)
+      expect(doc.body).toMatch(/^## /m)
+    }
+  })
+
+  test("contact details in the wording match lib/brand.ts", () => {
+    // ICT edits the Markdown by hand; a mistyped number there would send
+    // complaints nowhere. Every phone and email written must be a real one.
+    const known = new Set([
+      contact.email,
+      ...contact.phones.map((phone) => formatPhone(phone)),
+    ])
+    for (const doc of policies) {
+      const text = withoutMarkers(doc.body)
+      for (const email of text.match(/[\w.+-]+@[\w-]+\.[\w.]+/g) ?? [])
+        expect(known.has(email)).toBe(true)
+      for (const phone of text.match(/\+91 \d{5} \d{5}/g) ?? [])
+        expect(known.has(phone)).toBe(true)
     }
   })
 
@@ -40,33 +67,87 @@ describe("policies", () => {
     // "does not currently ask you to sign in and does not send verification
     // codes", and the day the log-in route landed the sentence became false. The
     // wording and the code have to move together, in both directions.
-    const privacy = policies.find((p) => p.slug === "privacy")!
-    const text = privacy.sections.flatMap((s) => s.paragraphs).join(" ")
+    const text = prose("privacy")
     const describesSignIn =
       text.includes("If you sign in") && text.includes("one-time code")
     expect(describesSignIn).toBe(existsSync("app/login"))
   })
 
   test("the policy does not describe an account area that does not exist", () => {
-    const text = policies
-      .flatMap((p) => p.sections.flatMap((s) => s.paragraphs))
-      .join(" ")
     if (!existsSync("app/account"))
-      expect(text).not.toContain("your account page")
+      for (const doc of policies)
+        expect(doc.body).not.toContain("your account page")
   })
 
-  test("no document sells or takes payment while none of that is built", () => {
-    const text = policies
-      .flatMap((p) => p.sections.flatMap((s) => s.paragraphs))
-      .join(" ")
-    // Each of these routes would make a policy claim false if it appeared.
-    for (const route of ["app/checkout", "app/cart", "app/books"])
-      expect(existsSync(route)).toBe(false)
-    expect(text).toContain("does not currently take online")
+  test("ordering is described as not yet open while none of it is built", () => {
+    const ordering = ["app/checkout", "app/cart", "app/books"].some(existsSync)
+    for (const slug of ["shipping", "refunds"]) {
+      const doc = policyBySlug(slug)!
+      // Each page says ordering is not open until a checkout exists, and
+      // neither can be approved (published as binding) before then.
+      if (!ordering) {
+        expect(prose(slug)).toContain("does not currently take online")
+        expect(doc.approved).toBe(false)
+      }
+    }
   })
 
   test("looks a document up by slug, and refuses an unknown one", () => {
     expect(policyBySlug("privacy")?.title).toBe("Privacy policy")
     expect(policyBySlug("nope")).toBeUndefined()
+  })
+})
+
+describe("markers", () => {
+  test("finds both kinds in reading order", () => {
+    expect(
+      policyMarkers("a {{proposed: 7 days}} b {{ fill : officer name }} c")
+    ).toEqual([
+      { kind: "proposed", text: "7 days" },
+      { kind: "fill", text: "officer name" },
+    ])
+  })
+
+  test("rewrites markers as recognisable links, escaping brackets", () => {
+    expect(markersAsLinks("x {{fill: name [legal]}}")).toBe(
+      "x [name (legal)](#fill)"
+    )
+  })
+
+  test("ignores an unknown marker kind rather than guessing", () => {
+    expect(policyMarkers("{{maybe: 3 days}}")).toEqual([])
+  })
+})
+
+describe("parsePolicy", () => {
+  const valid = `---
+title: T
+description: D
+updated: 2026-09-26
+approved: false
+---
+
+## Body`
+
+  test("reads the four keys and the body", () => {
+    const doc = parsePolicy("terms", valid)
+    expect(doc).toMatchObject({
+      title: "T",
+      updated: "2026-09-26",
+      approved: false,
+      body: "## Body",
+    })
+  })
+
+  test("refuses a typo instead of ignoring it", () => {
+    expect(() =>
+      parsePolicy("terms", valid.replace("approved:", "aproved:"))
+    ).toThrow(/unknown front matter key/)
+    expect(() =>
+      parsePolicy("terms", valid.replace("approved: false", "approved: yes"))
+    ).toThrow(/approved must be/)
+    expect(() => parsePolicy("terms", "## no front matter")).toThrow(
+      /no front matter/
+    )
   })
 })

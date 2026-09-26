@@ -1,3 +1,8 @@
+import {
+  GENERIC_AUTH_FAILURE,
+  SPEAKABLE_SERVER_MESSAGES,
+} from "./auth-messages"
+
 import { toE164 } from "./leads"
 
 type AuthError = { code?: string; message?: string } | null
@@ -31,50 +36,36 @@ export const CODE_LENGTH = 6
 /**
  * The plugin enumerates its error codes, so the UI maps them rather than
  * matching on prose that a library upgrade could reword.
- *
- * Anything unlisted falls back to the server's own message, which is already
- * written for a person - the send ceilings in convex/otp.ts return a sentence
- * naming the ceiling that actually fired.
  */
 export const PHONE_AUTH_MESSAGES: Record<string, string> = {
   INVALID_PHONE_NUMBER: "Enter a valid Indian mobile number.",
-  INVALID_OTP: "That code is not right. Check it and try again.",
-  OTP_EXPIRED: "That code has expired. Ask for a new one.",
+  INVALID_OTP: "That code isn't right. Please try again.",
+  OTP_EXPIRED: "That code has expired. Request a new one.",
   OTP_NOT_FOUND: "Ask for a code first.",
-  TOO_MANY_ATTEMPTS:
-    "Too many attempts on this code. Ask for a new one in a few minutes.",
+  TOO_MANY_ATTEMPTS: "Too many attempts. Request a new code in a few minutes.",
   PHONE_NUMBER_CANNOT_BE_UPDATED:
-    "Changing a number needs ICT staff. Please call them.",
+    "To change your number, call or WhatsApp ICT.",
   SEND_OTP_NOT_IMPLEMENTED:
-    "Verification is not available yet. Please call or message ICT.",
+    "Log in isn't available right now. Please call or WhatsApp ICT.",
 }
 
 // A thrown failure (offline, a dropped request) never comes back as {error},
 // and its message is transport detail, not something to show a person.
 const SEND_FAILED =
-  "The code could not be sent. Check your connection and try again."
+  "Couldn't send the code. Check your connection and try again."
 const VERIFY_FAILED =
-  "The code could not be checked. Check your connection and try again."
+  "Couldn't check the code. Check your connection and try again."
 
-function errorMessage(error: Exclude<AuthError, null>) {
-  return (
-    (error.code && PHONE_AUTH_MESSAGES[error.code]) ||
-    error.message ||
-    "Something went wrong. Please try again."
-  )
+export function errorMessage(error: Exclude<AuthError, null>) {
+  if (error.code && PHONE_AUTH_MESSAGES[error.code])
+    return PHONE_AUTH_MESSAGES[error.code]
+  // Only sentences we wrote ourselves; never a library's own wording.
+  if (error.message && SPEAKABLE_SERVER_MESSAGES.has(error.message))
+    return error.message
+  return GENERIC_AUTH_FAILURE
 }
 
-/**
- * One form's request lifecycle, kept outside React so its races are testable.
- *
- * The acknowledged send owns the phone used to verify, and every request
- * carries a generation: editing the number, changing it, or unmounting
- * invalidates whatever is in flight, so a late answer cannot move a different
- * number into the code step or navigate a form that has gone. This does not
- * cancel a message already sent or a session the server already created, and
- * it is not the server's cross-instance guarantee - that is the send lease in
- * convex/otp.ts.
- */
+/** One form's request lifecycle, kept outside React so its races are testable. */
 export function createPhoneAuthFlow(client: {
   send: (phoneNumber: string) => Promise<PhoneAuthResult>
   verify: (input: {
@@ -157,7 +148,7 @@ export function createPhoneAuthFlow(client: {
     async verify(onVerified: () => void) {
       if (state.pending || state.step !== "code" || !state.sentTo) return
       if (!new RegExp(`^\\d{${CODE_LENGTH}}$`).test(state.code)) {
-        update({ error: "Enter the six-digit code ICT sent you." })
+        update({ error: "Enter the 6-digit code from WhatsApp." })
         return
       }
       const attempt = ++generation

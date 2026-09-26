@@ -1,18 +1,4 @@
-/**
- * The library page's content, and the questions it is waiting on.
- *
- * Spec §5 lists `/library` as a launch route carrying "plans, facilities,
- * rules, timings, and application". Of those, only some facilities are known:
- * spec line 704 lists "Library plans, capacity language, facilities, timings,
- * rules, review owner, and follow-up promise" among the things still to be
- * obtained from ICT.
- *
- * So this page states what is already published elsewhere on the site and
- * nothing more. `approved` stays false until ICT answers `libraryQuestions`,
- * which keeps the route noindex, out of the sitemap, and visibly marked as a
- * draft. Do not add a plan, a price, a capacity or an opening hour here before
- * that answer arrives - add them in the same commit that flips the flag.
- */
+/** The library page's content, and the questions it is waiting on. */
 export type LibraryFact = { heading: string; body: string }
 
 export const libraryApproved = false
@@ -38,12 +24,7 @@ export const libraryFacts: readonly LibraryFact[] = [
   },
 ]
 
-/**
- * What ICT has to answer before this page can be published.
- *
- * Kept next to the content so the page and its open questions cannot drift
- * apart. Surfaced in `toConfirm`, the owner sign-off checklist.
- */
+/** What ICT has to answer before this page can be published. */
 export const libraryQuestions: readonly string[] = [
   "Is library access included with enrolment, or is there a separate plan? If separate, what does it cost and for how long?",
   "Opening hours, and whether they differ on Sundays or exam days",

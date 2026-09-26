@@ -7,15 +7,7 @@ import type { MutationCtx } from "./_generated/server"
 import { internalMutation } from "./_generated/server"
 import { consumeRateLimit } from "./persons"
 
-/**
- * Which ceiling refused a send, or null when none did.
- *
- * Spec §10 asks a ceiling to "fail closed with a truthful message". A single
- * boolean cannot carry one: telling someone behind a busy shared connection,
- * or someone who hit the deployment-wide cap, that they asked too often for
- * *their number* is simply untrue, and "wait a few minutes" is wrong advice
- * for a twenty-four hour window.
- */
+/** Which ceiling refused a send, or null when none did. */
 export type SendRefusal = "phone" | "address" | "deployment"
 
 const MINUTE = 60_000
@@ -31,13 +23,7 @@ export const SENDS_PER_IP_HOUR = 15
 /** Global daily ceiling. Every send is a billed message once WhatsApp lands. */
 export const SENDS_PER_DAY_GLOBAL = 500
 
-/**
- * How long a send may stay in flight before another request may take over.
- *
- * Long enough for the local logger. Before the WhatsApp transport (KIT-46),
- * raise this above that provider's timeout. It stays far shorter than the
- * five-minute code lifetime, so a crashed worker cannot hold the number.
- */
+/** How long a send may stay in flight before another request may take over. */
 export const SEND_LEASE_MS = 20_000
 
 /** Matches the phone plugin's allowedAttempts. A sixth guess finds nothing. */
@@ -54,15 +40,7 @@ const sendRefusal = v.union(
 
 /**
  * The lease for this phone. A lost insert race can leave extras; `.unique()`
- * would then throw on every later send and lock the number out. Keep the
- * unexpired code when one exists, otherwise the highest generation, and
- * delete the rest.
- *
- * A deleted row's generation must never be minted again. The next claim is
- * `kept.generation + 1`, so when a discarded row is newer than the one we
- * keep, the kept row jumps to `max + 1` first. Otherwise that orphan still
- * holds the number the next claim is about to issue, and can commit or
- * release a lease it no longer owns.
+ * would then throw on every later send and lock the number out.
  */
 async function leaseByPhone(ctx: MutationCtx, phone: string) {
   const rows = await ctx.db
@@ -115,19 +93,7 @@ async function clearCode(
   })
 }
 
-/**
- * Spend allowance and take the per-phone send lease in one mutation.
- *
- * An overlapping send returns `inflight` before any write, so a double tap
- * keeps the live code and does not burn a ceiling. A ceiling that refuses
- * after an earlier bucket passed is not refunded: failing closed can only
- * refuse more, never fewer.
- *
- * Convex serializes the two claims. The loser observes the winner's unexpired
- * lease. There is no process-local lock. The ceilings exist before the
- * WhatsApp transport on purpose: today a send only logs, and the moment that
- * transport lands every send is a billed message.
- */
+/** Spend allowance and take the per-phone send lease in one mutation. */
 export const claimOtpSend = internalMutation({
   args: { phone: v.string(), ip: v.optional(v.string()) },
   returns: v.union(
@@ -199,13 +165,7 @@ export const claimOtpSend = internalMutation({
   },
 })
 
-/**
- * Record the code this generation may accept.
- *
- * `lost` means a newer send already holds the number: do not deliver.
- * `expired` means this same send outlived its lease and nobody took over:
- * the previous code, if any, stays, and the caller must not deliver.
- */
+/** Record the code this generation may accept. */
 export const commitOtpCode = internalMutation({
   args: {
     phone: v.string(),

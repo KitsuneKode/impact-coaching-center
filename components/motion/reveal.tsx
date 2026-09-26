@@ -12,11 +12,6 @@ const shown = { opacity: 1, y: 0 }
 /**
  * Fade-and-rise on scroll. No blur filter: animating `filter` repaints every
  * frame and is the one effect a budget Android phone visibly stutters on.
- *
- * Children are server-rendered and passed through as a slot, so only this thin
- * wrapper hydrates. Motivation: on a long conversion page, each section coming
- * into focus as it arrives marks it as its own beat instead of one continuous
- * wall of content.
  */
 export function Reveal({
   children,

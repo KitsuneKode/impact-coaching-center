@@ -28,6 +28,18 @@ const noindexRoutes = [
   "/admin/leads",
   "/admin/orders",
   "/admin/people",
+  // Sample content, labelled as such and noindexed by its layout.
+  "/preview",
+  "/preview/books",
+  "/preview/resources",
+  // Design concepts for review, noindexed by their layout.
+  "/redesign",
+  "/redesign/1",
+  "/redesign/2",
+  "/redesign/3",
+  "/redesign/4",
+  "/redesign/5",
+  "/redesign/6",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
@@ -37,14 +49,7 @@ const draftRoutes = [
   ...noindexRoutes,
 ]
 
-/**
- * Routes derived from the filesystem, not hand-listed.
- *
- * /success-stories declared its own canonical and was simply absent from the
- * sitemap. A test that hardcodes the routes it expects would not have caught
- * that, and would not catch the next page added the same way - so the
- * expectation is computed from the App Router tree instead.
- */
+/** Routes derived from the filesystem, not hand-listed. */
 function staticRoutesOnDisk(): string[] {
   const glob = new Bun.Glob("app/**/page.tsx")
   return (
@@ -55,10 +60,9 @@ function staticRoutesOnDisk(): string[] {
       .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
       .filter((route) => !route.includes("["))
       /*
-       * Parallel-route slots (@authModal) and intercepting routes ((.)login)
-       * are presentations of routes that already exist elsewhere in this list,
-       * not separate pages. Listing /@authModal/(.)login in a sitemap would ask
-       * a crawler to fetch a URL that does not exist.
+       * Parallel-route slots (@authModal) and intercepting routes ((.)login) are
+       * presentations of routes that already exist elsewhere in this list, not
+       * separate pages.
        */
       .filter((route) => !route.includes("/@") && !route.includes("/(."))
   )

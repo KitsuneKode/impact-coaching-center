@@ -1,35 +1,15 @@
 import { APIError, createAuthMiddleware, getIp } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
+import { SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
 import { toE164 } from "./leads"
 
-/**
- * What a refused send tells the person, per ceiling.
- *
- * Each has to be true of the ceiling that actually fired. A shared college
- * connection hitting the address limit is not the visitor asking too often,
- * and the deployment cap is not something they can wait out in a few minutes.
- * `inflight` is a send already underway, not a spent allowance.
+/*
+ * The refusal sentences live in lib/auth-messages.ts so the client can tell
+ * them apart from library errors it must not show. Each has to be true of the
+ * ceiling that actually fired:
  */
-const REFUSAL_MESSAGES = {
-  phone:
-    "Too many WhatsApp codes were requested for this number. Wait a few minutes and try again.",
-  address:
-    "Too many WhatsApp codes were requested from this internet connection. Wait a while, or call ICT instead.",
-  deployment:
-    "We cannot send WhatsApp codes at the moment. Please call or message ICT and they will help you directly.",
-  inflight:
-    "A WhatsApp code is already on its way to this number. Wait a moment and try again.",
-} as const
-
-/**
- * Sign-in is a WhatsApp code. These routes belong to password, email, or
- * social sign-in. The phone plugin registers the password ones even when
- * we never configure a password sender, and reset-password can mint a
- * credential account. Refuse them before any adapter write.
- */
-const WHATSAPP_ONLY =
-  "Sign-in is a WhatsApp code to your mobile number. There is no email or password sign-in."
+const REFUSAL_MESSAGES = SEND_REFUSALS
 
 const BLOCKED_AUTH_PATHS = new Set([
   "/sign-in/phone-number",

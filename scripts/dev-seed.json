@@ -6,7 +6,7 @@
     "`daysAgo` is relative, so a reseed always produces an inbox that looks current. Fractions are allowed - 0.25 is six hours ago.",
     "`leadStatus` is one of: new, contacted, interested, enrolled, lost.",
     "`note` lands on the activity record, never on the Person, because staff notes must not sit on a row that could be exported.",
-    "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local.",
+    "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local or the named hosted dev deployment (DEV_DEPLOYMENT_NAME).",
     "`orders` prices are in RUPEES here and stored as integer paise. `daysAgo` is relative like the enquiries. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address, by design."
   ],
   "people": [

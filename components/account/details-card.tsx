@@ -18,32 +18,7 @@ import { formatPhone } from "@/lib/brand"
 
 type Viewer = { name: string; phone: string; revision: number }
 
-/** Split a stored single-field name back into the two the form edits. */
-function parts(name: string) {
-  const trimmed = name.trim()
-  if (!trimmed) return { given: "", family: "" }
-  const words = trimmed.split(/\s+/)
-  if (words.length === 1) return { given: words[0] ?? "", family: "" }
-  return {
-    given: words.slice(0, -1).join(" "),
-    family: words.at(-1) ?? "",
-  }
-}
-
-/**
- * The details a Person can change about themselves, and the one they cannot.
- *
- * Read mode by default. An account screen is mostly visited to check something
- * rather than to change it, and a page of live inputs invites an accidental
- * edit and makes the current values harder to read at a glance.
- *
- * The mobile number is deliberately not editable here. It is the natural key
- * (ADR-0001) and the thing verification proved, so changing it is a
- * staff-assisted, audited operation - the spec requires actor, previous
- * number, new number and reason. Rendering it as a disabled input would
- * suggest it is nearly editable; a plain value with a sentence explaining who
- * can change it is honest.
- */
+/** The details a Person can change about themselves, and the one they cannot. */
 export function DetailsCard({ viewer }: { viewer: Viewer }) {
   const [editing, setEditing] = useState(false)
 
@@ -55,7 +30,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
             <dt className="text-sm text-muted-foreground">Name</dt>
             <dd className="mt-1">
               {viewer.name.trim() || (
-                <span className="text-muted-foreground">Not given yet</span>
+                <span className="text-muted-foreground">Not added</span>
               )}
             </dd>
           </div>
@@ -63,9 +38,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
             <dt className="text-sm text-muted-foreground">Mobile number</dt>
             <dd className="tnum mt-1">{formatPhone(viewer.phone)}</dd>
             <dd className="mt-1 text-sm text-muted-foreground">
-              This is how ICT knows who you are, so changing it needs their
-              staff. Call or message them and they will move your account
-              across.
+              To change your number, call or WhatsApp ICT.
             </dd>
           </div>
         </dl>
@@ -100,26 +73,21 @@ function NameEditor({
   onCancel: () => void
 }) {
   const setOwnName = useMutation(api.profile.setOwnName)
-  const givenId = useId()
-  const familyId = useId()
-
-  const initial = parts(viewer.name)
-  const [given, setGiven] = useState(initial.given)
-  const [family, setFamily] = useState(initial.family)
+  const nameId = useId()
+  const [name, setName] = useState(viewer.name.trim())
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
-    if (!given.trim()) {
-      setError("Enter your first name.")
+    if (!name.trim()) {
+      setError("Please enter your name.")
       return
     }
     setError(null)
     setPending(true)
     const result = await setOwnName({
-      given,
-      family,
+      name,
       expectedRevision: viewer.revision,
     })
     setPending(false)
@@ -129,10 +97,10 @@ function NameEditor({
     if (!result.ok) {
       setError(
         result.reason === "revision-conflict"
-          ? "Your details changed somewhere else. Check what is below and save again."
+          ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Log in again and we will pick up here."
-            : "That name could not be saved. Check it and try again."
+            ? "Your session expired. Please log in again."
+            : "Couldn't save your name. Please try again."
       )
       // What they typed stays on screen. A conflict is precisely when
       // discarding it is least forgivable.
@@ -149,34 +117,27 @@ function NameEditor({
     >
       <FieldGroup>
         <Field data-invalid={error ? true : undefined}>
-          <FieldLabel htmlFor={givenId}>First name</FieldLabel>
+          <FieldLabel htmlFor={nameId}>Your name</FieldLabel>
           <Input
-            id={givenId}
-            name="given"
-            autoComplete="given-name"
+            id={nameId}
+            name="name"
+            autoComplete="name"
+            autoCapitalize="words"
+            maxLength={120}
             required
-            value={given}
+            value={name}
             onChange={(event) => {
-              setGiven(event.target.value)
+              setName(event.target.value)
               if (error) setError(null)
             }}
             aria-invalid={error ? true : undefined}
           />
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={familyId}>Last name</FieldLabel>
-          <Input
-            id={familyId}
-            name="family"
-            autoComplete="family-name"
-            value={family}
-            onChange={(event) => setFamily(event.target.value)}
-          />
           {error ? (
             <FieldError>{error}</FieldError>
           ) : (
-            <FieldDescription>Only your first name is needed.</FieldDescription>
+            <FieldDescription>
+              As you&rsquo;d like ICT to address you.
+            </FieldDescription>
           )}
         </Field>
 

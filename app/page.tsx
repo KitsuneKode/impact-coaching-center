@@ -11,25 +11,7 @@ import { ProofBar } from "@/components/marketing/proof-bar"
 import { Results } from "@/components/marketing/results"
 import { StudentVoices } from "@/components/marketing/student-voices"
 
-/*
- * The order follows the decision a visitor actually makes:
- *
- *   who teaches me, and is it real       Hero (faculty), ProofBar
- *   does it work                         Results, StudentVoices, Posters
- *   is the place real                    Campus
- *   who are these people                 Podcast
- *   what can I join                      Courses
- *   what do I get, what does it cost     Fees
- *   let me see for myself                Classes
- *   but what about...                    Faq
- *   how do I start                       Enquire (steps + form), which
- *                                        is also the close: one ask, once
- *
- * Every section uses a different layout family, so the page never settles into
- * a repeating rhythm: text over a people strip, a stat row, a marquee, an
- * asymmetric card grid, a two-panel pricing block, a split list, an accordion,
- * a split form.
- */
+/* The order follows the decision a visitor actually makes: */
 export default function Page() {
   return (
     <main id="top">

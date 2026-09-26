@@ -3,14 +3,7 @@ import type { ComponentProps } from "react"
 
 import { cn } from "@/lib/utils"
 
-/**
- * Surfaces. Every one is 16px (--radius-card).
- *
- * `frame` is kobbe's product frame: white, one hairline, a soft shadow tinted
- * to the ink. `panel` is the recessed grey used for pricing-style blocks.
- * `interactive` lifts only cards that are themselves links, since motion that
- * leads nowhere reads as noise.
- */
+/** Surfaces. Every one is 16px (--radius-card). */
 const cardVariants = cva(
   "rounded-card transition-[transform,box-shadow,border-color] duration-300 ease-out",
   {

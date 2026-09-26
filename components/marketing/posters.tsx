@@ -5,18 +5,7 @@ import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
 import { posters } from "@/lib/brand"
 
-/**
- * ICT's own posters, as published.
- *
- * These are the institute's real result and admission cards, so they are shown
- * whole rather than rebuilt: a redrawn "topper card" is a design; the poster
- * the institute actually posted is evidence. They are loud by design, so each
- * one sits in a uniform frame on the recessed panel, which contains the noise
- * without dulling it.
- *
- * The section removes itself while there are no posters, so the page never
- * shows an empty shelf. See public/posters/README.md to add them.
- */
+/** ICT's own posters, as published. */
 export function Posters() {
   if (posters.length === 0) return null
 

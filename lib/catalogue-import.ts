@@ -1,14 +1,6 @@
 import type { CatalogueCourse } from "./catalogue"
 
-/**
- * Turning a Classplus course into a catalogue row.
- *
- * This is the pure half of `scripts/sync-courses.ts`. It lived in the script,
- * which `tsconfig.json` excludes, so the rules that decide every price, slug
- * and feature bullet on the site were invisible to the type checker and could
- * not be tested. The script keeps the IO - fetching, downloading covers,
- * writing the file - and calls this for the transform.
- */
+/** Turning a Classplus course into a catalogue row. */
 
 /** The fields this module reads from Classplus. The API sends more. */
 export type RawCourse = {
@@ -20,20 +12,12 @@ export type RawCourse = {
   totalSubscriberCount?: number | null
   /**
    * Cover art. Read by scripts/sync-courses.ts, not by toCatalogueRow - the
-   * script downloads it and sets `cover` from where the file landed. It was
-   * missing from this type while scripts/ was excluded from tsc, so the script
-   * read a property the payload type did not declare.
+   * script downloads it and sets `cover` from where the file landed.
    */
   imageUrl?: string | null
 }
 
-/**
- * A URL segment for a course.
- *
- * `fallbackId` is not optional decoration: a name written entirely in
- * Assamese script strips to an empty string, and an empty slug produces the
- * route `/courses/` - the catalogue page itself - rather than a course.
- */
+/** A URL segment for a course. */
 export function slugify(name: string, fallbackId?: number): string {
   const slug = name
     .toLowerCase()
@@ -51,10 +35,6 @@ export function slugify(name: string, fallbackId?: number): string {
 /**
  * Split "Lakhya 2027 - The Complete APSC Course" into a short name and a
  * subtitle.
- *
- * The separator is a dash followed by a space, with or without a space
- * before it, because ICT also writes "Kouxal- Free APSC Workshop". Requiring
- * the trailing space is what keeps "Pre-Foundation" in one piece.
  */
 export function splitCourseName(name: string): {
   short: string
@@ -64,12 +44,7 @@ export function splitCourseName(name: string): {
   return { short: short.trim(), subtitle: rest.join(" - ").trim() }
 }
 
-/**
- * The bulleted lines of a description, as card features.
- *
- * Classplus descriptions are a prose intro followed by bullets. A marker is
- * required: without it the intro paragraph took the first slot on the card.
- */
+/** The bulleted lines of a description, as card features. */
 export function parseFeatures(description?: string | null): string[] {
   if (!description) return []
 
@@ -95,12 +70,7 @@ export function parseFeatures(description?: string | null): string[] {
     .slice(0, 8)
 }
 
-/**
- * A catalogue row, minus the cover.
- *
- * The cover is the one field that needs IO - downloading the image - so the
- * script supplies it after calling this.
- */
+/** A catalogue row, minus the cover. */
 export function toCatalogueRow(
   course: RawCourse
 ): Omit<CatalogueCourse, "cover"> {

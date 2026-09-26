@@ -26,14 +26,7 @@ function Section({
   )
 }
 
-/**
- * The two-tone lede, kobbe's signature and ours.
- *
- * A quiet sentence-case label, then one paragraph: the first sentence is the
- * claim in ink, the rest is the explanation in grey, and an optional link at
- * the end goes to the proof. It replaces the shouting H2 so the page stays calm
- * and every section still reads in one breath.
- */
+/** The two-tone lede, kobbe's signature and ours. */
 function Lede({
   label,
   claim,

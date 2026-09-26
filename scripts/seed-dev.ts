@@ -1,30 +1,4 @@
-/**
- * Load `scripts/dev-seed.json` into the local Convex deployment.
- *
- * The infrastructure is here; the content is not. Everything this writes comes
- * from that JSON file, which is meant to be regenerated - by hand or by a
- * model - whenever the screens need a different shape of data. Nothing is
- * hardcoded here, so changing the fixture never means changing code.
- *
- *   bun run seed:dev            reset, then load the fixture
- *   bun run seed:dev --keep     load without clearing first
- *   bun run seed:dev --clear    remove seeded rows and stop
- *
- * Clearing first is the default because a fixture you can only apply once is
- * one you stop trusting: without it, re-running after an edit leaves the old
- * rows behind and the screen shows a mixture of two fixtures.
- *
- * It shells out to `convex run` rather than calling the deployment over HTTP.
- * That is not a detail - the seed mutations are `internalMutation`, so they
- * are unreachable from any client by design, and a `ConvexHttpClient` is
- * refused with "Could not find public function". Going through the CLI means
- * seeding needs deploy credentials, which is the same privilege as the
- * dashboard patch the bootstrap procedure describes. Making these public to
- * suit a script would trade that away for convenience.
- *
- * `convex/devSeed.ts` refuses any deployment that is not local, so this cannot
- * put invented people in front of real ones however it is invoked.
- */
+/** Load `scripts/dev-seed.json` into a development Convex deployment. */
 const here = new URL(".", import.meta.url).pathname
 
 async function run(fn: string, args: unknown) {

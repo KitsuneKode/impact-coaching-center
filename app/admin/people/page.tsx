@@ -34,14 +34,7 @@ import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
 import { toE164 } from "@/lib/leads"
 
-/**
- * Who may use the admin. Owner only, both to see and to change.
- *
- * Every refusal here comes from `convex/people.ts` and is shown in the words
- * the backend chose, rather than a generic "something went wrong": an owner
- * who cannot demote somebody needs to know it is last-owner protection and
- * not a network blip.
- */
+/** Who may use the admin. Owner only, both to see and to change. */
 const REFUSALS: Record<string, string> = {
   anonymous: "Log in to continue.",
   forbidden:
