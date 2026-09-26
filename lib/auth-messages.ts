@@ -9,13 +9,11 @@
  */
 export const SEND_REFUSALS = {
   phone:
-    "Too many WhatsApp codes were requested for this number. Wait a few minutes and try again.",
+    "Too many codes requested for this number. Please try again in a few minutes.",
   address:
-    "Too many WhatsApp codes were requested from this internet connection. Wait a while, or call ICT instead.",
-  deployment:
-    "We cannot send WhatsApp codes at the moment. Please call or message ICT and they will help you directly.",
-  inflight:
-    "A WhatsApp code is already on its way to this number. Wait a moment and try again.",
+    "Too many codes requested from this network. Please try later, or call ICT.",
+  deployment: "We can't send codes right now. Please call or WhatsApp ICT.",
+  inflight: "A code is already on its way. Please wait a moment.",
 } as const
 
 export const WHATSAPP_ONLY =
@@ -28,4 +26,4 @@ export const SPEAKABLE_SERVER_MESSAGES: ReadonlySet<string> = new Set([
 
 /** What a person sees when the server said something we did not write. */
 export const GENERIC_AUTH_FAILURE =
-  "We could not sign you in just now. Try again in a minute, or call ICT and they will help."
+  "Couldn't log you in. Please try again, or call ICT."

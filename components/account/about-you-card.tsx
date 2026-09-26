@@ -37,10 +37,10 @@ export function AboutYouCard() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="about-you" className="font-medium">
-            About your preparation
+            Your preparation
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Helps ICT talk to you about the right course. Optional.
+            Optional. Helps us suggest the right batch.
           </p>
         </div>
         {!editing && any ? (
@@ -87,12 +87,10 @@ export function AboutYouCard() {
         ) : (
           <div className="flex flex-col items-start gap-3">
             <p className="text-muted-foreground">
-              {answers?.skippedAt
-                ? "You skipped these after signing in. Answer them whenever you like."
-                : "Not answered yet."}
+              {answers?.skippedAt ? "Not answered yet." : "Not answered yet."}
             </p>
             <Button size="md" onClick={() => setEditing(true)}>
-              Answer three questions
+              Add answers
             </Button>
           </div>
         )}

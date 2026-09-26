@@ -117,16 +117,16 @@ export function QuestionnaireForm({
         // Answers are kept on screen whatever went wrong.
         setError(
           result.reason === "revision-conflict"
-            ? "Your details changed somewhere else. Check your answers and save again."
+            ? "This changed in another tab. Check your answers and save again."
             : result.reason === "anonymous"
-              ? "Your session expired. Log in again and your answers will be asked again."
-              : "Those answers could not be saved. Try again."
+              ? "Your session expired. Please log in again."
+              : "Couldn't save your answers. Please try again."
         )
         return
       }
       onDone()
     } catch {
-      setError("That did not save. Check the connection and try again.")
+      setError("Couldn't save. Check your connection and try again.")
     } finally {
       setPending(null)
     }
@@ -143,8 +143,8 @@ export function QuestionnaireForm({
     >
       <FieldGroup>
         <FieldDescription id={`${id}-why`}>
-          Three quick questions so the person who calls you already knows what
-          to talk about. Answer any, all or none.
+          Three quick questions, all optional. They help us suggest the right
+          batch.
         </FieldDescription>
 
         <Choice

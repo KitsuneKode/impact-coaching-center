@@ -17,7 +17,7 @@ export default async function LoginModalPage({
   return (
     <AuthModal
       heading="Log in"
-      description="Your mobile number, and a code we send on WhatsApp."
+      description="Enter your mobile number. We'll send a code on WhatsApp."
       next={safeReturnPath(next)}
     />
   )

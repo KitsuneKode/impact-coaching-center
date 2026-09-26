@@ -11,7 +11,7 @@ export default async function RegisterModalPage({
   return (
     <AuthModal
       heading="Create your account"
-      description="Your mobile number is all we need. We send a code on WhatsApp."
+      description="Enter your mobile number. We'll send a code on WhatsApp."
       next={safeReturnPath(next)}
     />
   )

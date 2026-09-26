@@ -46,7 +46,7 @@ function Unavailable() {
       <StatePanel
         icon={<IconPlugConnectedX stroke={1.75} />}
         title="Not available here"
-        description="This copy of the site has no connection to the database, so it cannot look up your account. Nothing is wrong with your details."
+        description="Accounts aren't available on this copy of the site."
       />
     </PageShell>
   )
@@ -80,7 +80,7 @@ function Account() {
         <StatePanel
           icon={<IconCircleCheck stroke={1.75} />}
           title="Your account has been deleted"
-          description="Your name, number and answers have been erased and you are signed out. If you sign in with the same number again, it starts as a new account."
+          description="Your details have been erased and you've been signed out."
           action={
             <ButtonLink href="/" size="md">
               Back to the home page
@@ -95,8 +95,8 @@ function Account() {
       <PageShell title={<span className="text-foreground">Your details.</span>}>
         <StatePanel
           icon={<IconLock stroke={1.75} />}
-          title="Log in to see your details"
-          description="Your mobile number is your account. Entering it either finds you or sets one up."
+          title="Log in to see your account"
+          description="Use your mobile number. New here? The same step creates your account."
           action={
             <ButtonLink href="/login?next=/account" size="md">
               Log in

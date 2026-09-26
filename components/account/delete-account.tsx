@@ -28,11 +28,10 @@ import { authClient } from "@/lib/auth-client"
 
 const REFUSALS: Record<string, string> = {
   "orders-in-progress":
-    "You have an order that is still being packed or delivered. Your account can be deleted once it has arrived or been cancelled.",
-  confirmation: "Type DELETE in capitals to confirm.",
-  forbidden:
-    "Staff and owner accounts are removed by an owner from the admin, so nobody is locked out by accident.",
-  anonymous: "Your session expired. Log in again to delete your account.",
+    "You have an order on its way. You can delete your account once it's delivered or cancelled.",
+  confirmation: "Type DELETE to confirm.",
+  forbidden: "Staff and owner accounts are removed by an owner from the admin.",
+  anonymous: "Your session expired. Please log in again.",
 }
 
 /**
@@ -70,7 +69,9 @@ export function DeleteAccount({ role }: { role: string }) {
       if (!result.ok) {
         const key =
           result.reason === "invalid-input" ? result.field : result.reason
-        setError(REFUSALS[key ?? ""] ?? "That did not work. Try again.")
+        setError(
+          REFUSALS[key ?? ""] ?? "Something went wrong. Please try again."
+        )
         return
       }
       // The sessions are already gone server-side; this clears the cookie.
@@ -79,7 +80,9 @@ export function DeleteAccount({ role }: { role: string }) {
       await authClient.signOut().catch(() => undefined)
       router.replace("/account?deleted=1")
     } catch {
-      setError("That did not go through. Check the connection and try again.")
+      setError(
+        "Couldn't reach the server. Check your connection and try again."
+      )
     } finally {
       setPending(false)
     }
@@ -94,9 +97,8 @@ export function DeleteAccount({ role }: { role: string }) {
         Delete account
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Erases your name, number, answers and sign-in from ICT&rsquo;s records.
-        Orders you paid for are kept without your details, because the law
-        requires sales records.
+        Permanently removes your details. Paid orders are kept, without your
+        name or number, as the law requires.
       </p>
 
       <Dialog
@@ -128,9 +130,8 @@ export function DeleteAccount({ role }: { role: string }) {
             <DialogHeader>
               <DialogTitle>Delete your account?</DialogTitle>
               <DialogDescription>
-                This cannot be undone. Your name, mobile number, answers and
-                enquiry history are erased and you are signed out everywhere.
-                Paid orders stay on record without your name, number or address.
+                This can&rsquo;t be undone. Your name, number and answers are
+                erased and you&rsquo;re signed out on every device.
               </DialogDescription>
             </DialogHeader>
 
@@ -148,7 +149,7 @@ export function DeleteAccount({ role }: { role: string }) {
               {error ? (
                 <FieldError>{error}</FieldError>
               ) : (
-                <FieldDescription>In capitals.</FieldDescription>
+                <FieldDescription>In capital letters.</FieldDescription>
               )}
             </Field>
 

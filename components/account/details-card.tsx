@@ -43,7 +43,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
             <dt className="text-sm text-muted-foreground">Name</dt>
             <dd className="mt-1">
               {viewer.name.trim() || (
-                <span className="text-muted-foreground">Not given yet</span>
+                <span className="text-muted-foreground">Not added</span>
               )}
             </dd>
           </div>
@@ -51,9 +51,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
             <dt className="text-sm text-muted-foreground">Mobile number</dt>
             <dd className="tnum mt-1">{formatPhone(viewer.phone)}</dd>
             <dd className="mt-1 text-sm text-muted-foreground">
-              This is how ICT knows who you are, so changing it needs their
-              staff. Call or message them and they will move your account
-              across.
+              To change your number, call or WhatsApp ICT.
             </dd>
           </div>
         </dl>
@@ -96,7 +94,7 @@ function NameEditor({
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setError("Enter your name.")
+      setError("Please enter your name.")
       return
     }
     setError(null)
@@ -112,10 +110,10 @@ function NameEditor({
     if (!result.ok) {
       setError(
         result.reason === "revision-conflict"
-          ? "Your details changed somewhere else. Check what is below and save again."
+          ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Log in again and we will pick up here."
-            : "That name could not be saved. Check it and try again."
+            ? "Your session expired. Please log in again."
+            : "Couldn't save your name. Please try again."
       )
       // What they typed stays on screen. A conflict is precisely when
       // discarding it is least forgivable.
@@ -151,7 +149,7 @@ function NameEditor({
             <FieldError>{error}</FieldError>
           ) : (
             <FieldDescription>
-              The name ICT should call you by.
+              As you&rsquo;d like ICT to address you.
             </FieldDescription>
           )}
         </Field>

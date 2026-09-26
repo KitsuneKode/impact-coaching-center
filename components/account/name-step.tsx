@@ -118,7 +118,7 @@ export function NameStep({ next }: { next: string }) {
   if (asking && questionnaire)
     return (
       <div className="grid gap-4">
-        <p className="font-medium">A little about you</p>
+        <p className="font-medium">Tell us about your preparation</p>
         <QuestionnaireForm
           initial={null}
           revision={questionnaire.revision}
@@ -160,7 +160,7 @@ function NameForm({ viewer }: { viewer: Viewer }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setError("Enter your name.")
+      setError("Please enter your name.")
       return
     }
     setError(null)
@@ -183,10 +183,10 @@ function NameForm({ viewer }: { viewer: Viewer }) {
     if (!result.ok) {
       setError(
         result.reason === "revision-conflict"
-          ? "Your details changed somewhere else. Check the name below and try again."
+          ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Log in again and we will pick up here."
-            : "That name could not be saved. Check it and try again."
+            ? "Your session expired. Please log in again."
+            : "Couldn't save your name. Please try again."
       )
       // Input is deliberately not cleared. The runbook makes preserving what
       // somebody typed an acceptance gate, and a conflict is exactly when
@@ -222,8 +222,7 @@ function NameForm({ viewer }: { viewer: Viewer }) {
             <FieldError>{error}</FieldError>
           ) : (
             <FieldDescription>
-              The name ICT should call you by. One field is fine, however your
-              name is written.
+              As you&rsquo;d like ICT to address you.
             </FieldDescription>
           )}
         </Field>
