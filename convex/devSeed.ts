@@ -4,6 +4,7 @@ import { isDevelopmentDeployment } from "../lib/dev-deployment"
 import { toE164 } from "../lib/leads"
 import { internalMutation } from "./_generated/server"
 import { LEAD_STATUS, ORDER_STATUS, PERSON_ROLE } from "./schema"
+import { allocateOrderReference } from "./orders"
 
 /** Development fixtures: Persons at each role, without a handset each. */
 
@@ -97,11 +98,16 @@ export const seedOrders = internalMutation({
   args: {
     orders: v.array(
       v.object({
-        reference: v.string(),
+        /* Fixtures may pin a reference for demos; absent, one is allocated
+           the same collision-checked way a real order would get it. */
+        reference: v.optional(v.string()),
         phone: v.string(),
         name: v.string(),
         status: ORDER_STATUS,
         fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+        courier: v.optional(
+          v.object({ name: v.string(), trackingNumber: v.string() })
+        ),
         daysAgo: v.number(),
         seen: v.optional(v.boolean()),
         items: v.array(
@@ -171,11 +177,24 @@ export const seedOrders = internalMutation({
       )
       const deliveryPaise = Math.round(order.deliveryRupees * 100)
 
+      /* A shipped/delivered parcel order must carry courier details, same
+         rule the staff mutation enforces. */
+      const courier =
+        order.courier ??
+        (order.fulfilment === "delivery" &&
+        (order.status === "shipped" || order.status === "delivered")
+          ? {
+              name: "Fixture Courier",
+              trackingNumber: `SEED-${written + 1}`,
+            }
+          : undefined)
+
       await ctx.db.insert("orders", {
         personId,
-        reference: order.reference,
+        reference: order.reference ?? (await allocateOrderReference(ctx)),
         status: order.status,
         fulfilment: order.fulfilment,
+        courier,
         items,
         itemsPaise,
         deliveryPaise,

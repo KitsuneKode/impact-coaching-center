@@ -11,6 +11,7 @@ import {
   mutationResult,
   paginated,
   REFUSAL,
+  requireOwner,
   requireStaff,
   revisionOf,
   type Viewer,
@@ -404,5 +405,28 @@ export const leadCounts = query({
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { fresh: 0, due: 0, capped: false }
     return readLeadCounts(ctx, staff.value, Date.now())
+  },
+})
+
+/**
+ * An export leaves the building with real phone numbers in it, so the audit
+ * trail records that one happened before the file downloads. The row hangs
+ * on the exporting owner - the "person" this activity is about is them.
+ */
+export const recordExport = mutation({
+  args: { count: v.number() },
+  returns: mutationResult({}),
+  handler: async (ctx, args) => {
+    const owner = await requireOwner(ctx)
+    if (!owner.ok) return owner
+    if (!Number.isInteger(args.count) || args.count < 1)
+      return invalidInput("count")
+    await ctx.db.insert("activities", {
+      personId: owner.value.id,
+      kind: "export",
+      body: `Exported ${args.count} enquir${args.count === 1 ? "y" : "ies"} as CSV`,
+      actorId: owner.value.id,
+    })
+    return { ok: true as const }
   },
 })
