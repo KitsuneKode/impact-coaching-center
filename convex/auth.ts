@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth/minimal"
 
 import { v } from "convex/values"
 
+import { parseTrustedOrigins } from "../lib/env"
 import { chooseTransport, sendOtp } from "../lib/otp-transport"
 import { phoneAuthOptions } from "../lib/phone-auth"
 
@@ -97,6 +98,18 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   })
   return betterAuth({
     database: authComponent.adapter(ctx),
+    /**
+     * The same allowlist convex/http.ts gives the route layer.
+     *
+     * That one only drives CORS. Better Auth runs its own origin check on any
+     * request carrying cookies, and without this list it trusts nothing but the
+     * Convex origin itself, so every real browser sign-in failed with "Invalid
+     * origin" while cookie-less requests (curl, tests) passed. Empty when unset,
+     * which fails closed; http.ts already refuses to register without it.
+     */
+    trustedOrigins: process.env.SITE_URL
+      ? parseTrustedOrigins(process.env.SITE_URL)
+      : [],
     /**
      * Ninety days, sliding, refreshed at most once a day.
      *

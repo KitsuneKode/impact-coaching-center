@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import { attemptLabel } from "@/lib/questionnaire"
 import { formatPhone } from "@/lib/brand"
 import { fromIstDateInput, morningInIst, toIstDateInput } from "@/lib/ist"
 
@@ -80,6 +81,7 @@ function describe(kind: string, from?: string, to?: string) {
   if (kind === "enquiry") return "Sent an enquiry"
   if (kind === "whatsapp_handoff") return "Opened WhatsApp from the site"
   if (kind === "role_change") return "Role changed"
+  if (kind === "account_deleted") return "Deleted their account"
   return "Note"
 }
 
@@ -209,6 +211,44 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
           <p role="alert" className="rounded-control bg-muted px-3 py-2">
             {message}
           </p>
+        ) : null}
+
+        {lead.deletedAt ? (
+          <p className="rounded-control bg-muted px-3 py-2">
+            This person deleted their account. Their name, number and answers
+            were erased; the history below keeps only what staff did.
+          </p>
+        ) : null}
+
+        {lead.targetExam || lead.attempt || lead.preferredBatch ? (
+          <section
+            aria-labelledby={`${followId}-about`}
+            className="grid gap-2.5"
+          >
+            <h3 id={`${followId}-about`} className="font-medium">
+              What they told us
+            </h3>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+              {lead.targetExam ? (
+                <>
+                  <dt className="text-muted-foreground">Preparing for</dt>
+                  <dd>{lead.targetExam}</dd>
+                </>
+              ) : null}
+              {lead.attempt ? (
+                <>
+                  <dt className="text-muted-foreground">Attempt</dt>
+                  <dd>{attemptLabel(lead.attempt)}</dd>
+                </>
+              ) : null}
+              {lead.preferredBatch ? (
+                <>
+                  <dt className="text-muted-foreground">Prefers</dt>
+                  <dd>{lead.preferredBatch} batch</dd>
+                </>
+              ) : null}
+            </dl>
+          </section>
         ) : null}
 
         <section

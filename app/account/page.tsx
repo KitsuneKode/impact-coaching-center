@@ -1,9 +1,17 @@
 "use client"
 
-import { IconLock, IconPlugConnectedX } from "@tabler/icons-react"
+import {
+  IconCircleCheck,
+  IconLock,
+  IconPlugConnectedX,
+} from "@tabler/icons-react"
 import { useQuery } from "convex/react"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { AboutYouCard } from "@/components/account/about-you-card"
+import { DeleteAccount } from "@/components/account/delete-account"
 import { DetailsCard } from "@/components/account/details-card"
 import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
@@ -24,7 +32,12 @@ import { api } from "@/convex/_generated/api"
  */
 export default function AccountPage() {
   if (!convexConfigured) return <Unavailable />
-  return <Account />
+  // useSearchParams needs a boundary for the static shell to prerender.
+  return (
+    <Suspense>
+      <Account />
+    </Suspense>
+  )
 }
 
 function Unavailable() {
@@ -41,6 +54,9 @@ function Unavailable() {
 
 function Account() {
   const viewer = useQuery(api.auth.getCurrentPerson)
+  // Set by DeleteAccount after erasure. The session is gone by then, so the
+  // confirmation has to live on the signed-out screen, not in the dialog.
+  const justDeleted = useSearchParams().get("deleted") === "1"
 
   if (viewer === undefined)
     return (
@@ -53,6 +69,24 @@ function Account() {
         }
       >
         <ListSkeleton rows={3} className="max-w-160" />
+      </PageShell>
+    )
+
+  if (viewer === null && justDeleted)
+    return (
+      <PageShell
+        title={<span className="text-foreground">Account deleted.</span>}
+      >
+        <StatePanel
+          icon={<IconCircleCheck stroke={1.75} />}
+          title="Your account has been deleted"
+          description="Your name, number and answers have been erased and you are signed out. If you sign in with the same number again, it starts as a new account."
+          action={
+            <ButtonLink href="/" size="md">
+              Back to the home page
+            </ButtonLink>
+          }
+        />
       </PageShell>
     )
 
@@ -83,7 +117,11 @@ function Account() {
         </>
       }
     >
-      <DetailsCard viewer={viewer} />
+      <div className="grid gap-6">
+        <DetailsCard viewer={viewer} />
+        <AboutYouCard />
+        <DeleteAccount role={viewer.role} />
+      </div>
     </PageShell>
   )
 }

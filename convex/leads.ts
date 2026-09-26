@@ -172,6 +172,11 @@ const LEAD_DETAIL = v.object({
   lastEnquiryAt: v.optional(v.number()),
   verifiedAt: v.optional(v.number()),
   nextFollowUpAt: v.optional(v.number()),
+  /** The onboarding answers, so the caller knows what to talk about. */
+  targetExam: v.optional(v.string()),
+  attempt: v.optional(v.union(v.literal("first"), v.literal("repeat"))),
+  preferredBatch: v.optional(v.string()),
+  deletedAt: v.optional(v.number()),
   revision: v.number(),
 })
 
@@ -220,6 +225,10 @@ export async function readLeadDetail(
       lastEnquiryAt: person.lastEnquiryAt,
       verifiedAt: person.verifiedAt,
       nextFollowUpAt: person.nextFollowUpAt,
+      targetExam: person.questionnaire?.targetExam,
+      attempt: person.questionnaire?.attempt,
+      preferredBatch: person.questionnaire?.preferredBatch,
+      deletedAt: person.deletedAt,
       revision: revisionOf(person),
     },
     activities: rows.map((row) => ({

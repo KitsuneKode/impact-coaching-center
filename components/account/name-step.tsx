@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useId, useRef, useState } from "react"
 
+import { QuestionnaireForm } from "@/components/account/questionnaire-form"
 import { Button } from "@/components/ui/button"
 import {
   Field,
@@ -48,8 +49,8 @@ type Viewer = { name: string; revision: number }
 export function NameStep({ next }: { next: string }) {
   const router = useRouter()
   const viewer = useQuery(api.auth.getCurrentPerson)
-  const needsName =
-    viewer !== undefined && viewer !== null && !viewer.name.trim()
+  const questionnaire = useQuery(api.profile.ownQuestionnaire)
+  const [done, setDone] = useState(false)
 
   /*
    * `null` here does NOT mean "signed out", and treating it as if it did was a
@@ -67,6 +68,15 @@ export function NameStep({ next }: { next: string }) {
   const waiting = settled === null
   const giveUp = useStalled(waiting, 8000)
 
+  const hasName = !!settled?.name.trim()
+  /*
+   * The questionnaire follows the name, once, for someone never asked.
+   * `answers === null` means never asked; skipped or answered is an object.
+   * A returning Person passes straight through both steps.
+   */
+  const asking =
+    hasName && !done && questionnaire != null && questionnaire.answers === null
+
   /*
    * In an effect rather than during render, because it navigates. A Person
    * who already has a name passes straight through, so this never becomes a
@@ -74,25 +84,53 @@ export function NameStep({ next }: { next: string }) {
    */
   useEffect(() => {
     if (waiting && !giveUp) return
-    if (settled === null || settled.name.trim()) {
+    if (settled === null) {
       router.push(next)
       router.refresh()
+      return
     }
-  }, [settled, waiting, giveUp, next, router])
+    if (!hasName) return
+    // Still loading the answers: wait rather than skip the question.
+    if (questionnaire === undefined && !done) return
+    if (asking) return
+    router.push(next)
+    router.refresh()
+  }, [
+    settled,
+    waiting,
+    giveUp,
+    hasName,
+    questionnaire,
+    asking,
+    done,
+    next,
+    router,
+  ])
 
-  if (!needsName)
+  if (settled !== null && !hasName) return <NameForm viewer={settled} />
+
+  if (asking && questionnaire)
     return (
-      <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
-        <Spinner />
-        Signing you in…
+      <div className="grid gap-4">
+        <p className="font-medium">A little about you</p>
+        <QuestionnaireForm
+          initial={null}
+          revision={questionnaire.revision}
+          mode="onboarding"
+          onDone={() => setDone(true)}
+        />
       </div>
     )
 
-  return <NameForm viewer={viewer} next={next} />
+  return (
+    <div className="flex items-center gap-3 py-2 text-sm text-muted-foreground">
+      <Spinner />
+      Signing you in…
+    </div>
+  )
 }
 
-function NameForm({ viewer, next }: { viewer: Viewer; next: string }) {
-  const router = useRouter()
+function NameForm({ viewer }: { viewer: Viewer }) {
   const setOwnName = useMutation(api.profile.setOwnName)
 
   const givenId = useId()
@@ -153,8 +191,8 @@ function NameForm({ viewer, next }: { viewer: Viewer; next: string }) {
       return
     }
 
-    router.push(next)
-    router.refresh()
+    // Nothing to do: the Person query updates live, and NameStep moves on to
+    // the questionnaire or the destination once the name arrives.
   }
 
   return (

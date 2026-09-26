@@ -98,6 +98,26 @@ export default defineSchema({
     ),
     /** When WhatsApp's free 24-hour reply window closes. */
     waWindowExpiresAt: v.optional(v.number()),
+    /**
+     * The three onboarding answers (lib/questionnaire.ts). Absent until the
+     * Person is asked; `skippedAt` and `answeredAt` keep "skipped" and "not yet
+     * seen" distinguishable, which the resumption banner depends on.
+     */
+    questionnaire: v.optional(
+      v.object({
+        targetExam: v.optional(v.string()),
+        attempt: v.optional(v.union(v.literal("first"), v.literal("repeat"))),
+        preferredBatch: v.optional(v.string()),
+        answeredAt: v.optional(v.number()),
+        skippedAt: v.optional(v.number()),
+      })
+    ),
+    /**
+     * Set when the Person erased their account (convex/account.ts). The row
+     * stays as a tombstone so orders and the audit trail still point at
+     * something, but it holds no name, number or answers.
+     */
+    deletedAt: v.optional(v.number()),
   })
     .index("by_phone", ["phone"])
     // Status, then time within that status. Not the inbox order: the status
@@ -133,7 +153,8 @@ export default defineSchema({
       v.literal("note"),
       v.literal("call"),
       v.literal("enquiry"),
-      v.literal("whatsapp_handoff")
+      v.literal("whatsapp_handoff"),
+      v.literal("account_deleted")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
