@@ -1,4 +1,8 @@
-import { paginationOptsValidator } from "convex/server"
+import {
+  type Expression,
+  type FilterBuilder,
+  paginationOptsValidator,
+} from "convex/server"
 import { type Infer, v } from "convex/values"
 
 import {
@@ -16,7 +20,7 @@ import {
   revisionOf,
   type Viewer,
 } from "./authz"
-import type { Doc, Id } from "./_generated/dataModel"
+import type { DataModel, Doc, Id } from "./_generated/dataModel"
 import {
   mutation,
   type MutationCtx,
@@ -99,6 +103,48 @@ function inView(
   return person.leadStatus === view
 }
 
+/**
+ * `inView` as a filter expression, for paths that read many documents. A
+ * status view compares `leadStatus` to the view even where an index already
+ * applied it - redundant on `by_leadStatus`, needed on the fragment scan,
+ * which has no status index at all.
+ */
+function viewExpr(
+  q: FilterBuilder<DataModel["persons"]>,
+  view: InboxView,
+  track: string | undefined,
+  endOfToday: number
+): Expression<boolean> {
+  const due = q.and(
+    q.neq(q.field("leadStatus"), undefined),
+    q.neq(q.field("nextFollowUpAt"), undefined),
+    q.lt(q.field("nextFollowUpAt"), endOfToday),
+    q.neq(q.field("leadStatus"), "enrolled"),
+    q.neq(q.field("leadStatus"), "lost")
+  )
+  const inViewExpr =
+    view === "action"
+      ? q.or(q.eq(q.field("leadStatus"), "new"), due)
+      : view === "due"
+        ? due
+        : view === "all"
+          ? q.neq(q.field("leadStatus"), undefined)
+          : q.eq(q.field("leadStatus"), view)
+  return track
+    ? q.and(inViewExpr, q.eq(q.field("interestTrack"), track))
+    : inViewExpr
+}
+
+/** Fewer digits than this match too many phones to be a lookup. */
+const PHONE_FRAGMENT_MIN = 4
+
+/**
+ * A phone fragment has no index to answer it, so the queue order is walked
+ * in bounded chunks: at most this many pages of 200 persons.
+ */
+const FRAGMENT_SCAN_PAGES = 10
+const FRAGMENT_SCAN_PAGE_ROWS = 200
+
 /** One page of the queue. */
 export async function readInboxPage(
   ctx: Pick<QueryCtx, "db">,
@@ -133,9 +179,7 @@ export async function readInboxPage(
     }
   }
 
-  /* A search with letters is a name; the search index answers it. A fragment
-     of digits matches nothing there and `by_phone` needs the whole number, so
-     it falls through to the filtered list - more useful than an empty page. */
+  /* A search with letters is a name; the search index answers it. */
   if (search && /\p{L}/u.test(search)) {
     const result = await ctx.db
       .query("persons")
@@ -162,6 +206,35 @@ export async function readInboxPage(
     return { ...result, page: result.page.map(toRow) }
   }
 
+  /* Digits without letters are a phone fragment: `by_phone` needs the whole
+     number (toE164 already answered that) and the name index holds none, so
+     the queue order is scanned in bounded chunks until enough phones match. */
+  const digits = search.replace(/\D/g, "")
+  if (digits.length > 0) {
+    /* Too few digits matches phones freely rather than naming anyone. */
+    if (digits.length < PHONE_FRAGMENT_MIN)
+      return { page: [], isDone: true, continueCursor: "" }
+    const matches: Doc<"persons">[] = []
+    let cursor: string | null = null
+    for (let pages = 0; pages < FRAGMENT_SCAN_PAGES; pages++) {
+      const chunk = await ctx.db
+        .query("persons")
+        .withIndex("by_lastEnquiryAt")
+        .order("desc")
+        .filter((q) => viewExpr(q, view, track, endOfToday))
+        .paginate({ numItems: FRAGMENT_SCAN_PAGE_ROWS, cursor })
+      for (const person of chunk.page) {
+        if (matches.length >= paginationOpts.numItems) break
+        if (person.phone.includes(digits)) matches.push(person)
+      }
+      if (matches.length >= paginationOpts.numItems || chunk.isDone) break
+      cursor = chunk.continueCursor
+    }
+    /* A fragment answer is one flat page: a cursor would have to name where
+       the scan stopped rather than a row, so no continueCursor is kept. */
+    return { page: matches.map(toRow), isDone: true, continueCursor: "" }
+  }
+
   const base = status
     ? ctx.db
         .query("persons")
@@ -170,24 +243,7 @@ export async function readInboxPage(
     : ctx.db.query("persons").withIndex("by_lastEnquiryAt").order("desc")
 
   const result = await base
-    .filter((q) => {
-      const due = q.and(
-        q.neq(q.field("leadStatus"), undefined),
-        q.neq(q.field("nextFollowUpAt"), undefined),
-        q.lt(q.field("nextFollowUpAt"), endOfToday),
-        q.neq(q.field("leadStatus"), "enrolled"),
-        q.neq(q.field("leadStatus"), "lost")
-      )
-      const inViewExpr =
-        view === "action"
-          ? q.or(q.eq(q.field("leadStatus"), "new"), due)
-          : view === "due"
-            ? due
-            : q.neq(q.field("leadStatus"), undefined)
-      return track
-        ? q.and(inViewExpr, q.eq(q.field("interestTrack"), track))
-        : inViewExpr
-    })
+    .filter((q) => viewExpr(q, view, track, endOfToday))
     .paginate(paginationOpts)
 
   return { ...result, page: result.page.map(toRow) }

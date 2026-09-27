@@ -545,6 +545,99 @@ describe("the queue's server-side filters", () => {
     )
     expect(fresh.page.map((row) => row.name)).toEqual(["Dipika Bora"])
   })
+
+  test("a phone fragment finds the leads whose numbers contain it", async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500070" })
+    const me = await viewer(t, staffId)
+    await seed(t, "student", {
+      phone: "+919435261113",
+      leadStatus: "new",
+      lastEnquiryAt: 1,
+    })
+    await seed(t, "student", {
+      phone: "+919876500071",
+      leadStatus: "new",
+      lastEnquiryAt: 2,
+    })
+    const result = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "all", search: "9435" })
+    )
+    expect(result.page.map((row) => row.phone)).toEqual(["+919435261113"])
+    expect(result.isDone).toBe(true)
+  })
+
+  test("fewer than four digits is a coincidence, not a lookup", async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500080" })
+    const me = await viewer(t, staffId)
+    await seed(t, "student", {
+      phone: "+919435261113",
+      leadStatus: "new",
+      lastEnquiryAt: 1,
+    })
+    // "943" IS inside the seeded number; the minimum, not absence, empties it.
+    const result = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "all", search: "943" })
+    )
+    expect(result.page).toEqual([])
+    expect(result.isDone).toBe(true)
+  })
+
+  test("a fragment still answers to the view filter", async () => {
+    // Settled leads must not resurface under "action" however they are found.
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500090" })
+    const me = await viewer(t, staffId)
+    const now = Date.UTC(2026, 9, 2, 6, 0)
+    await seed(t, "student", {
+      phone: "+919435260001",
+      leadStatus: "enrolled",
+      lastEnquiryAt: now - 1,
+      nextFollowUpAt: now - 3_600_000,
+    })
+    await seed(t, "student", {
+      phone: "+919435260002",
+      leadStatus: "new",
+      lastEnquiryAt: now,
+    })
+    const action = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "action", search: "9435" }, now)
+    )
+    expect(action.page.map((row) => row.phone)).toEqual(["+919435260002"])
+    // Status views work too: the scan has no status index to lean on.
+    const enrolled = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "enrolled", search: "9435" }, now)
+    )
+    expect(enrolled.page.map((row) => row.phone)).toEqual(["+919435260001"])
+  })
+
+  test("a fragment page stops at numItems matches", async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500100" })
+    const me = await viewer(t, staffId)
+    for (let i = 0; i < 3; i++) {
+      await seed(t, "student", {
+        phone: `+9194352611${i}0`,
+        leadStatus: "new",
+        lastEnquiryAt: i,
+      })
+    }
+    const result = await t.run((ctx) =>
+      readInboxPage(
+        ctx,
+        me,
+        { numItems: 2, cursor: null },
+        { view: "all", search: "943526" }
+      )
+    )
+    // Flat and done, queue order kept: the third match is simply not read.
+    expect(result.page.map((row) => row.phone)).toEqual([
+      "+919435261120",
+      "+919435261110",
+    ])
+    expect(result.isDone).toBe(true)
+  })
 })
 
 describe("staff adding an enquiry", () => {

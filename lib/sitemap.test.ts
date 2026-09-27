@@ -29,7 +29,6 @@ const noindexRoutes = [
   "/admin/orders",
   "/admin/people",
   // Sample content, labelled as such and noindexed by its layout.
-  "/preview",
   "/admin/books",
   "/admin/books/new",
   "/admin/resources",

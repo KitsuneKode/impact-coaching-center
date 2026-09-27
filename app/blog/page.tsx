@@ -47,12 +47,12 @@ export default async function BlogPage() {
           description="When ICT publishes something, it appears here."
         />
       ) : (
-        <ul className="mt-14 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-14 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post) => (
             <li key={post.slug}>
               <Link
                 href={`/blog/${post.slug}`}
-                className="group flex h-full flex-col gap-3 rounded-card border border-border bg-card p-6 shadow-frame transition-shadow hover:shadow-lift"
+                className="group flex h-full min-h-44 flex-col gap-3 rounded-card border border-border bg-card p-7 shadow-frame transition-shadow hover:shadow-lift"
               >
                 {post.publishedAt ? (
                   <time
@@ -70,6 +70,15 @@ export default async function BlogPage() {
                     {post.excerpt}
                   </span>
                 ) : null}
+                <span className="mt-auto pt-2 text-sm font-medium text-foreground">
+                  Read
+                  <span
+                    aria-hidden
+                    className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-1"
+                  >
+                    →
+                  </span>
+                </span>
               </Link>
             </li>
           ))}
