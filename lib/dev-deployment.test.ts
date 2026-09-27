@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test"
+import { readFileSync } from "node:fs"
 
 import { isDevelopmentDeployment } from "./dev-deployment"
 
@@ -40,5 +41,22 @@ describe("isDevelopmentDeployment", () => {
     ]
     for (const origin of cases)
       expect(isDevelopmentDeployment(origin)).toBe(false)
+  })
+})
+
+describe("DEV_DEPLOYMENT_NAME", () => {
+  test("no code reads it, so setting it on any deployment changes nothing", () => {
+    const glob = new Bun.Glob(
+      "{app,components,convex,lib,scripts}/**/*.{ts,tsx,mjs}"
+    )
+    const readers = [...glob.scanSync(".")].filter(
+      (file) =>
+        !file.endsWith(".test.ts") &&
+        !file.includes("_generated") &&
+        /process\.env\.DEV_DEPLOYMENT_NAME|env\.DEV_DEPLOYMENT_NAME/.test(
+          readFileSync(file, "utf8")
+        )
+    )
+    expect(readers).toEqual([])
   })
 })

@@ -1,6 +1,10 @@
 import createNextIntlPlugin from "next-intl/plugin"
 import type { NextConfig } from "next"
 
+// Validates the environment before anything builds; a missing variable fails here.
+import "./lib/env.client"
+import "./lib/env.server"
+
 /**
  * The Content-Security-Policy as a static header rather than a per-request
  * nonce: nonces force every page to render dynamically, and this site is

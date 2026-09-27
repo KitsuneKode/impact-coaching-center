@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      # CI has no Convex backend; Vercel builds never set this and so validate.
+      SKIP_ENV_VALIDATION: "1"
       SITE_INDEXABLE: "false"
       NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3100
     steps:
