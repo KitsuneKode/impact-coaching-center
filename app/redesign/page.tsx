@@ -3,14 +3,14 @@ import Link from "next/link"
 
 import { concepts } from "./_switcher"
 
-export const metadata: Metadata = { title: "Six homepage concepts" }
+export const metadata: Metadata = { title: "Homepage concepts" }
 
 export default function RedesignIndex() {
   return (
     <main className="min-h-[100dvh] bg-[#0A1020] px-4 py-16 text-[#E9EDF6] md:px-8 md:py-24">
       <div className="mx-auto max-w-6xl">
         <h1 className="max-w-[18ch] text-4xl font-semibold tracking-tight text-balance md:text-6xl">
-          Six directions for the ICT homepage.
+          Seven directions for the ICT homepage.
         </h1>
         <p className="mt-5 max-w-[56ch] text-lg text-[#9AA6C2]">
           Same facts, faculty and photos in each. Only the look changes: navy or

@@ -12,6 +12,7 @@
     "functions": ["cn", "cva"]
   },
   "ignorePatterns": [
+    ".worktrees/",
     ".agents/",
     ".claude/",
     ".next/",
