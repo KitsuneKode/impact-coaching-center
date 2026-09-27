@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react"
 
 import { OrderStatusBadge } from "@/components/admin/order-status"
+import { ButtonLink } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import { formatPaise } from "@/lib/money"
@@ -32,9 +33,26 @@ export function OrdersCard() {
       </section>
     )
 
-  /* null means signed out (unreachable on /account, but honest); empty
-     means this Person has never ordered - the card simply is not there. */
-  if (!orders || orders.length === 0) return null
+  if (!orders) return null
+
+  if (orders.length === 0)
+    return (
+      <section className="max-w-160 rounded-card border border-border p-6">
+        <h2 className="text-lg font-medium">Your orders</h2>
+        <p className="mt-4 text-sm text-muted-foreground">
+          No orders yet. When you place one, its status and delivery details
+          will appear here.
+        </p>
+        <ButtonLink
+          href="/books"
+          variant="secondary"
+          size="md"
+          className="mt-4"
+        >
+          Browse books
+        </ButtonLink>
+      </section>
+    )
 
   return (
     <section className="max-w-160 rounded-card border border-border p-6">

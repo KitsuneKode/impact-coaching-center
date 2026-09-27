@@ -100,6 +100,30 @@ Starts only after I send references. Paste to start, with the references:
 > to about 8 sections (KIT-66). The /redesign concepts were judged too
 > generic; use them only as a record of what not to repeat.
 
+## Review follow-up — loading states (27 September)
+
+Baseline rechecked at `5f0c892` on `feat/production-readiness`. The earlier
+review used `fc30546`; its empty-resource and phantom-cart defects have since
+been fixed, with the resource regression covered in `convex/catalog.db.test.ts`.
+Checkout, PDF import and production configuration also now exist in code;
+this does not establish live provider readiness.
+
+- [ ] Replace blank catalogue fallbacks with shared, shaped skeletons and
+      route loading boundaries, retaining page headings.
+- [ ] Keep an explicit empty orders section on the account page.
+- [ ] Run check and build; record browser verification availability.
+
+Implementation landed locally for both items above. `bun run check` passes
+(326 tests); `git diff --check` passes. Final production build remains blocked:
+Turbopack's CSS worker cannot bind its local port (`Operation not permitted`),
+including the escalation retry. An earlier build passed before the final
+accessibility-markup correction, so it does not qualify the final tree.
+Browser discovery returned no available browsers; visual/device verification
+is still pending. Checkboxes remain open until these gates can be completed.
+React Doctor scanned the branch against origin/main: 72/100, 35 findings,
+none naming this batch's changed files. Those broader findings are not a
+verified regression assessment or an instruction to refactor unrelated code.
+
 ## Housekeeping (any session, with my approval)
 
 Close ImgBot PR #1; delete merged branches (`feat/client-demo-readiness`,

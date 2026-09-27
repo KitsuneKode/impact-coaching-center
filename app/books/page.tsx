@@ -8,6 +8,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { BookGrid } from "@/components/commerce/book-grid"
+import { CatalogSkeleton } from "@/components/commerce/catalog-skeleton"
 import { SampleNotice, ShopCartButton } from "@/components/commerce/shop-shell"
 import { StatePanel } from "@/components/ui/page-shell"
 import { Section } from "@/components/ui/section"
@@ -73,7 +74,7 @@ export default async function BooksPage() {
       </div>
       {books.length ? (
         /* The filter reads the URL; this keeps the rest of the page static. */
-        <Suspense fallback={<div className="mt-10 h-[36rem]" />}>
+        <Suspense fallback={<CatalogSkeleton kind="books" />}>
           <BookGrid books={books} />
         </Suspense>
       ) : (

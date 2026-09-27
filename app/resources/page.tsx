@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 
 import { ResourceList } from "@/components/commerce/resource-list"
+import { CatalogSkeleton } from "@/components/commerce/catalog-skeleton"
 import { SampleNotice } from "@/components/commerce/shop-shell"
 import { StatePanel } from "@/components/ui/page-shell"
 import { Section } from "@/components/ui/section"
@@ -41,7 +42,7 @@ export default async function ResourcesPage() {
         </p>
         {resources.length ? (
           /* The filter reads the URL; this keeps the rest of the page static. */
-          <Suspense fallback={<div className="mt-10 h-[40rem]" />}>
+          <Suspense fallback={<CatalogSkeleton kind="resources" />}>
             <ResourceList resources={resources} />
           </Suspense>
         ) : (
