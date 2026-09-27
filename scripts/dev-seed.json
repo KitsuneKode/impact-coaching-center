@@ -680,5 +680,14 @@
       "kind": "Notes",
       "description": "Sample item. Rivers, districts and parks, map by map."
     }
+  ],
+  "posts": [
+    {
+      "slug": "how-to-read-the-apsc-cce-notification",
+      "title": "How to read the APSC CCE notification before you pick a course",
+      "excerpt": "Sample post. The commission's notification carries the answers most aspirants ask in week one - syllabus, dates, eligibility. A short walkthrough of where to find each.",
+      "body": "The APSC CCE notification is the single document every plan should start from.\n\n## What to check first\n\n- **Eligibility** - age limits, attempts, domicile rules.\n- **Syllabus** - the list of papers, not a coaching brochure.\n- **Dates** - application window, prelims, mains.\n\n## A habit worth keeping\n\nRead it once at the start of preparation and once a week before each stage. Notices that look minor - a changed centre, an extra document - are the ones that cost a sitting.\n\n*This is a sample post written by the seed fixture, not by ICT.*",
+      "daysAgo": 3
+    }
   ]
 }

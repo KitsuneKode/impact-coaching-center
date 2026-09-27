@@ -313,6 +313,56 @@ export const seedCatalog = internalMutation({
   },
 })
 
+/**
+ * Sample posts for /blog, published and marked `sample` like the catalogue.
+ * A post the owner has since touched is real and left alone.
+ */
+export const seedPosts = internalMutation({
+  args: {
+    posts: v.array(
+      v.object({
+        slug: v.string(),
+        title: v.string(),
+        excerpt: v.string(),
+        body: v.string(),
+        /** How long ago the post went live. Fractions are fine. */
+        daysAgo: v.number(),
+      })
+    ),
+  },
+  returns: v.object({ posts: v.number() }),
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+    const now = Date.now()
+    const day = 24 * 60 * 60 * 1000
+    let posts = 0
+
+    for (const { daysAgo, ...post } of args.posts) {
+      const existing = await ctx.db
+        .query("posts")
+        .withIndex("by_slug", (q) => q.eq("slug", post.slug))
+        .unique()
+      if (existing && !existing.sample) continue
+      const fields = {
+        ...post,
+        published: true,
+        publishedAt: existing?.publishedAt ?? now - daysAgo * day,
+        sample: true,
+        updatedAt: now,
+      }
+      if (existing)
+        await ctx.db.patch(existing._id, {
+          ...fields,
+          revision: existing.revision + 1,
+        })
+      else await ctx.db.insert("posts", { ...fields, revision: 0 })
+      posts += 1
+    }
+
+    return { posts }
+  },
+})
+
 /** Take back what this module wrote, without destroying what a person earned. */
 export const clearSeed = internalMutation({
   args: {},
@@ -341,6 +391,11 @@ export const clearSeed = internalMutation({
         .collect()
       for (const open of opens) await ctx.db.delete(open._id)
       await ctx.db.delete(resource._id)
+      catalog += 1
+    }
+    for (const post of await ctx.db.query("posts").collect()) {
+      if (!post.sample) continue
+      await ctx.db.delete(post._id)
       catalog += 1
     }
 

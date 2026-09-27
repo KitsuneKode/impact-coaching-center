@@ -355,6 +355,8 @@ export default defineSchema({
     published: v.boolean(),
     publishedAt: v.optional(v.number()),
     authorId: v.optional(v.id("persons")),
+    /** Dev-seeded filler, same convention as books and resources. */
+    sample: v.optional(v.boolean()),
     revision: v.number(),
     updatedAt: v.number(),
   })
