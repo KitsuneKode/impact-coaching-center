@@ -10,10 +10,8 @@ import {
   IconSearch,
 } from "@tabler/icons-react"
 import {
-  columnFilteringFeature,
   columnVisibilityFeature,
   createColumnHelper,
-  createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
   FlexRender,
@@ -22,7 +20,6 @@ import {
   rowSortingFeature,
   tableFeatures,
   useTable,
-  type ColumnFiltersState,
   type ColumnVisibilityState,
   type SortingState,
 } from "@tanstack/react-table"
@@ -48,6 +45,13 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -59,8 +63,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
+import type { InboxView } from "@/convex/leads"
 import { formatPhone } from "@/lib/brand"
 import { isDueIst } from "@/lib/ist"
+import { enquiryTracks } from "@/lib/leads"
 
 export type Lead = {
   id: string
@@ -74,14 +80,17 @@ export type Lead = {
   revision: number
 }
 
-/** The follow-up queue as a real data table. */
+/*
+ * The follow-up queue as a real data table. Filtering - status, exam,
+ * search - is the server's job (convex/leads.ts inboxPage): this table only
+ * ever holds the pages that were asked for, so a filter here could only
+ * hide rows, never find the ones not yet loaded.
+ */
 const features = tableFeatures({
-  columnFilteringFeature,
   columnVisibilityFeature,
   rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
-  filteredRowModel: createFilteredRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
 })
@@ -99,6 +108,14 @@ const STATUS_FILTERS = [
   { value: "enrolled", label: "Enrolled" },
   { value: "lost", label: "Lost" },
 ] as const
+
+/** The exam filter's "everything" option; a Select item cannot be empty. */
+const ALL_TRACKS = "all-tracks"
+
+const TRACK_ITEMS = [
+  { value: ALL_TRACKS, label: "Every exam" },
+  ...enquiryTracks.map((track) => ({ value: track, label: track })),
+]
 
 /** Sort order for statuses: what needs doing first, settled last. */
 const STATUS_ORDER: Record<string, number> = {
@@ -208,20 +225,6 @@ const columns = columnHelper.columns([
       </a>
     ),
     enableHiding: false,
-    // Matches the stored E.164 and the displayed form, so "94352" finds
-    // "+91 94352 …" as well as "+9194352…".
-    filterFn: (row, _id, value: string) => {
-      const needle = value.toLowerCase().replaceAll(/\s/g, "")
-      const lead = row.original
-      return (
-        lead.phone.toLowerCase().includes(needle) ||
-        formatPhone(lead.phone)
-          .toLowerCase()
-          .replaceAll(/\s/g, "")
-          .includes(needle) ||
-        lead.name.toLowerCase().includes(value.toLowerCase())
-      )
-    },
   }),
   columnHelper.accessor("interestTrack", {
     header: "Exam",
@@ -234,21 +237,6 @@ const columns = columnHelper.columns([
   columnHelper.accessor("leadStatus", {
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.leadStatus} />,
-    /*
-     * "Needs action" is the default view: untouched new enquiries plus
-     * anything whose follow-up has come due, because those are the rows a
-     * day of work starts from. Other values are exact status matches.
-     */
-    filterFn: (row, _id, value: string) => {
-      const lead = row.original
-      const due =
-        isDueIst(lead.nextFollowUpAt, Date.now()) &&
-        lead.leadStatus !== "enrolled" &&
-        lead.leadStatus !== "lost"
-      if (value === "action") return lead.leadStatus === "new" || due
-      if (value === "due") return due
-      return lead.leadStatus === value
-    },
     sortFn: (a, b) =>
       (STATUS_ORDER[a.original.leadStatus ?? ""] ?? 99) -
       (STATUS_ORDER[b.original.leadStatus ?? ""] ?? 99),
@@ -305,6 +293,12 @@ export function LeadsTable({
   onLoadMore,
   isOwner,
   onOpen,
+  view,
+  track,
+  search,
+  onViewChange,
+  onTrackChange,
+  onSearchChange,
 }: {
   leads: Lead[]
   canLoadMore: boolean
@@ -314,15 +308,18 @@ export function LeadsTable({
   isOwner: boolean
   /** Opens one enquiry for follow-up. */
   onOpen: (id: string) => void
+  /* The server-side slice this table is a window onto. */
+  view: InboxView
+  track: string | undefined
+  /** The raw search box text; the query gets it debounced from the page. */
+  search: string
+  onViewChange: (view: InboxView) => void
+  onTrackChange: (track: string | undefined) => void
+  onSearchChange: (search: string) => void
 }) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({})
-  /* The queue opens on the work, not the archive: new enquiries and due
-     follow-ups. "All" is one tap away for everything else. */
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
-    { id: "leadStatus", value: "action" },
-  ])
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
 
@@ -336,20 +333,17 @@ export function LeadsTable({
       sorting,
       columnVisibility,
       rowSelection,
-      columnFilters,
       pagination,
     },
     getRowId: (row) => row.id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
   })
 
-  const selected = table.getFilteredSelectedRowModel().rows.length
-  const matching = table.getFilteredRowModel().rows.length
+  const selected = table.getSelectedRowModel().rows.length
   const pageCount = Math.max(1, table.getPageCount())
   const onLastLoadedPage = table.state.pagination.pageIndex >= pageCount - 1
 
@@ -364,13 +358,16 @@ export function LeadsTable({
 
   const canGoNext = table.getCanNextPage() || canLoadMore
 
-  const statusFilter =
-    (table.getColumn("leadStatus")?.getFilterValue() as string) ?? "action"
+  /*
+   * The default "action" slice is itself a filter: rows exist that it
+   * excludes. Any slice showing nothing offers a way back to "all".
+   */
+  const filtering = view !== "all" || track !== undefined || search !== ""
 
-  function setStatusFilter(value: string) {
-    table
-      .getColumn("leadStatus")
-      ?.setFilterValue(value === "all" ? undefined : value)
+  function clearFilters() {
+    onViewChange("all")
+    onTrackChange(undefined)
+    onSearchChange("")
     table.setPageIndex(0)
   }
 
@@ -463,14 +460,36 @@ export function LeadsTable({
             <InputGroupInput
               placeholder="Search name or number"
               aria-label="Search enquiries by name or number"
-              value={
-                (table.getColumn("phone")?.getFilterValue() as string) ?? ""
-              }
-              onChange={(event) =>
-                table.getColumn("phone")?.setFilterValue(event.target.value)
-              }
+              value={search}
+              onChange={(event) => {
+                onSearchChange(event.target.value)
+                table.setPageIndex(0)
+              }}
             />
           </InputGroup>
+
+          <Select
+            value={track ?? ALL_TRACKS}
+            onValueChange={(value) => {
+              onTrackChange(value && value !== ALL_TRACKS ? value : undefined)
+              table.setPageIndex(0)
+            }}
+            items={TRACK_ITEMS}
+          >
+            <SelectTrigger
+              className="h-11 w-44 rounded-control px-3 text-[0.9375rem]"
+              aria-label="Filter by exam"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRACK_ITEMS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -531,9 +550,7 @@ export function LeadsTable({
             aria-live="polite"
             className="ml-auto text-sm text-muted-foreground"
           >
-            {selected > 0
-              ? `${selected} selected`
-              : `${matching} of ${leads.length} loaded`}
+            {selected > 0 ? `${selected} selected` : `${leads.length} loaded`}
           </p>
         </div>
 
@@ -543,8 +560,11 @@ export function LeadsTable({
           ones" should not have to open a menu to find out that is possible.
         */}
         <ToggleGroup
-          value={[statusFilter]}
-          onValueChange={(value) => setStatusFilter(value[0] ?? "all")}
+          value={[view]}
+          onValueChange={(value) => {
+            onViewChange((value[0] ?? "all") as InboxView)
+            table.setPageIndex(0)
+          }}
           aria-label="Filter by status"
           className="flex-wrap"
         >
@@ -564,15 +584,15 @@ export function LeadsTable({
           {table.getRowModel().rows.length === 0 ? (
             <div className="flex flex-col items-start gap-3 rounded-card border border-border p-4">
               <span className="text-muted-foreground">
-                Nothing matched that search.
+                {filtering
+                  ? "Nothing matched those filters."
+                  : "No enquiries yet - they appear here as soon as someone sends the form or the desk adds one."}
               </span>
-              <Button
-                variant="secondary"
-                size="md"
-                onClick={() => table.resetColumnFilters()}
-              >
-                Clear filters
-              </Button>
+              {filtering ? (
+                <Button variant="secondary" size="md" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : null}
             </div>
           ) : (
             table.getRowModel().rows.map((row) => {
@@ -707,15 +727,19 @@ export function LeadsTable({
                   <TableCell colSpan={columns.length} className="h-24">
                     <div className="flex flex-col items-start gap-3">
                       <span className="text-muted-foreground">
-                        Nothing matched that search.
+                        {filtering
+                          ? "Nothing matched those filters."
+                          : "No enquiries yet - they appear here as soon as someone sends the form or the desk adds one."}
                       </span>
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={() => table.resetColumnFilters()}
-                      >
-                        Clear filters
-                      </Button>
+                      {filtering ? (
+                        <Button
+                          variant="secondary"
+                          size="md"
+                          onClick={clearFilters}
+                        >
+                          Clear filters
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>

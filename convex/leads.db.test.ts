@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test"
 import { internal } from "./_generated/api"
 import {
   appendLeadActivity,
+  applyCreateLead,
   applyFollowUp,
   applyLeadStatus,
   NOTE_MAX,
@@ -30,23 +31,31 @@ async function seed(
   role: "student" | "staff" | "owner",
   {
     phone = PHONE,
+    name = "Rituparna",
     leadStatus,
     lastEnquiryAt,
+    nextFollowUpAt,
+    interestTrack,
   }: {
     phone?: string
+    name?: string
     leadStatus?: "new" | "contacted" | "interested" | "enrolled" | "lost"
     lastEnquiryAt?: number
+    nextFollowUpAt?: number
+    interestTrack?: string
   } = {}
 ) {
   const id = await t.mutation(internal.persons.recordVerifiedPerson, {
     phone,
-    name: "Rituparna",
+    name,
   })
   await t.run((ctx) =>
     ctx.db.patch(id, {
       role,
       ...(leadStatus !== undefined ? { leadStatus } : {}),
       ...(lastEnquiryAt !== undefined ? { lastEnquiryAt } : {}),
+      ...(nextFollowUpAt !== undefined ? { nextFollowUpAt } : {}),
+      ...(interestTrack !== undefined ? { interestTrack } : {}),
     })
   )
   return id
@@ -73,7 +82,7 @@ describe("leads inbox authorization", () => {
   test("an anonymous caller gets an empty page", async () => {
     const t = convexTest(schema, modules)
     await seed(t, "staff")
-    const result = await t.run((ctx) => readInboxPage(ctx, null, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, null, PAGE, {}))
     expect(result.page).toEqual([])
   })
 
@@ -81,14 +90,14 @@ describe("leads inbox authorization", () => {
     // The whole reason the check lives in the query rather than the page.
     const t = convexTest(schema, modules)
     const me = await viewer(t, await seed(t, "student"))
-    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE, {}))
     expect(result.page).toEqual([])
   })
 
   test("staff sees the queue", async () => {
     const t = convexTest(schema, modules)
     const me = await viewer(t, await seed(t, "staff", { leadStatus: "new" }))
-    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE, {}))
     expect(result.page).toHaveLength(1)
     expect(result.page[0]!.phone).toBe(PHONE)
   })
@@ -96,7 +105,7 @@ describe("leads inbox authorization", () => {
   test("an owner sees the queue too", async () => {
     const t = convexTest(schema, modules)
     const me = await viewer(t, await seed(t, "owner", { leadStatus: "new" }))
-    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE, {}))
     expect(result.page).toHaveLength(1)
   })
 })
@@ -120,7 +129,7 @@ describe("the queue's order and shape", () => {
       lastEnquiryAt: old + 500,
     })
     const me = await viewer(t, staffId)
-    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE, {}))
     expect(result.page.map((row) => row.phone)).toEqual([
       "+919000000002",
       "+919000000001",
@@ -135,7 +144,7 @@ describe("the queue's order and shape", () => {
       ctx.db.patch(id, { email: "placeholder@person.ict.invalid" })
     )
     const me = await viewer(t, id)
-    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE, {}))
     const row = result.page[0]!
     // An allowed set, not an exact list: the point is that nothing escapes
     // the projection, and an exact list would fail every time a field the
@@ -161,7 +170,7 @@ describe("the queue's order and shape", () => {
     // casual readers and stop trusting the queue.
     const t = convexTest(schema, modules)
     const me = await viewer(t, await seed(t, "staff"))
-    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE))
+    const result = await t.run((ctx) => readInboxPage(ctx, me, PAGE, {}))
     expect(result.page).toEqual([])
   })
 
@@ -177,12 +186,12 @@ describe("the queue's order and shape", () => {
     }
     const me = await viewer(t, staffId)
     const first = await t.run((ctx) =>
-      readInboxPage(ctx, me, { numItems: 2, cursor: null })
+      readInboxPage(ctx, me, { numItems: 2, cursor: null }, {})
     )
     expect(first.page).toHaveLength(2)
     expect(first.isDone).toBe(false)
     const second = await t.run((ctx) =>
-      readInboxPage(ctx, me, { numItems: 2, cursor: first.continueCursor })
+      readInboxPage(ctx, me, { numItems: 2, cursor: first.continueCursor }, {})
     )
     expect(second.page).toHaveLength(2)
     // A page that exactly fills numItems cannot know it is the last - Convex
@@ -190,7 +199,7 @@ describe("the queue's order and shape", () => {
     // drains with one empty page rather than a falsely confident total.
     expect(second.isDone).toBe(false)
     const third = await t.run((ctx) =>
-      readInboxPage(ctx, me, { numItems: 2, cursor: second.continueCursor })
+      readInboxPage(ctx, me, { numItems: 2, cursor: second.continueCursor }, {})
     )
     expect(third.page).toEqual([])
     expect(third.isDone).toBe(true)
@@ -373,5 +382,313 @@ describe("the admin home counts", () => {
       due: 1,
       capped: false,
     })
+  })
+})
+
+describe("the queue's server-side filters", () => {
+  test("a status filter reaches rows beyond the first page window", async () => {
+    // The bug this guards: the table used to filter only what it had loaded,
+    // so a status match behind the loaded pages never appeared.
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500020" })
+    const me = await viewer(t, staffId)
+    const now = Date.now()
+    for (let i = 0; i < 4; i++) {
+      await seed(t, "student", {
+        phone: `+9198765003${i}0`,
+        leadStatus: "new",
+        lastEnquiryAt: now - i,
+      })
+    }
+    for (let i = 0; i < 3; i++) {
+      await seed(t, "student", {
+        phone: `+9198765004${i}0`,
+        leadStatus: "contacted",
+        lastEnquiryAt: now - 10 - i,
+      })
+    }
+    const first = await t.run((ctx) =>
+      readInboxPage(
+        ctx,
+        me,
+        { numItems: 2, cursor: null },
+        { view: "contacted" }
+      )
+    )
+    expect(first.page).toHaveLength(2)
+    expect(first.isDone).toBe(false)
+    expect(first.page.every((row) => row.leadStatus === "contacted")).toBe(true)
+    const second = await t.run((ctx) =>
+      readInboxPage(
+        ctx,
+        me,
+        { numItems: 2, cursor: first.continueCursor },
+        { view: "contacted" }
+      )
+    )
+    expect(second.page.map((row) => row.phone)).toEqual(["+919876500420"])
+  })
+
+  test('"action" is new enquiries plus due follow-ups, not settled leads', async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500030" })
+    const me = await viewer(t, staffId)
+    const now = Date.UTC(2026, 8, 27, 6, 0)
+    const end = endOfTodayIst(now)
+    await seed(t, "student", {
+      phone: "+919876500031",
+      leadStatus: "new",
+      lastEnquiryAt: now,
+    })
+    await seed(t, "student", {
+      phone: "+919876500032",
+      leadStatus: "contacted",
+      lastEnquiryAt: now - 1,
+      nextFollowUpAt: now - 3_600_000,
+    })
+    // Settled with a due follow-up: closed work must not resurface.
+    await seed(t, "student", {
+      phone: "+919876500033",
+      leadStatus: "enrolled",
+      lastEnquiryAt: now - 2,
+      nextFollowUpAt: now - 3_600_000,
+    })
+    // Future follow-up: not due today.
+    await seed(t, "student", {
+      phone: "+919876500034",
+      leadStatus: "interested",
+      lastEnquiryAt: now - 3,
+      nextFollowUpAt: end + 3_600_000,
+    })
+    const action = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "action" }, now)
+    )
+    expect(action.page.map((row) => row.phone).sort()).toEqual([
+      "+919876500031",
+      "+919876500032",
+    ])
+    const due = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "due" }, now)
+    )
+    expect(due.page.map((row) => row.phone)).toEqual(["+919876500032"])
+  })
+
+  test("the track filter narrows to one exam", async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500040" })
+    const me = await viewer(t, staffId)
+    const now = Date.now()
+    await seed(t, "student", {
+      phone: "+919876500041",
+      leadStatus: "new",
+      lastEnquiryAt: now,
+      interestTrack: "APSC",
+    })
+    await seed(t, "student", {
+      phone: "+919876500042",
+      leadStatus: "new",
+      lastEnquiryAt: now + 1,
+      interestTrack: "ADRE and Assam Police",
+    })
+    const result = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "all", track: "APSC" })
+    )
+    expect(result.page.map((row) => row.phone)).toEqual(["+919876500041"])
+  })
+
+  test("a full phone number finds the one Person it names", async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", { phone: "+919876500050" })
+    const me = await viewer(t, staffId)
+    await seed(t, "student", {
+      phone: "+919876500051",
+      leadStatus: "new",
+      lastEnquiryAt: 1,
+    })
+    await seed(t, "student", {
+      phone: "+919876500052",
+      leadStatus: "new",
+      lastEnquiryAt: 2,
+    })
+    const result = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "all", search: "98765 00051" })
+    )
+    expect(result.page.map((row) => row.phone)).toEqual(["+919876500051"])
+    expect(result.isDone).toBe(true)
+  })
+
+  test("a name search finds the Person and respects the status filter", async () => {
+    const t = convexTest(schema, modules)
+    const staffId = await seed(t, "staff", {
+      phone: "+919876500060",
+      name: "Staff Member",
+    })
+    const me = await viewer(t, staffId)
+    await seed(t, "student", {
+      phone: "+919876500061",
+      name: "Dipika Bora",
+      leadStatus: "new",
+      lastEnquiryAt: 1,
+    })
+    await seed(t, "student", {
+      phone: "+919876500062",
+      name: "Dipika Sharma",
+      leadStatus: "enrolled",
+      lastEnquiryAt: 2,
+    })
+    const all = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "all", search: "Dipika" })
+    )
+    expect(all.page).toHaveLength(2)
+    const fresh = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { view: "new", search: "Dipika" })
+    )
+    expect(fresh.page.map((row) => row.name)).toEqual(["Dipika Bora"])
+  })
+})
+
+describe("staff adding an enquiry", () => {
+  type Staff = NonNullable<Parameters<typeof readInboxPage>[1]>
+
+  async function setup() {
+    const t = convexTest(schema, modules)
+    const staff = (await viewer(
+      t,
+      await seed(t, "staff", { phone: "+919876600001" })
+    )) as Staff
+    const student = (await viewer(
+      t,
+      await seed(t, "student", { phone: "+919876600002" })
+    )) as Staff
+    return { t, staff, student }
+  }
+
+  test("staff can create a lead, and the audit trail says how it arrived", async () => {
+    const { t, staff } = await setup()
+    const result = await t.run((ctx) =>
+      applyCreateLead(ctx, staff!, {
+        name: "Jimoni Deka",
+        phone: "94352 61113",
+        track: "APSC",
+        source: "walk_in",
+        note: "Asked about the morning batch.",
+      })
+    )
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    const person = await t.run((ctx) => ctx.db.get(result.personId))
+    expect(person).toMatchObject({
+      name: "Jimoni Deka",
+      phone: "+919435261113",
+      leadStatus: "new",
+      interestTrack: "APSC",
+      source: "staff_walk_in",
+      role: "student",
+    })
+    const activity = await t.run((ctx) =>
+      ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) => q.eq("personId", result.personId))
+        .collect()
+    )
+    expect(activity.map((a) => [a.kind, a.body])).toEqual([
+      ["enquiry", "Added by staff (walk-in)"],
+      ["note", "Asked about the morning batch."],
+    ])
+    expect(activity.every((a) => a.actorId === staff!.id)).toBe(true)
+  })
+
+  test("a student cannot file an enquiry for someone else", async () => {
+    const { t, student } = await setup()
+    expect(
+      await t.run((ctx) =>
+        applyCreateLead(ctx, student!, {
+          name: "Someone",
+          phone: "9435261113",
+          source: "walk_in",
+        })
+      )
+    ).toEqual({ ok: false, reason: "forbidden" })
+  })
+
+  test("an existing number keeps its name and status, and gains an enquiry row", async () => {
+    const { t, staff } = await setup()
+    const existingId = await seed(t, "student", {
+      phone: "+919876600003",
+      name: "Manash",
+      leadStatus: "contacted",
+      lastEnquiryAt: 1,
+    })
+    const result = await t.run((ctx) =>
+      applyCreateLead(ctx, staff!, {
+        name: "A different spelling",
+        phone: "98766 00003",
+        source: "phone_call",
+      })
+    )
+    expect(result).toEqual({ ok: true, personId: existingId })
+    const person = await t.run((ctx) => ctx.db.get(existingId))
+    expect(person?.name).toBe("Manash")
+    expect(person?.leadStatus).toBe("contacted")
+    expect(person?.lastEnquiryAt).toBeGreaterThan(1)
+    const rows = await t.run((ctx) =>
+      ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) => q.eq("personId", existingId))
+        .collect()
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      kind: "enquiry",
+      body: "Added by staff (phone call)",
+    })
+  })
+
+  test("a bad number, a long note or an erased account are refused", async () => {
+    const { t, staff } = await setup()
+    expect(
+      await t.run((ctx) =>
+        applyCreateLead(ctx, staff!, {
+          name: "No Phone",
+          phone: "12345",
+          source: "other",
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "phone" })
+    expect(
+      await t.run((ctx) =>
+        applyCreateLead(ctx, staff!, {
+          name: "Verbose",
+          phone: "9435261113",
+          source: "other",
+          note: "x".repeat(NOTE_MAX + 1),
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "note" })
+    const gone = await seed(t, "student", { phone: "+919876600004" })
+    await t.run((ctx) => ctx.db.patch(gone, { deletedAt: Date.now() }))
+    expect(
+      await t.run((ctx) =>
+        applyCreateLead(ctx, staff!, {
+          name: "Comeback",
+          phone: "9876600004",
+          source: "walk_in",
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "phone" })
+  })
+
+  test("a track outside the enquiry options is refused", async () => {
+    const { t, staff } = await setup()
+    expect(
+      await t.run((ctx) =>
+        applyCreateLead(ctx, staff!, {
+          name: "Neha",
+          phone: "9435261113",
+          track: "Made-up exam",
+          source: "referral",
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "track" })
   })
 })

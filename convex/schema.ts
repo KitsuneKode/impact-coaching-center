@@ -121,7 +121,12 @@ export default defineSchema({
     // Follow-ups due, for the admin home and the queue's "due" view.
     .index("by_nextFollowUpAt", ["nextFollowUpAt"])
     /* Staff and owners, for the admin surface and for last-owner protection. */
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    /* Name lookup for the inbox search box, scoped to lead fields only. */
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["leadStatus", "interestTrack"],
+    }),
 
   /**
    * Status changes, notes and handoffs. Free text lives here and never on the
@@ -146,15 +151,21 @@ export default defineSchema({
       v.literal("order_placed"),
       v.literal("resource_open"),
       v.literal("catalog_save"),
-      v.literal("catalog_publish")
+      v.literal("catalog_publish"),
+      v.literal("post_save"),
+      v.literal("post_publish")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
-    /** Which catalogue record a catalog_* row changed. */
-    entity: v.optional(v.union(v.literal("book"), v.literal("resource"))),
-    entityId: v.optional(v.union(v.id("books"), v.id("resources"))),
+    /** Which catalogue record a catalog_* or post_* row changed. */
+    entity: v.optional(
+      v.union(v.literal("book"), v.literal("resource"), v.literal("post"))
+    ),
+    entityId: v.optional(
+      v.union(v.id("books"), v.id("resources"), v.id("posts"))
+    ),
     /*
      * The structured half of an audit row. `body` is for reading; these are for
      * asking questions - "every role change this owner made" cannot be answered
@@ -330,6 +341,25 @@ export default defineSchema({
     ),
     updatedAt: v.number(),
   }).index("by_person", ["personId"]),
+
+  /**
+   * Owner-written posts for /blog. `body` is Markdown rendered by the same
+   * component the policy pages use; `publishedAt` is set once, the first
+   * time the post goes live, and kept across unpublishes.
+   */
+  posts: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    excerpt: v.string(),
+    body: v.string(),
+    published: v.boolean(),
+    publishedAt: v.optional(v.number()),
+    authorId: v.optional(v.id("persons")),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published", "publishedAt"]),
 
   /** One row per Person per resource: the first open, for staff to see. */
   resourceOpens: defineTable({
