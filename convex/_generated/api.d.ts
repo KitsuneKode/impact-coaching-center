@@ -11,6 +11,8 @@
 import type * as account from "../account.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
+import type * as blog from "../blog.js";
+import type * as blogAdmin from "../blogAdmin.js";
 import type * as carts from "../carts.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogAdmin from "../catalogAdmin.js";
@@ -34,6 +36,8 @@ declare const fullApi: ApiFromModules<{
   account: typeof account;
   auth: typeof auth;
   authz: typeof authz;
+  blog: typeof blog;
+  blogAdmin: typeof blogAdmin;
   carts: typeof carts;
   catalog: typeof catalog;
   catalogAdmin: typeof catalogAdmin;

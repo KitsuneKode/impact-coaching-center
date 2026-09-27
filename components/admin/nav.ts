@@ -3,6 +3,7 @@ import {
   IconFileText,
   IconInbox,
   IconLayoutDashboard,
+  IconNews,
   IconPackage,
   IconUsers,
 } from "@tabler/icons-react"
@@ -23,6 +24,7 @@ export const OWNER_NAV = [
   { href: "/admin/people", label: "People", icon: IconUsers },
   { href: "/admin/books", label: "Books", icon: IconBook2 },
   { href: "/admin/resources", label: "Resources", icon: IconFileText },
+  { href: "/admin/blog", label: "Blog", icon: IconNews },
 ] as const
 
 /** Whether a nav item is the current screen, or a screen inside it. */

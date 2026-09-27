@@ -71,6 +71,11 @@ export const RESOURCE_PAGES_MAX = 300
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+/** A valid public-path slug: lowercase words joined by hyphens. */
+export function isSlug(value: string) {
+  return SLUG.test(value) && value.length <= 80
+}
+
 /** "Assam GK Capsule" → "assam-gk-capsule". */
 export function slugify(text: string) {
   return text

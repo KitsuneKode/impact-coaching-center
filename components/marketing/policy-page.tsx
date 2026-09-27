@@ -2,6 +2,7 @@ import type { CSSProperties } from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
+import { proseComponents } from "@/components/marketing/markdown-body"
 import { DraftNotice } from "@/components/ui/draft-notice"
 import { Section } from "@/components/ui/section"
 import {
@@ -51,39 +52,8 @@ function Marker({
 }
 
 const components: Components = {
-  h2: ({ children }) => (
-    <h2 className="mt-12 text-lg font-medium text-foreground first:mt-0">
-      {children}
-    </h2>
-  ),
-  p: ({ children }) => (
-    <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-      {children}
-    </p>
-  ),
-  ul: ({ children }) => (
-    <ul className="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed text-muted-foreground marker:text-foreground/40">
-      {children}
-    </ul>
-  ),
-  strong: ({ children }) => (
-    <strong className="font-medium text-foreground">{children}</strong>
-  ),
-  table: ({ children }) => (
-    <div className="mt-4 overflow-x-auto rounded-card border border-border">
-      <table className="w-full min-w-120 text-left text-sm">{children}</table>
-    </div>
-  ),
-  th: ({ children }) => (
-    <th className="border-b border-border bg-muted/50 px-4 py-3 font-medium text-foreground">
-      {children}
-    </th>
-  ),
-  td: ({ children }) => (
-    <td className="border-b border-border px-4 py-3 align-top text-muted-foreground">
-      {children}
-    </td>
-  ),
+  ...proseComponents,
+  /* Marker links are policy-only: they render the highlighted spans above. */
   a: ({ href, children }) => {
     if (href === "#proposed" || href === "#fill")
       return (

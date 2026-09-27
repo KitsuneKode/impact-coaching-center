@@ -22,6 +22,7 @@ const columns = [
     title: "Learn",
     items: [
       { label: "Free classes", href: "/#classes" },
+      { label: "Blog", href: "/blog" },
       { label: "YouTube channel", href: links.youtube, external: true },
       { label: "Get the ICT app", href: links.play, external: true },
       { label: "Student login", href: links.login, external: true },
