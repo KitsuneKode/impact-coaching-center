@@ -3,8 +3,10 @@
 import { headers } from "next/headers"
 
 import { parseClientAddress } from "@/lib/client-address"
+import { serverEnv } from "@/lib/env.server"
 import { HONEYPOT_FIELD, type LeadField, parseLead } from "@/lib/leads"
 import { createLeadSink, LeadThrottled } from "@/lib/lead-delivery"
+import { verifyTurnstile } from "@/lib/turnstile"
 
 export type { LeadField }
 
@@ -13,6 +15,8 @@ export type LeadState =
   | {
       status: "error"
       errors: Partial<Record<LeadField, string>>
+      /** Failure not attributable to one field (e.g. Turnstile). */
+      formError?: string
       values: Partial<Record<LeadField, string>>
     }
   | {
@@ -68,6 +72,26 @@ export async function submitLead(
   // that does and does not guarantee.
   const ip =
     parseClientAddress((await headers()).get("x-forwarded-for")) ?? undefined
+
+  /* Turnstile gates the delivery path, not the validation errors above: a
+     malformed form is answered locally without spending a siteverify call,
+     and an unconfigured secret skips the check so development stays free of
+     keys. In production the key is required - docs/production.md. */
+  if (
+    serverEnv.TURNSTILE_SECRET_KEY &&
+    !(await verifyTurnstile(
+      serverEnv.TURNSTILE_SECRET_KEY,
+      text(formData, "cf-turnstile-response"),
+      ip
+    ))
+  ) {
+    return {
+      status: "error",
+      errors: {},
+      formError: "Verification did not pass. Wait a moment and try again.",
+      values: submitted,
+    }
+  }
 
   try {
     await createLeadSink(process.env, fetch, ip).submit(parsed.lead)

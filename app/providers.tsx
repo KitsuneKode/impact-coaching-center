@@ -11,12 +11,13 @@ import type { ReactNode } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
+import { clientEnv } from "@/lib/env.client"
 
 /**
  * Built once at module scope, not per render: a new ConvexReactClient means a
  * new websocket, and React would open one on every re-render of the tree.
  */
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+const convexUrl = clientEnv.NEXT_PUBLIC_CONVEX_URL
 
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null
 

@@ -1,6 +1,7 @@
 import { convexBetterAuthNextJs } from "@convex-dev/better-auth/nextjs"
 
 import { requireEnv } from "./env"
+import { clientEnv } from "./env.client"
 
 /** The Better Auth route handler, constructed on first request. */
 type AuthServer = ReturnType<typeof convexBetterAuthNextJs>
@@ -11,11 +12,11 @@ function authServer(): AuthServer {
   cached ??= convexBetterAuthNextJs({
     convexUrl: requireEnv(
       "NEXT_PUBLIC_CONVEX_URL",
-      process.env.NEXT_PUBLIC_CONVEX_URL
+      clientEnv.NEXT_PUBLIC_CONVEX_URL
     ),
     convexSiteUrl: requireEnv(
       "NEXT_PUBLIC_CONVEX_SITE_URL",
-      process.env.NEXT_PUBLIC_CONVEX_SITE_URL
+      clientEnv.NEXT_PUBLIC_CONVEX_SITE_URL
     ),
   })
   return cached
