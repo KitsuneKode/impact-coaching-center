@@ -53,3 +53,6 @@ Website Req.pdf
 # and ~770KB of third-party markdown. The lockfile is what we commit.
 /.agents/
 /.claude/skills/
+
+# agent worktrees
+/.worktrees/

@@ -47,6 +47,12 @@ const noindexRoutes = [
   "/redesign/4",
   "/redesign/5",
   "/redesign/6",
+  // Landing-page prototypes for review, noindexed by their layout.
+  "/prototypes",
+  "/prototypes/answer-sheet",
+  "/prototypes/channel",
+  "/prototypes/gamusa",
+  "/prototypes/timetable",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */

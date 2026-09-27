@@ -11,7 +11,7 @@ import { SiteHeader } from "@/components/marketing/site-header"
  * The public site's header and footer, and the routes that should not have
  * them.
  */
-const BARE_PREFIXES = ["/admin", "/redesign"] as const
+const BARE_PREFIXES = ["/admin", "/redesign", "/prototypes"] as const
 
 export function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname()

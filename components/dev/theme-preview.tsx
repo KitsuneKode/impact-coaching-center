@@ -15,7 +15,9 @@ const THEMES = [
 export function ThemePreview() {
   const { theme, setTheme } = useTheme()
   // The redesign concepts carry their own palettes and their own switcher.
-  if (usePathname().startsWith("/redesign")) return null
+  const path = usePathname()
+  if (path.startsWith("/redesign") || path.startsWith("/prototypes"))
+    return null
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-card border border-border bg-card p-1 shadow-lift">
