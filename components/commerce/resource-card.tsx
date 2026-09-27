@@ -69,14 +69,12 @@ function OpenButton({
     }
   }
 
-  // Back from log-in with ?open=<slug>: open it once, then tidy the URL.
+  // Back from log-in with ?open=<slug>: open it once. The URL is tidied when
+  // the reader closes; changing it now would remount this card mid-open.
   const opened = useRef(false)
   useEffect(() => {
     if (!autoOpen || !signedIn || opened.current) return
     opened.current = true
-    router.replace(locale === "en" ? "/resources" : `/${locale}/resources`, {
-      scroll: false,
-    })
     void open()
   })
 
@@ -131,6 +129,8 @@ export function ResourceCard({
 }) {
   const { phrase } = useContent()
   const t = useTranslations("Shop")
+  const locale = useLocale()
+  const router = useRouter()
   const [opened, setOpened] = useState<Opened | null>(null)
   const [open, setOpen] = useState(false)
   return (
@@ -188,7 +188,14 @@ export function ResourceCard({
       {opened ? (
         <PageViewer
           open={open}
-          onOpenChange={setOpen}
+          onOpenChange={(next) => {
+            setOpen(next)
+            if (!next && autoOpen)
+              router.replace(
+                locale === "en" ? "/resources" : `/${locale}/resources`,
+                { scroll: false }
+              )
+          }}
           title={opened.title}
           note={
             opened.placeholder
