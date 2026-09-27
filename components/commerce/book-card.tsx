@@ -18,46 +18,43 @@ export function BookCard({ book }: { book: Book }) {
   const href = `/books/${book.slug}`
 
   return (
-    <article className="group grid gap-4">
+    <article className="group relative grid gap-4">
       <Link
         href={href}
-        aria-label={book.title}
-        className="grid place-items-center rounded-card bg-surface px-[18%] py-8 outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
+        className="grid gap-4 rounded-card outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
       >
-        <BookCover
-          title={book.title}
-          subtitle={book.subtitle}
-          exam={book.exam}
-          tone={book.tone}
-          coverUrl={book.coverUrl}
-          className="transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:group-hover:-translate-y-1.5"
-        />
-      </Link>
-      <div className="flex items-start justify-between gap-3">
-        <div className="grid gap-0.5">
-          <p className="text-xs text-muted-foreground">{book.exam}</p>
-          <Link
-            href={href}
-            className="font-medium text-balance hover:underline"
-          >
+        <span className="grid place-items-center rounded-card bg-surface px-[18%] py-8">
+          <BookCover
+            title={book.title}
+            subtitle={book.subtitle}
+            exam={book.exam}
+            tone={book.tone}
+            coverUrl={book.coverUrl}
+            className="transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] [@media(hover:hover)]:group-hover:-translate-y-1.5"
+          />
+        </span>
+        <span className="grid gap-0.5 pr-12">
+          <span className="text-xs text-muted-foreground">{book.exam}</span>
+          <span className="font-medium text-balance group-hover:underline">
             {book.title}
-          </Link>
-          <p className="tnum text-sm">{formatPaise(book.pricePaise)}</p>
-        </div>
-        <Button
-          variant="secondary"
-          size="icon-sm"
-          aria-label={`Add ${book.title} to cart`}
-          onClick={() => {
-            add(book.slug)
-            toast.success(`${book.title} added to your cart`, {
-              action: { label: "View cart", onClick: openCart },
-            })
-          }}
-        >
-          <IconPlus stroke={1.75} aria-hidden />
-        </Button>
-      </div>
+          </span>
+          <span className="tnum text-sm">{formatPaise(book.pricePaise)}</span>
+        </span>
+      </Link>
+      <Button
+        variant="secondary"
+        size="icon-sm"
+        aria-label={`Add ${book.title} to cart`}
+        className="absolute right-0 bottom-0"
+        onClick={() => {
+          add(book.slug)
+          toast.success(`${book.title} added to your cart`, {
+            action: { label: "View cart", onClick: openCart },
+          })
+        }}
+      >
+        <IconPlus stroke={1.75} aria-hidden />
+      </Button>
     </article>
   )
 }

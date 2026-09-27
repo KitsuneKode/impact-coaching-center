@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
-import { toE164 } from "@/lib/leads"
+import { nationalMobileDraft, toE164 } from "@/lib/leads"
 
 /** Who may use the admin. Owner only, both to see and to change. */
 const REFUSALS: Record<string, string> = {
@@ -150,7 +150,7 @@ function People() {
                 autoComplete="off"
                 placeholder="98765 43210"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(nationalMobileDraft(e.target.value))}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={
                   error ? "grant-phone-error" : "grant-phone-hint"

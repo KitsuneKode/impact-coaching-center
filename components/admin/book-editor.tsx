@@ -39,6 +39,8 @@ import type { Id } from "@/convex/_generated/dataModel"
 import {
   BOOK_TONES,
   checkBook,
+  pageCountDraft,
+  rupeeDraft,
   rupeesToPaise,
   SAMPLE_PAGES_MAX,
   slugify,
@@ -348,7 +350,7 @@ function BookForm({
                 id="book-price"
                 inputMode="decimal"
                 value={draft.price}
-                onChange={(e) => set("price", e.target.value)}
+                onChange={(e) => set("price", rupeeDraft(e.target.value))}
                 aria-invalid={!!errors.price}
                 autoComplete="off"
               />
@@ -360,7 +362,7 @@ function BookForm({
                 id="book-pages"
                 inputMode="numeric"
                 value={draft.pages}
-                onChange={(e) => set("pages", e.target.value)}
+                onChange={(e) => set("pages", pageCountDraft(e.target.value))}
                 aria-invalid={!!errors.pages}
                 autoComplete="off"
               />

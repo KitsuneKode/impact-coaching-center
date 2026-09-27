@@ -39,7 +39,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { enquiryTracks, toE164 } from "@/lib/leads"
+import { enquiryTracks, nationalMobileDraft, toE164 } from "@/lib/leads"
 
 /** How the person reached the desk; stored as `staff_<key>` on the Person. */
 const SOURCES = [
@@ -190,7 +190,9 @@ export function AddEnquiry({
                     autoComplete="off"
                     placeholder="98765 43210"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) =>
+                      setPhone(nationalMobileDraft(e.target.value))
+                    }
                     aria-invalid={errors.phone ? true : undefined}
                     className="tnum"
                   />

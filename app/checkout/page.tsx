@@ -85,11 +85,12 @@ function Checkout() {
           icon={<IconLock stroke={1.75} />}
           title="Sign in to place the order"
           description="Your cart stays on this device and carries over once you're in. New here? Signing in with your number creates the account."
-        >
-          <ButtonLink href="/login?next=/checkout" className="mt-6">
-            Sign in with your number
-          </ButtonLink>
-        </StatePanel>
+          action={
+            <ButtonLink href="/login?next=/checkout" className="mt-6">
+              Sign in with your number
+            </ButtonLink>
+          }
+        />
       </PageShell>
     )
 
@@ -147,8 +148,14 @@ function CheckoutForm() {
   const deliveryPaise = fulfilment === "delivery" ? DELIVERY_CHARGE_PAISE : 0
 
   const set =
-    (field: keyof typeof address) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setAddress((a) => ({ ...a, [field]: e.target.value }))
+    (field: keyof typeof address) =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value =
+        field === "pin"
+          ? e.target.value.replace(/\D/g, "").slice(0, 6)
+          : e.target.value
+      setAddress((a) => ({ ...a, [field]: value }))
+    }
 
   const submit = async () => {
     setPlacing(true)
@@ -253,11 +260,12 @@ function CheckoutForm() {
           icon={<IconPackage stroke={1.75} />}
           title={books === undefined ? "Loading…" : "Your cart is empty"}
           description="The books you add wait here until you place the order."
-        >
-          <ButtonLink href="/books" className="mt-6">
-            Browse the books
-          </ButtonLink>
-        </StatePanel>
+          action={
+            <ButtonLink href="/books" className="mt-6">
+              Browse the books
+            </ButtonLink>
+          }
+        />
       ) : (
         <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
           <div className="space-y-10">

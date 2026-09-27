@@ -3,6 +3,8 @@ import { describe, expect, test } from "bun:test"
 import {
   checkBook,
   checkResource,
+  pageCountDraft,
+  rupeeDraft,
   rupeesToPaise,
   slugify,
   type BookInput,
@@ -53,6 +55,17 @@ describe("catalog rules", () => {
         description: "",
       })
     ).toEqual({ ok: false, field: "kind" })
+  })
+
+  test("keeps a rupee field to digits and two decimal places", () => {
+    expect(rupeeDraft("349abc")).toBe("349")
+    expect(rupeeDraft("12.3456")).toBe("12.34")
+    expect(rupeeDraft("12.3.4")).toBe("12.34")
+  })
+
+  test("keeps a page count to four digits", () => {
+    expect(pageCountDraft("120 pages")).toBe("120")
+    expect(pageCountDraft("123456")).toBe("1234")
   })
 
   test("turns typed rupees into paise, refusing nonsense", () => {

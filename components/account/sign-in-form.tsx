@@ -24,11 +24,10 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { authClient } from "@/lib/auth-client"
-import { toE164 } from "@/lib/leads"
+import { nationalMobileDraft, toE164 } from "@/lib/leads"
 import {
   CODE_LENGTH,
   createPhoneAuthFlow,
-  PHONE_AUTH_MESSAGES,
   RESEND_MS,
 } from "@/lib/phone-auth-flow"
 
@@ -74,7 +73,7 @@ export function SignInForm({ next }: { next: string }) {
    */
   function checkPhone(value: string) {
     const ok = Boolean(toE164(value))
-    setPhoneError(ok ? null : PHONE_AUTH_MESSAGES.INVALID_PHONE_NUMBER!)
+    setPhoneError(ok ? null : "Please enter a 10 digit mobile number.")
     return ok
   }
 
@@ -204,7 +203,7 @@ export function SignInForm({ next }: { next: string }) {
               placeholder="98765 43210"
               value={phone}
               onChange={(event) => {
-                const value = event.target.value
+                const value = nationalMobileDraft(event.target.value)
                 flow.setPhone(value)
                 if (phoneError) checkPhone(value)
               }}

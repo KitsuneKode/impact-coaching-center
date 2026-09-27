@@ -18,7 +18,12 @@ import { contact, formatPhone, timings } from "@/lib/brand"
 import { track } from "@/lib/analytics"
 import { clientEnv } from "@/lib/env.client"
 import { contactHref } from "@/lib/contact"
-import { enquiryTracks, HONEYPOT_FIELD, type LeadField } from "@/lib/leads"
+import {
+  enquiryTracks,
+  HONEYPOT_FIELD,
+  nationalMobileDraft,
+  type LeadField,
+} from "@/lib/leads"
 import { cn } from "@/lib/utils"
 
 /** Document order, so focus lands on the first thing the visitor sees. */
@@ -272,8 +277,15 @@ export function LeadForm() {
                     type="tel"
                     inputMode="numeric"
                     autoComplete="tel-national"
-                    placeholder="98xxx xxxxx"
-                    defaultValue={values.phone}
+                    placeholder="98765 43210"
+                    defaultValue={nationalMobileDraft(values.phone ?? "")}
+                    onInput={(event) => {
+                      const next = nationalMobileDraft(
+                        event.currentTarget.value
+                      )
+                      if (next !== event.currentTarget.value)
+                        event.currentTarget.value = next
+                    }}
                     aria-invalid={Boolean(errors.phone)}
                     aria-describedby={
                       errors.phone ? `${phoneId}-error` : undefined

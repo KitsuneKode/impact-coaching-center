@@ -143,6 +143,24 @@ export function checkResource(input: ResourceInput): Result<ResourceInput> {
   return { ok: true, value }
 }
 
+/** Keeps a rupee field to digits and one dot, with at most two decimal places. */
+export function rupeeDraft(text: string): string {
+  const clean = text.replace(/[^\d.]/g, "")
+  const dot = clean.indexOf(".")
+  if (dot === -1) return clean
+  const whole = clean.slice(0, dot)
+  const fraction = clean
+    .slice(dot + 1)
+    .replace(/\./g, "")
+    .slice(0, 2)
+  return `${whole}.${fraction}`
+}
+
+/** Digits only, capped at the longest page count a book is allowed to have. */
+export function pageCountDraft(text: string): string {
+  return text.replace(/\D/g, "").slice(0, 4)
+}
+
 /** Rupees as typed in a form ("349", "349.50") to integer paise, or null. */
 export function rupeesToPaise(text: string): number | null {
   const clean = text.replace(/[,₹\s]/g, "")
