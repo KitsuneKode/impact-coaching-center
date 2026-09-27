@@ -257,8 +257,7 @@ function ResourceForm({
               <FieldError>{errors.slug}</FieldError>
             ) : (
               <FieldDescription>
-                Used to link straight to it: /resources?open=
-                {draft.slug || "…"}
+                Direct link: /resources?open={draft.slug || "your-title"}
               </FieldDescription>
             )}
           </Field>

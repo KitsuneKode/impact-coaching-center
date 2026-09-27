@@ -297,8 +297,8 @@ function BookForm({
               <FieldError>{errors.slug}</FieldError>
             ) : (
               <FieldDescription>
-                /books/{draft.slug || "…"}. Changing it breaks links already
-                shared.
+                Page: /books/{draft.slug || "your-title"}. Changing it breaks
+                links already shared.
               </FieldDescription>
             )}
           </Field>
