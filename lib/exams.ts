@@ -86,7 +86,7 @@ export const exams: readonly ExamGuide[] = [
           },
           {
             en: "Papers 2 to 5 are General Studies I to IV.",
-            as: "কাকত 2ৰ পৰা 5 সাধাৰণ অধ্যয়ন Iৰ পৰা IV।",
+            as: "কাকত 2-ৰ পৰা 5 সাধাৰণ অধ্যয়ন Iৰ পৰা IV।",
           },
           {
             en: "Paper 6 is a general subject paper on Assam.",
@@ -344,7 +344,7 @@ export const exams: readonly ExamGuide[] = [
     eligibility: [
       {
         en: "Age 20 to 26 on 1 January 2026 for Sub-Inspector (UB), with relaxation for reserved categories.",
-        as: "উপ-পৰিদৰ্শক (UB)ৰ বাবে 1 জানুৱাৰী 2026ত বয়স 20ৰ পৰা 26, সংৰক্ষিত শ্ৰেণীৰ বাবে ৰেহাই আছে।",
+        as: "উপ-পৰিদৰ্শক (UB)ৰ বাবে 1 জানুৱাৰী 2026ত বয়স 20 বছৰৰ পৰা 26 বছৰ, সংৰক্ষিত শ্ৰেণীৰ বাবে ৰেহাই আছে।",
       },
       {
         en: "A graduate in arts, science or commerce from a recognised university.",

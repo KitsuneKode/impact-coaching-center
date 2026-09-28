@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./typeset.css";
 
 /*
  * ICT design system.
@@ -599,5 +600,48 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Typeset (ui.shadcn.com/docs/typeset) for long-form Markdown: blog posts
+ * and their editor preview. The preset keeps the site's own system rather
+ * than Typeset's defaults: Anek in both scripts, 700 and 400 only, links at
+ * body weight with the site underline, looser leading for Assamese.
+ */
+@layer components {
+  .typeset-docs {
+    --typeset-font-body:
+      var(--font-sans), var(--font-as), system-ui, sans-serif;
+    --typeset-font-heading:
+      var(--font-sans), var(--font-as), system-ui, sans-serif;
+    --typeset-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --typeset-size: 16px;
+    --typeset-leading: 1.75;
+    --typeset-flow: 1.25em;
+  }
+  .typeset-docs:lang(as) {
+    --typeset-font-body:
+      var(--font-as), var(--font-sans), system-ui, sans-serif;
+    --typeset-font-heading:
+      var(--font-as), var(--font-sans), system-ui, sans-serif;
+    --typeset-leading: 1.85;
+  }
+  .typeset-docs :where(h1, h2, h3, h4, strong, b, thead th, dt, summary) {
+    font-weight: 700;
+  }
+  .typeset-docs :where(h5, h6, kbd, tbody th, tfoot th) {
+    font-weight: 400;
+  }
+  .typeset-docs :where(a) {
+    font-weight: 400;
+    text-underline-offset: 4px;
+  }
+  .typeset-docs :where(h1, h2, h3, h4) {
+    text-wrap: balance;
+  }
+  .typeset-docs:lang(as) :where(h1, h2, h3, h4) {
+    line-height: 1.45;
+    letter-spacing: 0;
   }
 }
