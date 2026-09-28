@@ -53,6 +53,13 @@ const noindexRoutes = [
   "/prototypes/channel",
   "/prototypes/gamusa",
   "/prototypes/timetable",
+  "/prototypes/lamp",
+  "/prototypes/lamp/notes",
+  "/prototypes/tiles",
+  "/prototypes/path",
+  "/prototypes/stage",
+  "/prototypes/mist",
+  "/prototypes/pulse",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */

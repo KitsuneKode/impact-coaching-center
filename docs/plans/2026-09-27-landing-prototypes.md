@@ -352,3 +352,32 @@ secondary link. State this in the file comment.
       lg — dropped to 2×2 inside the left 7 columns.
 - [x] Impeccable detector once over the four page files: `[]` findings.
 - [ ] Commit; hand back with the four URLs.
+
+## Round two (27 Sep 2026)
+
+Six more at `/prototypes/{lamp,tiles,path,stage,mist,pulse}`, product-grade
+rather than metaphor-led, with books and free notes as a main section on each
+(live from Convex via `shelf()` in `_data.ts`; samples are labelled as such).
+
+- **Lamp**: dark ink, amber lamp hero (flickers on, dims on scroll), spotlight
+  bento, focus-blur teachers, course tabs. Also has inner pages:
+  `/prototypes/lamp/courses/[slug]`, `/books/[slug]`, `/notes`, sharing
+  `lamp/_chrome.tsx`.
+- **Tiles**: light Apple-style bento of working tools (hour picker with day
+  bar, centre/app toggle), poster deck, comparison table, FAQ search.
+- **Path**: sage and forest scroll story of a year at ICT, shelf by exam,
+  sticky-stacking course cards, cursor-following teacher previews.
+- **Stage**: charcoal and vermilion, portrait accordion hero, scroll-lit proof
+  sentence, lectures that morph into a player, podcast list.
+- **Mist**: glass over an aurora that shifts per exam, magnifying dock,
+  parallax hero, one hub per exam (course, teachers, books, notes, workshop).
+- **Pulse**: ICT blue colour fields, rolling exam word, batch tickets, flip
+  cards.
+
+Shared pieces: `_fx.tsx` (Reveal, SpotlightGroup, CountUp, Tilt, Magnetic,
+ScrollTilt, StickyStack, PlayInPlace, ScrollWords, MotionScope with `domMax`
+because the site's LazyMotion is strict) and `_book.tsx` (3D book).
+
+- [x] Six pages built, checked at 1440 and 390, `bun run check` and
+      `bun run build` pass.
+- [ ] Owner picks one or two directions; build their inner pages.

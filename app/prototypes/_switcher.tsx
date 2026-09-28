@@ -25,6 +25,42 @@ export const prototypes = [
     idea: "The mock test. Paper white, hairline grid, one green, questions numbered.",
     swatch: ["#FBFBF9", "#1B1F27", "#2FB04A"],
   },
+  {
+    slug: "lamp",
+    name: "Lamp",
+    idea: "A dark study room lit by one warm lamp. Spotlight bento, focus cards, the class tipping into view.",
+    swatch: ["#07090E", "#F5B544", "#ECEFF4"],
+  },
+  {
+    slug: "tiles",
+    name: "Tiles",
+    idea: "A light product-page bento where the tiles work: pick your hour, flip centre and app, search the questions.",
+    swatch: ["#F2F3F5", "#1E63CF", "#0A1020"],
+  },
+  {
+    slug: "path",
+    name: "Path",
+    idea: "A year at ICT as a scroll story, from the first message to the interview. Sage and forest, stacking course cards.",
+    swatch: ["#E9EDE6", "#123D2C", "#CDEB6B"],
+  },
+  {
+    slug: "stage",
+    name: "Stage",
+    idea: "The teachers are the show. Charcoal and vermilion, a portrait accordion, lectures that open in place.",
+    swatch: ["#0D0D0F", "#F0592F", "#F2F0EC"],
+  },
+  {
+    slug: "mist",
+    name: "Mist",
+    idea: "Light glass over a slow aurora. A magnifying dock, a parallax hero, one hub per exam with its course, books and free notes.",
+    swatch: ["#F2F5F4", "#A9CDF2", "#0D1B1E"],
+  },
+  {
+    slug: "pulse",
+    name: "Pulse",
+    idea: "ICT's own blue in three bold fields. A rolling exam name, batches as tickets, teacher cards that flip.",
+    swatch: ["#1F5FD1", "#FFC24A", "#F5F7FB"],
+  },
 ] as const
 
 export type PrototypeSlug = (typeof prototypes)[number]["slug"]
