@@ -61,6 +61,18 @@ export const prototypes = [
     idea: "ICT's own blue in three bold fields. A rolling exam name, batches as tickets, teacher cards that flip.",
     swatch: ["#1F5FD1", "#FFC24A", "#F5F7FB"],
   },
+  {
+    slug: "season",
+    name: "Season",
+    idea: "Set to whichever exam is next: an almanac countdown, the year on one chart, and the free mocks, books and batch for that exam.",
+    swatch: ["#EDF1F0", "#0A6B63", "#0C1719"],
+  },
+  {
+    slug: "sandhya",
+    name: "Sandhya",
+    idea: "Lamp, rebuilt for a phone and read in Assamese first: thumb-reach actions, snap shelves, 700/400 Anek.",
+    swatch: ["#07090E", "#F5B544", "#ECEFF4"],
+  },
 ] as const
 
 export type PrototypeSlug = (typeof prototypes)[number]["slug"]

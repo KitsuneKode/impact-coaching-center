@@ -381,3 +381,31 @@ because the site's LazyMotion is strict) and `_book.tsx` (3D book).
 - [x] Six pages built, checked at 1440 and 390, `bun run check` and
       `bun run build` pass.
 - [ ] Owner picks one or two directions; build their inner pages.
+
+## Round three (28 Sep 2026)
+
+Two more, each testing something the first twelve did not.
+
+- **Season** (`/prototypes/season`): the page is set to whichever exam is
+  next. An almanac card counts down to that exam's next date (or the close of
+  an open window), a twelve-month chart puts every exam on one line with
+  today marked, and one kit per exam holds how the exam works (official
+  figures from `lib/exams.ts`), its free folders, its books and its batch.
+  The tabs in the almanac, the chart rows and the kit share one selection.
+  Dates are labelled samples placed around today (`season/_dates.ts`); the
+  live page would read the admin calendar from feat/i18n.
+- **Sandhya** (`/prototypes/sandhya`): Lamp rebuilt for a 390px phone and read
+  in Assamese first, on the production type pair (Anek Bangla + Anek Latin,
+  700/400). Stacked full-width hero actions, free folders before anything
+  else, swipeable shelves for books, classes and teachers, and a thumb bar
+  that arrives once the hero has scrolled away. Copy reuses the Assamese
+  drafts from feat/i18n. Anek Bangla loads its Bengali subset only, so Latin
+  letters and digits always come from Anek Latin.
+
+Finding from Sandhya: a digit written straight against an Assamese suffix
+("8ৰ") picks up the suffix's headline and reads like the Bengali ৪ at phone
+size. Times are written "8 বজাৰ পৰা" instead.
+
+- [x] Both built, checked at 1440 and 390, `bun run check` and
+      `bun run build` pass.
+- [ ] Review all twelve at phone width in both languages; pick a direction.

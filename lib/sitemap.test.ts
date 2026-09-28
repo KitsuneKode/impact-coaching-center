@@ -60,6 +60,8 @@ const noindexRoutes = [
   "/prototypes/stage",
   "/prototypes/mist",
   "/prototypes/pulse",
+  "/prototypes/season",
+  "/prototypes/sandhya",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */

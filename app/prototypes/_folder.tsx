@@ -20,9 +20,14 @@ export type FolderTones = {
 export function Folder({
   folder,
   tones,
+  name = folder.name,
+  count,
 }: {
   folder: FolderData
   tones: FolderTones
+  /** Overrides for another language. */
+  name?: string
+  count?: string
 }) {
   const n = folder.items.length
   const style = {
@@ -39,9 +44,12 @@ export function Folder({
       {n > 0 && <span data-fd-paper="0" aria-hidden />}
       {n > 1 && <span data-fd-paper="1" aria-hidden />}
       <span data-fd-front>
-        <span data-fd-name>{folder.name}</span>
+        <span data-fd-name>{name}</span>
         <span data-fd-count>
-          {n ? `${n} ${n === 1 ? "file" : "files"}, free` : "Nothing here yet"}
+          {count ??
+            (n
+              ? `${n} ${n === 1 ? "file" : "files"}, free`
+              : "Nothing here yet")}
         </span>
       </span>
     </span>
