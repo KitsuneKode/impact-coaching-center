@@ -1,5 +1,6 @@
 import {
   IconBook2,
+  IconCalendarEvent,
   IconFileText,
   IconInbox,
   IconLayoutDashboard,
@@ -25,6 +26,7 @@ export const OWNER_NAV = [
   { href: "/admin/books", label: "Books", icon: IconBook2 },
   { href: "/admin/resources", label: "Resources", icon: IconFileText },
   { href: "/admin/blog", label: "Blog", icon: IconNews },
+  { href: "/admin/calendar", label: "Calendar", icon: IconCalendarEvent },
 ] as const
 
 /** Whether a nav item is the current screen, or a screen inside it. */

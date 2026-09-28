@@ -70,17 +70,21 @@ describe("policies", () => {
     const text = prose("privacy")
     const describesSignIn =
       text.includes("If you sign in") && text.includes("one-time code")
-    expect(describesSignIn).toBe(existsSync("app/login"))
+    expect(describesSignIn).toBe(existsSync("app/(plain)/login"))
   })
 
   test("the policy does not describe an account area that does not exist", () => {
-    if (!existsSync("app/account"))
+    if (!existsSync("app/(plain)/account"))
       for (const doc of policies)
         expect(doc.body).not.toContain("your account page")
   })
 
   test("ordering is described as not yet open while none of it is built", () => {
-    const ordering = ["app/checkout", "app/cart", "app/books"].some(existsSync)
+    const ordering = [
+      "app/(plain)/checkout",
+      "app/cart",
+      "app/[locale]/books",
+    ].some(existsSync)
     for (const slug of ["shipping", "refunds"]) {
       const doc = policyBySlug(slug)!
       // Each page says ordering is not open until a checkout exists, and

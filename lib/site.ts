@@ -45,14 +45,36 @@ export const indexable = serverEnv.SITE_INDEXABLE === "true"
 export function openGraphFor(
   path: string,
   title: string,
-  description: string
+  description: string,
+  locale = "en"
 ): NonNullable<Metadata["openGraph"]> {
   return {
     type: "website",
-    locale: "en_IN",
-    url: path,
+    locale: locale === "as" ? "as_IN" : "en_IN",
+    url: localePath(path, locale),
     siteName: brand.legalName,
     title,
     description,
+  }
+}
+
+/** A public path in a given language: English unprefixed, Assamese under /as. */
+export function localePath(path: string, locale: string) {
+  if (locale === "en") return path
+  return path === "/" ? `/${locale}` : `/${locale}${path}`
+}
+
+/** Canonical plus hreflang alternates for a public path, per language. */
+export function alternatesFor(
+  path: string,
+  locale: string
+): NonNullable<Metadata["alternates"]> {
+  return {
+    canonical: localePath(path, locale),
+    languages: {
+      "en-IN": path,
+      "as-IN": localePath(path, "as"),
+      "x-default": path,
+    },
   }
 }

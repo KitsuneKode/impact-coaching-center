@@ -19,12 +19,24 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { checkPost, POST_BODY_MAX, POST_EXCERPT_MAX } from "@/lib/blog"
+import {
+  checkPost,
+  POST_BODY_MAX,
+  POST_EXCERPT_MAX,
+  type PostLanguage,
+} from "@/lib/blog"
 import { slugify } from "@/lib/catalog"
 
 type Draft = {
@@ -32,9 +44,21 @@ type Draft = {
   slug: string
   excerpt: string
   body: string
+  language: PostLanguage
 }
 
-const EMPTY: Draft = { title: "", slug: "", excerpt: "", body: "" }
+const EMPTY: Draft = {
+  title: "",
+  slug: "",
+  excerpt: "",
+  body: "",
+  language: "en",
+}
+
+const LANGUAGE_ITEMS: { value: PostLanguage; label: string }[] = [
+  { value: "en", label: "English" },
+  { value: "as", label: "অসমীয়া (Assamese)" },
+]
 
 /** What a save compares against to know whether anything changed. */
 const snapshot = (draft: Draft) => JSON.stringify(draft)
@@ -87,6 +111,7 @@ export function PostEditor({ id }: { id?: string }) {
         slug: post.slug,
         excerpt: post.excerpt,
         body: post.body,
+        language: post.language,
       }}
     />
   )
@@ -200,12 +225,38 @@ function PostForm({
             <FieldLabel htmlFor="post-title">Title</FieldLabel>
             <Input
               id="post-title"
+              lang={draft.language}
               value={draft.title}
               onChange={(e) => set("title", e.target.value)}
               aria-invalid={!!errors.title}
               autoComplete="off"
             />
             <FieldError>{errors.title}</FieldError>
+          </Field>
+          <Field {...fieldProps("language")}>
+            <FieldLabel htmlFor="post-language">Written in</FieldLabel>
+            <Select
+              value={draft.language}
+              onValueChange={(next) =>
+                next && set("language", next as PostLanguage)
+              }
+              items={LANGUAGE_ITEMS}
+            >
+              <SelectTrigger id="post-language" className="w-full sm:w-72">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGE_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              Both /blog and /as/blog list every post; each shows its own
+              language first.
+            </FieldDescription>
           </Field>
           <Field {...fieldProps("slug")}>
             <FieldLabel htmlFor="post-slug">Web address</FieldLabel>
@@ -233,6 +284,7 @@ function PostForm({
             <FieldLabel htmlFor="post-excerpt">Excerpt</FieldLabel>
             <Textarea
               id="post-excerpt"
+              lang={draft.language}
               rows={3}
               value={draft.excerpt}
               onChange={(e) => set("excerpt", e.target.value)}
@@ -257,6 +309,7 @@ function PostForm({
               <TabsContent value="write" className="mt-2">
                 <Textarea
                   aria-label="Post body, Markdown"
+                  lang={draft.language}
                   rows={16}
                   value={draft.body}
                   onChange={(e) => set("body", e.target.value)}
@@ -266,7 +319,10 @@ function PostForm({
                 />
               </TabsContent>
               <TabsContent value="preview" className="mt-2">
-                <div className="min-h-40 rounded-control border border-border bg-card px-5 py-4">
+                <div
+                  lang={draft.language}
+                  className="min-h-40 rounded-control border border-border bg-card px-5 py-4"
+                >
                   {draft.body.trim() ? (
                     <MarkdownBody>{draft.body}</MarkdownBody>
                   ) : (
@@ -354,6 +410,8 @@ function messageFor(field: string) {
       return `Keep the excerpt under ${POST_EXCERPT_MAX} characters.`
     case "body":
       return "The body is too long."
+    case "language":
+      return "Pick English or Assamese."
     default:
       return `Check the ${field}.`
   }

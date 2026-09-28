@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
+
 import { createContext, useContext, useState, type ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
@@ -41,9 +43,10 @@ export function ShopCartButton() {
 
 /** Said plainly while the catalogue is placeholder titles. */
 export function SampleNotice({ children }: { children: ReactNode }) {
+  const t = useTranslations("Shop")
   return (
     <p className="rounded-control border border-highlight bg-highlight/20 px-4 py-2.5 text-sm">
-      <span className="font-medium">Sample.</span> {children}
+      <span className="font-medium">{t("sampleTag")}</span> {children}
     </p>
   )
 }

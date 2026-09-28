@@ -1,5 +1,7 @@
 "use client"
 
+import { useLocale, useTranslations } from "next-intl"
+
 import { IconArrowRight, IconLock } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 import { useRouter } from "next/navigation"
@@ -12,14 +14,15 @@ import { PaperPage } from "@/components/commerce/paper-page"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
+import { useContent } from "@/i18n/content"
 import { track } from "@/lib/analytics"
 import type { Resource } from "@/lib/catalog"
 
 type Opened = { title: string; pages: ViewerPage[]; placeholder: boolean }
 
-/** Where log-in sends the visitor back to: this list, with the reader open. */
-const returnTo = (slug: string) =>
-  `/login?next=${encodeURIComponent(`/resources?open=${slug}`)}`
+/** Where log-in sends the visitor back to: this list, in their language, with the reader open. */
+const returnTo = (slug: string, locale: string) =>
+  `/login?next=${encodeURIComponent(`${locale === "en" ? "" : `/${locale}`}/resources?open=${slug}`)}`
 
 function OpenButton({
   resource,
@@ -30,6 +33,8 @@ function OpenButton({
   autoOpen: boolean
   onOpened: (opened: Opened) => void
 }) {
+  const t = useTranslations("Shop")
+  const locale = useLocale()
   const router = useRouter()
   const viewer = useQuery(api.auth.getCurrentPerson)
   const openResource = useMutation(api.catalog.openResource)
@@ -53,12 +58,12 @@ function OpenButton({
             : result.pageUrls.map((src) => ({ src })),
         })
       } else if (result.reason === "anonymous") {
-        router.push(returnTo(resource.slug))
+        router.push(returnTo(resource.slug, locale))
       } else {
-        toast.error("This resource is no longer available.")
+        toast.error(t("gone"))
       }
     } catch {
-      toast.error("Could not open it. Check your connection and try again.")
+      toast.error(t("openFailed"))
     } finally {
       setBusy(false)
     }
@@ -69,7 +74,9 @@ function OpenButton({
   useEffect(() => {
     if (!autoOpen || !signedIn || opened.current) return
     opened.current = true
-    router.replace("/resources", { scroll: false })
+    router.replace(locale === "en" ? "/resources" : `/${locale}/resources`, {
+      scroll: false,
+    })
     void open()
   })
 
@@ -77,7 +84,7 @@ function OpenButton({
   if (viewer === undefined)
     return (
       <Button variant="secondary" size="sm" disabled>
-        Open
+        {t("open")}
       </Button>
     )
   return (
@@ -86,24 +93,28 @@ function OpenButton({
       size="sm"
       disabled={busy}
       aria-label={
-        signedIn ? `Open ${resource.title}` : `Log in to open ${resource.title}`
+        signedIn
+          ? t("openTitle", { title: resource.title })
+          : t("loginToOpenTitle", { title: resource.title })
       }
-      onClick={() => (signedIn ? open() : router.push(returnTo(resource.slug)))}
+      onClick={() =>
+        signedIn ? open() : router.push(returnTo(resource.slug, locale))
+      }
     >
       {busy ? (
         <>
           <Spinner />
-          Opening
+          {t("opening")}
         </>
       ) : signedIn ? (
         <>
-          Open
+          {t("open")}
           <IconArrowRight stroke={1.75} data-nudge aria-hidden />
         </>
       ) : (
         <>
           <IconLock stroke={1.75} aria-hidden />
-          Log in to open
+          {t("loginToOpen")}
         </>
       )}
     </Button>
@@ -118,6 +129,8 @@ export function ResourceCard({
   resource: Resource
   autoOpen?: boolean
 }) {
+  const { phrase } = useContent()
+  const t = useTranslations("Shop")
   const [opened, setOpened] = useState<Opened | null>(null)
   const [open, setOpen] = useState(false)
   return (
@@ -134,7 +147,7 @@ export function ResourceCard({
             className="absolute inset-0 translate-x-1 rotate-[1.5deg] bg-card ring-1 ring-border"
           />
           <PaperPage
-            running={resource.kind}
+            running={phrase(resource.kind)}
             heading={resource.title}
             lines={9}
             compact
@@ -142,7 +155,7 @@ export function ResourceCard({
           />
         </div>
         <span className="absolute top-3 left-3 rounded-full bg-background/90 px-2.5 py-1 text-[0.6875rem] font-medium">
-          {resource.kind}
+          {phrase(resource.kind)}
         </span>
       </div>
 
@@ -150,7 +163,7 @@ export function ResourceCard({
         <div className="grid gap-1">
           <h2 className="font-medium text-balance">{resource.title}</h2>
           <p className="tnum text-sm text-muted-foreground">
-            {resource.exam} · {resource.pages} pages
+            {phrase(resource.exam)} · {t("pages", { count: resource.pages })}
           </p>
         </div>
         <p className="text-sm text-muted-foreground">{resource.description}</p>
@@ -166,7 +179,7 @@ export function ResourceCard({
             />
           ) : (
             <Button size="sm" variant="secondary" disabled>
-              Open
+              {t("open")}
             </Button>
           )}
         </div>
@@ -179,8 +192,8 @@ export function ResourceCard({
           title={opened.title}
           note={
             opened.placeholder
-              ? "Placeholder pages. The real pages appear here once uploaded."
-              : `${opened.pages.length} pages.`
+              ? t("placeholderPages")
+              : t("pageCount", { count: opened.pages.length })
           }
           pages={opened.pages}
         />

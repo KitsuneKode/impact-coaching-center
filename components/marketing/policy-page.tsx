@@ -1,3 +1,4 @@
+import { useLocale, useTranslations } from "next-intl"
 import type { CSSProperties } from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
@@ -77,10 +78,21 @@ export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
   const markers = policyMarkers(doc.body)
   const proposed = markers.filter((m) => m.kind === "proposed").length
   const toFill = markers.length - proposed
+  const locale = useLocale()
+  const t = useTranslations("Policy")
 
   return (
-    <main>
+    // The document itself is English; only the notice above it is not.
+    <main lang="en-IN">
       <Section size="sm" className="pt-26 md:pt-30">
+        {locale === "en" ? null : (
+          <p
+            lang="as-IN"
+            className="enter mb-6 inline-flex rounded-control bg-secondary px-3 py-2 text-sm"
+          >
+            {t("englishOnly")}
+          </p>
+        )}
         <h1 className="enter type-display max-w-208" style={delay(0)}>
           <span className="text-foreground">{doc.title}</span>
         </h1>

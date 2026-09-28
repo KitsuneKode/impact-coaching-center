@@ -1,8 +1,9 @@
+import { useTranslations } from "next-intl"
 import { IconArrowUpRight, IconCircleCheckFilled } from "@tabler/icons-react"
 
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
-import Link from "next/link"
+import { Link } from "@/i18n/navigation"
 
 import { links, selections } from "@/lib/brand"
 
@@ -16,6 +17,7 @@ export function SelectionCard({
 }: {
   person: (typeof selections)[number]
 }) {
+  const t = useTranslations("Results")
   return (
     <article className="flex flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-7">
       <div className="flex items-start justify-between gap-4">
@@ -23,13 +25,11 @@ export function SelectionCard({
           <p className="tnum text-[3rem] leading-none font-medium tracking-[-0.04em]">
             {person.serial}
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Serial in the APSC CCE 2022 result
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("serial")}</p>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-control border border-verified/25 bg-verified/8 px-2.5 py-1 text-xs font-medium text-verified">
           <IconCircleCheckFilled size={14} aria-hidden />
-          Verified
+          {t("verified")}
         </span>
       </div>
 
@@ -49,17 +49,18 @@ export function SelectionCard({
 
 /** Results: the numbers first, then the voices. */
 export function Results() {
+  const t = useTranslations("Results")
   return (
     <Section id="results" bleed>
       <div className="container-page">
         <Reveal>
           <Lede
-            label="Results"
-            claim="Two officers on the APSC CCE 2022 list prepared here."
-            rest="Both names are in the commission's own result, published on 17 January 2024."
+            label={t("label")}
+            claim={t("claim")}
+            rest={t("rest")}
             link={{
               href: links.apscResultPdf,
-              label: "Open the result",
+              label: t("open"),
               external: true,
             }}
           />
@@ -78,8 +79,7 @@ export function Results() {
             href="/success-stories"
             className="link mt-10 inline-flex items-center gap-1 text-sm"
           >
-            Student reviews, officers who taught here, and how we check each
-            claim
+            {t("more")}
             <IconArrowUpRight size={14} stroke={1.75} />
           </Link>
         </Reveal>

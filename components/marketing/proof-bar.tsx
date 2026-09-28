@@ -1,3 +1,5 @@
+import { useContent } from "@/i18n/content"
+import { useTranslations } from "next-intl"
 import { IconArrowUpRight } from "@tabler/icons-react"
 
 import { AnimatedNumber } from "@/components/motion-primitives/animated-number"
@@ -9,11 +11,10 @@ import { proof } from "@/lib/brand"
  * pulls the eye to the four facts that carry the most trust.
  */
 export function ProofBar() {
+  const t = useTranslations("Proof")
+  const content = useContent()
   return (
-    <section
-      aria-label="Numbers you can check"
-      className="border-y border-border"
-    >
+    <section aria-label={t("label")} className="border-y border-border">
       <div className="container-page">
         <ul className="grid grid-cols-2 lg:grid-cols-4">
           {proof.map((item, index) => (
@@ -40,7 +41,7 @@ export function ProofBar() {
                   />
                 </span>
                 <span className="mt-3 inline-flex items-start gap-1 text-sm leading-snug text-muted-foreground transition-colors group-hover:text-foreground">
-                  {item.label}
+                  {content.proof[index] ?? item.label}
                   <IconArrowUpRight
                     size={14}
                     stroke={1.75}

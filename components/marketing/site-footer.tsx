@@ -1,55 +1,61 @@
+import { useTranslations } from "next-intl"
 import Image from "next/image"
-import Link from "next/link"
+
+import { LocaleSwitch } from "@/components/i18n/locale-switch"
+import { Link } from "@/i18n/navigation"
 
 import { brand, contact, formatPhone, links, place, tracks } from "@/lib/brand"
 import { courseById } from "@/lib/catalogue"
 
-const columns = [
-  {
-    title: "Courses",
-    items: [
-      ...tracks.map((track) => {
-        const course = courseById(track.flagshipId)
-        return {
-          label: course?.short ?? track.exam,
-          href: `/courses/${course?.slug ?? ""}`,
-        }
-      }),
-      { label: "All courses", href: "/courses" },
-    ],
-  },
-  {
-    title: "Learn",
-    items: [
-      { label: "Free classes", href: "/#classes" },
-      { label: "Blog", href: "/blog" },
-      { label: "YouTube channel", href: links.youtube, external: true },
-      { label: "Get the ICT app", href: links.play, external: true },
-      { label: "Student login", href: links.login, external: true },
-    ],
-  },
-  {
-    title: "Follow",
-    items: [
-      { label: "Instagram", href: links.instagram, external: true },
-      { label: "Facebook", href: links.facebook, external: true },
-      { label: "YouTube", href: links.youtube, external: true },
-    ],
-  },
-  {
-    title: "ICT",
-    items: [
-      { label: "Contact", href: "/contact" },
-      { label: "Privacy", href: "/privacy" },
-      { label: "Terms", href: "/terms" },
-      { label: "Shipping", href: "/shipping" },
-      { label: "Refunds", href: "/refunds" },
-    ],
-  },
-] as const
-
 /** Kobbe's footer: identity on the left, quiet link columns, nothing else. */
 export function SiteFooter() {
+  const t = useTranslations("Footer")
+  const columns = [
+    {
+      title: t("courses"),
+      items: [
+        ...tracks.map((track) => {
+          const course = courseById(track.flagshipId)
+          return {
+            label: course?.short ?? track.exam,
+            href: `/courses/${course?.slug ?? ""}`,
+          }
+        }),
+        { label: t("allCourses"), href: "/courses" },
+      ],
+    },
+    {
+      title: t("learn"),
+      items: [
+        { label: t("freeClasses"), href: "/#classes" },
+        { label: t("exams"), href: "/exams" },
+        { label: t("calendar"), href: "/exams/calendar" },
+        { label: t("blog"), href: "/blog" },
+        { label: t("youtubeChannel"), href: links.youtube, external: true },
+        { label: t("app"), href: links.play, external: true },
+        { label: t("login"), href: links.login, external: true },
+      ],
+    },
+    {
+      title: t("follow"),
+      items: [
+        { label: "Instagram", href: links.instagram, external: true },
+        { label: "Facebook", href: links.facebook, external: true },
+        { label: "YouTube", href: links.youtube, external: true },
+      ],
+    },
+    {
+      title: t("ict"),
+      items: [
+        { label: t("contact"), href: "/contact" },
+        { label: t("centres"), href: "/contact#centres" },
+        { label: t("privacy"), href: "/privacy" },
+        { label: t("terms"), href: "/terms" },
+        { label: t("shipping"), href: "/shipping" },
+        { label: t("refunds"), href: "/refunds" },
+      ],
+    },
+  ]
   return (
     <footer className="border-t border-border pb-28 md:pb-12">
       <div className="container-page grid gap-12 pt-14 md:grid-cols-[1.4fr_2fr] md:pt-16">
@@ -77,10 +83,11 @@ export function SiteFooter() {
               {contact.email}
             </a>
           </p>
+          <LocaleSwitch className="mt-6" />
         </div>
 
         <nav
-          aria-label="Footer"
+          aria-label={t("label")}
           className="grid grid-cols-2 gap-8 sm:grid-cols-3"
         >
           {columns.map((column) => (
@@ -118,8 +125,7 @@ export function SiteFooter() {
 
       <div className="container-page mt-14">
         <p className="border-t border-border pt-6 text-xs leading-relaxed text-muted-foreground">
-          {brand.legalName}, {place.city}. Selection serials are from the APSC
-          CCE 2022 result published on 17 January 2024.
+          {t("note", { name: brand.legalName, city: place.city })}
         </p>
       </div>
     </footer>

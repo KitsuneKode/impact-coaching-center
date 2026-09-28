@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import { IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
@@ -12,19 +13,24 @@ import { studentReviews, thumb } from "@/lib/stories"
  */
 export function StudentVoices({
   limit,
-  heading = "Students, in their own words.",
-  lead = "Every one of these is a review ICT published on their channel, with the student's name and batch.",
+  heading,
+  lead,
 }: {
   limit?: number
   heading?: string
   lead?: string
 }) {
+  const t = useTranslations("Voices")
   const list = limit ? studentReviews.slice(0, limit) : studentReviews
 
   return (
     <Section id="students">
       <Reveal>
-        <Lede label="Student voices" claim={heading} rest={lead} />
+        <Lede
+          label={t("label")}
+          claim={heading ?? t("claim")}
+          rest={lead ?? t("rest")}
+        />
       </Reveal>
 
       <Reveal delay={0.08}>
@@ -37,7 +43,7 @@ export function StudentVoices({
               <VideoDialog
                 id={student.id}
                 title={`${student.name}, ${student.batch}`}
-                subtitle={`Student review, ${student.exam}`}
+                subtitle={t("subtitle", { exam: student.exam })}
                 vertical
                 className="w-full"
               >

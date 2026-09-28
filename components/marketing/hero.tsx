@@ -3,6 +3,7 @@ import {
   IconArrowUpRight,
   IconPhone,
 } from "@tabler/icons-react"
+import { useLocale, useTranslations } from "next-intl"
 import Image from "next/image"
 import type { CSSProperties } from "react"
 
@@ -12,14 +13,8 @@ import {
 } from "@/components/marketing/batch-countdown"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { ButtonAnchor } from "@/components/ui/button"
-import {
-  contact,
-  faculty,
-  formatPhone,
-  links,
-  nextBatch,
-  offer,
-} from "@/lib/brand"
+import { contact, faculty, formatPhone, links, nextBatch } from "@/lib/brand"
+import { useContent } from "@/i18n/content"
 import { hasStarted } from "@/lib/batch-date"
 import { contactHref } from "@/lib/contact"
 
@@ -29,18 +24,18 @@ const startDate = new Date(`${nextBatch.startsOn}T00:00:00+05:30`)
 /** Settled at build: a build made after the start never renders the banner. */
 const startedAtBuild = hasStarted(nextBatch.startsOn)
 
-const startLabel = startDate.toLocaleDateString("en-IN", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  timeZone: "Asia/Kolkata",
-})
-const startShort = startDate.toLocaleDateString("en-IN", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  timeZone: "Asia/Kolkata",
-})
+/** Dates in the reader's language, with Latin digits as on ICT's posters. */
+function dateIn(locale: string, style: "long" | "short") {
+  return startDate.toLocaleDateString(
+    locale === "as" ? "as-IN-u-nu-latn" : "en-IN",
+    {
+      weekday: style,
+      day: "numeric",
+      month: style,
+      timeZone: "Asia/Kolkata",
+    }
+  )
+}
 
 /**
  * Hero, rendered on the server with CSS-only entry so the headline paints on
@@ -48,6 +43,12 @@ const startShort = startDate.toLocaleDateString("en-IN", {
  * mid-range Android phone).
  */
 export function Hero() {
+  const t = useTranslations("Hero")
+  const offer = useTranslations("Offer")
+  const locale = useLocale()
+  const { teaches } = useContent()
+  const startLabel = dateIn(locale, "long")
+  const startShort = dateIn(locale, "short")
   return (
     <section className="relative pt-26 pb-16 md:pt-30 md:pb-24">
       <div className="container-page">
@@ -66,9 +67,10 @@ export function Hero() {
                 <span className="text-muted-foreground">
                   <span className="hidden sm:inline">
                     {" "}
-                    for {nextBatch.exam}
+                    {t("batchFor", { exam: nextBatch.exam })}
                   </span>{" "}
-                  · Start date: <span className="sm:hidden">{startShort}</span>
+                  · {t("startDate")}{" "}
+                  <span className="sm:hidden">{startShort}</span>
                   <span className="hidden sm:inline">{startLabel}</span>
                 </span>
               </span>
@@ -91,14 +93,15 @@ export function Hero() {
           className="enter type-hero mt-7 max-w-5xl first:mt-0"
           style={delay(80)}
         >
-          <span className="mark">Crack APSC</span> from North Lakhimpur.
+          {t.rich("title", {
+            mark: (chunks) => <span className="mark">{chunks}</span>,
+          })}
         </h1>
         <p
           className="enter type-lede mt-5 max-w-3xl text-muted-foreground"
           style={delay(140)}
         >
-          Classroom, night batch, and the ICT app, with faculty you can watch
-          teach on YouTube before you pay anything.
+          {t("lede")}
         </p>
 
         <div
@@ -110,7 +113,7 @@ export function Hero() {
             target="_blank"
             size="lg"
           >
-            {offer.cta}
+            {offer("cta")}
             <IconArrowRight data-nudge stroke={1.75} />
           </ButtonAnchor>
           <ButtonAnchor
@@ -130,14 +133,14 @@ export function Hero() {
           className="enter flex items-baseline justify-between gap-4"
           style={delay(300)}
         >
-          <p className="type-label">The teachers you will sit in front of</p>
+          <p className="type-label">{t("teachers")}</p>
           <a
             href={links.youtube}
             target="_blank"
             rel="noreferrer noopener"
             className="link hidden items-center gap-1 text-sm sm:inline-flex"
           >
-            Watch them teach
+            {t("watch")}
             <IconArrowUpRight size={14} stroke={1.75} />
           </a>
         </div>
@@ -151,14 +154,20 @@ export function Hero() {
             >
               <VideoDialog
                 id={person.lecture}
-                title={`${person.called} teaching ${person.teaches}`}
-                subtitle="A full class from the ICT channel"
+                title={t("videoTitle", {
+                  called: person.called,
+                  teaches: teaches(person.slug),
+                })}
+                subtitle={t("videoSubtitle")}
                 className="w-full"
               >
                 <div className="relative aspect-[4/5] overflow-hidden rounded-card bg-surface ring-1 ring-border md:aspect-[6/7]">
                   <Image
                     src={person.portrait}
-                    alt={`${person.name}, ${person.teaches} faculty at Impact Career Tutorials`}
+                    alt={t("portraitAlt", {
+                      name: person.name,
+                      teaches: teaches(person.slug),
+                    })}
                     fill
                     loading={index === 0 ? "eager" : "lazy"}
                     fetchPriority={index === 0 ? "high" : undefined}
@@ -173,7 +182,7 @@ export function Hero() {
                   {person.called}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {person.teaches}
+                  {teaches(person.slug)}
                 </p>
               </VideoDialog>
             </li>

@@ -9,20 +9,22 @@ import {
 import { AnimatePresence, useReducedMotion } from "motion/react"
 import * as m from "motion/react-m"
 import Image from "next/image"
-import Link from "next/link"
+import { Link } from "@/i18n/navigation"
+import { useTranslations } from "next-intl"
 import { useEffect, useId, useRef, useState } from "react"
 
 import { AccountMenu } from "@/components/account/account-menu"
+import { LocaleSwitch } from "@/components/i18n/locale-switch"
 import { ButtonAnchor } from "@/components/ui/button"
-import { brand, offer } from "@/lib/brand"
+import { brand } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 
 const nav = [
-  { href: "/courses", label: "Courses" },
-  { href: "/#results", label: "Results" },
-  { href: "/#classes", label: "Free classes" },
-  { href: "/#questions", label: "Questions" },
-  { href: "/#enquire", label: "Contact" },
+  { href: "/courses", key: "courses" },
+  { href: "/#results", key: "results" },
+  { href: "/#classes", key: "classes" },
+  { href: "/#questions", key: "questions" },
+  { href: "/#enquire", key: "contact" },
 ] as const
 
 /**
@@ -31,6 +33,8 @@ const nav = [
  * way down on desktop, which is why the page does not need a floating button.
  */
 export function SiteHeader() {
+  const t = useTranslations("Nav")
+  const offer = useTranslations("Offer")
   const [open, setOpen] = useState(false)
   const reduce = useReducedMotion()
   const panelId = useId()
@@ -70,7 +74,7 @@ export function SiteHeader() {
       <div className="container-page flex items-center justify-between gap-3">
         <Link
           href="/"
-          aria-label={`${brand.legalName}, home`}
+          aria-label={t("home", { name: brand.legalName })}
           className={`${group} flex h-12 items-center gap-2.5 pr-3.5 pl-1.5`}
         >
           <span className="grid size-9 place-items-center rounded-md bg-white ring-1 ring-border">
@@ -92,7 +96,7 @@ export function SiteHeader() {
         </Link>
 
         <nav
-          aria-label="Sections"
+          aria-label={t("sections")}
           className={`${group} hidden h-12 items-center gap-0.5 p-1.5 pl-2 lg:flex`}
         >
           {nav.map((item) => (
@@ -101,9 +105,10 @@ export function SiteHeader() {
               href={item.href}
               className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              {item.label}
+              {t(item.key)}
             </Link>
           ))}
+          <LocaleSwitch className="ml-1" />
           <AccountMenu className="ml-1" />
           <ButtonAnchor
             href={contactHref({ kind: "workshop" })}
@@ -111,14 +116,14 @@ export function SiteHeader() {
             size="sm"
             className="ml-1 rounded-md"
           >
-            {offer.short}
+            {offer("short")}
           </ButtonAnchor>
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
           <a
             href={contactHref({ kind: "call" })}
-            aria-label="Call Impact Career Tutorials"
+            aria-label={t("call")}
             className={`${group} inline-flex size-12 items-center justify-center`}
           >
             <IconPhone size={19} stroke={1.6} />
@@ -128,7 +133,7 @@ export function SiteHeader() {
             type="button"
             aria-expanded={open}
             aria-controls={panelId}
-            aria-label={open ? "Close menu" : "Open menu"}
+            aria-label={open ? t("closeMenu") : t("openMenu")}
             onClick={() => setOpen((value) => !value)}
             className={`${group} inline-flex size-12 items-center justify-center`}
           >
@@ -167,7 +172,7 @@ export function SiteHeader() {
                       onClick={() => setOpen(false)}
                       className="flex items-center justify-between rounded-control px-3 py-3.5 text-[1.0625rem] font-medium transition-colors hover:bg-secondary"
                     >
-                      {item.label}
+                      {t(item.key)}
                       <IconArrowRight
                         size={16}
                         stroke={1.6}
@@ -182,8 +187,9 @@ export function SiteHeader() {
                 it /login is unreachable from a handset, which is most of
                 this audience.
               */}
-              <div className="mt-1 flex justify-start border-t border-border px-1 pt-2">
+              <div className="mt-1 flex items-center justify-between border-t border-border px-1 pt-2">
                 <AccountMenu />
+                <LocaleSwitch />
               </div>
               <ButtonAnchor
                 href={contactHref({ kind: "workshop" })}
@@ -192,7 +198,7 @@ export function SiteHeader() {
                 className="mt-2 w-full"
                 onClick={() => setOpen(false)}
               >
-                {offer.cta}
+                {offer("cta")}
               </ButtonAnchor>
             </div>
           </m.div>

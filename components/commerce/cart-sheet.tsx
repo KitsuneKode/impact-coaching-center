@@ -1,8 +1,10 @@
 "use client"
 
+import { useTranslations } from "next-intl"
+
 import { IconShoppingBag, IconTrash } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
-import Link from "next/link"
+import { Link } from "@/i18n/navigation"
 
 import { BookCover } from "@/components/commerce/book-cover"
 import { QuantityStepper } from "@/components/commerce/quantity-stepper"
@@ -22,6 +24,7 @@ import { formatPaise } from "@/lib/money"
 
 /** The cart button with its count, shown once the saved cart has loaded. */
 export function CartButton({ onOpen }: { onOpen: () => void }) {
+  const t = useTranslations("Shop")
   const hydrated = useCartHydrated()
   const count = useCart((s) => s.lines.reduce((n, l) => n + l.quantity, 0))
   const shown = hydrated ? count : 0
@@ -30,10 +33,10 @@ export function CartButton({ onOpen }: { onOpen: () => void }) {
       variant="secondary"
       size="sm"
       onClick={onOpen}
-      aria-label={`Cart, ${shown} ${shown === 1 ? "item" : "items"}`}
+      aria-label={t("cartLabel", { count: shown })}
     >
       <IconShoppingBag stroke={1.75} aria-hidden />
-      Cart
+      {t("cart")}
       <span className="tnum min-w-5 rounded-full bg-primary px-1.5 text-center text-[0.6875rem] leading-5 text-primary-foreground">
         {shown}
       </span>
@@ -54,6 +57,7 @@ export function CartSheet({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const t = useTranslations("Shop")
   const lines = useCart((s) => s.lines)
   const { setQuantity, remove } = useCartActions()
   /* No subscription while the sheet is closed: a hidden cart should not keep
@@ -79,13 +83,15 @@ export function CartSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 text-sm sm:max-w-md">
         <SheetHeader className="border-b border-border p-6">
-          <SheetTitle className="text-lg font-medium">Your cart</SheetTitle>
+          <SheetTitle className="text-lg font-medium">
+            {t("yourCart")}
+          </SheetTitle>
           <SheetDescription>
             {loading
-              ? "Checking prices…"
+              ? t("checking")
               : rows.length === 0
-                ? "Nothing here yet."
-                : "One delivery charge for the whole order, shown at checkout."}
+                ? t("empty")
+                : t("deliveryNote")}
           </SheetDescription>
         </SheetHeader>
 
@@ -97,15 +103,13 @@ export function CartSheet({
           </div>
         ) : rows.length === 0 ? (
           <div className="grid flex-1 place-content-center gap-4 p-6 text-center">
-            <p className="text-muted-foreground">
-              Add a book and it will wait here, even if you close the tab.
-            </p>
+            <p className="text-muted-foreground">{t("emptyNote")}</p>
             <Button
               variant="secondary"
               size="md"
               onClick={() => onOpenChange(false)}
             >
-              Keep browsing
+              {t("keepBrowsing")}
             </Button>
           </div>
         ) : (
@@ -132,7 +136,7 @@ export function CartSheet({
                         {book.title}
                       </Link>
                       <p className="tnum text-muted-foreground">
-                        {formatPaise(book.pricePaise)} each
+                        {t("each", { price: formatPaise(book.pricePaise) })}
                       </p>
                     </div>
                     <div className="flex items-center justify-between gap-3">
@@ -153,17 +157,17 @@ export function CartSheet({
                   className="flex items-center justify-between gap-4 p-6 text-muted-foreground"
                 >
                   <div className="min-w-0">
-                    <p className="font-medium">No longer available</p>
+                    <p className="font-medium">{t("unavailable")}</p>
                     <p className="truncate text-sm">{line.slug}</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => remove(line.slug)}
-                    aria-label={`Remove ${line.slug} from cart`}
+                    aria-label={t("removeFromCart", { slug: line.slug })}
                   >
                     <IconTrash stroke={1.75} aria-hidden />
-                    Remove
+                    {t("remove")}
                   </Button>
                 </li>
               )
@@ -174,7 +178,7 @@ export function CartSheet({
         {rows.some((row) => row.book) ? (
           <SheetFooter className="gap-3 border-t border-border p-6">
             <div className="flex items-baseline justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
+              <span className="text-muted-foreground">{t("subtotal")}</span>
               <span className="tnum text-lg font-medium">
                 {formatPaise(subtotal)}
               </span>
@@ -184,11 +188,10 @@ export function CartSheet({
               href="/checkout"
               onClick={() => onOpenChange(false)}
             >
-              Checkout
+              {t("checkout")}
             </ButtonLink>
             <p className="text-center text-xs text-muted-foreground">
-              Sign in with your number to place the order. No online payment yet
-              - ICT confirms it with you first.
+              {t("checkoutNote")}
             </p>
           </SheetFooter>
         ) : null}

@@ -3,9 +3,30 @@ import type { MetadataRoute } from "next"
 import { listedCourseIds } from "@/lib/brand"
 import { publishedPosts } from "@/lib/catalog-server"
 import { catalogue } from "@/lib/catalogue"
+import { exams } from "@/lib/exams"
 import { libraryApproved } from "@/lib/library"
 import { policies } from "@/lib/policies"
-import { siteUrl } from "@/lib/site"
+import { localePath, siteUrl } from "@/lib/site"
+
+type Entry = MetadataRoute.Sitemap[number]
+
+/**
+ * One public path in both languages, each pointing at the other, so search
+ * engines serve the English or Assamese page to the right reader.
+ */
+function bothLanguages(entry: Entry): Entry[] {
+  const path = entry.url.slice(siteUrl.length) || "/"
+  const url = (locale: string) => {
+    const p = localePath(path, locale)
+    return p === "/" ? siteUrl : `${siteUrl}${p}`
+  }
+  const languages = { "en-IN": url("en"), "as-IN": url("as") }
+  return ["en", "as"].map((locale) => ({
+    ...entry,
+    url: url(locale),
+    alternates: { languages },
+  }))
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   /* Convex may be absent at build time; the static list still ships. */
@@ -17,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }))
-  return [
+  const entries: Entry[] = [
     { url: siteUrl, changeFrequency: "weekly", priority: 1 },
     { url: `${siteUrl}/courses`, changeFrequency: "weekly", priority: 0.9 },
     // /success-stories sets its own canonical but was missing here, so
@@ -27,6 +48,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    { url: `${siteUrl}/exams`, changeFrequency: "monthly", priority: 0.7 },
+    {
+      url: `${siteUrl}/exams/calendar`,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
+    ...exams.map((exam) => ({
+      url: `${siteUrl}/exams/${exam.slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.7,
+    })),
+    { url: `${siteUrl}/assist`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/blog`, changeFrequency: "weekly", priority: 0.6 },
     ...posts.map((post) => ({
       url: `${siteUrl}/blog/${post.slug}`,
@@ -56,4 +89,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       : []),
     ...courses,
   ]
+  return entries.flatMap(bothLanguages)
 }

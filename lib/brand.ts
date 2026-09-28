@@ -20,6 +20,41 @@ export const place = {
   maps: "https://goo.gl/maps/GibauAfFg2BBtdRu9",
 } as const
 
+/**
+ * ICT's centres. North Lakhimpur is the main one. Dhemaji is confirmed by the
+ * owner but its address and map pin are not on file yet, so it carries no
+ * location and the site says so rather than guessing. Fill `at` to switch on
+ * its distance, directions and map.
+ */
+export type Centre = {
+  id: string
+  town: string
+  main: boolean
+  at: {
+    street: string
+    pin: string
+    lat: number
+    lng: number
+    maps: string
+  } | null
+}
+
+export const centres: readonly Centre[] = [
+  {
+    id: "north-lakhimpur",
+    town: place.city,
+    main: true,
+    at: {
+      street: place.street,
+      pin: place.pin,
+      lat: place.lat,
+      lng: place.lng,
+      maps: place.maps,
+    },
+  },
+  { id: "dhemaji", town: "Dhemaji", main: false, at: null },
+]
+
 export const contact = {
   phones: ["+918638061175", "+918134995880"] as const,
   whatsapp: "+918638061175",
@@ -477,6 +512,8 @@ export const toConfirm = [
   "Radiant 2.0 and Diamond 3.0 timings are not on their posters",
   "Whether the Play Store listing is still live (Classplus reports the Android app as delisted)",
   "Opening hours for the centre; /contact omits them because none is recorded anywhere",
+  "ASSIST scholarship test: next date, who can sit it, fee, format, and scholarship amounts",
+  "Dhemaji centre: street address, PIN, map pin, opening date, and whether it has its own phone number",
   "Whether ICT has a Telegram channel; the spec lists one as a contact channel and no link exists",
   "Wording of the four policy documents in content/policies/*.md; all four are drafts and stay noindex until approved",
   "Delivery areas, charges and dispatch times, and the cancellation and refund policy, before online ordering opens",

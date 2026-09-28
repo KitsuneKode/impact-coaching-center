@@ -9,10 +9,13 @@ import { query, type QueryCtx } from "./_generated/server"
  */
 
 /** A post in the list: everything but the body, which only its page needs. */
+export const POST_LANGUAGE = v.union(v.literal("en"), v.literal("as"))
+
 const POST_CARD = v.object({
   slug: v.string(),
   title: v.string(),
   excerpt: v.string(),
+  language: POST_LANGUAGE,
   publishedAt: v.optional(v.number()),
   updatedAt: v.number(),
 })
@@ -33,6 +36,7 @@ export async function readPublishedPosts(ctx: Pick<QueryCtx, "db">) {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt,
+    language: row.language ?? "en",
     publishedAt: row.publishedAt,
     updatedAt: row.updatedAt,
   }))
@@ -52,6 +56,7 @@ export async function readPublishedPost(
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt,
+    language: row.language ?? "en",
     body: row.body,
     publishedAt: row.publishedAt,
     updatedAt: row.updatedAt,

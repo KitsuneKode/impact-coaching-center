@@ -8,14 +8,16 @@ import {
   useScroll,
 } from "motion/react"
 import * as m from "motion/react-m"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
 import { ButtonAnchor } from "@/components/ui/button"
-import { offer } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 
 /** The mobile conversion bar: call, or book, one thumb away. */
 export function MobileActionBar() {
+  const t = useTranslations("MobileBar")
+  const offer = useTranslations("Offer")
   const [shown, setShown] = useState(false)
   const reduce = useReducedMotion()
   const { scrollY } = useScroll()
@@ -40,7 +42,7 @@ export function MobileActionBar() {
               className="flex-1"
             >
               <IconPhone stroke={1.6} />
-              Call
+              {t("call")}
             </ButtonAnchor>
             <ButtonAnchor
               href={contactHref({ kind: "workshop" })}
@@ -48,7 +50,7 @@ export function MobileActionBar() {
               size="lg"
               className="flex-[2]"
             >
-              {offer.short}
+              {offer("short")}
             </ButtonAnchor>
           </div>
         </m.div>

@@ -1,3 +1,5 @@
+import { useContent } from "@/i18n/content"
+import { useTranslations } from "next-intl"
 import {
   IconArrowUpRight,
   IconBrandWhatsapp,
@@ -8,7 +10,7 @@ import {
 import { LeadForm } from "@/components/marketing/lead-form"
 import { Reveal } from "@/components/motion/reveal"
 import { Section } from "@/components/ui/section"
-import { contact, formatPhone, joining, place } from "@/lib/brand"
+import { contact, formatPhone, place } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 
 /**
@@ -17,6 +19,8 @@ import { contactHref } from "@/lib/contact"
  * press the button, which is the question that stops most people pressing it.
  */
 export function Enquire() {
+  const t = useTranslations("Enquire")
+  const content = useContent()
   return (
     <Section id="enquire">
       {/*
@@ -25,16 +29,13 @@ export function Enquire() {
       <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-x-16 lg:gap-y-10">
         <Reveal className="lg:col-start-1 lg:row-start-1">
           <p className="text-sm font-medium text-muted-foreground">
-            Talk to ICT
+            {t("label")}
           </p>
           <h2 className="type-lede mt-4 max-w-[30rem]">
-            <span className="text-foreground">
-              Sit in on a class before you pay anything.
-            </span>
+            <span className="text-foreground">{t("claim")}</span>
             <span className="text-muted-foreground">
               {" "}
-              Leave your number and the centre will call you to fix a free
-              workshop, or walk in on {place.spoken}.
+              {t("rest", { place: content.place })}
             </span>
           </h2>
         </Reveal>
@@ -48,13 +49,13 @@ export function Enquire() {
 
         <Reveal className="lg:col-start-1 lg:row-start-2">
           <ol className="space-y-6">
-            {joining.map((step, index) => (
+            {content.joining.map((step, index) => (
               <li key={step.verb} className="relative flex gap-4">
                 <span className="relative flex flex-col items-center">
                   <span className="tnum grid size-7 place-items-center rounded-full border border-border bg-card text-xs font-medium shadow-frame">
                     {index + 1}
                   </span>
-                  {index < joining.length - 1 ? (
+                  {index < content.joining.length - 1 ? (
                     <span aria-hidden className="mt-1 w-px flex-1 bg-border" />
                   ) : null}
                 </span>
@@ -78,7 +79,7 @@ export function Enquire() {
                 className="mt-0.5 shrink-0 text-muted-foreground"
               />
               <div>
-                <dt className="text-muted-foreground">Call</dt>
+                <dt className="text-muted-foreground">{t("call")}</dt>
                 <dd className="tnum mt-0.5 flex flex-col font-medium">
                   <a
                     href={contactHref({ kind: "call" })}
@@ -102,7 +103,7 @@ export function Enquire() {
                 className="mt-0.5 shrink-0 text-muted-foreground"
               />
               <div>
-                <dt className="text-muted-foreground">WhatsApp</dt>
+                <dt className="text-muted-foreground">{t("whatsapp")}</dt>
                 <dd className="mt-0.5 font-medium">
                   <a
                     href={contactHref({ kind: "workshop" })}
@@ -122,7 +123,7 @@ export function Enquire() {
                 className="mt-0.5 shrink-0 text-muted-foreground"
               />
               <div>
-                <dt className="text-muted-foreground">Walk in</dt>
+                <dt className="text-muted-foreground">{t("walkIn")}</dt>
                 <dd className="mt-0.5 font-medium">
                   {place.street}, {place.city}, {place.region} {place.pin}
                 </dd>
@@ -133,7 +134,7 @@ export function Enquire() {
                     rel="noreferrer noopener"
                     className="link inline-flex items-center gap-0.5"
                   >
-                    Open in Google Maps
+                    {t("maps")}
                     <IconArrowUpRight size={14} stroke={1.75} />
                   </a>
                 </dd>
@@ -144,7 +145,7 @@ export function Enquire() {
           <div className="mt-8 overflow-hidden rounded-card border border-border bg-card shadow-frame">
             <div className="relative aspect-[16/9] bg-surface">
               <iframe
-                title="Impact Career Tutorials on Google Maps"
+                title={t("mapTitle")}
                 src={`https://www.google.com/maps?q=${place.lat},${place.lng}&z=17&output=embed`}
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -164,7 +165,7 @@ export function Enquire() {
                 rel="noreferrer noopener"
                 className="link shrink-0 text-sm"
               >
-                Directions
+                {t("directions")}
               </a>
             </div>
           </div>

@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import { IconMicrophone, IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
@@ -14,6 +15,7 @@ function views(n: number) {
 
 /** Axom Dhwani, ICT's podcast. */
 export function Podcast() {
+  const t = useTranslations("Podcast")
   const [lead, ...rest] = podcast.episodes
 
   return (
@@ -21,8 +23,8 @@ export function Podcast() {
       <Reveal>
         <Lede
           label="Axom Dhwani"
-          claim="ICT also makes a podcast about Assam."
-          rest={`Hosted by ${podcast.hosts}, on history, cinema, geopolitics and the people of the state. Episodes have been watched more than a lakh and a half times.`}
+          claim={t("claim")}
+          rest={t("rest", { hosts: podcast.hosts })}
           link={{ href: links.youtube, label: "All episodes", external: true }}
         />
       </Reveal>
@@ -61,7 +63,7 @@ export function Podcast() {
                 </span>
               </span>
               <span className="tnum shrink-0 text-sm text-muted-foreground">
-                {views(lead.views)} views
+                {t("views", { count: views(lead.views) })}
               </span>
             </span>
           </VideoDialog>
@@ -71,13 +73,13 @@ export function Podcast() {
           <div className="rounded-card bg-surface p-6">
             <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <IconMicrophone size={16} stroke={1.75} />
-              Across the series
+              {t("across")}
             </p>
             <p className="mt-2 text-[2.25rem] leading-none font-medium tracking-[-0.03em]">
               <AnimatedNumber value={podcast.seriesViews} />
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              views on the ICT channel, more than any of its lectures.
+              {t("seriesNote")}
             </p>
           </div>
 
@@ -104,7 +106,7 @@ export function Podcast() {
                       {episode.title}
                     </span>
                     <span className="tnum block text-xs text-muted-foreground">
-                      {views(episode.views)} views
+                      {t("views", { count: views(episode.views) })}
                     </span>
                   </span>
                   <IconPlayerPlayFilled
