@@ -2,6 +2,7 @@ import {
   contact,
   faculty,
   faqs,
+  fees,
   formatPhone,
   included,
   joining,
@@ -17,6 +18,7 @@ import {
   tracks,
 } from "@/lib/brand"
 import { catalogue } from "@/lib/catalogue"
+import { exams } from "@/lib/exams"
 import { groupByFolder } from "@/lib/free-folders"
 
 import { localCovers, spineFrom } from "./_covers"
@@ -115,6 +117,9 @@ export const rupees = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n)
 
+/** A fee for display: the free workshops read "Free", not "₹0". */
+export const fee = (n: number) => (n === 0 ? "Free" : rupees(n))
+
 export const compact = (n: number) =>
   new Intl.NumberFormat("en-IN", { notation: "compact" }).format(n)
 
@@ -197,6 +202,24 @@ export async function shelf() {
 
 export type Shelf = Awaited<ReturnType<typeof shelf>>
 
+/** The exam explainers, English text only, as plain data a client component can take. */
+export const examGuides = exams.map((e) => ({
+  slug: e.slug,
+  track: e.track,
+  short: e.short.en,
+  name: e.name.en,
+  body: e.body.en,
+  summary: e.summary.en,
+  stages: e.stages.map((s) => ({
+    name: s.name.en,
+    facts: s.facts?.en,
+    points: s.points.map((p) => p.en),
+  })),
+  eligibility: (e.eligibility ?? []).map((p) => p.en),
+  papers: e.papers.map((p) => ({ label: p.label.en, href: p.href })),
+  checked: e.checked,
+}))
+
 export const whatsapp = `https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`
 export const tel = `tel:${contact.phones[0]}`
 export const phone = formatPhone(contact.phones[0])
@@ -206,6 +229,7 @@ export {
   contact,
   faculty,
   faqs,
+  fees,
   included,
   joining,
   links,

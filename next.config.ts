@@ -1,4 +1,8 @@
+import { readdirSync } from "node:fs"
+
 import type { NextConfig } from "next"
+
+import { clientSet } from "./app/prototypes/_preview"
 
 /**
  * The Content-Security-Policy as a static header rather than a per-request
@@ -55,20 +59,26 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /**
-   * /login and /register are the real routes, because those are the words
-   * people know. They render the same screen with different framing: there is
-   * one mechanism, since entering a mobile number either finds that Person or
-   * creates one (ADR-0001).
-   *
-   * The old /sign-in and /sign-up paths redirect rather than 404, because
-   * /sign-in was live and may already be linked from somewhere we do not
-   * control. Permanent, because this is the last time these move.
-   */
   async redirects() {
+    /* This branch serves the prototype shortlist and nothing else: the real
+       site's routes and any prototype outside `clientSet` go to the index. */
+    const served: readonly string[] = clientSet
+    const hidden = readdirSync("app/prototypes", { withFileTypes: true })
+      .filter((d) => d.isDirectory() && !d.name.startsWith("_"))
+      .map((d) => d.name)
+      .filter((name) => !served.includes(name))
     return [
-      { source: "/sign-in", destination: "/login", permanent: true },
-      { source: "/sign-up", destination: "/register", permanent: true },
+      ...hidden.map((name) => ({
+        source: `/prototypes/${name}/:path*`,
+        destination: "/prototypes",
+        permanent: false,
+      })),
+      { source: "/", destination: "/prototypes", permanent: false },
+      {
+        source: "/:path((?!prototypes|_next|proto|favicon.ico|robots.txt).*)",
+        destination: "/prototypes",
+        permanent: false,
+      },
     ]
   },
 
@@ -82,6 +92,7 @@ const nextConfig: NextConfig = {
             value: contentSecurityPolicy(),
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
           {

@@ -195,7 +195,7 @@ export function Almanac({
                 rel="noreferrer noopener"
                 className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--ss-teal)] underline decoration-[var(--ss-teal)]/30 underline-offset-4 hover:decoration-[var(--ss-teal)]"
               >
-                Official notice
+                Exam authority website (sample date)
                 <IconArrowUpRight aria-hidden size={15} stroke={1.75} />
               </a>
 

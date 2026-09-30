@@ -1,6 +1,8 @@
 import Link from "next/link"
 
-export const prototypes = [
+import { clientSet } from "./_preview"
+
+const allPrototypes = [
   {
     slug: "timetable",
     name: "Timetable",
@@ -73,13 +75,109 @@ export const prototypes = [
     idea: "Lamp, rebuilt for a phone and read in Assamese first: thumb-reach actions, snap shelves, 700/400 Anek.",
     swatch: ["#07090E", "#F5B544", "#ECEFF4"],
   },
+  {
+    slug: "clearcoat",
+    name: "Clearcoat",
+    idea: "Deep automotive blues that repaint the page. Panels catch the light under the pointer; pick a batch like you would a trim.",
+    swatch: ["#070A14", "#3B72EE", "#B4C6DB"],
+  },
+  {
+    slug: "livery",
+    name: "Livery",
+    idea: "A powder-blue racing livery with one orange stripe. Batches on a timing tower, the newest on a pit board, teachers as a driver line-up.",
+    swatch: ["#86BFEA", "#F2621F", "#0B1F3A"],
+  },
+  {
+    slug: "notebook",
+    name: "Notebook",
+    idea: "A study notebook: graph paper, blue-black ink, one highlighter. Batches on a day planner, exams as sticky notes, buttons that push down.",
+    swatch: ["#EDF1F8", "#FFE14D", "#101B4D"],
+  },
+  {
+    slug: "atlas",
+    name: "Atlas",
+    idea: "The route to each exam drawn as a transit map. Pick a line and the batches, teachers and stages light up.",
+    swatch: ["#EAF0EE", "#C81E64", "#0C2A30"],
+  },
+  {
+    slug: "sovereign",
+    name: "Sovereign",
+    idea: "Deep navy and gold foil, like a charter. The merit list comes first; gold is held to a tenth of the page so it stays precious.",
+    swatch: ["#000820", "#D7B265", "#F8F3E6"],
+  },
+  {
+    slug: "meridian",
+    name: "Meridian",
+    idea: "Royal blue and gold on a cool white page, with an azure accent for facts. A three-question batch finder finds your batch by exam and hour.",
+    swatch: ["#3660AF", "#D7B265", "#F8F7F2"],
+  },
+  {
+    slug: "laureate",
+    name: "Laureate",
+    idea: "The candidate. ICT's antique gold on Oxford navy, light and dark, with the best of the rest: batch finder, route map, merit list, first-week checklist, video reel.",
+    swatch: ["#0D2441", "#D7B265", "#F8F5EC"],
+  },
+  {
+    slug: "vesper",
+    name: "Vesper",
+    idea: "Ink and champagne, after hours. The headline is unlit until your pointer passes over it; chapters, a roll of honour, teachers as an index, books as a printed catalogue.",
+    swatch: ["#000820", "#E1CFA5", "#8FA9CB"],
+  },
+  {
+    slug: "charter",
+    name: "Charter",
+    idea: "Sapphire and bronze on warm pearl, laid out as a bento. Every fact is its own tile: next batch, exam picker, books, free notes, faculty that open as you point, a question tile that answers.",
+    swatch: ["#174A92", "#C99065", "#F8F7F2"],
+  },
+  {
+    slug: "calibre",
+    name: "Calibre",
+    idea: "Navy and gold, finished like a watch. The day's batches are gold arcs on a sunray dial that keeps Indian time and turns its light toward you.",
+    swatch: ["#000820", "#D7B265", "#F8F3E6"],
+  },
+  {
+    slug: "diorama",
+    name: "Diorama",
+    idea: "Sapphire and bronze in isometric line drawings. The classroom, the library, the mock hall and the app as small models you can lift.",
+    swatch: ["#F8F7F2", "#174A92", "#C99065"],
+  },
+  {
+    slug: "alloy",
+    name: "Alloy",
+    idea: "Brushed steel and champagne, laid out like a product page: a book that turns as you scroll and a chart to compare batches side by side.",
+    swatch: ["#E6EBF1", "#AE9D73", "#142537"],
+  },
+  {
+    slug: "udoy",
+    name: "Udoy",
+    idea: "Dusk on the Brahmaputra behind a batch search. Pick your exam and your hour the way you would book a trip, with the proof right under the photo.",
+    swatch: ["#131E45", "#F2A65A", "#F5F2EC"],
+  },
+  {
+    slug: "rollcall",
+    name: "Rollcall",
+    idea: "ICT's own photographs as the background: real classrooms drift behind the headline, and each exam gets a bold, grainy panel of its own.",
+    swatch: ["#EDECE8", "#3E4FD8", "#141416"],
+  },
+  {
+    slug: "akhor",
+    name: "Akhor",
+    idea: "Light and bilingual, after Sarvam: a muga-silk shader, Assamese and English side by side, and a footer that lights up under the pointer.",
+    swatch: ["#FAF8F3", "#B8862E", "#1E2347"],
+  },
 ] as const
 
-export type PrototypeSlug = (typeof prototypes)[number]["slug"]
+export type PrototypeSlug = (typeof allPrototypes)[number]["slug"]
+
+/** Only what the client preview serves, in the order of `clientSet`. */
+export const prototypes = clientSet.map(
+  (slug) => allPrototypes.find((p) => p.slug === slug)!
+)
 
 /** A small bar to step between prototypes while comparing them. */
 export function PrototypeSwitcher({ current }: { current: PrototypeSlug }) {
   const index = prototypes.findIndex((p) => p.slug === current)
+  if (index < 0) return null
   const prev = prototypes.at(index - 1)!
   const next = prototypes[(index + 1) % prototypes.length]!
   const proto = prototypes[index]!

@@ -251,8 +251,9 @@ export default async function Season() {
                   style={{ animationDelay: "0.1s" }}
                   className="mt-6 max-w-[46ch] text-lg text-pretty text-[var(--ss-muted)]"
                 >
-                  Notified dates for APSC, ADRE, Assam Police and bank exams,
-                  with the free mocks, books and batch for each.
+                  A sample calendar for APSC, ADRE, Assam Police and bank exams,
+                  with the free mocks, books and batch for each. Confirm dates
+                  with the exam authority before planning around them.
                 </p>
                 <div
                   data-rise

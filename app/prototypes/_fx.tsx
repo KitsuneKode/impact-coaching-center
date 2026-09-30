@@ -277,16 +277,19 @@ export function PlayInPlace({
   title,
   children,
   className,
+  ...rest
 }: {
   id: string
   title: string
   children: ReactNode
   className?: string
+  [attr: `data-${string}`]: string | undefined
 }) {
   const [playing, setPlaying] = useState(false)
   if (playing)
     return (
       <iframe
+        {...rest}
         className={className}
         src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
         title={title}
@@ -296,6 +299,7 @@ export function PlayInPlace({
     )
   return (
     <button
+      {...rest}
       type="button"
       className={className}
       onClick={() => setPlaying(true)}
