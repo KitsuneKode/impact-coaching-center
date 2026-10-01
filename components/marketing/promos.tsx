@@ -61,7 +61,14 @@ export type Campaign = {
   href: string
   image: string | null
   imageAlt: string
-  reels: { id: string; still: string; name: string; meta: string }[]
+  reels: {
+    id: string
+    still: string
+    name: string
+    meta: string
+    /** a promo video that carries its own words: no caption over it */
+    bare?: boolean
+  }[]
   coupon: string
   price: string | null
   was: string | null
@@ -514,10 +521,12 @@ export function ReelCard({
           </div>
 
           <div data-pm-reel-foot>
-            <p>
-              <strong>{r.name}</strong>
-              <span>{r.meta}</span>
-            </p>
+            {!r.bare && (
+              <p>
+                <strong>{r.name}</strong>
+                <span>{r.meta}</span>
+              </p>
+            )}
             <div data-pm-actions>
               {open && reels.length > 1 && (
                 <>

@@ -28,6 +28,8 @@ import {
   whatsapp,
 } from "../_data"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 
 /**
  * Prototype 2: Channel. The viewing room.
@@ -192,6 +194,8 @@ export default function Channel() {
     >
       <style>{css}</style>
 
+      <HomePromos slug="channel" tokens={siteTokens} />
+
       <header className="border-b border-[var(--ch-line)]">
         <div className={`${container} flex h-16 items-center gap-6`}>
           <Link
@@ -224,6 +228,15 @@ export default function Channel() {
             <a data-quiet href="#questions">
               Questions
             </a>
+            <Link data-quiet href="/prototypes/channel/books">
+              Books
+            </Link>
+            <Link data-quiet href="/prototypes/channel/notes">
+              Free notes
+            </Link>
+            <Link data-quiet href="/prototypes/channel/contact">
+              Contact
+            </Link>
           </nav>
           <div className="ml-auto flex items-center gap-2 sm:gap-4">
             <a
@@ -244,6 +257,7 @@ export default function Channel() {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="channel" tokens={siteTokens} />
         </div>
       </header>
 

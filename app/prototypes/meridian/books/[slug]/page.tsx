@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { publishedBook } from "@/lib/catalog-server"
+import { publishedBook } from "@/app/prototypes/_catalog"
 
 import { KitBook } from "../../../_kit/book"
 import { base } from "../../_theme"

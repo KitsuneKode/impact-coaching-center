@@ -44,6 +44,8 @@ import {
 import { CountUp, PlayInPlace, StickyStack } from "../_fx"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 import { PathStory, ShelfByExam, TeacherRows } from "./_client"
 
 /**
@@ -352,6 +354,8 @@ export default async function Path() {
     >
       <style>{css + bookCss + folderCss}</style>
 
+      <HomePromos slug="path" tokens={siteTokens} />
+
       <header className="sticky top-0 z-40 bg-[rgba(233,237,230,0.82)] backdrop-blur-xl">
         <div className={`${container} flex h-[68px] items-center gap-8`}>
           <a href="#top" className="flex items-center gap-3">
@@ -379,6 +383,12 @@ export default async function Path() {
             <a data-quiet href="#teachers">
               Teachers
             </a>
+            <Link data-quiet href="/prototypes/path/notes">
+              Free notes
+            </Link>
+            <Link data-quiet href="/prototypes/path/contact">
+              Contact
+            </Link>
           </nav>
           <div className="ml-auto flex items-center gap-5">
             <a
@@ -398,6 +408,7 @@ export default async function Path() {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="path" tokens={siteTokens} />
         </div>
       </header>
 

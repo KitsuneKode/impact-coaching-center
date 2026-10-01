@@ -35,6 +35,8 @@ import {
   whatsapp,
 } from "../_data"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 
 /**
  * Prototype 1, "Timetable": the departures board.
@@ -133,6 +135,8 @@ export default function TimetablePrototype() {
     >
       <style>{css}</style>
 
+      <HomePromos slug="timetable" tokens={siteTokens} />
+
       <header className="border-b border-[var(--rule)]">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 md:px-8">
           <Link
@@ -160,6 +164,9 @@ export default function TimetablePrototype() {
               ["#teachers", "Teachers"],
               ["#courses", "Courses"],
               ["#questions", "Questions"],
+              ["/prototypes/timetable/books", "Books"],
+              ["/prototypes/timetable/notes", "Free notes"],
+              ["/prototypes/timetable/contact", "Contact"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -185,6 +192,7 @@ export default function TimetablePrototype() {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="timetable" tokens={siteTokens} />
         </div>
       </header>
 

@@ -28,6 +28,8 @@ import {
   whatsapp,
 } from "../_data"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 
 /*
  * Answer sheet. The page is an examination paper: paper white, one ink, ruled
@@ -197,6 +199,8 @@ export default function AnswerSheet() {
         }
       `}</style>
 
+      <HomePromos slug="answer-sheet" tokens={siteTokens} />
+
       <header className="border-b border-[var(--line)]">
         <div
           className={`${container} flex h-16 items-center justify-between gap-4`}
@@ -221,6 +225,9 @@ export default function AnswerSheet() {
               ["#faculty", "Faculty"],
               ["#courses", "Courses"],
               ["#faq", "Questions"],
+              ["/prototypes/answer-sheet/books", "Books"],
+              ["/prototypes/answer-sheet/notes", "Free notes"],
+              ["/prototypes/answer-sheet/contact", "Contact"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -247,6 +254,7 @@ export default function AnswerSheet() {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="answer-sheet" tokens={siteTokens} />
         </div>
       </header>
 

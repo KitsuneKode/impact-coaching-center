@@ -148,12 +148,7 @@ export default async function ApogeeHome() {
                 Batches, ICT&apos;s own books, free notes and every class on the
                 app. Start with a free workshop.
               </p>
-              <a
-                href={whatsapp}
-                {...external}
-                data-ap-cta
-                className="mt-7"
-              >
+              <a href={whatsapp} {...external} data-ap-cta className="mt-7">
                 <span>
                   <IconBrandWhatsapp aria-hidden size={22} stroke={1.75} />
                 </span>

@@ -41,6 +41,8 @@ import {
 import { Magnetic, ScrollWords, Tilt } from "../_fx"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 import { LectureGrid } from "./_client"
 
 /**
@@ -189,6 +191,8 @@ export default async function Stage() {
     >
       <style>{css + bookCss + folderCss}</style>
 
+      <HomePromos slug="stage" tokens={siteTokens} bar={false} />
+
       <header className="absolute inset-x-0 top-0 z-40">
         <div className={`${container} flex h-[72px] items-center gap-8`}>
           <a href="#top" className="flex items-center gap-3">
@@ -221,6 +225,12 @@ export default async function Stage() {
             <a data-quiet href="#podcast">
               Podcast
             </a>
+            <Link data-quiet href="/prototypes/stage/notes">
+              Free notes
+            </Link>
+            <Link data-quiet href="/prototypes/stage/contact">
+              Contact
+            </Link>
           </nav>
           <a
             data-press
@@ -231,6 +241,7 @@ export default async function Stage() {
           >
             {offer.cta}
           </a>
+          <HomeMenu slug="stage" tokens={siteTokens} />
         </div>
       </header>
 

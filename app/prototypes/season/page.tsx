@@ -35,6 +35,8 @@ import {
 import { Folder, folderCss, type FolderTones } from "../_folder"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 import { Almanac, ExamKit, SeasonChart, SeasonRoot, type Kit } from "./_client"
 import { season } from "./_dates"
 
@@ -176,6 +178,8 @@ export default async function Season() {
     >
       <style>{css + bookCss + folderCss}</style>
 
+      <HomePromos slug="season" tokens={siteTokens} />
+
       <header className="sticky top-0 z-40 border-b border-[var(--ss-line)] bg-[rgba(237,241,240,0.8)] backdrop-blur-xl">
         <div className={`${container} flex h-16 items-center gap-8`}>
           <Link href="/prototypes/season" className="flex items-center gap-3">
@@ -199,6 +203,9 @@ export default async function Season() {
               ["#kit", "Free mocks and books"],
               ["#batches", "Batches"],
               ["#results", "Results"],
+              ["/prototypes/season/books", "Books"],
+              ["/prototypes/season/notes", "Free notes"],
+              ["/prototypes/season/contact", "Contact"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -225,6 +232,7 @@ export default async function Season() {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="season" tokens={siteTokens} />
         </div>
       </header>
 

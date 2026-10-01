@@ -46,6 +46,7 @@ import {
 import { Magnetic, Tilt } from "../_fx"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu } from "../_kit/home-extras"
 import { islandTokens } from "./_island"
 import { WordRoll } from "./_client"
 
@@ -226,6 +227,8 @@ export default async function Pulse() {
               ["#books", "Books"],
               ["#batches", "Batches"],
               ["#teachers", "Teachers"],
+              ["/prototypes/pulse/notes", "Free notes"],
+              ["/prototypes/pulse/contact", "Contact"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -242,6 +245,7 @@ export default async function Pulse() {
           >
             {phone}
           </a>
+          <HomeMenu slug="pulse" tokens={islandTokens} />
         </header>
 
         <div

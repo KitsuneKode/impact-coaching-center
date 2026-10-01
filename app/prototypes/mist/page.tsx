@@ -41,6 +41,8 @@ import {
 import { CountUp, PlayInPlace, Tilt } from "../_fx"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 import {
   Carousel,
   Dock,
@@ -185,6 +187,8 @@ export default async function Mist() {
         <span />
       </div>
 
+      <HomePromos slug="mist" tokens={siteTokens} />
+
       <header className="sticky top-4 z-40 px-4">
         <div className="mx-auto flex max-w-[1200px] items-start justify-between gap-4">
           <a
@@ -213,6 +217,7 @@ export default async function Mist() {
             <IconPhone aria-hidden size={18} stroke={1.75} />
             {phone}
           </a>
+          <HomeMenu slug="mist" tokens={siteTokens} />
         </div>
       </header>
 

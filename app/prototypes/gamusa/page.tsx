@@ -48,6 +48,7 @@ import { KitIsland } from "../_kit/island"
 import { SitePromoLayer } from "../_kit/site-layer"
 import { bookTones, folderTones } from "../_kit/shared"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu } from "../_kit/home-extras"
 import { islandTokens } from "./_island"
 
 const sans = Epilogue({ subsets: ["latin"], variable: "--gm-sans" })
@@ -239,6 +240,24 @@ export default async function Gamusa() {
             <a href="#campus" className="py-3 hover:underline">
               Campus
             </a>
+            <Link
+              href="/prototypes/gamusa/books"
+              className="py-3 hover:underline"
+            >
+              Books
+            </Link>
+            <Link
+              href="/prototypes/gamusa/notes"
+              className="py-3 hover:underline"
+            >
+              Free notes
+            </Link>
+            <Link
+              href="/prototypes/gamusa/contact"
+              className="py-3 hover:underline"
+            >
+              Contact
+            </Link>
           </nav>
           <div className="flex items-center gap-2">
             <a
@@ -257,6 +276,7 @@ export default async function Gamusa() {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="gamusa" tokens={islandTokens} />
         </div>
       </header>
 

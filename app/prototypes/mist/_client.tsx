@@ -4,10 +4,12 @@ import {
   IconArrowRight,
   IconAward,
   IconBook2,
+  IconBooks,
   IconChevronLeft,
   IconChevronRight,
   IconFolderFilled,
   IconHelpCircle,
+  IconNotes,
   IconPlayerPlay,
   IconUsers,
 } from "@tabler/icons-react"
@@ -43,6 +45,8 @@ const dockItems = [
   { href: "#teachers", label: "Teachers", Icon: IconUsers },
   { href: "#watch", label: "Watch a class", Icon: IconPlayerPlay },
   { href: "#results", label: "Results", Icon: IconAward },
+  { href: "/prototypes/mist/books", label: "Books", Icon: IconBooks },
+  { href: "/prototypes/mist/notes", label: "Free notes", Icon: IconNotes },
   { href: "#questions", label: "Questions", Icon: IconHelpCircle },
 ] as const
 

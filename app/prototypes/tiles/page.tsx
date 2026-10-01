@@ -43,6 +43,8 @@ import {
 import { CountUp, PlayInPlace } from "../_fx"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 import { FacultyPicker, FaqSearch, HourPicker, ModeToggle } from "./_client"
 
 /**
@@ -162,6 +164,8 @@ export default async function Tiles() {
       <style>{css + bookCss + folderCss}</style>
 
       {/* A floating pill nav. */}
+      <HomePromos slug="tiles" tokens={siteTokens} />
+
       <header className="sticky top-3 z-40 px-3 pt-3">
         <div className="mx-auto flex h-14 max-w-[1100px] items-center gap-6 rounded-full bg-[rgba(255,255,255,0.8)] pr-2 pl-3 shadow-[0_0_0_1px_var(--tl-line),0_8px_30px_-12px_rgba(10,16,32,0.18)] backdrop-blur-xl">
           <a href="#top" className="flex items-center gap-2.5 font-semibold">
@@ -184,6 +188,8 @@ export default async function Tiles() {
               ["#books", "Books and notes"],
               ["#teachers", "Teachers"],
               ["#questions", "Questions"],
+              ["/prototypes/tiles/notes", "Free notes"],
+              ["/prototypes/tiles/contact", "Contact"],
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -203,6 +209,7 @@ export default async function Tiles() {
           >
             {offer.cta}
           </a>
+          <HomeMenu slug="tiles" tokens={siteTokens} />
         </div>
       </header>
 

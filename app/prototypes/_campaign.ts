@@ -6,6 +6,7 @@ import {
   offer,
   rupees,
   reviews,
+  thumb,
   whatsapp,
   workshops,
 } from "./_data"
@@ -18,6 +19,23 @@ import {
 const victor = courses.find((c) => c.name === nextBatch.name)
 const workshop = workshops[0]
 
+/** ICT's own promotional Shorts, from its YouTube channel; all allow embedding. */
+const promoShorts = [
+  {
+    id: "ICvIqOER2og",
+    name: "Free APSC coaching",
+    meta: "ASSIST scholarship test",
+  },
+  { id: "z2WO0TSau2Y", name: "ADRE full course", meta: "From the ICT channel" },
+  {
+    id: "YBk4koza6Is",
+    name: "Warrior mock tests",
+    meta: "APSC Prelims series",
+  },
+  { id: "o8tEkkeHKcQ", name: "Target Batch", meta: "Bank, SSC and Railway" },
+  { id: "pJdfEqqHcQE", name: "ASSIST 4.0", meta: "Impact scholarship test" },
+].map((v) => ({ ...v, still: thumb(v.id), bare: true }))
+
 export const campaign: Campaign = {
   tag: "Free workshop",
   headline: "Start with a free workshop.",
@@ -26,12 +44,15 @@ export const campaign: Campaign = {
   href: whatsapp,
   image: workshop?.cover ?? null,
   imageAlt: workshop ? `${workshop.name} poster` : "",
-  reels: reviews.slice(0, 5).map((r) => ({
-    id: r.id,
-    still: r.image,
-    name: r.name,
-    meta: `${r.exam}, ${r.batch}`,
-  })),
+  reels: [
+    ...promoShorts,
+    ...reviews.slice(0, 2).map((r) => ({
+      id: r.id,
+      still: r.image,
+      name: r.name,
+      meta: `${r.exam}, ${r.batch}`,
+    })),
+  ],
   coupon: "FIRSTCLASS",
   price: victor?.price ? rupees(victor.price) : null,
   was: victor?.mrp ? rupees(victor.mrp) : null,

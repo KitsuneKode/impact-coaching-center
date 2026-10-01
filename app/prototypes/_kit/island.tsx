@@ -5,6 +5,7 @@ import {
   enquiryCss,
   examGuideCss,
   folderBrowserCss,
+  mobileMenuCss,
   promoCss,
 } from "../_block-css"
 import { folderCss } from "../_folder"
@@ -33,6 +34,7 @@ export function KitIsland({
           examGuideCss +
           enquiryCss +
           folderBrowserCss +
+          mobileMenuCss +
           promoCss}
       </style>
       {children}

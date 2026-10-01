@@ -10,7 +10,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-import { publishedBook } from "@/lib/catalog-server"
+import { publishedBook } from "@/app/prototypes/_catalog"
 
 import { Book3D } from "../../../_book"
 import { courses, rupees, shelf } from "../../../_data"

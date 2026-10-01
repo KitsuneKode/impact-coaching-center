@@ -17,7 +17,9 @@ import { bookCss, type BookTones } from "../_book"
 import { folderCss, type FolderTones } from "../_folder"
 import { contact, links, offer, phone, place, tel, whatsapp } from "../_data"
 import { Magnetic } from "../_fx"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
 import { PrototypeSwitcher } from "../_switcher"
+import { tokens as siteTokens } from "./_site"
 
 /**
  * Prototype 5: Lamp. A dark study room lit by one warm lamp.
@@ -232,6 +234,8 @@ export function LampShell({ children }: { children: ReactNode }) {
     >
       <style>{css + bookCss + folderCss}</style>
 
+      <HomePromos slug="lamp" tokens={siteTokens} />
+
       <header className="sticky top-0 z-40 border-b border-[var(--lp-line)] bg-[rgba(7,9,14,0.72)] backdrop-blur-xl">
         <div className={`${container} flex h-16 items-center gap-8`}>
           <Link
@@ -270,6 +274,12 @@ export function LampShell({ children }: { children: ReactNode }) {
             <Link data-quiet href="/prototypes/lamp#questions">
               Questions
             </Link>
+            <Link data-quiet href="/prototypes/lamp/notes">
+              Free notes
+            </Link>
+            <Link data-quiet href="/prototypes/lamp/contact">
+              Contact
+            </Link>
           </nav>
           <div className="ml-auto flex items-center gap-5">
             <a
@@ -289,6 +299,7 @@ export function LampShell({ children }: { children: ReactNode }) {
               {offer.cta}
             </a>
           </div>
+          <HomeMenu slug="lamp" tokens={siteTokens} />
         </div>
       </header>
 

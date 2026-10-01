@@ -81,6 +81,10 @@ function staticRoutesOnDisk(): string[] {
       )
       .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
       .filter((route) => !route.includes("["))
+      // The prototypes set `noindex` in their layout and change too often to name here.
+      .filter(
+        (route) => route !== "/prototypes" && !route.startsWith("/prototypes/")
+      )
       /*
        * Parallel-route slots (@authModal) and intercepting routes ((.)login) are
        * presentations of routes that already exist elsewhere in this list, not

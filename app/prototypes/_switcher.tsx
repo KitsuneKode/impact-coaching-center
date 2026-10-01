@@ -1,5 +1,4 @@
-import Link from "next/link"
-
+import { ProtoNav } from "./_proto-nav"
 import { clientSet } from "./_preview"
 
 const allPrototypes = [
@@ -176,40 +175,17 @@ const allPrototypes = [
 export type PrototypeSlug = (typeof allPrototypes)[number]["slug"]
 
 /** Only what the client preview serves, in the order of `clientSet`. */
-export const prototypes = clientSet.map(
-  (slug) => allPrototypes.find((p) => p.slug === slug)!
+export const prototypes = clientSet.map((slug) =>
+  allPrototypes.find((p) => p.slug === slug)!
 )
 
-/** A small bar to step between prototypes while comparing them. */
+/** A bar to step between designs, like one, and use the arrow keys. */
 export function PrototypeSwitcher({ current }: { current: PrototypeSlug }) {
-  const index = prototypes.findIndex((p) => p.slug === current)
-  if (index < 0) return null
-  const prev = prototypes.at(index - 1)!
-  const next = prototypes[(index + 1) % prototypes.length]!
-  const proto = prototypes[index]!
+  if (!prototypes.some((p) => p.slug === current)) return null
   return (
-    <nav
-      aria-label="Landing prototypes"
-      className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-[#0B0F1A]/85 p-1 text-sm text-white shadow-2xl backdrop-blur-md"
-    >
-      <Link
-        href={`/prototypes/${prev.slug}`}
-        className="rounded-full px-3 py-2 transition-colors hover:bg-white/10"
-      >
-        Previous
-      </Link>
-      <Link
-        href="/prototypes"
-        className="rounded-full px-3 py-2 font-medium transition-colors hover:bg-white/10"
-      >
-        {index + 1}. {proto.name}
-      </Link>
-      <Link
-        href={`/prototypes/${next.slug}`}
-        className="rounded-full px-3 py-2 transition-colors hover:bg-white/10"
-      >
-        Next
-      </Link>
-    </nav>
+    <ProtoNav
+      current={current}
+      items={prototypes.map(({ slug, name }) => ({ slug, name }))}
+    />
   )
 }

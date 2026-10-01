@@ -35,6 +35,8 @@ import { Folder, folderCss } from "../_folder"
 import { css as lampCss, bookTones, folderTones, tokens } from "../lamp/_chrome"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { HomeMenu, HomePromos } from "../_kit/home-extras"
+import { tokens as siteTokens } from "./_site"
 import { as } from "./_as"
 
 /**
@@ -97,6 +99,8 @@ export default async function Sandhya() {
       className={`${bangla.variable} ${latin.variable} min-h-[100dvh] bg-[var(--lp-bg)] text-[var(--lp-text)] antialiased`}
     >
       <style>{lampCss + bookCss + folderCss + css}</style>
+
+      <HomePromos slug="sandhya" tokens={siteTokens} />
 
       <header className="sticky top-0 z-40 border-b border-[var(--lp-line)] bg-[rgba(7,9,14,0.78)] backdrop-blur-xl">
         <div className={`${container} flex h-14 items-center gap-3`}>
@@ -164,6 +168,7 @@ export default async function Sandhya() {
               <IconPhone aria-hidden size={19} stroke={1.75} />
             </a>
           </div>
+          <HomeMenu slug="sandhya" tokens={siteTokens} />
         </div>
       </header>
 
