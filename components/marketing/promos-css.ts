@@ -68,11 +68,13 @@ export const promoCss = `
 [data-pm-reel][data-contained] { position: absolute; right: 12px; bottom: 12px; z-index: 6; width: 168px; }
 [data-pm-reel][data-contained][data-open] { width: 250px; }
 [data-pm-reel-media] { position: absolute; inset: 0; }
-[data-pm-reel-media] iframe { width: 100%; height: 100%; border: 0; pointer-events: none; }
+[data-pm-reel-media] iframe { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; border: 0; pointer-events: none; opacity: 0; animation: pm-reel-video 0.4s ease 1.2s forwards; }
+[data-pm-reel][data-open] [data-pm-reel-media] iframe { animation-delay: 0.3s; }
+@keyframes pm-reel-video { to { opacity: 1; } }
 [data-pm-reel][data-open] [data-pm-reel-media] iframe { pointer-events: auto; }
 [data-pm-reel-hit] { position: absolute; inset: 0; z-index: 2; cursor: pointer; }
 [data-pm-reel-hit]:focus-visible { outline: 3px solid var(--pm-accent); outline-offset: -3px; border-radius: inherit; }
-[data-pm-reel-shade] { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,0.45), transparent 26%, transparent 52%, rgba(0,0,0,0.82)); }
+[data-pm-reel-shade] { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,0.45), transparent 26%, transparent 52%, rgba(0,0,0,0.82)); }
 [data-pm-reel][data-open] [data-pm-reel-shade] { background: linear-gradient(180deg, rgba(0,0,0,0.35), transparent 18%, transparent 66%, rgba(0,0,0,0.85)); }
 [data-pm-reel-bars] { position: absolute; top: 8px; left: 10px; right: 10px; z-index: 3; display: flex; gap: 4px; pointer-events: none; }
 [data-pm-reel-bars] li { flex: 1; height: 3px; overflow: hidden; border-radius: 2px; background: rgba(255,255,255,0.32); }
@@ -94,7 +96,7 @@ export const promoCss = `
 [data-pm-reel-foot] p span { font-size: 0.78rem; opacity: 0.85; }
 [data-pm-reel-foot] [data-pm-actions] { gap: 6px; }
 [data-pm-reel-foot] [data-pm-btn] { min-height: 40px; padding: 0 14px; font-size: 0.8125rem; }
-@media (prefers-reduced-motion: reduce) { [data-pm-reel] { transition: none; } [data-pm-reel-bars] span[data-now] { animation: none; transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { [data-pm-reel] { transition: none; } [data-pm-reel-media] iframe { animation: none; opacity: 1; } [data-pm-reel-bars] span[data-now] { animation: none; transform: scaleX(1); } }
 
 /* Offer card */
 [data-pm-offer] { display: grid; gap: 14px; justify-items: start; padding: clamp(20px, 3vw, 32px); border-radius: var(--pm-radius, 24px); background: var(--pm-card); color: var(--pm-ink); box-shadow: var(--pm-shadow); }
