@@ -3,6 +3,8 @@
 import {
   IconArrowRight,
   IconArrowsMinimize,
+  IconArrowUpRight,
+  IconBrandInstagram,
   IconBell,
   IconCheck,
   IconChevronDown,
@@ -68,6 +70,8 @@ export type Campaign = {
     meta: string
     /** a promo video that carries its own words: no caption over it */
     bare?: boolean
+    /** Instagram embeds cannot autoplay, so they open in a viewer on tap */
+    kind?: "youtube" | "instagram"
   }[]
   coupon: string
   price: string | null
@@ -351,6 +355,65 @@ export function OffersMenu({
 
 const REEL_MS = 14_000
 
+const instagramUrl = (id: string) => `https://www.instagram.com/reel/${id}/`
+
+/**
+ * An Instagram reel in a viewer. Instagram's embed does not autoplay, so the
+ * visitor taps once on the card to open this and once more to play. Nothing is
+ * loaded from Instagram until then.
+ */
+function InstagramViewer({
+  id,
+  title,
+  open,
+  onOpenChange,
+}: {
+  id: string
+  title: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const container = useContainer()
+  // Focus the Close button, not the embed: keys pressed inside Instagram's frame never reach us.
+  const closeRef = useRef<HTMLButtonElement>(null)
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPortal container={container}>
+        <DialogOverlay className="bg-[var(--pm-scrim)]" />
+        <DialogPrimitive.Popup data-pm-igviewer initialFocus={closeRef}>
+          <DialogTitle className="sr-only">{title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            An Instagram reel from ICT. Press play inside it to watch.
+          </DialogDescription>
+          <iframe
+            src={`${instagramUrl(id)}embed/`}
+            title={title}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            loading="lazy"
+          />
+          <div data-pm-igviewer-bar>
+            <a
+              href={instagramUrl(id)}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-pm-btn
+              data-quiet
+            >
+              <IconBrandInstagram aria-hidden size={18} stroke={1.75} />
+              Open on Instagram
+              <IconArrowUpRight aria-hidden size={16} stroke={1.75} />
+            </a>
+            <DialogClose ref={closeRef} data-pm-btn data-quiet>
+              Close
+            </DialogClose>
+          </div>
+        </DialogPrimitive.Popup>
+      </DialogPortal>
+    </Dialog>
+  )
+}
+
 function embed(id: string, sound: boolean) {
   const q = new URLSearchParams({
     autoplay: "1",
@@ -388,6 +451,7 @@ export function ReelCard({
   const [i, setI] = useState(0)
   const [open, setOpen] = useState(false)
   const [hold, setHold] = useState(false)
+  const [viewer, setViewer] = useState(false)
   const [ready, setReady] = useState(delay === 0)
   const reduce = useReducedMotion()
   // People on data saver, or who ask for less motion, get a still with a play tap.
@@ -408,7 +472,8 @@ export function ReelCard({
     return () => clearTimeout(t)
   }, [delay])
 
-  const running = ready && !open && !hold && !still && reels.length > 1
+  const running =
+    ready && !open && !hold && !viewer && !still && reels.length > 1
   useEffect(() => {
     if (!running) return
     const t = setTimeout(() => setI((v) => (v + 1) % reels.length), REEL_MS)
@@ -424,140 +489,163 @@ export function ReelCard({
 
   if (!reels.length) return null
   const r = reels[i]!
+  const ig = r.kind === "instagram"
   const step = (d: number) => setI((v) => (v + d + reels.length) % reels.length)
 
   return (
-    <AnimatePresence initial={false}>
-      {ready && (
-        <m.aside
-          key="reel"
-          aria-label="Video from ICT students"
-          data-pm-reel
-          data-open={open ? "" : undefined}
-          data-contained={contained ? "" : undefined}
-          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
-          animate={{
-            opacity: 1,
-            y: 0,
-            scale: 1,
-            transition: { duration: 0.4, ease },
-          }}
-          exit={{ opacity: 0, y: 12, transition: { duration: 0.16 } }}
-          onPointerEnter={() => setHold(true)}
-          onPointerLeave={() => setHold(false)}
-        >
-          <div data-pm-reel-media>
-            <Pic
-              src={r.still}
-              alt=""
-              fill
-              sizes="340px"
-              className="object-cover"
-            />
-            {!still && (
-              <iframe
-                key={`${r.id}-${open}`}
-                src={embed(r.id, open)}
-                title={`${r.name}, ${r.meta}`}
-                allow="autoplay; encrypted-media; picture-in-picture"
-                inert={!open}
+    <>
+      <AnimatePresence initial={false}>
+        {ready && (
+          <m.aside
+            key="reel"
+            aria-label="Video from ICT students"
+            data-pm-reel
+            data-open={open ? "" : undefined}
+            data-contained={contained ? "" : undefined}
+            initial={
+              reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }
+            }
+            animate={{
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              transition: { duration: 0.4, ease },
+            }}
+            exit={{ opacity: 0, y: 12, transition: { duration: 0.16 } }}
+            onPointerEnter={() => setHold(true)}
+            onPointerLeave={() => setHold(false)}
+          >
+            <div data-pm-reel-media>
+              <Pic
+                src={r.still}
+                alt=""
+                fill
+                sizes="340px"
+                className="object-cover"
               />
-            )}
-            {!open && (
-              <button
-                type="button"
-                data-pm-reel-hit
-                aria-label={`Play ${r.name}'s video larger, with sound`}
-                onClick={() => setOpen(true)}
-              />
-            )}
-            <span data-pm-reel-shade aria-hidden />
-          </div>
-
-          <ol data-pm-reel-bars aria-hidden>
-            {reels.map((x, k) => (
-              <li key={x.id}>
-                <span
-                  data-done={k < i ? "" : undefined}
-                  data-now={k === i && running ? "" : undefined}
-                  style={{ animationPlayState: hold ? "paused" : "running" }}
-                  key={k === i ? `${i}-${running}` : k}
+              {!still && !ig && (
+                <iframe
+                  key={`${r.id}-${open}`}
+                  src={embed(r.id, open)}
+                  title={`${r.name}, ${r.meta}`}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  inert={!open}
                 />
-              </li>
-            ))}
-          </ol>
-
-          <div data-pm-reel-top>
-            <span data-pm-reel-badge>
-              {open ? (
-                <IconVolume aria-hidden size={14} stroke={2} />
-              ) : (
-                <IconVolumeOff aria-hidden size={14} stroke={2} />
               )}
-              {open ? "Sound on" : "Tap for sound"}
-            </span>
-            {open && (
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                data-pm-icon
-                data-onmedia
-                aria-label="Make it small again"
-              >
-                <IconArrowsMinimize aria-hidden size={18} stroke={1.75} />
-              </button>
-            )}
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                data-pm-icon
-                data-onmedia
-                aria-label="Close the video"
-              >
-                <IconX aria-hidden size={18} stroke={1.75} />
-              </button>
-            )}
-          </div>
-
-          <div data-pm-reel-foot>
-            {!r.bare && (
-              <p>
-                <strong>{r.name}</strong>
-                <span>{r.meta}</span>
-              </p>
-            )}
-            <div data-pm-actions>
-              {open && reels.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => step(-1)}
-                    data-pm-icon
-                    data-onmedia
-                    aria-label="Previous video"
-                  >
-                    <IconChevronLeft aria-hidden size={18} stroke={2} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => step(1)}
-                    data-pm-icon
-                    data-onmedia
-                    aria-label="Next video"
-                  >
-                    <IconChevronRight aria-hidden size={18} stroke={2} />
-                  </button>
-                </>
+              {!open && (
+                <button
+                  type="button"
+                  data-pm-reel-hit
+                  aria-label={
+                    ig
+                      ? `Watch ${r.name} on Instagram`
+                      : `Play ${r.name}'s video larger, with sound`
+                  }
+                  onClick={() => (ig ? setViewer(true) : setOpen(true))}
+                />
               )}
-              <Link href={c.href} data-pm-btn data-small>
-                {c.cta}
-              </Link>
+              <span data-pm-reel-shade aria-hidden />
             </div>
-          </div>
-        </m.aside>
+
+            <ol data-pm-reel-bars aria-hidden>
+              {reels.map((x, k) => (
+                <li key={x.id}>
+                  <span
+                    data-done={k < i ? "" : undefined}
+                    data-now={k === i && running ? "" : undefined}
+                    style={{ animationPlayState: hold ? "paused" : "running" }}
+                    key={k === i ? `${i}-${running}` : k}
+                  />
+                </li>
+              ))}
+            </ol>
+
+            <div data-pm-reel-top>
+              <span data-pm-reel-badge>
+                {ig ? (
+                  <IconBrandInstagram aria-hidden size={14} stroke={2} />
+                ) : open ? (
+                  <IconVolume aria-hidden size={14} stroke={2} />
+                ) : (
+                  <IconVolumeOff aria-hidden size={14} stroke={2} />
+                )}
+                {ig
+                  ? "Watch on Instagram"
+                  : open
+                    ? "Sound on"
+                    : "Tap for sound"}
+              </span>
+              {open && (
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  data-pm-icon
+                  data-onmedia
+                  aria-label="Make it small again"
+                >
+                  <IconArrowsMinimize aria-hidden size={18} stroke={1.75} />
+                </button>
+              )}
+              {onClose && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  data-pm-icon
+                  data-onmedia
+                  aria-label="Close the video"
+                >
+                  <IconX aria-hidden size={18} stroke={1.75} />
+                </button>
+              )}
+            </div>
+
+            <div data-pm-reel-foot>
+              {!r.bare && (
+                <p>
+                  <strong>{r.name}</strong>
+                  <span>{r.meta}</span>
+                </p>
+              )}
+              <div data-pm-actions>
+                {open && reels.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => step(-1)}
+                      data-pm-icon
+                      data-onmedia
+                      aria-label="Previous video"
+                    >
+                      <IconChevronLeft aria-hidden size={18} stroke={2} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => step(1)}
+                      data-pm-icon
+                      data-onmedia
+                      aria-label="Next video"
+                    >
+                      <IconChevronRight aria-hidden size={18} stroke={2} />
+                    </button>
+                  </>
+                )}
+                <Link href={c.href} data-pm-btn data-small>
+                  {c.cta}
+                </Link>
+              </div>
+            </div>
+          </m.aside>
+        )}
+      </AnimatePresence>
+      {ig && (
+        <InstagramViewer
+          id={r.id}
+          title={`${r.name}, on Instagram`}
+          open={viewer}
+          onOpenChange={setViewer}
+        />
       )}
-    </AnimatePresence>
+    </>
   )
 }
 

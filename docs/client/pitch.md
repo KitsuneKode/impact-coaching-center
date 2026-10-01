@@ -19,14 +19,14 @@ students will see it. Pick the two you like most."
 
 Tell them up front, so nobody asks about it halfway through.
 
-| Real, from ICT                         | Sample, until ICT adds its own                                                              |
-| -------------------------------------- | ------------------------------------------------------------------------------------------- |
-| Batches, timings, fees, teachers       | Book titles and covers                                                                      |
-| Results and the officers' list         | Free-notes folders and files                                                                |
-| YouTube videos and the student Shorts  | The offer code and its end date                                                             |
-| Address, phone numbers, WhatsApp       |                                                                                             |
-| The ASSIST name and ICT's videos on it | ASSIST date, fee, format and amounts. ICT has not given them yet, and the page says so      |
-|                                        | The pop-up has no poster. The workshop poster carries past dates, so ICT adds a current one |
+| Real, from ICT                                             | Sample, until ICT adds its own                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Batches, timings, fees, teachers                           | Book titles and covers                                                                      |
+| Results and the officers' list                             | Free-notes folders and files                                                                |
+| YouTube videos, the student Shorts and two Instagram reels | The offer code and its end date                                                             |
+| Address, phone numbers, WhatsApp                           |                                                                                             |
+| The ASSIST name and ICT's videos on it                     | ASSIST date, fee, format and amounts. ICT has not given them yet, and the page says so      |
+|                                                            | The pop-up has no poster. The workshop poster carries past dates, so ICT adds a current one |
 
 The forms check the details but send nothing. Say so if they try one.
 
@@ -46,7 +46,11 @@ Do not walk through all 28. Show the shortlist, and let them find the rest.
    - The offers pop-up. It opens by itself about six seconds after the home
      page loads, once per design. If you missed it or want it again, tap
      **Offers** in the bottom bar and it comes back.
-   - The video in the corner. It plays on its own, muted. Tap it for sound.
+   - The video in the corner. It rotates through ICT's YouTube Shorts, which
+     play on their own, muted. Tap one for sound. Two of the clips are ICT's
+     Instagram reels. Instagram does not allow autoplay, so those show a still
+     with "Watch on Instagram". Tap it to open the reel, then tap the video to
+     play it. Nothing loads from Instagram until that first tap.
    - A book page, and the free-notes folders.
 4. **Show it on a phone** for the one they react to most. Open the menu.
 5. **Send the link** and ask them to look at the other 24 on their own time.

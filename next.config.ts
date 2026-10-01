@@ -23,7 +23,8 @@ import { clientSet } from "./app/prototypes/_preview"
  *   connect-src Convex cloud (client websocket + HTTP actions) and the
  *               *.convex.site auth/enquiry endpoints; ws: only in dev for
  *               the dev server's HMR socket.
- *   frame-src   youtube-nocookie embeds, Google Maps, Turnstile challenges.
+ *   frame-src   youtube-nocookie and Instagram embeds (Instagram only after a tap),
+ *               Google Maps, Turnstile challenges.
  */
 function contentSecurityPolicy(): string {
   const dev = process.env.NODE_ENV === "development"
@@ -34,7 +35,7 @@ function contentSecurityPolicy(): string {
     "img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud",
     "font-src 'self'",
     `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site${dev ? " ws://localhost:* http://localhost:*" : ""}`,
-    "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com",
+    "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.instagram.com https://www.google.com https://challenges.cloudflare.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

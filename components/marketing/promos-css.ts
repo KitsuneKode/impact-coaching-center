@@ -96,6 +96,13 @@ export const promoCss = `
 [data-pm-reel-foot] p span { font-size: 0.78rem; opacity: 0.85; }
 [data-pm-reel-foot] [data-pm-actions] { gap: 6px; }
 [data-pm-reel-foot] [data-pm-btn] { min-height: 40px; padding: 0 14px; font-size: 0.8125rem; }
+/* Instagram reel viewer: the embed in a tall frame, our two buttons below it. */
+[data-pm-igviewer] { position: fixed; left: 50%; top: 50%; z-index: 70; display: flex; flex-direction: column; overflow: hidden; width: min(420px, calc(100vw - 24px)); height: min(760px, calc(100dvh - 24px)); transform: translate(-50%, -50%); outline: none; border-radius: var(--pm-radius, 24px); background: var(--pm-card-solid, #fff); color: var(--pm-ink); box-shadow: var(--pm-shadow), 0 40px 80px -20px rgba(0,0,0,0.5); transition: opacity 0.2s ease-out, transform 0.25s cubic-bezier(0.23,1,0.32,1); }
+[data-pm-igviewer][data-starting-style], [data-pm-igviewer][data-ending-style] { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+[data-pm-igviewer] iframe { flex: 1; min-height: 0; width: 100%; border: 0; background: #fff; }
+[data-pm-igviewer-bar] { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-top: 1px solid var(--pm-line); }
+[data-pm-igviewer-bar] [data-pm-btn] { min-height: 40px; padding: 0 14px; font-size: 0.8125rem; }
+
 /* On a phone the closed card is a small thumbnail; a tap opens it full size with its caption and button. */
 @media (max-width: 639px) {
   [data-pm-reel]:not([data-open]):not([data-contained]) { width: 112px; right: 12px; border-radius: 18px; }

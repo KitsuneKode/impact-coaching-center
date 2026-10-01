@@ -34,6 +34,22 @@ const promoShorts = [
   { id: "pJdfEqqHcQE", name: "ASSIST 4.0", meta: "Impact scholarship test" },
 ].map((v) => ({ ...v, still: thumb(v.id), bare: true }))
 
+/**
+ * ICT's Instagram reels, from the share links ICT gave us (the `stkn` part of a
+ * share link is a personal token and is left off). The two are collaborations
+ * with other accounts, which the embed credits. A still is saved in public/ig
+ * so nothing loads from Instagram until someone taps.
+ */
+const instagramReels = [
+  { id: "Dd7_j9tzt1t", name: "ICT on Instagram", meta: "Tap to watch" },
+  { id: "DP0_M_CEeJq", name: "ICT on Instagram", meta: "Tap to watch" },
+].map((v) => ({
+  ...v,
+  still: `/ig/${v.id}.jpg`,
+  bare: true,
+  kind: "instagram" as const,
+}))
+
 export const campaign: Campaign = {
   tag: "Free workshop",
   headline: "Start with a free workshop.",
@@ -44,7 +60,11 @@ export const campaign: Campaign = {
   image: null,
   imageAlt: "",
   reels: [
-    ...promoShorts,
+    promoShorts[0]!,
+    ...instagramReels.slice(0, 1),
+    promoShorts[1]!,
+    ...instagramReels.slice(1),
+    ...promoShorts.slice(2),
     ...reviews.slice(0, 2).map((r) => ({
       id: r.id,
       still: r.image,
