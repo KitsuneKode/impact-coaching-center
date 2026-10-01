@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function CharterLayout({ children }: { children: ReactNode }) {
   return (
     <KitShell
+      promos="modal"
       slug="charter"
       theme="charter"
       base={base}

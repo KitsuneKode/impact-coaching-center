@@ -21,11 +21,13 @@ import {
   promoCss,
   routeMapCss,
 } from "../_block-css"
+import { barCampaign, campaign, siteMenuItems } from "../_campaign"
 import { contact, links, offer, phone, place, tel, whatsapp } from "../_data"
 import { folderCss } from "../_folder"
 import { MobileMenu } from "../_mobile-menu"
 import { PrototypeSwitcher, type PrototypeSlug } from "../_switcher"
 import { kitCss } from "./css"
+import { SiteOffers, SitePromoLayer } from "./site-layer"
 import { container, external } from "./shared"
 
 /**
@@ -46,6 +48,7 @@ export function KitShell({
   decoration,
   headerExtra,
   footer,
+  promos = "all",
 }: {
   slug: PrototypeSlug
   theme: string
@@ -59,6 +62,8 @@ export function KitShell({
   headerExtra?: ReactNode
   /** replaces the plain footer */
   footer?: ReactNode
+  /** "modal" for themes that place their own bar and reel on the home page */
+  promos?: "all" | "modal"
 }) {
   const navLinks = [
     { href: `${base}/courses`, label: "Courses" },
@@ -91,6 +96,13 @@ export function KitShell({
       </style>
       {decoration}
 
+      <SitePromoLayer
+        base={base}
+        bar={barCampaign(base)}
+        campaign={campaign}
+        parts={{ bar: promos === "all", modal: true, reel: promos === "all" }}
+      />
+
       <header data-k-nav data-k-header className="sticky top-0 z-40">
         <div className={`${container} flex h-[68px] items-center gap-6`}>
           <Link href={base} className="flex items-center gap-3">
@@ -120,6 +132,9 @@ export function KitShell({
               </Link>
             ))}
           </nav>
+          <div className="hidden lg:block">
+            <SiteOffers campaign={campaign} items={siteMenuItems(base)} />
+          </div>
           <a
             href={tel}
             data-k-press

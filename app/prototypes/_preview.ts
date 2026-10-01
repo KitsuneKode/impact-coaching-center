@@ -3,6 +3,7 @@
  * repo but redirects to the index (next.config.ts). Add a slug to show it.
  */
 export const clientSet = [
+  "apogee",
   "laureate",
   "charter",
   "vesper",

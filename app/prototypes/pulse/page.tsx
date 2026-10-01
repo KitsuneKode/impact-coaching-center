@@ -17,6 +17,10 @@ import Link from "next/link"
 import type { CSSProperties } from "react"
 
 import { Book3D, bookCss, type BookTones } from "../_book"
+import { barCampaign, campaign } from "../_campaign"
+import { EnquiryForm } from "../_enquiry"
+import { KitIsland } from "../_kit/island"
+import { SitePromoLayer } from "../_kit/site-layer"
 import { Folder, folderCss, type FolderTones } from "../_folder"
 import {
   contact,
@@ -42,6 +46,7 @@ import {
 import { Magnetic, Tilt } from "../_fx"
 import { Reveal } from "../_reveal"
 import { PrototypeSwitcher } from "../_switcher"
+import { islandTokens } from "./_island"
 import { WordRoll } from "./_client"
 
 /**
@@ -176,6 +181,15 @@ export default async function Pulse() {
       className={`${display.variable} ${sans.variable} min-h-[100dvh] bg-[var(--pu-paper)] font-[family-name:var(--pu-sans)] text-[var(--pu-ink)] antialiased`}
     >
       <style>{css + bookCss + folderCss}</style>
+
+      <KitIsland theme="pulse" tokens={islandTokens}>
+        <SitePromoLayer
+          base="/prototypes/pulse"
+          bar={{ ...barCampaign("/prototypes/pulse"), href: "#batches" }}
+          campaign={campaign}
+          parts={{ bar: true, modal: true, reel: true }}
+        />
+      </KitIsland>
 
       {/* Hero field */}
       <section
@@ -745,6 +759,23 @@ export default async function Pulse() {
             </dl>
           </div>
         </section>
+
+        <KitIsland theme="pulse" tokens={islandTokens}>
+          <section
+            id="ask"
+            aria-labelledby="ask-h"
+            className={`${container} pb-20 md:pb-28`}
+          >
+            <div className="mx-auto max-w-[44rem] rounded-[32px] bg-white p-6 shadow-[0_0_0_1px_rgba(11,22,51,0.06)] sm:p-10">
+              <h2 id="ask-h" className={`${h2} max-w-[18ch]`}>
+                Tell us your exam and your hours.
+              </h2>
+              <div className="mt-8">
+                <EnquiryForm />
+              </div>
+            </div>
+          </section>
+        </KitIsland>
 
         {/* Enquire: the third blue field */}
         <section

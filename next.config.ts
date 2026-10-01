@@ -75,7 +75,7 @@ const nextConfig: NextConfig = {
       })),
       { source: "/", destination: "/prototypes", permanent: false },
       {
-        source: "/:path((?!prototypes|_next|proto|favicon.ico|robots.txt).*)",
+        source: "/:path((?!prototypes|_next|.*\\.[a-z0-9]+$).*)",
         destination: "/prototypes",
         permanent: false,
       },

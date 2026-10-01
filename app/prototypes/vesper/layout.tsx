@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 export default function VesperLayout({ children }: { children: ReactNode }) {
   return (
     <KitShell
+      promos="modal"
       slug="vesper"
       theme="vesper"
       base={base}

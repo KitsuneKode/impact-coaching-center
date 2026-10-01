@@ -13,6 +13,7 @@ export default function LaureateLayout({ children }: { children: ReactNode }) {
   return (
     <ModeRoot>
       <KitShell
+        promos="modal"
         slug="laureate"
         theme="laureate"
         base={base}

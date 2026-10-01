@@ -1,3 +1,4 @@
+import { batchDay } from "./_kit/batch-day"
 import type { Campaign } from "./_promos"
 import {
   courses,
@@ -58,4 +59,24 @@ export const menuItems = [
 /** A sample end date, three and a half days from now, for the countdown. */
 export function sampleEndsAt() {
   return Date.now() + (3 * 24 + 14) * 3_600_000 + 22 * 60_000
+}
+
+/** The announcement bar's copy: the batch that starts next, linked to its course page. */
+export function barCampaign(base: string): Campaign {
+  return {
+    ...campaign,
+    tag: "New batch",
+    headline: `Day ${batchDay(nextBatch.startsOn)}: ${nextBatch.name}.`,
+    body: `${nextBatch.exam}, ${nextBatch.timing}, for ${nextBatch.forWho}.`,
+    cta: "See the batch",
+    href: victor ? `${base}${victor.href}` : `${base}/courses`,
+  }
+}
+
+/** The Offers menu, with each row pointing inside the theme it appears in. */
+export function siteMenuItems(base: string) {
+  return menuItems.map((m, i) => ({
+    ...m,
+    href: [`${base}/notes`, `${base}/contact`, `${base}/notes`][i] ?? base,
+  }))
 }

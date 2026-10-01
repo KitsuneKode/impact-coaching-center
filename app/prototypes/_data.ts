@@ -26,7 +26,7 @@ import {
   onlySamples,
   publishedBooks,
   publishedResources,
-} from "@/lib/catalog-server"
+} from "@/app/prototypes/_catalog"
 import {
   campus,
   guestSessions,

@@ -165,6 +165,12 @@ const allPrototypes = [
     idea: "Light and bilingual, after Sarvam: a muga-silk shader, Assamese and English side by side, and a footer that lights up under the pointer.",
     swatch: ["#FAF8F3", "#B8862E", "#1E2347"],
   },
+  {
+    slug: "apogee",
+    name: "Apogee",
+    idea: "A black sky and a planet's edge catching the sun. One very large headline, stars that drift with your pointer, and a ghost wordmark under the horizon.",
+    swatch: ["#060606", "#F2A24A", "#F4F1EA"],
+  },
 ] as const
 
 export type PrototypeSlug = (typeof allPrototypes)[number]["slug"]

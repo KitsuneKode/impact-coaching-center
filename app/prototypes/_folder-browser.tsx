@@ -79,7 +79,8 @@ export function FolderBrowser({
                     <span>
                       <span data-fb-name>{n.title}</span>
                       <span data-fb-meta>
-                        {n.kind}, {n.exam}, {n.pages} pages
+                        {n.kind}, {n.exam}
+                        {n.pages > 0 ? `, ${n.pages} pages` : ""}
                       </span>
                     </span>
                   </button>
@@ -104,7 +105,12 @@ export function FolderBrowser({
                     <span data-fb-sheet-title>{current.title}</span>
                     <span data-fb-lines aria-hidden />
                     <span data-fb-sheet-foot>
-                      {current.exam}, <b>{current.pages}</b> pages
+                      {current.exam}
+                      {current.pages > 0 && (
+                        <>
+                          , <b>{current.pages}</b> pages
+                        </>
+                      )}
                     </span>
                   </div>
                   <div data-fb-actions>

@@ -36,10 +36,19 @@ import {
   proof,
   rupees,
   selections,
+  shelf,
   tel,
   whatsapp,
 } from "../_data"
+import { Book3D } from "../_book"
+import { barCampaign, campaign } from "../_campaign"
+import { EnquiryForm } from "../_enquiry"
+import { FolderBrowser } from "../_folder-browser"
+import { KitIsland } from "../_kit/island"
+import { SitePromoLayer } from "../_kit/site-layer"
+import { bookTones, folderTones } from "../_kit/shared"
 import { PrototypeSwitcher } from "../_switcher"
+import { islandTokens } from "./_island"
 
 const sans = Epilogue({ subsets: ["latin"], variable: "--gm-sans" })
 
@@ -168,8 +177,11 @@ function TallPhoto({
   )
 }
 
-export default function Gamusa() {
+const BASE = "/prototypes/gamusa"
+
+export default async function Gamusa() {
   const secondPhone = formatPhone(contact.phones[1])
+  const { books, folders, samples } = await shelf()
 
   return (
     <div
@@ -178,6 +190,15 @@ export default function Gamusa() {
       className={`${sans.variable} min-h-[100dvh] bg-[var(--gm-cream)] font-[family-name:var(--gm-sans)] text-[var(--gm-ink)] antialiased`}
     >
       <style>{css}</style>
+
+      <KitIsland theme="gamusa" tokens={islandTokens}>
+        <SitePromoLayer
+          base={BASE}
+          bar={{ ...barCampaign(BASE), href: "#courses" }}
+          campaign={campaign}
+          parts={{ bar: true, modal: true, reel: true }}
+        />
+      </KitIsland>
 
       <WovenBand id="top" />
 
@@ -585,6 +606,51 @@ export default function Gamusa() {
           </ul>
         </section>
 
+        {/* Books and free notes: the shared blocks, in the gamusa's colours. */}
+        <KitIsland theme="gamusa" tokens={islandTokens}>
+          <section
+            id="books"
+            aria-labelledby="books-title"
+            className={`${wrap} py-20 md:py-28`}
+          >
+            <h2 id="books-title" className={`${h2} max-w-[18ch]`}>
+              ICT&rsquo;s books, for the exams it teaches.
+            </h2>
+            {samples && (
+              <p className="mt-3 text-sm text-[var(--gm-muted)]">
+                Sample titles for now. ICT&rsquo;s own books replace them before
+                launch.
+              </p>
+            )}
+            <ul className="mt-12 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4">
+              {books.slice(0, 4).map((b) => (
+                <li key={b.slug} className="min-w-0">
+                  <Book3D book={b} tones={bookTones} font="var(--gm-sans)" />
+                  <span className="mt-4 block px-[18px] font-semibold">
+                    {b.title}
+                  </span>
+                  <span className="block px-[18px] text-sm text-[var(--gm-muted)]">
+                    {b.subtitle}
+                  </span>
+                  <span className="mt-1 block px-[18px] text-sm tabular-nums">
+                    {b.price}, {b.pages} pages
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <h3 className="mt-24 max-w-[20ch] text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
+              Six folders of free notes.
+            </h3>
+            <div className="mt-8">
+              <FolderBrowser
+                folders={folders}
+                tones={folderTones}
+                readHref="/resources"
+              />
+            </div>
+          </section>
+        </KitIsland>
+
         <WovenBand id="joining" />
 
         {/* Joining: three steps on a red thread. */}
@@ -693,6 +759,23 @@ export default function Gamusa() {
             </dl>
           </div>
         </section>
+
+        <KitIsland theme="gamusa" tokens={islandTokens}>
+          <section
+            id="ask"
+            aria-labelledby="ask-title"
+            className={`${wrap} pb-20 md:pb-28`}
+          >
+            <div className="mx-auto max-w-[44rem] rounded-2xl bg-white p-6 shadow-[0_0_0_1px_rgba(20,20,20,0.08)] sm:p-10">
+              <h2 id="ask-title" className={`${h2} max-w-[18ch]`}>
+                Tell us your exam and your hours.
+              </h2>
+              <div className="mt-8">
+                <EnquiryForm />
+              </div>
+            </div>
+          </section>
+        </KitIsland>
 
         {/* Enquire: the red field again; the footer below continues the same field. */}
         <div
