@@ -148,7 +148,9 @@ export function KitShell({
             <div className="ml-auto sm:ml-0">{headerExtra}</div>
           ) : null}
           <div className={headerExtra ? "" : "ml-auto sm:ml-0"}>
-            <MobileMenu links={navLinks} />
+            <MobileMenu
+              links={[...navLinks, { href: `${base}/assist`, label: "ASSIST" }]}
+            />
           </div>
         </div>
         <span aria-hidden data-k-progress />

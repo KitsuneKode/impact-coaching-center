@@ -96,6 +96,15 @@ export const promoCss = `
 [data-pm-reel-foot] p span { font-size: 0.78rem; opacity: 0.85; }
 [data-pm-reel-foot] [data-pm-actions] { gap: 6px; }
 [data-pm-reel-foot] [data-pm-btn] { min-height: 40px; padding: 0 14px; font-size: 0.8125rem; }
+/* On a phone the closed card is a small thumbnail; a tap opens it full size with its caption and button. */
+@media (max-width: 639px) {
+  [data-pm-reel]:not([data-open]):not([data-contained]) { width: 112px; right: 12px; border-radius: 18px; }
+  [data-pm-reel]:not([data-open]) [data-pm-reel-foot] { display: none; }
+  [data-pm-reel]:not([data-open]) [data-pm-reel-top] { top: 14px; left: 6px; right: 6px; }
+  [data-pm-reel]:not([data-open]) [data-pm-reel-badge] { font-size: 0; gap: 0; padding: 0 7px; }
+  [data-pm-reel]:not([data-open]) [data-pm-icon][data-onmedia] { width: 30px; height: 30px; }
+  [data-pm-reel]:not([data-open]) [data-pm-reel-bars] { top: 6px; left: 8px; right: 8px; }
+}
 @media (prefers-reduced-motion: reduce) { [data-pm-reel] { transition: none; } [data-pm-reel-media] iframe { animation: none; opacity: 1; } [data-pm-reel-bars] span[data-now] { animation: none; transform: scaleX(1); } }
 
 /* Offer card */

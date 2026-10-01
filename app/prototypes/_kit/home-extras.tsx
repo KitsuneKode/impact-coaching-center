@@ -12,6 +12,7 @@ export const sitePages = (slug: string) => [
   { href: `/prototypes/${slug}/books`, label: "Books" },
   { href: `/prototypes/${slug}/notes`, label: "Free notes" },
   { href: `/prototypes/${slug}/results`, label: "Results" },
+  { href: `/prototypes/${slug}/assist`, label: "ASSIST" },
   { href: `/prototypes/${slug}/contact`, label: "Contact" },
 ]
 

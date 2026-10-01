@@ -21,6 +21,8 @@ import {
 } from "../_block-css"
 import { contact, links, offer, phone, place, tel, whatsapp } from "../_data"
 import { folderCss } from "../_folder"
+import { barCampaign, campaign } from "../_campaign"
+import { SitePromoLayer } from "../_kit/site-layer"
 import { MobileMenu } from "../_mobile-menu"
 import { PrototypeSwitcher } from "../_switcher"
 import { FinishRoot } from "./_client"
@@ -59,6 +61,13 @@ export default function ClearcoatLayout({ children }: { children: ReactNode }) {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-x-0 top-0 h-[720px] bg-[radial-gradient(60%_60%_at_50%_0%,rgba(var(--cc-glow),0.16),transparent)]"
+      />
+
+      <SitePromoLayer
+        base={base}
+        bar={barCampaign(base)}
+        campaign={campaign}
+        parts={{ bar: true, modal: true, reel: true }}
       />
 
       <header data-cc-nav className="sticky top-0 z-50">
@@ -104,7 +113,9 @@ export default function ClearcoatLayout({ children }: { children: ReactNode }) {
             {phone}
           </a>
           <div className="ml-auto sm:ml-0">
-            <MobileMenu links={navLinks} />
+            <MobileMenu
+              links={[...navLinks, { href: `${base}/assist`, label: "ASSIST" }]}
+            />
           </div>
         </div>
         <span aria-hidden data-cc-progress />

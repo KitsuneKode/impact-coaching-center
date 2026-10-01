@@ -4,9 +4,8 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { OffersMenu, PromoModal, PromoScope, type Campaign } from "../_promos"
+import { popupDelay, seenKey } from "./promo-session"
 import { SiteReel, TopBar } from "./site-promos"
-
-const SEEN = "ict-proto-promo-seen"
 
 export type PromoParts = { bar: boolean; modal: boolean; reel: boolean }
 
@@ -31,18 +30,17 @@ export function SitePromoLayer({
 
   useEffect(() => {
     if (!home || !parts.modal) return
-    try {
-      if (sessionStorage.getItem(SEEN)) return
-    } catch {}
-    const id = window.setTimeout(() => setOpen(true), 12_000)
+    const delay = popupDelay(base)
+    if (delay === null) return
+    const id = window.setTimeout(() => setOpen(true), delay)
     return () => window.clearTimeout(id)
-  }, [home, parts.modal])
+  }, [home, parts.modal, base])
 
   const change = (next: boolean) => {
     setOpen(next)
     if (next) return
     try {
-      sessionStorage.setItem(SEEN, "1")
+      sessionStorage.setItem(seenKey(base), "1")
     } catch {}
   }
 

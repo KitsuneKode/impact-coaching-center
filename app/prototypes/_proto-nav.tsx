@@ -4,13 +4,15 @@ import {
   IconChevronLeft,
   IconChevronRight,
   IconHeart,
+  IconBellRinging,
   IconHeartFilled,
   IconLayoutGrid,
 } from "@tabler/icons-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect } from "react"
 
+import { replayOffers } from "./_kit/promo-session"
 import { usePicks } from "./_picks"
 
 type Item = { slug: string; name: string }
@@ -28,6 +30,7 @@ export function ProtoNav({
   items: Item[]
 }) {
   const router = useRouter()
+  const onHome = usePathname() === `/prototypes/${current}`
   const picks = usePicks()
   const index = items.findIndex((p) => p.slug === current)
   const prev = items.at(index - 1)!
@@ -76,6 +79,18 @@ export function ProtoNav({
           {items[index]!.name}
         </span>
       </Link>
+      {onHome && (
+        <button
+          type="button"
+          onClick={() => replayOffers(`/prototypes/${current}`)}
+          aria-label="Show the offers bar, pop-up and video again"
+          title="Show the offers again"
+          className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 font-medium transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white active:scale-95"
+        >
+          <IconBellRinging aria-hidden size={18} />
+          <span className="hidden md:inline">Offers</span>
+        </button>
+      )}
       <button
         type="button"
         aria-pressed={liked}

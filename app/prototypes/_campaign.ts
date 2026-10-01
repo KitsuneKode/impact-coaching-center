@@ -8,7 +8,6 @@ import {
   reviews,
   thumb,
   whatsapp,
-  workshops,
 } from "./_data"
 
 /**
@@ -17,7 +16,6 @@ import {
  * the pages say so. In the live site these come from the admin.
  */
 const victor = courses.find((c) => c.name === nextBatch.name)
-const workshop = workshops[0]
 
 /** ICT's own promotional Shorts, from its YouTube channel; all allow embedding. */
 const promoShorts = [
@@ -42,8 +40,9 @@ export const campaign: Campaign = {
   body: "Pay only when you pick a batch. Kouxal for APSC and ABHIGYAN for banking, SSC and Railway are both free on the ICT app.",
   cta: offer.cta,
   href: whatsapp,
-  image: workshop?.cover ?? null,
-  imageAlt: workshop ? `${workshop.name} poster` : "",
+  // The workshop poster carries past dates; ICT adds a current one in the admin.
+  image: null,
+  imageAlt: "",
   reels: [
     ...promoShorts,
     ...reviews.slice(0, 2).map((r) => ({
@@ -98,6 +97,6 @@ export function barCampaign(base: string): Campaign {
 export function siteMenuItems(base: string) {
   return menuItems.map((m, i) => ({
     ...m,
-    href: [`${base}/notes`, `${base}/contact`, `${base}/notes`][i] ?? base,
+    href: [`${base}/assist`, `${base}/contact`, `${base}/notes`][i] ?? base,
   }))
 }

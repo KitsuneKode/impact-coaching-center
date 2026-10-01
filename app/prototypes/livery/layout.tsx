@@ -20,6 +20,8 @@ import {
 } from "../_block-css"
 import { contact, links, offer, phone, place, tel, whatsapp } from "../_data"
 import { folderCss } from "../_folder"
+import { barCampaign, campaign } from "../_campaign"
+import { SitePromoLayer } from "../_kit/site-layer"
 import { MobileMenu } from "../_mobile-menu"
 import { PrototypeSwitcher } from "../_switcher"
 import {
@@ -55,6 +57,13 @@ export default function LiveryLayout({ children }: { children: ReactNode }) {
           promoCss}
       </style>
       <div aria-hidden data-lv-progress />
+
+      <SitePromoLayer
+        base={base}
+        bar={barCampaign(base)}
+        campaign={campaign}
+        parts={{ bar: true, modal: true, reel: true }}
+      />
 
       <header className="sticky top-0 z-40 bg-[var(--lv-sky)]">
         <div className={`${container} flex h-[68px] items-center gap-6`}>
@@ -96,7 +105,9 @@ export default function LiveryLayout({ children }: { children: ReactNode }) {
             {phone}
           </a>
           <div className="ml-auto sm:ml-0">
-            <MobileMenu links={navLinks} />
+            <MobileMenu
+              links={[...navLinks, { href: `${base}/assist`, label: "ASSIST" }]}
+            />
           </div>
         </div>
       </header>
