@@ -1,6 +1,6 @@
 # Pick a design for the ICT website
 
-There are 28 designs. You do not need to look at all of them. Answer these five
+There are 29 designs. You do not need to look at all of them. Answer these five
 questions and start with the ones listed. Then open the rest if you want.
 
 Every design has the same courses, batches, fees, teachers, books and free

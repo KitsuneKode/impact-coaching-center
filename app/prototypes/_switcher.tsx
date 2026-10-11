@@ -3,6 +3,12 @@ import { clientSet } from "./_preview"
 
 const allPrototypes = [
   {
+    slug: "pulse-final",
+    name: "Pulse, final",
+    idea: "The chosen direction: Pulse, with ICT's own photos moving behind the hero, exam panels that stack, students in their own words, and the full footer. Three hero options to compare.",
+    swatch: ["#1F5FD1", "#FFC24A", "#F5F7FB"],
+  },
+  {
     slug: "timetable",
     name: "Timetable",
     idea: "The departures board. Pick the hour you can study; every batch has a printed time.",

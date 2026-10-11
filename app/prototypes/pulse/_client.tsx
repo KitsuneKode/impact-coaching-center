@@ -4,7 +4,13 @@ import { AnimatePresence, m, useReducedMotion } from "motion/react"
 import { useEffect, useState } from "react"
 
 /** A word that rolls up to the next one every couple of seconds. */
-export function WordRoll({ words }: { words: string[] }) {
+export function WordRoll({
+  words,
+  className = "text-[var(--pu-amber)]",
+}: {
+  words: string[]
+  className?: string
+}) {
   const [i, setI] = useState(0)
   const reduce = useReducedMotion()
 
@@ -34,7 +40,7 @@ export function WordRoll({ words }: { words: string[] }) {
             filter: "blur(6px)",
             transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
           }}
-          className="col-start-1 row-start-1 whitespace-nowrap text-[var(--pu-amber)]"
+          className={`col-start-1 row-start-1 whitespace-nowrap ${className}`}
         >
           {words[i]}
         </m.span>

@@ -6,6 +6,7 @@
 
 /** Our shortlist: complete pages with promos, books, notes and the form. */
 export const favourites = [
+  "pulse-final",
   "apogee",
   "laureate",
   "charter",

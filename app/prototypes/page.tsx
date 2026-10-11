@@ -11,7 +11,7 @@ const sections = [
   {
     id: "shortlist",
     title: "Our shortlist",
-    note: "The nine we would start from. Each is a complete site: offers, courses, books, free notes and the enquiry form.",
+    note: "The ten we would start from. Each is a complete site: offers, courses, books, free notes and the enquiry form.",
     slugs: favourites,
   },
   {
