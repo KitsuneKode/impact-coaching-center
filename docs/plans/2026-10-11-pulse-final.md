@@ -28,3 +28,26 @@ app later. Three hero compositions to compare (`?hero=wall|bleed|ribbons`).
 - [x] Screenshots: all three heroes at 320/390/768/1280/1440, stack, fan,
       footer, picker open on mobile. `/prototypes/pulse` and `/prototypes/rollcall`
       still render.
+
+## Round 2: phone fixes and release (11 October)
+
+- [x] Teacher cards turn on tap or click (no hover flip); focus follows the
+      flip; "Watch a class" opens the video dialog.
+- [x] Student Shorts open in the vertical video dialog; play button on each
+      card, names listed below the fan.
+- [x] Empty free-material folders hidden; four folders lay out 2 by 2.
+- [x] Phones: the promo reel waits until the hero has scrolled away
+      (`reelAfter` on `SitePromoLayer`, off by default elsewhere).
+- [x] Photo walls: neighbouring columns never share a photo.
+- [x] Pushed `preview/client-prototypes`; live at
+      https://ict-prototypes.vercel.app/prototypes/pulse-final.
+
+### Open
+
+- [ ] Client picks a hero. If Photo ribbons, drop the exam marquee.
+- [ ] Results card: the dark card is half empty.
+- [ ] Fresh production builds can fail on the Anek Latin Google Font
+      (Turbopack "Can't resolve @vercel/turbopack-next/internal/font/google/font");
+      a retry succeeded. Self-host Anek with `next/font/local` if it recurs.
+- [ ] Port to the main app: sections into `components/marketing/`, one PR per
+      group, prototype-only controls removed.
