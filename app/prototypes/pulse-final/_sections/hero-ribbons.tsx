@@ -4,7 +4,6 @@ import { container } from "../_theme"
 import { BatchTicket } from "./batch-ticket"
 import { PhotoRibbon, photos } from "./photo-wall"
 import { PrimaryCta, WhatsFree } from "./primary-cta"
-import { SiteHeader } from "./site-header"
 
 /**
  * Hero C, "Photo ribbons". The calm version: a paper page with a centred
@@ -19,7 +18,7 @@ export function HeroRibbons() {
       aria-label="Introduction"
       className="relative overflow-hidden bg-[var(--pu-paper)] text-[var(--pu-ink)]"
     >
-      <SiteHeader tone="paper" />
+      <div aria-hidden className="h-[76px]" />
       <div className={`${container} pt-10 text-center md:pt-8`}>
         <h1
           data-rise
@@ -47,7 +46,7 @@ export function HeroRibbons() {
         </div>
       </div>
       <div className={`${container} relative mt-10 pb-20 md:mt-6 md:pb-24`}>
-        <div className="relative z-10 mx-auto -mb-12 max-w-[420px] lg:absolute lg:-top-24 lg:right-4 lg:m-0 lg:w-[380px]">
+        <div className="hidden lg:absolute lg:-top-24 lg:right-4 lg:z-10 lg:block lg:w-[380px]">
           <BatchTicket />
         </div>
         <div

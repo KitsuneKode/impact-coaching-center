@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { grandFooterCss } from "../_block-css"
 import { bookCss } from "../_book"
 import { barCampaign, campaign } from "../_campaign"
-import { shelf } from "../_data"
+import { offer, phone, shelf, tel, whatsapp } from "../_data"
 import { folderCss } from "../_folder"
 import { KitIsland } from "../_kit/island"
 import { SitePromoLayer } from "../_kit/site-layer"
@@ -26,6 +26,7 @@ import { JoinBand } from "./_sections/join-band"
 import { LoopWatch } from "./_sections/loop-watch"
 import { PromoStrip } from "./_sections/promo-strip"
 import { Results } from "./_sections/results"
+import { SiteHeader } from "./_sections/site-header"
 import { StudentFan } from "./_sections/student-fan"
 import { Teachers } from "./_sections/teachers"
 
@@ -71,6 +72,16 @@ export default async function PulseFinal({
       </KitIsland>
 
       <PromoStrip c={barCampaign("/prototypes/pulse")} href="#courses" />
+
+      <SiteHeader
+        tone={
+          hero === "ribbons" ? "paper" : hero === "bleed" ? "overlay" : "blue"
+        }
+        phone={phone}
+        tel={tel}
+        whatsapp={whatsapp}
+        cta={offer.cta}
+      />
 
       <Hero />
 

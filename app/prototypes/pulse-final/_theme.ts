@@ -84,8 +84,17 @@ export const css = `
 @keyframes pf-ticket { from { opacity: 0; transform: translateY(30px) rotate(4deg); } to { opacity: 1; transform: rotate(-3deg); } }
 [data-pf] [data-rise] { animation: pf-rise 0.9s var(--pu-ease) both; }
 [data-pf] [data-hero-ticket] { transform: rotate(-3deg); animation: pf-ticket 1s var(--pu-ease) 0.3s both; }
-/* Light header text over the photo walls stays readable on bright frames. */
-[data-pf] [data-pf-hdr="light"] { text-shadow: 0 1px 10px rgba(11,22,51,0.6), 0 0 22px rgba(11,22,51,0.35); }
+/* The sticky header: frosted paper once it sticks, tone text on the hero before. */
+[data-pf-header] { transition: background-color 0.2s var(--pu-ease), color 0.2s var(--pu-ease), box-shadow 0.2s var(--pu-ease); }
+[data-pf-header][data-stuck] { background-color: rgb(245 247 251 / 0.86); backdrop-filter: saturate(140%) blur(14px); -webkit-backdrop-filter: saturate(140%) blur(14px); box-shadow: 0 1px 0 var(--pu-line); color: var(--pu-ink); }
+[data-pf-header][data-stuck] [data-pf-hdr-row] > nav, [data-pf-header][data-stuck] [data-pf-hdr-row] > nav a { color: var(--pu-muted); }
+@media (hover: hover) and (pointer: fine) { [data-pf-header][data-stuck] [data-pf-hdr-row] > nav a:hover { color: var(--pu-ink); } }
+@media (prefers-reduced-motion: reduce) { [data-pf-header] { transition: none; } }
+/* The shadow only lifts the header row's own text; it never reaches the menu panel. */
+[data-pf] [data-pf-hdr="light"]:not([data-stuck]) [data-pf-hdr-row] > *:not([data-pf-menu]) { text-shadow: 0 1px 10px rgba(11,22,51,0.6), 0 0 22px rgba(11,22,51,0.35); }
+/* The menu button: ink-on-ring by default (paper + stuck), a white chip on light hero tones. */
+[data-pf-menu-btn] { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 999px; color: var(--pu-ink); box-shadow: inset 0 0 0 1px var(--pu-line); transition: background-color 0.2s var(--pu-ease), box-shadow 0.2s var(--pu-ease); }
+[data-pf-header][data-pf-hdr="light"]:not([data-stuck]) [data-pf-menu-btn] { background-color: #FFFFFF; box-shadow: none; }
 
 /* Tickets: two notches where the stub tears off. */
 [data-ticket] { --cut: 30%; -webkit-mask: radial-gradient(circle 14px at var(--cut) 0, #0000 97%, #000) top / 100% 51% no-repeat, radial-gradient(circle 14px at var(--cut) 100%, #0000 97%, #000) bottom / 100% 51% no-repeat;
@@ -129,7 +138,7 @@ export const css = `
     background: rgba(31,95,209,0.28); mix-blend-mode: multiply; }
 }
 /* Hero A, below lg: the wall is a band under the text, fading top and bottom. */
-[data-pf-band] { position: relative; height: 340px; overflow: hidden;
+[data-pf-band] { position: relative; height: 300px; overflow: hidden;
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
   mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent); }
 [data-pf-band] [data-pf-wall] { position: absolute; inset: -12% -5%; transform: rotate(-6deg); }
@@ -218,7 +227,7 @@ export const css = `
 @media (prefers-reduced-motion: reduce) { [data-pf-pick] { transition: none; } }
 
 /* The announcement strip: an ink band that collapses into the hero's top edge. */
-[data-pf-strip] { display: grid; grid-template-rows: 1fr; background: var(--pu-ink); color: #FFFFFF;
+[data-pf-strip] { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr; background: var(--pu-ink); color: #FFFFFF;
   transition: grid-template-rows 0.2s var(--pu-ease), opacity 0.2s var(--pu-ease); }
 [data-pf-strip] p { text-wrap: nowrap; }
 [data-pf-strip][data-hidden] { grid-template-rows: 0fr; opacity: 0; }

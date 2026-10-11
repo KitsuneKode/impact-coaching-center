@@ -4,7 +4,6 @@ import { container } from "../_theme"
 import { BatchTicket } from "./batch-ticket"
 import { PhotoWall } from "./photo-wall"
 import { PrimaryCta, WhatsFree } from "./primary-cta"
-import { SiteHeader } from "./site-header"
 
 /**
  * Hero A, "Blue field". Pulse's blue hero untouched on the left; on the right
@@ -31,7 +30,7 @@ export function HeroWall() {
           priority
         />
       </div>
-      <SiteHeader tone="blue" />
+      <div aria-hidden className="h-[76px]" />
       <div
         className={`${container} relative grid gap-10 pt-10 pb-16 md:pt-14 lg:grid-cols-12 lg:items-end lg:gap-14 lg:pb-24`}
       >
@@ -67,9 +66,6 @@ export function HeroWall() {
       <div className="relative lg:hidden">
         <div data-pf-band aria-hidden>
           <PhotoWall cols={3} durations={wallDurations} sizes="34vw" />
-        </div>
-        <div className="relative z-10 -mt-44 px-5 pb-40">
-          <BatchTicket className="mx-auto max-w-[420px]" />
         </div>
       </div>
     </section>

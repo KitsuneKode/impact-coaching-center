@@ -5,7 +5,6 @@ import { container } from "../_theme"
 import { BatchTicket } from "./batch-ticket"
 import { PhotoWall } from "./photo-wall"
 import { PrimaryCta, WhatsFree } from "./primary-cta"
-import { SiteHeader } from "./site-header"
 
 /**
  * Hero B, "Full photo wall". Rollcall's composition in Pulse's colours: five
@@ -30,7 +29,7 @@ export function HeroBleed() {
         />
       </div>
       <div className="relative">
-        <SiteHeader tone="overlay" />
+        <div aria-hidden className="h-[76px]" />
         <div
           className={`${container} flex min-h-[calc(100svh-120px)] flex-col justify-end gap-8 pt-6 pb-36 md:min-h-[calc(100svh-124px)] lg:pt-3 lg:pb-44`}
         >
@@ -64,9 +63,6 @@ export function HeroBleed() {
               </div>
               <BatchTicket className="hidden w-[380px] lg:block" />
             </div>
-          </div>
-          <div className="lg:hidden">
-            <BatchTicket className="mx-auto max-w-[420px]" />
           </div>
         </div>
       </div>
