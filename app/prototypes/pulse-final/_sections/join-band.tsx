@@ -8,6 +8,7 @@ import { PrimaryCta } from "./primary-cta"
 export function JoinBand() {
   return (
     <section
+      data-pf-end
       aria-labelledby="join-h"
       className="bg-[var(--pu-blue)] py-20 text-white md:py-28"
     >

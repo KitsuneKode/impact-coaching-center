@@ -35,6 +35,7 @@ export function TeacherCard({ f }: { f: Teacher }) {
           <button
             ref={frontRef}
             type="button"
+            data-pf-cardbtn
             aria-expanded={flipped}
             aria-label={`Turn over: ${f.name}`}
             onClick={() => flip(true)}

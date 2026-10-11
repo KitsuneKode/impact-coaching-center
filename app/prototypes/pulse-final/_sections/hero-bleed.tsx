@@ -32,7 +32,7 @@ export function HeroBleed() {
       <div className="relative">
         <SiteHeader tone="overlay" />
         <div
-          className={`${container} flex min-h-[calc(100svh-152px)] flex-col justify-end gap-8 pt-6 pb-36 lg:pt-3 lg:pb-44`}
+          className={`${container} flex min-h-[calc(100svh-120px)] flex-col justify-end gap-8 pt-6 pb-36 md:min-h-[calc(100svh-124px)] lg:pt-3 lg:pb-44`}
         >
           <div>
             <p data-rise data-pf-pill>

@@ -26,3 +26,23 @@ export function popupDelay(base: string): number | null {
   } catch {}
   return POPUP_DELAY_MS
 }
+
+/**
+ * The replay delay if the ProtoNav asked for the pop-up again, else null.
+ * Does not consume the flag: StrictMode mounts effects twice in development,
+ * so the flag goes only when the scheduled pop-up actually fires — call
+ * `clearReplay()` there.
+ */
+export function replayDelay(): number | null {
+  try {
+    if (sessionStorage.getItem(REPLAY)) return REPLAY_DELAY_MS
+  } catch {}
+  return null
+}
+
+/** Consume the replay flag once the replay pop-up has fired. */
+export function clearReplay() {
+  try {
+    sessionStorage.removeItem(REPLAY)
+  } catch {}
+}

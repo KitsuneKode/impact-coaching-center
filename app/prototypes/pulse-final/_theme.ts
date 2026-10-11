@@ -65,10 +65,18 @@ export const css = `
 [data-pf] h1, [data-pf] h2, [data-pf] h3 { font-family: var(--pu-display); text-wrap: balance; }
 [data-pf] p { text-wrap: pretty; }
 [data-pf] [data-press] { transition: transform 0.16s var(--pu-ease), background-color 0.2s ease, box-shadow 0.2s ease; }
+[data-pf] { -webkit-tap-highlight-color: transparent; }
 [data-pf] [data-press]:active { transform: scale(0.96); }
+[data-pf-panel] { transition: transform 0.16s var(--pu-ease); }
+[data-pf-panel]:active { transform: scale(0.985); }
+[data-pf] [data-ticket-wrap]:active { transform: scale(0.98); }
+[data-pf-cardbtn] { transition: transform 0.16s var(--pu-ease); }
+[data-pf-cardbtn]:active { transform: scale(0.98); }
+[data-pf] [data-fd-hover] { transition: transform 0.16s var(--pu-ease); }
+[data-pf] [data-fd-hover]:active { transform: scale(0.97); }
 /* A hairline keeps light-surface images from bleeding into the card. */
 [data-pf-frame] { outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px; }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   [data-pf] [data-amber]:hover { background-color: #FFD06E; box-shadow: 0 12px 30px -10px rgba(255,194,74,0.7); }
   [data-pf] [data-blue]:hover { background-color: var(--pu-blue-deep); }
 }
@@ -85,7 +93,7 @@ export const css = `
 [data-ticket] [data-perf] { position: absolute; top: 18px; bottom: 18px; left: var(--cut); border-left: 2px dashed currentColor; opacity: 0.25; }
 @media (max-width: 767px) { [data-ticket] { --cut: 0%; -webkit-mask: none; mask: none; } [data-ticket] [data-perf] { display: none; } }
 [data-ticket-wrap] { filter: drop-shadow(0 18px 30px rgba(11,22,51,0.14)); transition: transform 0.35s var(--pu-ease), filter 0.35s var(--pu-ease); }
-@media (hover: hover) { [data-ticket-wrap]:hover { transform: translateY(-4px); filter: drop-shadow(0 26px 40px rgba(11,22,51,0.2)); } }
+@media (hover: hover) and (pointer: fine) { [data-ticket-wrap]:hover { transform: translateY(-4px); filter: drop-shadow(0 26px 40px rgba(11,22,51,0.2)); } }
 
 @keyframes pf-marquee { to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: no-preference) {
@@ -94,7 +102,7 @@ export const css = `
 
 /* Flip cards for teachers. */
 [data-flip] { perspective: 1000px; }
-[data-flip-inner] { position: relative; transform-style: preserve-3d; transition: transform 0.7s var(--pu-ease); }
+[data-flip-inner] { position: relative; transform-style: preserve-3d; transition: transform 0.45s cubic-bezier(0.77,0,0.175,1); }
 [data-flip-face] { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 [data-flip-back] { position: absolute; inset: 0; transform: rotateY(180deg); }
 [data-flipped] [data-flip-inner] { transform: rotateY(180deg); }
@@ -169,7 +177,7 @@ export const css = `
 [data-pf-dim] { color: var(--pf-dim); }
 [data-pf-mrp] { color: var(--pf-mrp); font-weight: 500; }
 [data-pf-go] { background: var(--pf-btn); color: var(--pf-btn-ink); transition: transform 0.3s var(--pu-ease); }
-@media (hover: hover) { [data-pf-panel]:hover [data-pf-go] { transform: translateX(4px); } }
+@media (hover: hover) and (pointer: fine) { [data-pf-panel]:hover [data-pf-go] { transform: translateX(4px); } }
 [data-pf-poster] { position: relative; display: block; overflow: hidden; border-radius: 20px; aspect-ratio: 4 / 3;
   transform: rotate(var(--tilt, 2deg));
   box-shadow: 0 30px 50px -24px rgba(11,22,51,0.5), 0 0 0 6px rgba(255,255,255,0.92);
@@ -208,6 +216,17 @@ export const css = `
 [data-pf-pick] { transition: opacity 0.2s ease-out, transform 0.2s ease-out; }
 [data-pf-pick][data-hidden] { opacity: 0; transform: translateY(8px); pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { [data-pf-pick] { transition: none; } }
+
+/* The announcement strip: an ink band that collapses into the hero's top edge. */
+[data-pf-strip] { display: grid; grid-template-rows: 1fr; background: var(--pu-ink); color: #FFFFFF;
+  transition: grid-template-rows 0.2s var(--pu-ease), opacity 0.2s var(--pu-ease); }
+[data-pf-strip] p { text-wrap: nowrap; }
+[data-pf-strip][data-hidden] { grid-template-rows: 0fr; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { [data-pf-strip] { transition: none; } }
+
+/* Loops only run while their wall or strip is on screen. */
+[data-offscreen] [data-pf-col], [data-offscreen] [data-pf-ribbon],
+[data-offscreen][data-pf-track], [data-offscreen] [data-pf-track] { animation-play-state: paused; }
 
 @media (prefers-reduced-motion: reduce) {
   [data-flip-inner] { transition: none; }

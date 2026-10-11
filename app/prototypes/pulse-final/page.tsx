@@ -23,6 +23,8 @@ import { HeroOptions } from "./_sections/hero-options"
 import { HeroRibbons } from "./_sections/hero-ribbons"
 import { HeroWall } from "./_sections/hero-wall"
 import { JoinBand } from "./_sections/join-band"
+import { LoopWatch } from "./_sections/loop-watch"
+import { PromoStrip } from "./_sections/promo-strip"
 import { Results } from "./_sections/results"
 import { StudentFan } from "./_sections/student-fan"
 import { Teachers } from "./_sections/teachers"
@@ -58,10 +60,17 @@ export default async function PulseFinal({
           base="/prototypes/pulse-final"
           bar={{ ...barCampaign("/prototypes/pulse"), href: "#courses" }}
           campaign={campaign}
-          parts={{ bar: true, modal: true, reel: true }}
+          parts={{ bar: false, modal: true, reel: true }}
           reelAfter="[data-pf-hero]"
+          popup={{
+            endSelector: "[data-pf-end]",
+            engagedMs: 45_000,
+            minDepth: 0.35,
+          }}
         />
       </KitIsland>
+
+      <PromoStrip c={barCampaign("/prototypes/pulse")} href="#courses" />
 
       <Hero />
 
@@ -83,6 +92,7 @@ export default async function PulseFinal({
 
       <HeroOptions active={hero} />
       <PrototypeSwitcher current="pulse-final" />
+      <LoopWatch />
     </div>
   )
 }

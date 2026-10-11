@@ -109,7 +109,8 @@ export const promoCss = `
   [data-pm-reel]:not([data-open]) [data-pm-reel-foot] { display: none; }
   [data-pm-reel]:not([data-open]) [data-pm-reel-top] { top: 14px; left: 6px; right: 6px; }
   [data-pm-reel]:not([data-open]) [data-pm-reel-badge] { font-size: 0; gap: 0; padding: 0 7px; }
-  [data-pm-reel]:not([data-open]) [data-pm-icon][data-onmedia] { width: 30px; height: 30px; }
+  [data-pm-reel]:not([data-open]) [data-pm-icon][data-onmedia] { width: 30px; height: 30px; position: relative; }
+  [data-pm-reel]:not([data-open]) [data-pm-icon][data-onmedia]::before { content: ""; position: absolute; inset: -7px; }
   [data-pm-reel]:not([data-open]) [data-pm-reel-bars] { top: 6px; left: 8px; right: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { [data-pm-reel] { transition: none; } [data-pm-reel-media] iframe { animation: none; opacity: 1; } [data-pm-reel-bars] span[data-now] { animation: none; transform: scaleX(1); } }
