@@ -59,6 +59,7 @@ export default async function PulseFinal({
           bar={{ ...barCampaign("/prototypes/pulse"), href: "#courses" }}
           campaign={campaign}
           parts={{ bar: true, modal: true, reel: true }}
+          reelAfter="[data-pf-hero]"
         />
       </KitIsland>
 

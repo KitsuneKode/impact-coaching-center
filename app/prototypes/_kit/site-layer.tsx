@@ -19,11 +19,14 @@ export function SitePromoLayer({
   bar,
   campaign,
   parts,
+  reelAfter,
 }: {
   base: string
   bar: Campaign
   campaign: Campaign
   parts: PromoParts
+  /** Below md, the reel stays hidden until this selector scrolls out of view. */
+  reelAfter?: string
 }) {
   const home = usePathname() === base
   const [open, setOpen] = useState(false)
@@ -50,7 +53,7 @@ export function SitePromoLayer({
       {parts.modal ? (
         <PromoModal c={campaign} open={open} onOpenChange={change} />
       ) : null}
-      {parts.reel && home ? <SiteReel c={campaign} /> : null}
+      {parts.reel && home ? <SiteReel c={campaign} after={reelAfter} /> : null}
     </PromoScope>
   )
 }

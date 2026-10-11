@@ -65,7 +65,9 @@ export const css = `
 [data-pf] h1, [data-pf] h2, [data-pf] h3 { font-family: var(--pu-display); text-wrap: balance; }
 [data-pf] p { text-wrap: pretty; }
 [data-pf] [data-press] { transition: transform 0.16s var(--pu-ease), background-color 0.2s ease, box-shadow 0.2s ease; }
-[data-pf] [data-press]:active { transform: scale(0.97); }
+[data-pf] [data-press]:active { transform: scale(0.96); }
+/* A hairline keeps light-surface images from bleeding into the card. */
+[data-pf-frame] { outline: 1px solid oklch(0 0 0 / 0.1); outline-offset: -1px; }
 @media (hover: hover) {
   [data-pf] [data-amber]:hover { background-color: #FFD06E; box-shadow: 0 12px 30px -10px rgba(255,194,74,0.7); }
   [data-pf] [data-blue]:hover { background-color: var(--pu-blue-deep); }
@@ -95,8 +97,7 @@ export const css = `
 [data-flip-inner] { position: relative; transform-style: preserve-3d; transition: transform 0.7s var(--pu-ease); }
 [data-flip-face] { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 [data-flip-back] { position: absolute; inset: 0; transform: rotateY(180deg); }
-@media (hover: hover) { [data-flip]:hover [data-flip-inner] { transform: rotateY(180deg); } }
-[data-flip]:focus-within [data-flip-inner] { transform: rotateY(180deg); }
+[data-flipped] [data-flip-inner] { transform: rotateY(180deg); }
 
 /* ---- Photo wall: columns of ICT photographs drifting up and down ---- */
 [data-pf-wall] { display: grid; height: 100%; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 14px; }

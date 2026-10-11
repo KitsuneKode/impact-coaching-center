@@ -16,6 +16,7 @@ export function FreeFirst({
   folders: Shelf["folders"]
   samples: Shelf["samples"]
 }) {
+  const shown = folders.filter((f) => f.items.length > 0)
   return (
     <section id="free" aria-labelledby="free-h" className="py-20 md:py-28">
       <div className={container}>
@@ -43,23 +44,29 @@ export function FreeFirst({
                   Sample titles until ICT adds its own.
                 </p>
               )}
-              <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3">
-                {folders.map((f) => (
-                  <li key={f.id}>
-                    <Link
-                      data-fd-hover
-                      href={f.href}
-                      aria-label={`${f.name}, ${f.items.length} files`}
-                      className="block rounded-[14px]"
-                    >
-                      <Folder folder={f} tones={folderTones} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-6 text-sm text-[var(--pu-muted)]">
-                Log in once with your mobile number to read any of them.
-              </p>
+              {shown.length > 0 && (
+                <>
+                  <ul
+                    className={`mt-6 grid grid-cols-2 gap-x-3 gap-y-5 ${shown.length === 4 ? "" : "sm:grid-cols-3"}`}
+                  >
+                    {shown.map((f) => (
+                      <li key={f.id}>
+                        <Link
+                          data-fd-hover
+                          href={f.href}
+                          aria-label={`${f.name}, ${f.items.length} files`}
+                          className="block rounded-[14px]"
+                        >
+                          <Folder folder={f} tones={folderTones} />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-6 text-sm text-[var(--pu-muted)]">
+                    Log in once with your mobile number to read any of them.
+                  </p>
+                </>
+              )}
             </div>
           </Reveal>
           <Reveal delay={0.06}>
@@ -73,7 +80,10 @@ export function FreeFirst({
                       className="group flex items-center gap-4"
                     >
                       {w.cover && (
-                        <span className="relative aspect-[4/3] w-20 shrink-0 overflow-hidden rounded-xl">
+                        <span
+                          data-pf-frame
+                          className="relative aspect-[4/3] w-20 shrink-0 overflow-hidden rounded-xl"
+                        >
                           <Image
                             src={w.cover}
                             alt={`${w.name} poster`}

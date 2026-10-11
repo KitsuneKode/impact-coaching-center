@@ -25,7 +25,7 @@ export const heroWords = [
 ]
 
 export const heroCopy =
-  "Morning, noon and evening batches in North Lakhimpur, ICT's own books and free notes, and every class on the app."
+  "Morning, noon and evening batches in North Lakhimpur. ICT's own books, free notes, and every class on the app."
 
 export const marqueeWords = [
   "APSC",

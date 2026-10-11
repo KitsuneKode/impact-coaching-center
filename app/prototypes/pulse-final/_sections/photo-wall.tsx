@@ -38,7 +38,7 @@ export function PhotoWall({
     <div data-pf-wall style={{ "--cols": cols } as CSSProperties}>
       {Array.from({ length: cols }, (_, col) => {
         const set = [0, 1, 2, 3].map(
-          (k) => photos[(col * 2 + k * 3) % photos.length]!
+          (k) => photos[(col * 4 + k) % photos.length]!
         )
         return (
           <div
@@ -47,6 +47,7 @@ export function PhotoWall({
             style={
               {
                 "--dur": `${durations[col % durations.length]}s`,
+                animationDelay: `-${col * 7}s`,
               } as CSSProperties
             }
           >
