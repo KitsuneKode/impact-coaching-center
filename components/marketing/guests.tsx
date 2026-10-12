@@ -1,62 +1,77 @@
-import { useTranslations } from "next-intl"
 import { IconPlayerPlayFilled } from "@tabler/icons-react"
+import { useTranslations } from "next-intl"
 import Image from "next/image"
 
-import { Reveal } from "@/components/motion/reveal"
-import { Lede, Section } from "@/components/ui/section"
 import { VideoDialog } from "@/components/marketing/video-dialog"
+import { Reveal } from "@/components/motion/reveal"
 import { guestSessions, thumb } from "@/lib/stories"
 
-/** Bijoyee Bartalaap: serving officers who came to talk to ICT students. */
+/**
+ * Bijoyee Bartalaap: serving officers who came to talk to ICT students.
+ * Guests, never presented as ICT's results.
+ */
 export function Guests() {
   const t = useTranslations("Stories")
   return (
-    <Section id="guests">
+    <section
+      id="guests"
+      aria-labelledby="guests-heading"
+      className="container-page pbe-20 md:pbe-28"
+    >
       <Reveal>
-        <Lede
-          label="Bijoyee Bartalaap"
-          claim={t("guestsClaim")}
-          rest={t("guestsRest")}
-        />
+        <p className="text-sm font-semibold text-primary">Bijoyee Bartalaap</p>
+        <h2 id="guests-heading" className="type-display mbs-2 max-w-[20ch]">
+          {t("guestsClaim")}
+        </h2>
+        <p className="mbs-3 max-w-[52ch] text-lg text-muted-foreground">
+          {t("guestsRest")}
+        </p>
       </Reveal>
-
-      <Reveal delay={0.08}>
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {guestSessions.map((guest) => (
-            <li key={guest.id}>
+      <ul className="mbs-10 grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4">
+        {guestSessions.map((guest, i) => (
+          <li key={guest.id} data-row-card>
+            <Reveal delay={(i % 3) * 0.05} className="h-full">
               <VideoDialog
                 id={guest.id}
                 title={`${guest.name}, ${guest.role}`}
                 subtitle={t("guestsSubtitle")}
-                className="flex h-full w-full flex-col overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
+                className="group flex h-full w-full flex-col rounded-[inherit] p-3 text-start"
               >
-                <span className="relative block aspect-video bg-surface">
+                <span className="relative block aspect-video overflow-clip rounded-[20px] bg-secondary">
                   <Image
                     src={thumb(guest.id)}
                     alt=""
                     fill
-                    sizes="(max-width: 640px) 92vw, 31vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    sizes="(min-width: 1024px) 24rem, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover"
                   />
+                  <span className="absolute inset-0 grid place-items-center">
+                    <span
+                      data-play
+                      className="grid size-12 place-items-center rounded-full bg-highlight text-foreground"
+                    >
+                      <IconPlayerPlayFilled
+                        aria-hidden
+                        size={18}
+                        className="translate-x-px"
+                      />
+                    </span>
+                  </span>
                 </span>
-                <span className="flex flex-1 flex-col p-5">
-                  <span className="block font-medium">{guest.name}</span>
+                <span className="flex flex-1 flex-col p-3 pbs-4">
+                  <span className="block font-semibold">{guest.name}</span>
                   <span className="block text-sm text-muted-foreground">
                     {guest.role}
                   </span>
-                  <span className="mt-0.5 block text-sm text-muted-foreground">
+                  <span className="mbs-0.5 block text-sm text-muted-foreground">
                     {guest.detail}
-                  </span>
-                  <span className="mt-auto inline-flex items-center gap-1 pt-4 text-sm underline-offset-4 group-hover:underline">
-                    {t("guestsWatch")}
-                    <IconPlayerPlayFilled size={12} />
                   </span>
                 </span>
               </VideoDialog>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
-    </Section>
+            </Reveal>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

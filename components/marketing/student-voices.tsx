@@ -1,15 +1,14 @@
-import { useTranslations } from "next-intl"
 import { IconPlayerPlayFilled } from "@tabler/icons-react"
+import { useTranslations } from "next-intl"
 import Image from "next/image"
 
-import { Reveal } from "@/components/motion/reveal"
-import { Lede, Section } from "@/components/ui/section"
 import { VideoDialog } from "@/components/marketing/video-dialog"
+import { Reveal } from "@/components/motion/reveal"
 import { studentReviews, thumb } from "@/lib/stories"
 
 /**
  * ICT's own student review videos, with the name and batch they print on each
- * card. Real faces saying real things beat any quote we could typeset.
+ * card. A swipeable row on a phone, a grid once there is room.
  */
 export function StudentVoices({
   limit,
@@ -24,53 +23,58 @@ export function StudentVoices({
   const list = limit ? studentReviews.slice(0, limit) : studentReviews
 
   return (
-    <Section id="students">
-      <Reveal>
-        <Lede
-          label={t("label")}
-          claim={heading ?? t("claim")}
-          rest={lead ?? t("rest")}
-        />
-      </Reveal>
-
-      <Reveal delay={0.08}>
-        <ul className="-mx-5 mt-10 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-5 pb-2 md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-5">
-          {list.map((student) => (
-            <li
-              key={student.id}
-              className="w-[52vw] shrink-0 snap-start sm:w-[32vw] md:w-auto"
+    <section
+      id="voices"
+      aria-labelledby="voices-heading"
+      className="pbe-20 md:pbe-28"
+    >
+      <div className="container-page">
+        <Reveal>
+          <h2 id="voices-heading" className="type-display max-w-[18ch]">
+            {heading ?? t("claim")}
+          </h2>
+          <p className="mbs-3 max-w-[52ch] text-lg text-muted-foreground">
+            {lead ?? t("rest")}
+          </p>
+        </Reveal>
+      </div>
+      <ul data-voices className="mbs-10">
+        {list.map((student) => (
+          <li key={student.id}>
+            <VideoDialog
+              id={student.id}
+              title={`${student.name}, ${student.batch}`}
+              subtitle={t("subtitle", { exam: student.exam })}
+              vertical
+              className="group block w-full text-start"
             >
-              <VideoDialog
-                id={student.id}
-                title={`${student.name}, ${student.batch}`}
-                subtitle={t("subtitle", { exam: student.exam })}
-                vertical
-                className="w-full"
-              >
-                <div className="relative aspect-[3/4] overflow-hidden rounded-card bg-surface ring-1 ring-border">
-                  <Image
-                    src={thumb(student.id)}
-                    alt=""
-                    fill
-                    sizes="(max-width: 768px) 52vw, 20vw"
-                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+              <span className="relative block aspect-[3/4] overflow-clip rounded-[22px] bg-secondary">
+                <Image
+                  src={thumb(student.id)}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 18vw, (min-width: 768px) 30vw, 58vw"
+                  className="object-cover"
+                />
+                <span
+                  data-play
+                  className="absolute inset-e-3 inset-bs-3 grid size-10 place-items-center rounded-full bg-highlight text-foreground"
+                >
+                  <IconPlayerPlayFilled
+                    aria-hidden
+                    size={15}
+                    className="translate-x-px"
                   />
-                  <span className="absolute inset-0 bg-gradient-to-t from-black/25 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <span className="absolute right-2.5 bottom-2.5 grid size-9 place-items-center rounded-full bg-white/95 text-foreground shadow-frame transition-transform duration-300 group-hover:scale-105">
-                    <IconPlayerPlayFilled className="size-3.5" />
-                  </span>
-                </div>
-                <p className="mt-3 text-[0.9375rem] font-medium">
-                  {student.name}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {student.batch}, {student.exam}
-                </p>
-              </VideoDialog>
-            </li>
-          ))}
-        </ul>
-      </Reveal>
-    </Section>
+                </span>
+              </span>
+              <span className="mbs-3 block font-semibold">{student.name}</span>
+              <span className="block text-sm text-muted-foreground">
+                {student.batch}, {student.exam}
+              </span>
+            </VideoDialog>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

@@ -1604,3 +1604,39 @@
     }
   }
 }
+
+@layer components {
+  /* Student review videos: a swipeable row that snaps on a phone, a grid
+     once five fit. The row bleeds to the screen edge and starts on the
+     page gutter. */
+  [data-voices] {
+    --voice: clamp(11rem, 6rem + 22vw, 14rem);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--voice);
+    gap: 0.75rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    /* The same edge as container-page, so the row lines up with the text. */
+    --edge: calc(
+      max(0px, (100% - 77.5rem) / 2) + clamp(1.25rem, 0.4rem + 2.6vw, 2rem)
+    );
+    padding-inline: var(--edge);
+    scroll-padding-inline: var(--edge);
+  }
+  [data-voices]::-webkit-scrollbar {
+    display: none;
+  }
+  [data-voices] > li {
+    scroll-snap-align: start;
+  }
+  @media (width >= 64rem) {
+    [data-voices] {
+      grid-auto-flow: row;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      overflow: visible;
+    }
+  }
+}
