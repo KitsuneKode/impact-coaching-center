@@ -1,9 +1,13 @@
 import { IconArrowRight } from "@tabler/icons-react"
 import { useLocale, useTranslations } from "next-intl"
 
-import { lowestPrice } from "@/components/commerce/bundle-card"
 import { Link } from "@/i18n/navigation"
-import { inLanguage, type Language, type PublicBundle } from "@/lib/catalog"
+import {
+  inLanguage,
+  lowestPrice,
+  type Language,
+  type PublicBundle,
+} from "@/lib/catalog"
 import { formatPaise } from "@/lib/money"
 import { Book3D, type BookTone } from "./book-3d"
 

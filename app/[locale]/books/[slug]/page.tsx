@@ -1,18 +1,12 @@
-import {
-  IconArrowLeft,
-  IconBuildingStore,
-  IconTruckDelivery,
-} from "@tabler/icons-react"
+import { IconBuildingStore, IconTruckDelivery } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { BundleBuy } from "@/components/commerce/bundle-buy"
-import { BundleCard } from "@/components/commerce/bundle-card"
-import { SampleNotice, ShopCartButton } from "@/components/commerce/shop-shell"
-import { Section } from "@/components/ui/section"
+import { BundleRow } from "@/components/commerce/bundle-row"
+import { SetView } from "@/components/commerce/set-view"
+import { SampleNotice } from "@/components/commerce/shop-shell"
 import { contentFor } from "@/i18n/content-server"
-import { Link } from "@/i18n/navigation"
 import { inLanguage, LANGUAGES, type Language } from "@/lib/catalog"
 import { publishedBundle, publishedBundles } from "@/lib/catalog-server"
 import { alternatesFor, localePath, openGraphFor, siteUrl } from "@/lib/site"
@@ -49,6 +43,7 @@ export default async function BundlePage({
   setRequestLocale(locale)
   const language = locale as Language
   const t = await getTranslations("Shop")
+  const pulse = await getTranslations("Pulse")
   const { phrase } = await contentFor(locale)
   const [bundle, bundles] = await Promise.all([
     publishedBundle(slug),
@@ -82,7 +77,7 @@ export default async function BundlePage({
   }
 
   return (
-    <>
+    <main>
       {bundle.sample ? null : (
         <script
           type="application/ld+json"
@@ -91,91 +86,61 @@ export default async function BundlePage({
           }}
         />
       )}
-      <Section size="sm" className="pt-8 md:pt-10">
-        {bundle.sample ? (
-          <div className="mb-6">
+      <SetView
+        bundle={bundle}
+        initialLanguage={language}
+        examLabel={phrase(bundle.exam)}
+      />
+
+      <section className="container-page grid gap-10 pbs-6 pbe-16 lg:grid-cols-12">
+        <div className="grid content-start gap-5 lg:col-span-7">
+          {bundle.sample ? (
             <SampleNotice>{t("placeholderSet")}</SampleNotice>
-          </div>
-        ) : null}
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            href="/books"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <IconArrowLeft className="size-4" aria-hidden />
-            {t("allSets")}
-          </Link>
-          <ShopCartButton />
+          ) : null}
+          <p className="max-w-[62ch] text-lg whitespace-pre-line text-muted-foreground">
+            {inLanguage(bundle.description, language)}
+          </p>
         </div>
-
-        <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:gap-16">
-          <div className="grid content-start gap-5">
-            <p className="text-sm text-muted-foreground">
-              {[
-                phrase(bundle.exam),
-                t("booksInSet", { count: bundle.books.length }),
-                bundle.soldCount > 0
-                  ? t("sold", { count: bundle.soldCount })
-                  : "",
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-            <h1 className="type-display text-balance">{title}</h1>
-            {bundle.tagline ? (
-              <p className="type-lede text-muted-foreground">
-                {inLanguage(bundle.tagline, language)}
-              </p>
-            ) : null}
-            <p className="max-w-[62ch] whitespace-pre-line text-muted-foreground">
-              {inLanguage(bundle.description, language)}
-            </p>
-            <ul className="mt-2 grid gap-3 rounded-card border border-border p-5 text-sm">
-              <li className="flex gap-3">
-                <IconTruckDelivery
-                  stroke={1.5}
-                  className="size-5 shrink-0"
-                  aria-hidden
-                />
-                <span>
-                  <span className="font-medium">{t("delivery")}</span>{" "}
-                  <span className="text-muted-foreground">
-                    {t("deliveryBody")}
-                  </span>
-                </span>
-              </li>
-              <li className="flex gap-3">
-                <IconBuildingStore
-                  stroke={1.5}
-                  className="size-5 shrink-0"
-                  aria-hidden
-                />
-                <span>
-                  <span className="font-medium">{t("collect")}</span>{" "}
-                  <span className="text-muted-foreground">
-                    {t("collectBody")}
-                  </span>
-                </span>
-              </li>
-            </ul>
-          </div>
-
-          <BundleBuy bundle={bundle} initialLanguage={language} />
-        </div>
-      </Section>
+        <ul className="grid content-start gap-3 rounded-[28px] bg-card p-6 text-sm shadow-[0_0_0_1px_var(--border)] lg:col-span-5">
+          <li className="flex gap-3">
+            <IconTruckDelivery
+              stroke={1.5}
+              className="size-5 flex-none"
+              aria-hidden
+            />
+            <span>
+              <span className="font-medium">{t("delivery")}</span>{" "}
+              <span className="text-muted-foreground">{t("deliveryBody")}</span>
+            </span>
+          </li>
+          <li className="flex gap-3">
+            <IconBuildingStore
+              stroke={1.5}
+              className="size-5 flex-none"
+              aria-hidden
+            />
+            <span>
+              <span className="font-medium">{t("collect")}</span>{" "}
+              <span className="text-muted-foreground">{t("collectBody")}</span>
+            </span>
+          </li>
+        </ul>
+      </section>
 
       {related.length ? (
-        <Section size="sm" className="border-t border-border">
-          <h2 className="type-display-sm">{t("allSets")}</h2>
-          <ul className="mt-8 grid grid-cols-1 gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+        <section aria-labelledby="more-sets" className="container-page pbe-20">
+          <h2 id="more-sets" className="type-display">
+            {pulse("moreSets")}
+          </h2>
+          <ul className="mbs-8 grid gap-6">
             {related.map((b) => (
               <li key={b.slug}>
-                <BundleCard bundle={b} />
+                <BundleRow bundle={b} />
               </li>
             ))}
           </ul>
-        </Section>
+        </section>
       ) : null}
-    </>
+    </main>
   )
 }

@@ -575,6 +575,9 @@
     "starts": "Starts {date}",
     "booksTitle": "ICT's books, for the exams it teaches.",
     "seeSet": "See the set",
-    "setsSample": "Sample sets for now. ICT's own books replace them before launch."
+    "setsSample": "Sample sets for now. ICT's own books replace them before launch.",
+    "previousBook": "Previous book",
+    "nextBook": "Next book",
+    "moreSets": "More sets"
   }
 }

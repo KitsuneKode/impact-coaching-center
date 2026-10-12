@@ -62,6 +62,16 @@ export type PublicBundle = {
 }
 
 /** A resource as the public list renders it. Page images stay server-side. */
+/** The cheaper of a set's available languages, or null when neither is on. */
+export function lowestPrice(bundle: PublicBundle) {
+  const prices = LANGUAGES.flatMap((language) =>
+    bundle.variants[language].available
+      ? [bundle.variants[language].pricePaise]
+      : []
+  )
+  return prices.length ? Math.min(...prices) : null
+}
+
 export type Resource = {
   slug: string
   title: string
