@@ -1,18 +1,14 @@
 import { useLocale, useTranslations } from "next-intl"
-import type { CSSProperties } from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { proseComponents } from "@/components/marketing/markdown-body"
 import { DraftNotice } from "@/components/ui/draft-notice"
-import { Section } from "@/components/ui/section"
 import {
   markersAsLinks,
   policyMarkers,
   type PolicyDocument,
 } from "@/lib/policies"
-
-const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
 
 /** 20 September 2026, not 2026-09-20, for a reader rather than a machine. */
 function readableDate(iso: string) {
@@ -83,35 +79,35 @@ export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
 
   return (
     // The document itself is English; only the notice above it is not.
-    <main lang="en-IN">
-      <Section size="sm" className="pt-26 md:pt-30">
+    <main
+      lang="en-IN"
+      className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-20 md:pbs-[calc(var(--header-height)+2.5rem)] md:pbe-28"
+    >
+      <div className="mx-auto max-w-[46rem]">
         {locale === "en" ? null : (
           <p
             lang="as-IN"
-            className="enter mb-6 inline-flex rounded-control bg-secondary px-3 py-2 text-sm"
+            className="mbe-6 inline-flex rounded-full bg-secondary ps-4 pe-4 pbs-2 pbe-2 text-sm"
           >
             {t("englishOnly")}
           </p>
         )}
-        <h1 className="enter type-display max-w-208" style={delay(0)}>
-          <span className="text-foreground">{doc.title}</span>
-        </h1>
-        <p
-          className="enter type-lede mt-4 max-w-160 text-muted-foreground"
-          style={delay(60)}
+        <h1
+          data-rise
+          className="font-display text-[clamp(2rem,1.4rem+2.8vw,3.5rem)] leading-[1.06] font-semibold tracking-[-0.035em] text-balance"
         >
+          {doc.title}
+        </h1>
+        <p className="mbs-4 border-s-4 border-primary ps-5 text-xl text-pretty text-muted-foreground">
           {doc.description}
         </p>
 
         {doc.approved ? (
-          <p
-            className="enter mt-6 text-sm text-muted-foreground"
-            style={delay(90)}
-          >
+          <p className="mbs-6 text-sm text-muted-foreground">
             Last updated {readableDate(doc.updated)}.
           </p>
         ) : (
-          <div className="enter mt-8" style={delay(90)}>
+          <div className="mbs-8">
             <DraftNotice drafted={readableDate(doc.updated)}>
               This wording has not been signed off and is not a contract. For
               anything that matters, speak to ICT directly.
@@ -122,7 +118,7 @@ export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
           </div>
         )}
 
-        <div className="mt-14 max-w-160">
+        <div className="mbs-12">
           <Markdown
             remarkPlugins={[remarkGfm]}
             components={components}
@@ -131,7 +127,7 @@ export function PolicyPage({ document: doc }: { document: PolicyDocument }) {
             {markersAsLinks(doc.body)}
           </Markdown>
         </div>
-      </Section>
+      </div>
     </main>
   )
 }
