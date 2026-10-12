@@ -2,13 +2,15 @@ import { v } from "convex/values"
 
 import { checkPost, type PostInput } from "../lib/blog"
 import { POST_LANGUAGE } from "./blog"
+import { recordAudit } from "./audit"
 import {
   checkRevision,
   forbidden,
   invalidInput,
   missingRecord,
   mutationResult,
-  requireOwner,
+  hasGrant,
+  requireGrant,
   type Viewer,
 } from "./authz"
 import type { Id } from "./_generated/dataModel"
@@ -43,14 +45,18 @@ async function recordPost(
     toStatus?: "draft" | "published"
   }
 ) {
-  await ctx.db.insert("activities", {
-    kind: entry.kind,
-    body: entry.body,
-    actorId: actor.id,
+  await recordAudit(ctx, actor, {
+    action:
+      entry.kind === "post_save"
+        ? "save"
+        : entry.toStatus === "published"
+          ? "publish"
+          : "unpublish",
     entity: "post",
     entityId: entry.entityId,
-    fromStatus: entry.fromStatus,
-    toStatus: entry.toStatus,
+    summary: entry.body,
+    from: entry.fromStatus,
+    to: entry.toStatus,
   })
 }
 
@@ -77,7 +83,7 @@ export const list = query({
   }),
   handler: async (ctx) => {
     const empty = { rows: [], truncated: false }
-    if (!(await requireOwner(ctx)).ok) return empty
+    if (!(await requireGrant(ctx, "content")).ok) return empty
     const found = await ctx.db
       .query("posts")
       .order("desc")
@@ -115,7 +121,7 @@ export const get = query({
     v.null()
   ),
   handler: async (ctx, args) => {
-    if (!(await requireOwner(ctx)).ok) return null
+    if (!(await requireGrant(ctx, "content")).ok) return null
     const id = ctx.db.normalizeId("posts", args.id)
     const row = id && (await ctx.db.get(id))
     if (!row) return null
@@ -145,7 +151,7 @@ export const save = mutation({
   },
   returns: mutationResult({ id: v.id("posts"), revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
+    const owner = await requireGrant(ctx, "content")
     if (!owner.ok) return owner
     return applySavePost(ctx, owner.value, args)
   },
@@ -166,7 +172,7 @@ export async function applySavePost(
     language?: PostInput["language"]
   }
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!hasGrant(viewer, "content")) return forbidden
   const kept = args.id ? (await ctx.db.get(args.id))?.language : undefined
   const fields: PostInput = {
     slug: args.slug,
@@ -231,7 +237,7 @@ export const setPublished = mutation({
   },
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
+    const owner = await requireGrant(ctx, "content")
     if (!owner.ok) return owner
     return applyPostPublished(ctx, owner.value, args)
   },
@@ -244,7 +250,7 @@ export async function applyPostPublished(
   args: { id: Id<"posts">; published: boolean; expectedRevision: number },
   now = Date.now()
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!hasGrant(viewer, "content")) return forbidden
   const current = await ctx.db.get(args.id)
   if (!current) return missingRecord
   const conflict = checkRevision(current, args.expectedRevision)

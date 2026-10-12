@@ -13,7 +13,7 @@ import type { DataModel } from "./_generated/dataModel"
 import { query } from "./_generated/server"
 import authConfig from "./auth.config"
 import { findVerifiedPerson } from "./persons"
-import { PERSON_ROLE } from "./schema"
+import { GRANT, LOCALE, PERSON_ROLE } from "./schema"
 
 export const authComponent = createClient<DataModel>(components.betterAuth)
 
@@ -98,6 +98,17 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       expiresIn: 60 * 60 * 24 * 90,
       updateAge: 60 * 60 * 24,
     },
+    // Memory storage resets on every function call here; the component has a
+    // rateLimit table, so counts persist. The per-phone lease in otp.ts stays
+    // the main guard; this caps a single client hammering the endpoints.
+    rateLimit: {
+      enabled: true,
+      storage: "database",
+      customRules: {
+        "/phone-number/send-otp": { window: 60, max: 5 },
+        "/phone-number/verify": { window: 60, max: 10 },
+      },
+    },
     ...phone,
     plugins: [...phone.plugins, convex({ authConfig })],
   })
@@ -115,6 +126,8 @@ export const getCurrentPerson = query({
       name: v.string(),
       phone: v.string(),
       role: PERSON_ROLE,
+      grants: v.array(GRANT),
+      locale: v.optional(LOCALE),
       verifiedAt: v.number(),
       revision: v.number(),
     }),

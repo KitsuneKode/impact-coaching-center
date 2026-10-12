@@ -107,16 +107,16 @@ describe("editing dates", () => {
     )
     const rows = await t.run((ctx) =>
       ctx.db
-        .query("activities")
-        .withIndex("by_kind", (q) => q.eq("kind", "date_publish"))
+        .query("auditLog")
+        .withIndex("by_action", (q) => q.eq("action", "publish"))
         .collect()
     )
     expect(rows[0]).toMatchObject({
       actorId: owner!.id,
       entity: "examDate",
       entityId: saved.id,
-      fromStatus: "draft",
-      toStatus: "published",
+      from: "draft",
+      to: "published",
     })
   })
 })

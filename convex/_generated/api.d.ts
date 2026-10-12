@@ -9,6 +9,7 @@
  */
 
 import type * as account from "../account.js";
+import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
 import type * as blog from "../blog.js";
@@ -19,14 +20,18 @@ import type * as carts from "../carts.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogAdmin from "../catalogAdmin.js";
 import type * as checkout from "../checkout.js";
+import type * as courses from "../courses.js";
+import type * as crons from "../crons.js";
 import type * as devSeed from "../devSeed.js";
 import type * as http from "../http.js";
+import type * as images from "../images.js";
 import type * as leads from "../leads.js";
 import type * as orders from "../orders.js";
 import type * as otp from "../otp.js";
 import type * as people from "../people.js";
 import type * as persons from "../persons.js";
 import type * as profile from "../profile.js";
+import type * as settings from "../settings.js";
 
 import type {
   ApiFromModules,
@@ -36,6 +41,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   account: typeof account;
+  audit: typeof audit;
   auth: typeof auth;
   authz: typeof authz;
   blog: typeof blog;
@@ -46,14 +52,18 @@ declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
   catalogAdmin: typeof catalogAdmin;
   checkout: typeof checkout;
+  courses: typeof courses;
+  crons: typeof crons;
   devSeed: typeof devSeed;
   http: typeof http;
+  images: typeof images;
   leads: typeof leads;
   orders: typeof orders;
   otp: typeof otp;
   people: typeof people;
   persons: typeof persons;
   profile: typeof profile;
+  settings: typeof settings;
 }>;
 
 /**

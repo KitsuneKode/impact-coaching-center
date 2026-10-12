@@ -1,7 +1,8 @@
 import { paginationOptsValidator } from "convex/server"
-import { v } from "convex/values"
+import { type Infer, v } from "convex/values"
 
 import { toE164 } from "../lib/leads"
+import { recordAudit } from "./audit"
 import {
   checkRevision,
   forbidden,
@@ -14,7 +15,7 @@ import {
   revisionOf,
   type Viewer,
 } from "./authz"
-import { PERSON_ROLE } from "./schema"
+import { GRANT, PERSON_ROLE } from "./schema"
 import type { Id } from "./_generated/dataModel"
 import { internalMutation, mutation, query } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
@@ -27,6 +28,7 @@ const project = (person: {
   name: string
   phone: string
   role: "student" | "staff" | "owner"
+  grants?: Infer<typeof GRANT>[]
   revision?: number
   verifiedAt?: number
 }) => ({
@@ -34,6 +36,7 @@ const project = (person: {
   name: person.name,
   phone: person.phone,
   role: person.role,
+  grants: person.grants ?? [],
   revision: revisionOf(person),
   verifiedAt: person.verifiedAt,
 })
@@ -44,6 +47,7 @@ const ADMIN_ROW = v.object({
   name: v.string(),
   phone: v.string(),
   role: PERSON_ROLE,
+  grants: v.array(GRANT),
   revision: v.number(),
   verifiedAt: v.optional(v.number()),
 })
@@ -93,13 +97,13 @@ async function recordRoleChange(
   toRole: Viewer["role"],
   actorId?: Viewer["id"]
 ) {
-  await ctx.db.insert("activities", {
-    personId: person._id,
-    kind: "role_change",
-    body: `Role: ${person.role} → ${toRole}`,
-    fromRole: person.role,
-    toRole,
-    ...(actorId ? { actorId } : {}),
+  await recordAudit(ctx, actorId ? { id: actorId } : null, {
+    action: "role_change",
+    entity: "person",
+    entityId: person._id,
+    summary: `Role: ${person.role} → ${toRole}`,
+    from: person.role,
+    to: toRole,
   })
 }
 
@@ -135,6 +139,8 @@ export const setRole = mutation({
     const revision = revisionOf(person) + 1
     await ctx.db.patch(args.personId, {
       role: args.role,
+      // Grants belong to the staff role; any role change starts them over.
+      grants: undefined,
       revision,
       updatedAt: Date.now(),
     })
@@ -177,6 +183,53 @@ export const grantStaffByPhone = mutation({
     return { ok: true as const }
   },
 })
+
+/** Open or close admin areas for a staff member. */
+export const setGrants = mutation({
+  args: {
+    personId: v.id("persons"),
+    grants: v.array(GRANT),
+    expectedRevision: v.number(),
+  },
+  returns: mutationResult({ revision: v.number() }),
+  handler: async (ctx, args) => {
+    const owner = await requireOwner(ctx)
+    if (!owner.ok) return owner
+    return applySetGrants(ctx, owner.value, args)
+  },
+})
+
+/** The grant change itself, split out so it can be tested without a session. */
+export async function applySetGrants(
+  ctx: MutationCtx,
+  viewer: Viewer,
+  args: {
+    personId: Id<"persons">
+    grants: Infer<typeof GRANT>[]
+    expectedRevision: number
+  }
+) {
+  if (viewer.role !== "owner") return forbidden
+  const person = await ctx.db.get(args.personId)
+  if (!person) return missingRecord
+  if (person.role !== "staff") return invalidInput("role")
+  const conflict = checkRevision(person, args.expectedRevision)
+  if (conflict) return conflict
+
+  const grants = [...new Set(args.grants)].sort()
+  const before = [...(person.grants ?? [])].sort()
+  const revision = revisionOf(person) + 1
+  await ctx.db.patch(person._id, { grants, revision, updatedAt: Date.now() })
+  await recordAudit(ctx, viewer, {
+    action: "grant_change",
+    entity: "person",
+    entityId: person._id,
+    summary: `Access: ${before.join(", ") || "none"} → ${grants.join(", ") || "none"}`,
+    from: before.join(","),
+    to: grants.join(","),
+  })
+  return { ok: true as const, revision }
+}
 
 /** Make somebody the first owner, from the server side only. */
 export const bootstrapOwner = internalMutation({

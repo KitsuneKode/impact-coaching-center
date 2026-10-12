@@ -1,11 +1,12 @@
 import { paginationResultValidator } from "convex/server"
 import { v } from "convex/values"
-import type { PropertyValidators, Validator, Value } from "convex/values"
+import type { Infer, PropertyValidators, Validator, Value } from "convex/values"
 
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"
 import { components } from "./_generated/api"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
+import type { GRANT } from "./schema"
 
 /** One place that answers "may this caller do this". */
 export type Refusal =
@@ -85,6 +86,24 @@ export async function requireStaff(ctx: Ctx): Promise<Decision<Viewer>> {
   if (role !== "staff" && role !== "owner") return forbidden
   if (!(await privilegedSessionFresh(ctx))) return anonymous
   return viewer
+}
+
+type Grant = Infer<typeof GRANT>
+
+/** The owner, or staff the owner has opened this area to. */
+export function hasGrant(viewer: Viewer, grant: Grant): boolean {
+  if (viewer.role === "owner") return true
+  return viewer.role === "staff" && viewer.grants.includes(grant)
+}
+
+/** Owner, or staff holding `grant`. */
+export async function requireGrant(
+  ctx: Ctx,
+  grant: Grant
+): Promise<Decision<Viewer>> {
+  const viewer = await requireStaff(ctx)
+  if (!viewer.ok) return viewer
+  return hasGrant(viewer.value, grant) ? viewer : forbidden
 }
 
 /** Owner only. Every write that changes who may do what goes through this. */

@@ -119,16 +119,16 @@ describe("editing posts", () => {
     )
     const rows = await t.run((ctx) =>
       ctx.db
-        .query("activities")
-        .withIndex("by_kind", (q) => q.eq("kind", "post_publish"))
+        .query("auditLog")
+        .withIndex("by_action", (q) => q.eq("action", "publish"))
         .collect()
     )
     expect(rows[0]).toMatchObject({
       actorId: owner!.id,
       entity: "post",
       entityId: created.id,
-      fromStatus: "draft",
-      toStatus: "published",
+      from: "draft",
+      to: "published",
     })
   })
 })

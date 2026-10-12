@@ -162,6 +162,31 @@ describe("domain identity and enquiries", () => {
       await t.run((ctx) => ctx.db.query("persons").collect())
     ).toHaveLength(1)
   })
+  test("each enquiry is kept with the page and campaign it came from", async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.persons.recordEnquiry, {
+      ...lead,
+      page: "/as/courses/lakhya-2027",
+      utmSource: "facebook",
+      utmCampaign: "victor-9",
+      referrer: "https://m.facebook.com/",
+    })
+    await t.mutation(internal.persons.recordEnquiry, {
+      ...lead,
+      timing: enquiryTimings[1]!,
+      utmSource: "  ",
+    })
+    const rows = await t.run((ctx) => ctx.db.query("enquiries").collect())
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      channel: "website",
+      page: "/as/courses/lakhya-2027",
+      utm: { source: "facebook", campaign: "victor-9" },
+      referrer: "https://m.facebook.com/",
+    })
+    // Blank tracking is absent, not an empty object.
+    expect(rows[1]!.utm).toBeUndefined()
+  })
   test("verification and enquiry retain the same Person and existing staff workflow", async () => {
     const t = convexTest(schema, modules)
     const id = await t.mutation(record, { phone: lead.phone })

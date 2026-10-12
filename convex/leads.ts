@@ -27,6 +27,7 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server"
+import { recordAudit } from "./audit"
 import { upsertPersonByPhone } from "./persons"
 import { LEAD_STATUS } from "./schema"
 import { endOfTodayIst } from "../lib/ist"
@@ -238,7 +239,9 @@ export async function readInboxPage(
   const base = status
     ? ctx.db
         .query("persons")
-        .withIndex("by_leadStatus", (q) => q.eq("leadStatus", status))
+        .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
+          q.eq("leadStatus", status)
+        )
         .order("desc")
     : ctx.db.query("persons").withIndex("by_lastEnquiryAt").order("desc")
 
@@ -341,6 +344,12 @@ export async function applyCreateLead(
     ...(args.track ? { interestTrack: args.track } : {}),
     revision,
     updatedAt: now,
+  })
+  await ctx.db.insert("enquiries", {
+    personId,
+    channel: args.source,
+    track: args.track,
+    actorId: viewer.id,
   })
   await ctx.db.insert("activities", {
     personId,
@@ -484,8 +493,8 @@ export async function readLeadDetail(
       at: row._creationTime,
       body: row.body,
       actorName: row.actorId ? actors.get(row.actorId) : undefined,
-      fromStatus: row.fromStatus,
-      toStatus: row.toStatus,
+      fromStatus: row.from,
+      toStatus: row.to,
       track: row.track,
       timing: row.timing,
     })),
@@ -536,8 +545,8 @@ export async function applyLeadStatus(
     personId: args.personId,
     kind: "status_change",
     actorId: viewer.id,
-    fromStatus: person.leadStatus,
-    toStatus: args.status,
+    from: person.leadStatus,
+    to: args.status,
   })
   return { ok: true as const, revision }
 }
@@ -622,6 +631,13 @@ export async function applyFollowUp(
     revision,
     updatedAt: now,
   })
+  await ctx.db.insert("activities", {
+    personId: args.personId,
+    kind: "follow_up_change",
+    actorId: viewer.id,
+    from: person.nextFollowUpAt?.toString(),
+    to: args.at?.toString(),
+  })
   return { ok: true as const, revision }
 }
 
@@ -652,7 +668,9 @@ export async function readLeadCounts(
   if (!isStaff(viewer)) return { fresh: 0, due: 0, capped: false }
   const fresh = await ctx.db
     .query("persons")
-    .withIndex("by_leadStatus", (q) => q.eq("leadStatus", "new"))
+    .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
+      q.eq("leadStatus", "new")
+    )
     .take(COUNT_CAP + 1)
   /* The follow-up index range also matches enrolled/lost leads, and they are
      filtered after the read - a plain `take` can fill its window on closed
@@ -714,11 +732,10 @@ export const recordExport = mutation({
     if (!owner.ok) return owner
     if (!Number.isInteger(args.count) || args.count < 1)
       return invalidInput("count")
-    await ctx.db.insert("activities", {
-      personId: owner.value.id,
-      kind: "export",
-      body: `Exported ${args.count} enquir${args.count === 1 ? "y" : "ies"} as CSV`,
-      actorId: owner.value.id,
+    await recordAudit(ctx, owner.value, {
+      action: "export",
+      entity: "person",
+      summary: `Exported ${args.count} enquir${args.count === 1 ? "y" : "ies"} as CSV`,
     })
     return { ok: true as const }
   },

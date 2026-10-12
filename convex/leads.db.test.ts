@@ -73,6 +73,8 @@ async function viewer(
     name: doc.name,
     phone: doc.phone,
     role: doc.role,
+    grants: doc.grants ?? [],
+    locale: doc.locale,
     verifiedAt: doc.verifiedAt,
     revision: doc.revision ?? 0,
   }

@@ -21,7 +21,7 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server"
-import { ORDER_STATUS } from "./schema"
+import { ADDRESS, ORDER_LINE, ORDER_STATUS } from "./schema"
 import { newOrderReference } from "../lib/order-reference"
 
 /** Who carries the parcel. Shared by schema, args and projections. */
@@ -90,26 +90,12 @@ const ORDER_ROW = v.object({
   reference: v.string(),
   status: ORDER_STATUS,
   fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
-  items: v.array(
-    v.object({
-      title: v.string(),
-      edition: v.optional(v.string()),
-      quantity: v.number(),
-      unitPaise: v.number(),
-    })
-  ),
+  lines: v.array(ORDER_LINE),
   itemsPaise: v.number(),
   deliveryPaise: v.number(),
   totalPaise: v.number(),
-  address: v.optional(
-    v.object({
-      line1: v.string(),
-      line2: v.optional(v.string()),
-      city: v.string(),
-      district: v.optional(v.string()),
-      pin: v.string(),
-    })
-  ),
+  address: v.optional(ADDRESS),
+  receiptNumber: v.optional(v.string()),
   placedAt: v.number(),
   seen: v.boolean(),
   revision: v.number(),
@@ -148,16 +134,18 @@ export async function readOrdersPage(
   const page = await Promise.all(
     result.page.map(async (order) => {
       const person = await ctx.db.get(order.personId)
+      const deleted = Boolean(person?.deletedAt)
       return {
         id: order._id,
         reference: order.reference,
         status: order.status,
         fulfilment: order.fulfilment,
-        items: order.items,
+        lines: order.lines,
         itemsPaise: order.itemsPaise,
         deliveryPaise: order.deliveryPaise,
         totalPaise: order.totalPaise,
         address: order.address,
+        receiptNumber: order.receiptNumber,
         placedAt: order.placedAt,
         seen: Boolean(order.seenAt),
         revision: revisionOf(order),
@@ -165,9 +153,9 @@ export async function readOrdersPage(
         /* The buyer's name and number travel with the order - unless the
            account was erased, in which case the tombstone's `deleted:` phone
            is not a number and must not become a tappable link. */
-        buyerName: person?.name ?? "",
-        buyerPhone: person?.deletedAt ? "" : (person?.phone ?? ""),
-        buyerDeleted: Boolean(person?.deletedAt),
+        buyerName: deleted ? "" : order.contact.name,
+        buyerPhone: deleted ? "" : order.contact.phone,
+        buyerDeleted: deleted,
       }
     })
   )
@@ -200,7 +188,9 @@ export const orderCounts = query({
       [...OPEN_STATUSES].map((status) =>
         ctx.db
           .query("orders")
-          .withIndex("by_status", (q) => q.eq("status", status as never))
+          .withIndex("by_status_and_placedAt", (q) =>
+            q.eq("status", status as Infer<typeof ORDER_STATUS>)
+          )
           .take(COUNT_CAP + 1)
       )
     )
@@ -295,11 +285,11 @@ export async function applyStatusChange(
 
   await ctx.db.insert("activities", {
     personId: order.personId,
-    kind: "status_change",
+    kind: "order_status",
     body: `Order ${order.reference}: ${order.status} → ${args.status}`,
     actorId: viewer.id,
-    fromStatus: order.status,
-    toStatus: args.status,
+    from: order.status,
+    to: args.status,
   })
 
   return { ok: true as const, revision }
@@ -369,14 +359,7 @@ const MY_ORDER = v.object({
   reference: v.string(),
   status: ORDER_STATUS,
   fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
-  items: v.array(
-    v.object({
-      title: v.string(),
-      edition: v.optional(v.string()),
-      quantity: v.number(),
-      unitPaise: v.number(),
-    })
-  ),
+  lines: v.array(ORDER_LINE),
   deliveryPaise: v.number(),
   totalPaise: v.number(),
   placedAt: v.number(),
@@ -391,7 +374,9 @@ export const myOrders = query({
     if (!viewer.ok) return null
     const orders = await ctx.db
       .query("orders")
-      .withIndex("by_person", (q) => q.eq("personId", viewer.value.id))
+      .withIndex("by_personId_and_placedAt", (q) =>
+        q.eq("personId", viewer.value.id)
+      )
       .order("desc")
       .take(50)
     return orders.map((order) => ({
@@ -399,7 +384,7 @@ export const myOrders = query({
       reference: order.reference,
       status: order.status,
       fulfilment: order.fulfilment,
-      items: order.items,
+      lines: order.lines,
       deliveryPaise: order.deliveryPaise,
       totalPaise: order.totalPaise,
       placedAt: order.placedAt,

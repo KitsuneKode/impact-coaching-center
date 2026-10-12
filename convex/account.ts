@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 
 import { authComponent } from "./auth"
+import { recordAudit } from "./audit"
 import {
   forbidden,
   invalidInput,
@@ -44,16 +45,20 @@ export async function eraseAccount(
 
   const orders = await ctx.db
     .query("orders")
-    .withIndex("by_person", (q) => q.eq("personId", person._id))
+    .withIndex("by_personId_and_placedAt", (q) => q.eq("personId", person._id))
     .collect()
   if (orders.some((order) => LIVE_ORDER.has(order.status)))
     return invalidInput("orders-in-progress")
 
   const now = Date.now()
 
+  // Orders stay for the books' sake; who and where they went do not.
   for (const order of orders)
-    if (order.address)
-      await ctx.db.patch(order._id, { address: undefined, updatedAt: now })
+    await ctx.db.patch(order._id, {
+      address: undefined,
+      contact: { name: "", phone: "" },
+      updatedAt: now,
+    })
 
   const activities = await ctx.db
     .query("activities")
@@ -78,11 +83,22 @@ export async function eraseAccount(
     updatedAt: now,
     revision: (person.revision ?? 0) + 1,
   })
-  await ctx.db.insert("activities", {
-    personId: person._id,
-    kind: "account_deleted",
-    actorId: person._id,
-  })
+  const enquiries = await ctx.db
+    .query("enquiries")
+    .withIndex("by_person", (q) => q.eq("personId", person._id))
+    .collect()
+  for (const row of enquiries)
+    if (row.referrer) await ctx.db.patch(row._id, { referrer: undefined })
+  await recordAudit(
+    ctx,
+    { id: person._id },
+    {
+      action: "account_deleted",
+      entity: "person",
+      entityId: person._id,
+      summary: "Account erased by its owner.",
+    }
+  )
 
   /* Collect rather than `unique()`: a duplicated lease must not throw and
      leave the erasure half-done - delete every row for the number. */

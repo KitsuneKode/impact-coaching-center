@@ -29,7 +29,7 @@ const PUBLIC_MAX = 50
 export async function readPublishedPosts(ctx: Pick<QueryCtx, "db">) {
   const rows = await ctx.db
     .query("posts")
-    .withIndex("by_published", (q) => q.eq("published", true))
+    .withIndex("by_published_and_publishedAt", (q) => q.eq("published", true))
     .order("desc")
     .take(PUBLIC_MAX)
   return rows.map((row) => ({

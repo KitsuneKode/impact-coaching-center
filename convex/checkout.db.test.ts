@@ -3,8 +3,8 @@ import { describe, expect, test } from "bun:test"
 
 import { mergeCartAs, setCartLineAs } from "./carts"
 import { placeOrderAs } from "./checkout"
-import { DELIVERY_CHARGE_PAISE } from "../lib/checkout"
 import { findVerifiedPerson } from "./persons"
+import { DEFAULT_SETTINGS } from "./settings"
 import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import schema from "./schema"
@@ -33,41 +33,67 @@ async function viewer(
   )
 }
 
-async function book(
+/** A published bundle of one book, priced per language. */
+async function bundle(
   t: T,
   slug: string,
-  pricePaise: number,
+  { en = 89900, as = 84900 }: { en?: number; as?: number } = {},
   {
     published = true,
     sample = false,
-  }: { published?: boolean; sample?: boolean } = {}
+    asAvailable = true,
+  }: { published?: boolean; sample?: boolean; asAvailable?: boolean } = {}
 ) {
-  return t.run((ctx) =>
-    ctx.db.insert("books", {
-      slug,
-      title: `Book ${slug}`,
-      subtitle: "",
+  return t.run(async (ctx) => {
+    const bookId = await ctx.db.insert("books", {
+      slug: `${slug}-book`,
       exam: "APSC",
-      edition: "2026",
-      pages: 100,
-      pricePaise,
-      tone: "muted",
-      description: "",
       contents: [],
-      samplePages: [],
+      editions: {
+        en: {
+          title: `Book ${slug}`,
+          edition: "2026",
+          pages: 100,
+          samplePages: [],
+        },
+        as: {
+          title: `কিতাপ ${slug}`,
+          edition: "২০২৬",
+          pages: 100,
+          samplePages: [],
+        },
+      },
+      revision: 0,
+      updatedAt: 0,
+    })
+    return ctx.db.insert("bundles", {
+      slug,
+      exam: "APSC",
+      title: { en: `Set ${slug}`, as: `সংকলন ${slug}` },
+      description: { en: "" },
+      bookIds: [bookId],
+      variants: {
+        en: { pricePaise: en, available: true },
+        as: { pricePaise: as, available: asAvailable },
+      },
+      soldCount: 0,
+      sortOrder: 0,
       published,
       sample,
       revision: 0,
       updatedAt: 0,
     })
-  )
+  })
 }
 
-async function cart(
-  t: T,
-  personId: Id<"persons">,
-  lines: { slug: string; quantity: number; at: number }[]
-) {
+type CartLine = {
+  slug: string
+  language: "en" | "as"
+  quantity: number
+  at: number
+}
+
+async function cart(t: T, personId: Id<"persons">, lines: CartLine[]) {
   const existing = await t.run(async (ctx) =>
     (await ctx.db.query("carts").collect()).find((c) => c.personId === personId)
   )
@@ -85,6 +111,7 @@ const ADDRESS = {
   city: "Guwahati",
   pin: "781005",
 }
+const SHIPPING = DEFAULT_SETTINGS.shippingPaise
 const ordersOf = (t: T) => t.run((ctx) => ctx.db.query("orders").collect())
 const activitiesOf = (t: T) =>
   t.run(async (ctx) =>
@@ -92,7 +119,6 @@ const activitiesOf = (t: T) =>
       (a) => a.kind === "order_placed"
     )
   )
-type CartLine = { slug: string; quantity: number; at: number }
 const cartLinesOf = (t: T, personId: Id<"persons">): Promise<CartLine[]> =>
   t.run(async (ctx) => {
     const row = (await ctx.db.query("carts").collect()).find(
@@ -101,16 +127,19 @@ const cartLinesOf = (t: T, personId: Id<"persons">): Promise<CartLine[]> =>
     return row?.lines ?? []
   })
 
+const line = (
+  slug: string,
+  language: "en" | "as" = "en",
+  quantity = 1,
+  at = 1
+): CartLine => ({ slug, language, quantity, at })
+
 describe("placeOrder", () => {
-  test("prices from the books table, writes the snapshot, clears the cart", async () => {
+  test("prices each language from the bundle, freezes titles, clears the cart", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
-    await book(t, "assam-gk", 19900)
-    await book(t, "polity-notes", 24900)
-    await cart(t, buyer.id, [
-      { slug: "assam-gk", quantity: 2, at: 1 },
-      { slug: "polity-notes", quantity: 1, at: 2 },
-    ])
+    const apsc = await bundle(t, "apsc-set", { en: 89900, as: 84900 })
+    await cart(t, buyer.id, [line("apsc-set", "en", 2), line("apsc-set", "as")])
 
     const result = await t.run((ctx) =>
       placeOrderAs(ctx, buyer, {
@@ -121,7 +150,7 @@ describe("placeOrder", () => {
     )
     expect(result).toMatchObject({ ok: true })
     if (!result.ok) return
-    expect(result.totalPaise).toBe(19900 * 2 + 24900 + DELIVERY_CHARGE_PAISE)
+    expect(result.totalPaise).toBe(89900 * 2 + 84900 + SHIPPING)
     expect(result.reference).toMatch(/^ICT-[0-9A-HJKMNP-TV-Z]{5}$/)
 
     const [order] = await ordersOf(t)
@@ -130,29 +159,35 @@ describe("placeOrder", () => {
       reference: result.reference,
       status: "awaiting_payment",
       fulfilment: "delivery",
-      deliveryPaise: DELIVERY_CHARGE_PAISE,
+      contact: { name: "Test Buyer", phone: "+919876543210" },
+      deliveryPaise: SHIPPING,
       totalPaise: result.totalPaise,
       idempotencyKey: "key-1",
       address: ADDRESS,
     })
-    // Prices on the order are the stored ones, line by line.
-    expect(order?.items).toEqual([
+    expect(order?.lines).toEqual([
       {
-        title: "Book assam-gk",
-        edition: "2026",
+        bundleId: apsc,
+        slug: "apsc-set",
+        title: "Set apsc-set",
+        language: "en",
+        books: ["Book apsc-set"],
         quantity: 2,
-        unitPaise: 19900,
+        unitPaise: 89900,
       },
       {
-        title: "Book polity-notes",
-        edition: "2026",
+        bundleId: apsc,
+        slug: "apsc-set",
+        title: "সংকলন apsc-set",
+        language: "as",
+        books: ["কিতাপ apsc-set"],
         quantity: 1,
-        unitPaise: 24900,
+        unitPaise: 84900,
       },
     ])
-    expect(order?.itemsPaise).toBe(19900 * 2 + 24900)
+    expect(order?.itemsPaise).toBe(89900 * 2 + 84900)
 
-    // The cart is empty afterwards: a placed order does not order twice.
+    // A placed order does not order twice.
     expect(await cartLinesOf(t, buyer.id)).toEqual([])
 
     const [activity] = await activitiesOf(t)
@@ -164,11 +199,33 @@ describe("placeOrder", () => {
     expect(activity?.body).toContain(result.reference)
   })
 
+  test("the owner's shipping charge is the one charged", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await bundle(t, "apsc-set")
+    await t.run((ctx) =>
+      ctx.db.insert("siteSettings", {
+        ...DEFAULT_SETTINGS,
+        shippingPaise: 9000,
+        revision: 0,
+      })
+    )
+    await cart(t, buyer.id, [line("apsc-set")])
+    const result = await t.run((ctx) =>
+      placeOrderAs(ctx, buyer, {
+        fulfilment: "delivery",
+        address: ADDRESS,
+        idempotencyKey: "key-1",
+      })
+    )
+    expect(result).toMatchObject({ ok: true, totalPaise: 89900 + 9000 })
+  })
+
   test("collection takes no delivery charge and no address", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
-    await book(t, "assam-gk", 19900)
-    await cart(t, buyer.id, [{ slug: "assam-gk", quantity: 1, at: 1 }])
+    await bundle(t, "apsc-set")
+    await cart(t, buyer.id, [line("apsc-set")])
 
     const result = await t.run((ctx) =>
       placeOrderAs(ctx, buyer, {
@@ -176,14 +233,14 @@ describe("placeOrder", () => {
         idempotencyKey: "key-1",
       })
     )
-    expect(result).toMatchObject({ ok: true, totalPaise: 19900 })
+    expect(result).toMatchObject({ ok: true, totalPaise: 89900 })
 
     const [order] = await ordersOf(t)
     expect(order?.deliveryPaise).toBe(0)
     expect(order?.address).toBeUndefined()
 
     // An address on a collection is refused rather than quietly stored.
-    await cart(t, buyer.id, [{ slug: "assam-gk", quantity: 1, at: 2 }])
+    await cart(t, buyer.id, [line("apsc-set", "en", 1, 2)])
     expect(
       await t.run((ctx) =>
         placeOrderAs(ctx, buyer, {
@@ -198,8 +255,8 @@ describe("placeOrder", () => {
   test("delivery requires a usable address", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
-    await book(t, "assam-gk", 19900)
-    await cart(t, buyer.id, [{ slug: "assam-gk", quantity: 1, at: 1 }])
+    await bundle(t, "apsc-set")
+    await cart(t, buyer.id, [line("apsc-set")])
 
     for (const address of [
       undefined,
@@ -220,17 +277,19 @@ describe("placeOrder", () => {
     expect(await ordersOf(t)).toHaveLength(0)
   })
 
-  test("unavailable, unpublished and demo books cannot be ordered", async () => {
+  test("unknown, unpublished, demo and switched-off sets cannot be ordered", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
-    await book(t, "unpublished", 10000, { published: false })
-    await book(t, "demo-only", 10000, { sample: true })
+    await bundle(t, "unpublished", {}, { published: false })
+    await bundle(t, "demo-only", {}, { sample: true })
+    await bundle(t, "no-assamese", {}, { asAvailable: false })
     let key = 0
 
     for (const lines of [
-      [{ slug: "never-existed", quantity: 1, at: 1 }],
-      [{ slug: "unpublished", quantity: 1, at: 1 }],
-      [{ slug: "demo-only", quantity: 1, at: 1 }],
+      [line("never-existed")],
+      [line("unpublished")],
+      [line("demo-only")],
+      [line("no-assamese", "as")],
     ]) {
       await cart(t, buyer.id, lines)
       expect(
@@ -241,7 +300,7 @@ describe("placeOrder", () => {
           })
         )
       ).toEqual({ ok: false, reason: "invalid-input", field: "items" })
-      // A refused order must not eat the cart - the shopper still owns it.
+      // A refused order must not eat the cart.
       expect((await cartLinesOf(t, buyer.id)).length).toBe(1)
     }
     expect(await ordersOf(t)).toHaveLength(0)
@@ -267,8 +326,8 @@ describe("placeOrder", () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
     const other = (await viewer(t, "+919876543211"))!
-    await book(t, "assam-gk", 19900)
-    await cart(t, buyer.id, [{ slug: "assam-gk", quantity: 1, at: 1 }])
+    await bundle(t, "apsc-set")
+    await cart(t, buyer.id, [line("apsc-set")])
 
     const first = await t.run((ctx) =>
       placeOrderAs(ctx, buyer, {
@@ -302,11 +361,11 @@ describe("placeOrder", () => {
   test("more than ten orders an hour from one Person is refused", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
-    await book(t, "assam-gk", 19900)
+    await bundle(t, "apsc-set")
 
     let key = 0
     const next = async () => {
-      await cart(t, buyer.id, [{ slug: "assam-gk", quantity: 1, at: key }])
+      await cart(t, buyer.id, [line("apsc-set", "en", 1, key)])
       return t.run((ctx) =>
         placeOrderAs(ctx, buyer, {
           fulfilment: "collection",
@@ -323,42 +382,33 @@ describe("placeOrder", () => {
 })
 
 describe("the server cart", () => {
-  test("merge is a union by slug, and the newer write wins", async () => {
+  test("merge is a union by set and language, and the newer write wins", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
     await cart(t, buyer.id, [
-      { slug: "assam-gk", quantity: 3, at: 100 },
-      { slug: "polity", quantity: 1, at: 50 },
+      line("apsc", "en", 3, 100),
+      line("adre", "as", 1, 50),
     ])
 
-    // Browser carried an older assam-gk and a newer polity plus a new title.
-    const result = await t.run((ctx) =>
-      mergeCartAs(ctx, buyer.id, [
-        { slug: "assam-gk", quantity: 1, at: 10 },
-        { slug: "polity", quantity: 5, at: 200 },
-        { slug: "history", quantity: 2, at: 5 },
-      ])
-    )
-    expect(result).toEqual({ ok: true })
-    expect(await cartLinesOf(t, buyer.id)).toEqual([
-      { slug: "assam-gk", quantity: 3, at: 100 },
-      { slug: "polity", quantity: 5, at: 200 },
-      { slug: "history", quantity: 2, at: 5 },
-    ])
+    // The browser carried an older apsc, a newer adre, and the other language.
+    const incoming = [
+      line("apsc", "en", 1, 10),
+      line("adre", "as", 5, 200),
+      line("apsc", "as", 2, 5),
+    ]
+    expect(await t.run((ctx) => mergeCartAs(ctx, buyer.id, incoming))).toEqual({
+      ok: true,
+    })
+    const merged = [
+      line("apsc", "en", 3, 100),
+      line("adre", "as", 5, 200),
+      line("apsc", "as", 2, 5),
+    ]
+    expect(await cartLinesOf(t, buyer.id)).toEqual(merged)
 
     // Replaying the same merge is a no-op.
-    await t.run((ctx) =>
-      mergeCartAs(ctx, buyer.id, [
-        { slug: "assam-gk", quantity: 1, at: 10 },
-        { slug: "polity", quantity: 5, at: 200 },
-        { slug: "history", quantity: 2, at: 5 },
-      ])
-    )
-    expect(await cartLinesOf(t, buyer.id)).toEqual([
-      { slug: "assam-gk", quantity: 3, at: 100 },
-      { slug: "polity", quantity: 5, at: 200 },
-      { slug: "history", quantity: 2, at: 5 },
-    ])
+    await t.run((ctx) => mergeCartAs(ctx, buyer.id, incoming))
+    expect(await cartLinesOf(t, buyer.id)).toEqual(merged)
   })
 
   test("merge cleans: clamps, drops non-positive, caps the line count", async () => {
@@ -368,23 +418,15 @@ describe("the server cart", () => {
     expect(
       await t.run((ctx) =>
         mergeCartAs(ctx, buyer.id, [
-          { slug: "a", quantity: 99, at: 1 },
-          { slug: "b", quantity: 0, at: 1 },
-          { slug: "a", quantity: 4, at: 2 },
+          line("a", "en", 99, 1),
+          line("b", "en", 0, 1),
+          line("a", "en", 4, 2),
         ])
       )
     ).toEqual({ ok: true })
-    // Clamped to the cap, newest duplicate wins, zeros never stored.
-    expect(await cartLinesOf(t, buyer.id)).toEqual([
-      { slug: "a", quantity: 4, at: 2 },
-    ])
+    expect(await cartLinesOf(t, buyer.id)).toEqual([line("a", "en", 4, 2)])
 
-    // A cart bigger than a shelf is a client bug, not a shopper.
-    const flood = Array.from({ length: 51 }, (_, i) => ({
-      slug: `book-${i}`,
-      quantity: 1,
-      at: 1,
-    }))
+    const flood = Array.from({ length: 11 }, (_, i) => line(`set-${i}`))
     expect(await t.run((ctx) => mergeCartAs(ctx, buyer.id, flood))).toEqual({
       ok: false,
       reason: "invalid-input",
@@ -395,25 +437,29 @@ describe("the server cart", () => {
   test("setCartLine sets the absolute quantity and removes at zero", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
+    const set = (slug: string, language: "en" | "as", quantity: number) =>
+      t.run((ctx) => setCartLineAs(ctx, buyer.id, { slug, language, quantity }))
 
-    await t.run((ctx) => setCartLineAs(ctx, buyer.id, "assam-gk", 3))
-    await t.run((ctx) => setCartLineAs(ctx, buyer.id, "polity", 1))
+    await set("apsc", "en", 3)
+    await set("apsc", "as", 1)
     let lines = await cartLinesOf(t, buyer.id)
-    expect(lines.map((l) => [l.slug, l.quantity]).sort()).toEqual([
-      ["assam-gk", 3],
-      ["polity", 1],
+    expect(lines.map((l) => [l.language, l.quantity]).sort()).toEqual([
+      ["as", 1],
+      ["en", 3],
     ])
 
-    // Fractional and oversized quantities are rejected/clamped, not trusted.
-    expect(
-      await t.run((ctx) => setCartLineAs(ctx, buyer.id, "assam-gk", 1.5))
-    ).toEqual({ ok: false, reason: "invalid-input", field: "quantity" })
-    await t.run((ctx) => setCartLineAs(ctx, buyer.id, "assam-gk", 55))
+    // Fractional quantities are refused; oversized ones clamp to five.
+    expect(await set("apsc", "en", 1.5)).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "quantity",
+    })
+    await set("apsc", "en", 55)
     lines = await cartLinesOf(t, buyer.id)
-    expect(lines.find((l) => l.slug === "assam-gk")?.quantity).toBe(10)
+    expect(lines.find((l) => l.language === "en")?.quantity).toBe(5)
 
-    await t.run((ctx) => setCartLineAs(ctx, buyer.id, "assam-gk", 0))
+    await set("apsc", "en", 0)
     lines = await cartLinesOf(t, buyer.id)
-    expect(lines.map((l) => l.slug)).toEqual(["polity"])
+    expect(lines.map((l) => l.language)).toEqual(["as"])
   })
 })

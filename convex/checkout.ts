@@ -4,32 +4,21 @@ import { invalidInput, REFUSAL, viewerPerson, type Viewer } from "./authz"
 import { clearCart } from "./carts"
 import { mutation, type MutationCtx } from "./_generated/server"
 import { allocateOrderReference } from "./orders"
+import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
-import { DELIVERY_CHARGE_PAISE } from "../lib/checkout"
+import { inLanguage } from "../lib/catalog"
+import { readSettings } from "./settings"
 
 /**
- * Checkout. The server prices the order from the `books` table and from the
- * shopper's server-side cart - the browser sends neither titles nor paise, so
- * a forged price is impossible by construction rather than by validation.
- *
- * Payment is still a prototype: an order lands as `awaiting_payment` and a
- * provider signature (KIT-60) is what may move it to `paid`, not a click.
+ * Checkout. The server prices the order from published bundles, the shop
+ * settings and the shopper's server-side cart; the browser sends neither
+ * titles nor paise. An order lands as `awaiting_payment`; only a verified
+ * Razorpay payment moves it to `paid`.
  */
-
-/* The flat charge lives in lib/checkout.ts (provisional, shared with the
-   checkout UI so the page shows the number the server will charge). */
 
 /** A shopper checking out more often than this is not a shopper. */
 const ORDERS_PER_PERSON_HOUR = 10
 const HOUR = 60 * 60 * 1000
-
-const ADDRESS = v.object({
-  line1: v.string(),
-  line2: v.optional(v.string()),
-  city: v.string(),
-  district: v.optional(v.string()),
-  pin: v.string(),
-})
 
 /** Trimmed, non-empty, short enough for a courier label. */
 function cleanAddressField(value: string | undefined, max: number) {
@@ -106,7 +95,7 @@ export async function placeOrderAs(
    */
   const prior = await ctx.db
     .query("orders")
-    .withIndex("by_idempotency", (q) =>
+    .withIndex("by_idempotencyKey", (q) =>
       q.eq("idempotencyKey", args.idempotencyKey)
     )
     .first()
@@ -137,41 +126,50 @@ export async function placeOrderAs(
       : undefined
   if (args.fulfilment === "delivery" && !address) return invalidInput("address")
 
-  /* The cart on the server is the order. What the client happened to
-     display is advice, not evidence. */
+  /* The cart on the server is the order; what the client displayed is
+     advice, not evidence. */
   const cart = await ctx.db
     .query("carts")
     .withIndex("by_person", (q) => q.eq("personId", viewer.id))
     .first()
-  const lines = cart?.lines ?? []
-  if (lines.length === 0) return invalidInput("cart")
+  const cartLines = cart?.lines ?? []
+  if (cartLines.length === 0) return invalidInput("cart")
 
-  const books = await Promise.all(
-    lines.map((line) =>
-      ctx.db
-        .query("books")
-        .withIndex("by_slug", (q) => q.eq("slug", line.slug))
-        .first()
-    )
-  )
-  /* Unpublished, unknown or demo-only titles cannot be sold; say which
-     cart broke so the client can drop it rather than refuse blankly. */
-  const missing = books.some((book) => !book || !book.published || book.sample)
-  if (missing) return invalidInput("items")
-
-  const items = books.map((book, i) => ({
-    title: book!.title,
-    edition: book!.edition,
-    quantity: lines[i]!.quantity,
-    unitPaise: book!.pricePaise,
-  }))
-  const itemsPaise = items.reduce(
-    (sum, item) => sum + item.unitPaise * item.quantity,
+  const lines = []
+  for (const line of cartLines) {
+    const bundle = await ctx.db
+      .query("bundles")
+      .withIndex("by_slug", (q) => q.eq("slug", line.slug))
+      .first()
+    const variant = bundle?.variants[line.language]
+    // Unpublished, switched off or demo-only bundles cannot be sold.
+    if (!bundle || !bundle.published || bundle.sample || !variant?.available)
+      return invalidInput("items")
+    const books = await Promise.all(bundle.bookIds.map((id) => ctx.db.get(id)))
+    lines.push({
+      bundleId: bundle._id,
+      slug: bundle.slug,
+      title: inLanguage(bundle.title, line.language),
+      language: line.language,
+      books: books.flatMap((book) => {
+        const edition = book?.editions[line.language]
+        return edition ? [edition.title] : []
+      }),
+      quantity: line.quantity,
+      unitPaise: variant.pricePaise,
+    })
+  }
+  const itemsPaise = lines.reduce(
+    (sum, line) => sum + line.unitPaise * line.quantity,
     0
   )
+  const settings = await readSettings(ctx)
   const deliveryPaise =
-    args.fulfilment === "delivery" ? DELIVERY_CHARGE_PAISE : 0
+    args.fulfilment === "delivery" ? settings.shippingPaise : 0
   const totalPaise = itemsPaise + deliveryPaise
+
+  const person = await ctx.db.get(viewer.id)
+  if (!person?.name.trim()) return invalidInput("name")
 
   const reference = await allocateOrderReference(ctx)
   await ctx.db.insert("orders", {
@@ -179,7 +177,8 @@ export async function placeOrderAs(
     reference,
     status: "awaiting_payment",
     fulfilment: args.fulfilment,
-    items,
+    contact: { name: person.name.trim(), phone: person.phone },
+    lines,
     itemsPaise,
     deliveryPaise,
     totalPaise,
@@ -192,7 +191,7 @@ export async function placeOrderAs(
   await ctx.db.insert("activities", {
     personId: viewer.id,
     kind: "order_placed",
-    body: `Order ${reference} placed: ${items.reduce((n, i) => n + i.quantity, 0)} item(s) · ₹${Math.round(totalPaise / 100)} · ${args.fulfilment}`,
+    body: `Order ${reference} placed: ${lines.reduce((n, l) => n + l.quantity, 0)} set(s) · ₹${Math.round(totalPaise / 100)} · ${args.fulfilment}`,
     actorId: viewer.id,
   })
 

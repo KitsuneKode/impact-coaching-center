@@ -34,9 +34,28 @@ async function person(
     name: doc!.name,
     phone: doc!.phone,
     role: doc!.role,
+    grants: doc!.grants ?? [],
+    locale: doc!.locale,
     verifiedAt: doc!.verifiedAt,
     revision: doc!.revision ?? 0,
   }
+}
+
+const BUNDLE = {
+  slug: "a-set",
+  exam: "APSC",
+  title: { en: "A set" },
+  description: { en: "" },
+  bookIds: [],
+  variants: {
+    en: { pricePaise: 25000, available: true },
+    as: { pricePaise: 25000, available: true },
+  },
+  soldCount: 0,
+  sortOrder: 0,
+  published: true,
+  revision: 0,
+  updatedAt: 0,
 }
 
 async function order(
@@ -56,14 +75,25 @@ async function order(
     courier?: { name: string; trackingNumber: string }
   } = {}
 ) {
-  return await t.run((ctx) =>
+  return await t.run(async (ctx) =>
     ctx.db.insert("orders", {
       personId,
       reference,
       status: status as never,
       fulfilment,
       courier,
-      items: [{ title: "A book", quantity: 1, unitPaise: 25000 }],
+      contact: { name: "Test Person", phone: "+919876543211" },
+      lines: [
+        {
+          bundleId: await ctx.db.insert("bundles", BUNDLE),
+          slug: "a-set",
+          title: "A set",
+          language: "en",
+          books: ["A book"],
+          quantity: 1,
+          unitPaise: 25000,
+        },
+      ],
       itemsPaise: 25000,
       deliveryPaise: 5000,
       totalPaise: 30000,
@@ -150,10 +180,10 @@ describe("the status machine", () => {
     )
     expect(audit).toHaveLength(1)
     expect(audit[0]).toMatchObject({
-      kind: "status_change",
+      kind: "order_status",
       actorId: staff.id,
-      fromStatus: "packed",
-      toStatus: "shipped",
+      from: "packed",
+      to: "shipped",
     })
   })
 

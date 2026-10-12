@@ -10,6 +10,10 @@ import { ENQUIRY_RATE_LIMITED } from "./persons"
 
 const http = httpRouter()
 
+/** A string field from an untrusted body, or nothing. */
+const optionalString = (value: unknown) =>
+  typeof value === "string" ? value : undefined
+
 http.route({
   path: "/enquiries",
   method: "POST",
@@ -49,6 +53,11 @@ http.route({
         ip:
           (typeof data.ip === "string" ? parseClientAddress(data.ip) : null) ??
           undefined,
+        page: optionalString(data.page),
+        utmSource: optionalString(data.utmSource),
+        utmMedium: optionalString(data.utmMedium),
+        utmCampaign: optionalString(data.utmCampaign),
+        referrer: optionalString(data.referrer),
       })
     } catch (error) {
       // A ceiling is the one failure the caller can act on by backing off.

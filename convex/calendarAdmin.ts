@@ -1,13 +1,15 @@
 import { v } from "convex/values"
 
 import { checkExamDate, type ExamDateInput } from "../lib/calendar"
+import { recordAudit } from "./audit"
 import {
   checkRevision,
   forbidden,
   invalidInput,
   missingRecord,
   mutationResult,
-  requireOwner,
+  hasGrant,
+  requireGrant,
   type Viewer,
 } from "./authz"
 import type { Id } from "./_generated/dataModel"
@@ -43,14 +45,18 @@ async function recordDate(
     toStatus?: "draft" | "published"
   }
 ) {
-  await ctx.db.insert("activities", {
-    kind: entry.kind,
-    body: entry.body,
-    actorId: actor.id,
+  await recordAudit(ctx, actor, {
+    action:
+      entry.kind === "date_save"
+        ? "save"
+        : entry.toStatus === "published"
+          ? "publish"
+          : "unpublish",
     entity: "examDate",
     entityId: entry.entityId,
-    fromStatus: entry.fromStatus,
-    toStatus: entry.toStatus,
+    summary: entry.body,
+    from: entry.fromStatus,
+    to: entry.toStatus,
   })
 }
 
@@ -99,7 +105,8 @@ export const list = query({
   args: {},
   returns: v.object({ rows: v.array(ROW), truncated: v.boolean() }),
   handler: async (ctx) => {
-    if (!(await requireOwner(ctx)).ok) return { rows: [], truncated: false }
+    if (!(await requireGrant(ctx, "content")).ok)
+      return { rows: [], truncated: false }
     const found = await ctx.db
       .query("examDates")
       .order("desc")
@@ -119,7 +126,7 @@ export const get = query({
   args: { id: v.string() },
   returns: v.union(ROW, v.null()),
   handler: async (ctx, args) => {
-    if (!(await requireOwner(ctx)).ok) return null
+    if (!(await requireGrant(ctx, "content")).ok) return null
     const id = ctx.db.normalizeId("examDates", args.id)
     const row = id && (await ctx.db.get(id))
     return row ? toRow(row) : null
@@ -135,7 +142,7 @@ export const save = mutation({
   },
   returns: mutationResult({ id: v.id("examDates"), revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
+    const owner = await requireGrant(ctx, "content")
     if (!owner.ok) return owner
     return applySaveDate(ctx, owner.value, args)
   },
@@ -150,7 +157,7 @@ export async function applySaveDate(
     expectedRevision?: number
   }
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!hasGrant(viewer, "content")) return forbidden
   const { id, expectedRevision, ...input } = args
   const checked = checkExamDate(input)
   if (!checked.ok) return invalidInput(checked.field)
@@ -200,7 +207,7 @@ export const setPublished = mutation({
   },
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
+    const owner = await requireGrant(ctx, "content")
     if (!owner.ok) return owner
     return applyDatePublished(ctx, owner.value, args)
   },
@@ -212,7 +219,7 @@ export async function applyDatePublished(
   viewer: Viewer,
   args: { id: Id<"examDates">; published: boolean; expectedRevision: number }
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!hasGrant(viewer, "content")) return forbidden
   const current = await ctx.db.get(args.id)
   if (!current) return missingRecord
   const conflict = checkRevision(current, args.expectedRevision)

@@ -43,13 +43,39 @@ async function order(
   personId: Id<"persons">,
   status: "paid" | "delivered" | "cancelled"
 ) {
-  return t.run((ctx) =>
+  return t.run(async (ctx) =>
     ctx.db.insert("orders", {
       personId,
       reference: `ICT-${status}`,
       status,
       fulfilment: "delivery",
-      items: [{ title: "Assam GK", quantity: 1, unitPaise: 25000 }],
+      contact: { name: "Asha", phone: "+919876543210" },
+      lines: [
+        {
+          bundleId: await ctx.db.insert("bundles", {
+            slug: "gk-set",
+            exam: "ADRE",
+            title: { en: "GK set" },
+            description: { en: "" },
+            bookIds: [],
+            variants: {
+              en: { pricePaise: 25000, available: true },
+              as: { pricePaise: 25000, available: true },
+            },
+            soldCount: 0,
+            sortOrder: 0,
+            published: true,
+            revision: 0,
+            updatedAt: 0,
+          }),
+          slug: "gk-set",
+          title: "GK set",
+          language: "en",
+          books: ["Assam GK"],
+          quantity: 1,
+          unitPaise: 25000,
+        },
+      ],
       itemsPaise: 25000,
       deliveryPaise: 6000,
       totalPaise: 31000,
@@ -89,7 +115,13 @@ describe("account deletion", () => {
         .collect()
     )
     expect(rows.every((row) => row.body === undefined)).toBe(true)
-    expect(rows.some((row) => row.kind === "account_deleted")).toBe(true)
+    const audit = await t.run((ctx) =>
+      ctx.db
+        .query("auditLog")
+        .withIndex("by_action", (q) => q.eq("action", "account_deleted"))
+        .collect()
+    )
+    expect(audit.some((row) => row.entityId === id)).toBe(true)
   })
 
   test("the number signs up again as a new Person", async () => {
@@ -133,6 +165,7 @@ describe("account deletion", () => {
     const kept = await t.run((ctx) => ctx.db.get(orderId))
     expect(kept?.totalPaise).toBe(31000)
     expect(kept?.address).toBeUndefined()
+    expect(kept?.contact).toEqual({ name: "", phone: "" })
   })
 })
 

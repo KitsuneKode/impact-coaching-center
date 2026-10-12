@@ -7,8 +7,8 @@
     "`leadStatus` is one of: new, contacted, interested, enrolled, lost.",
     "`note` lands on the activity record, never on the Person, because staff notes must not sit on a row that could be exported.",
     "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local or the named hosted dev deployment (DEV_DEPLOYMENT_NAME).",
-    "`orders` prices are in RUPEES here and stored as integer paise. `daysAgo` is relative like the enquiries. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address, by design.",
-    "`books` and `resources` are the sample catalogue: published, marked sample, and replaced the moment the owner edits one. `priceRupees` is stored as paise."
+    "`books` are sample titles with an English and an Assamese edition; `bundles` group them by slug and carry a price per language in RUPEES (stored as paise). Everything here is published, marked sample, and replaced the moment the owner edits it.",
+    "`orders` name a bundle slug and a language per line; the seed prices them from the bundle, exactly as checkout would. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address."
   ],
   "people": [
     {
@@ -290,26 +290,24 @@
       "fulfilment": "delivery",
       "daysAgo": 0.2,
       "seen": false,
-      "items": [
-        {
-          "title": "APSC Prelims Companion",
-          "quantity": 1,
-          "unitRupees": 420,
-          "edition": "2026 edition"
-        },
-        {
-          "title": "ADRE Practice Papers",
-          "quantity": 1,
-          "unitRupees": 280
-        }
-      ],
-      "deliveryRupees": 60,
       "address": {
         "line1": "House 14, Milanpur Path",
         "city": "North Lakhimpur",
         "pin": "787001",
         "district": "Lakhimpur"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "apsc-foundation-set",
+          "language": "en",
+          "quantity": 1
+        },
+        {
+          "bundle": "adre-police-set",
+          "language": "as",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2480",
@@ -319,15 +317,13 @@
       "fulfilment": "collection",
       "daysAgo": 0.6,
       "seen": false,
-      "items": [
+      "lines": [
         {
-          "title": "Assam GK Compendium",
-          "quantity": 2,
-          "unitRupees": 360,
-          "edition": "5th edition"
+          "bundle": "adre-police-set",
+          "language": "en",
+          "quantity": 2
         }
-      ],
-      "deliveryRupees": 0
+      ]
     },
     {
       "reference": "ICT-2479",
@@ -337,21 +333,19 @@
       "fulfilment": "delivery",
       "daysAgo": 1.4,
       "seen": true,
-      "items": [
-        {
-          "title": "Polity in Focus",
-          "quantity": 1,
-          "unitRupees": 450,
-          "edition": "3rd edition"
-        }
-      ],
-      "deliveryRupees": 60,
       "address": {
         "line1": "Ward 6, Near Bihu Field",
         "city": "Dhakuakhana",
         "pin": "787055",
         "district": "Lakhimpur"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "apsc-foundation-set",
+          "language": "as",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2478",
@@ -361,26 +355,24 @@
       "fulfilment": "delivery",
       "daysAgo": 3.1,
       "seen": true,
-      "items": [
-        {
-          "title": "APSC Prelims Companion",
-          "quantity": 1,
-          "unitRupees": 420,
-          "edition": "2026 edition"
-        },
-        {
-          "title": "Assamese Grammar Essentials",
-          "quantity": 1,
-          "unitRupees": 240
-        }
-      ],
-      "deliveryRupees": 70,
       "address": {
         "line1": "Qtr 3, Circuit House Road",
         "city": "Dhemaji",
         "pin": "787057",
         "district": "Dhemaji"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "apsc-foundation-set",
+          "language": "en",
+          "quantity": 1
+        },
+        {
+          "bundle": "bank-ssc-railway-set",
+          "language": "en",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2477",
@@ -390,14 +382,13 @@
       "fulfilment": "collection",
       "daysAgo": 4,
       "seen": true,
-      "items": [
+      "lines": [
         {
-          "title": "ADRE Practice Papers",
-          "quantity": 3,
-          "unitRupees": 280
+          "bundle": "adre-police-set",
+          "language": "as",
+          "quantity": 3
         }
-      ],
-      "deliveryRupees": 0
+      ]
     },
     {
       "reference": "ICT-2476",
@@ -407,20 +398,18 @@
       "fulfilment": "delivery",
       "daysAgo": 8.5,
       "seen": true,
-      "items": [
-        {
-          "title": "Assam GK Compendium",
-          "quantity": 1,
-          "unitRupees": 360,
-          "edition": "5th edition"
-        }
-      ],
-      "deliveryRupees": 60,
       "address": {
         "line1": "Bhimpara, Ward 2",
         "city": "North Lakhimpur",
         "pin": "787001"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "adre-police-set",
+          "language": "en",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2475",
@@ -430,20 +419,18 @@
       "fulfilment": "collection",
       "daysAgo": 12,
       "seen": true,
-      "items": [
+      "lines": [
         {
-          "title": "Polity in Focus",
-          "quantity": 1,
-          "unitRupees": 450,
-          "edition": "3rd edition"
+          "bundle": "apsc-foundation-set",
+          "language": "as",
+          "quantity": 1
         },
         {
-          "title": "Assamese Grammar Essentials",
-          "quantity": 1,
-          "unitRupees": 240
+          "bundle": "bank-ssc-railway-set",
+          "language": "en",
+          "quantity": 1
         }
-      ],
-      "deliveryRupees": 0
+      ]
     },
     {
       "reference": "ICT-2474",
@@ -453,21 +440,19 @@
       "fulfilment": "delivery",
       "daysAgo": 0.05,
       "seen": false,
-      "items": [
-        {
-          "title": "APSC Prelims Companion",
-          "quantity": 1,
-          "unitRupees": 420,
-          "edition": "2026 edition"
-        }
-      ],
-      "deliveryRupees": 60,
       "address": {
         "line1": "Sonapur Gaon",
         "city": "Bihpuria",
         "pin": "784161",
         "district": "Lakhimpur"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "apsc-foundation-set",
+          "language": "en",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2473",
@@ -477,19 +462,18 @@
       "fulfilment": "delivery",
       "daysAgo": 16,
       "seen": true,
-      "items": [
-        {
-          "title": "ADRE Practice Papers",
-          "quantity": 1,
-          "unitRupees": 280
-        }
-      ],
-      "deliveryRupees": 60,
       "address": {
         "line1": "Ward 9, Station Road",
         "city": "North Lakhimpur",
         "pin": "787001"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "adre-police-set",
+          "language": "as",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2472",
@@ -499,26 +483,23 @@
       "fulfilment": "delivery",
       "daysAgo": 21,
       "seen": true,
-      "items": [
-        {
-          "title": "Assam GK Compendium",
-          "quantity": 1,
-          "unitRupees": 360,
-          "edition": "5th edition"
-        },
-        {
-          "title": "Polity in Focus",
-          "quantity": 1,
-          "unitRupees": 450,
-          "edition": "3rd edition"
-        }
-      ],
-      "deliveryRupees": 70,
       "address": {
         "line1": "Near Girls College",
         "city": "North Lakhimpur",
         "pin": "787001"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "adre-police-set",
+          "language": "en",
+          "quantity": 1
+        },
+        {
+          "bundle": "apsc-foundation-set",
+          "language": "as",
+          "quantity": 1
+        }
+      ]
     },
     {
       "reference": "ICT-2471",
@@ -528,19 +509,18 @@
       "fulfilment": "delivery",
       "daysAgo": 0.9,
       "seen": false,
-      "items": [
-        {
-          "title": "Assamese Grammar Essentials",
-          "quantity": 2,
-          "unitRupees": 240
-        }
-      ],
-      "deliveryRupees": 60,
       "address": {
         "line1": "Panigaon Road",
         "city": "North Lakhimpur",
         "pin": "787001"
-      }
+      },
+      "lines": [
+        {
+          "bundle": "bank-ssc-railway-set",
+          "language": "en",
+          "quantity": 2
+        }
+      ]
     },
     {
       "reference": "ICT-2470",
@@ -550,38 +530,29 @@
       "fulfilment": "collection",
       "daysAgo": 2.2,
       "seen": true,
-      "items": [
+      "lines": [
         {
-          "title": "APSC Prelims Companion",
-          "quantity": 1,
-          "unitRupees": 420,
-          "edition": "2026 edition"
+          "bundle": "apsc-foundation-set",
+          "language": "en",
+          "quantity": 1
         },
         {
-          "title": "Assam GK Compendium",
-          "quantity": 1,
-          "unitRupees": 360,
-          "edition": "5th edition"
+          "bundle": "adre-police-set",
+          "language": "en",
+          "quantity": 1
         },
         {
-          "title": "ADRE Practice Papers",
-          "quantity": 1,
-          "unitRupees": 280
+          "bundle": "adre-police-set",
+          "language": "as",
+          "quantity": 1
         }
-      ],
-      "deliveryRupees": 0
+      ]
     }
   ],
   "books": [
     {
       "slug": "assam-history-culture",
-      "title": "Assam History and Culture",
-      "subtitle": "Study notes for APSC Prelims and Mains",
       "exam": "APSC",
-      "edition": "Sample edition",
-      "pages": 240,
-      "tone": "primary",
-      "description": "Sample listing. ICT's own notes would describe the book here: what it covers, who it is for, and how it maps to the syllabus.",
       "contents": [
         "Ancient Assam",
         "The Ahom kingdom",
@@ -589,59 +560,127 @@
         "Freedom movement",
         "Art, festivals and literature"
       ],
-      "priceRupees": 349
+      "editions": {
+        "en": {
+          "title": "Assam History and Culture",
+          "subtitle": "Study notes for APSC Prelims and Mains",
+          "edition": "Sample edition",
+          "pages": 240
+        },
+        "as": {
+          "title": "অসমৰ ইতিহাস আৰু সংস্কৃতি",
+          "subtitle": "APSC প্ৰাৰম্ভিক আৰু মুখ্য পৰীক্ষাৰ বাবে টোকা",
+          "edition": "নমুনা সংস্কৰণ",
+          "pages": 240
+        }
+      }
     },
     {
       "slug": "apsc-prelims-solved-papers",
-      "title": "APSC Prelims Solved Papers",
-      "subtitle": "Previous years with explanations",
       "exam": "APSC",
-      "edition": "Sample edition",
-      "pages": 180,
-      "tone": "highlight",
-      "description": "Sample listing. A solved-papers book would list the years covered and how answers are explained.",
       "contents": [
-        "How to use this book",
-        "General Studies I",
-        "General Studies II (CSAT)",
-        "Answer keys"
+        "2015 to 2025 papers",
+        "Answer keys with reasons",
+        "Topic-wise trends"
       ],
-      "priceRupees": 299
+      "editions": {
+        "en": {
+          "title": "APSC Prelims Solved Papers",
+          "subtitle": "Ten years, explained",
+          "edition": "Sample edition",
+          "pages": 310
+        },
+        "as": {
+          "title": "APSC প্ৰাৰম্ভিক সমাধানসহ প্ৰশ্নকাকত",
+          "subtitle": "দহ বছৰৰ প্ৰশ্ন, ব্যাখ্যাসহ",
+          "edition": "নমুনা সংস্কৰণ",
+          "pages": 310
+        }
+      }
+    },
+    {
+      "slug": "polity-in-focus",
+      "exam": "APSC",
+      "contents": [
+        "The Constitution",
+        "Parliament and state legislature",
+        "Panchayati Raj"
+      ],
+      "editions": {
+        "en": {
+          "title": "Polity in Focus",
+          "subtitle": "Indian polity for state exams",
+          "edition": "Sample edition",
+          "pages": 220
+        },
+        "as": {
+          "title": "ৰাজনীতি বিজ্ঞানৰ মূল কথা",
+          "subtitle": "ৰাজ্যিক পৰীক্ষাৰ বাবে ভাৰতীয় ৰাজনীতি",
+          "edition": "নমুনা সংস্কৰণ",
+          "pages": 220
+        }
+      }
     },
     {
       "slug": "assam-gk-capsule",
-      "title": "Assam GK Capsule",
-      "subtitle": "Quick revision for ADRE and Assam Police",
       "exam": "ADRE and Assam Police",
-      "edition": "Sample edition",
-      "pages": 120,
-      "tone": "muted",
-      "description": "Sample listing. A short revision book would show its format: one-liners, tables and practice questions.",
       "contents": [
-        "Geography",
-        "Polity",
-        "Economy",
-        "Schemes",
-        "Practice MCQs"
+        "Geography of Assam",
+        "Who's who",
+        "Current affairs, last 12 months"
       ],
-      "priceRupees": 199
+      "editions": {
+        "en": {
+          "title": "Assam GK Capsule",
+          "subtitle": "Quick revision for ADRE and Assam Police",
+          "edition": "Sample edition",
+          "pages": 180
+        },
+        "as": {
+          "title": "অসমৰ সাধাৰণ জ্ঞান",
+          "subtitle": "ADRE আৰু অসম আৰক্ষীৰ বাবে দ্ৰুত পুনৰীক্ষণ",
+          "edition": "নমুনা সংস্কৰণ",
+          "pages": 180
+        }
+      }
+    },
+    {
+      "slug": "adre-practice-papers",
+      "exam": "ADRE and Assam Police",
+      "contents": ["20 full mock papers", "Solutions"],
+      "editions": {
+        "en": {
+          "title": "ADRE Practice Papers",
+          "subtitle": "Twenty full mocks",
+          "edition": "Sample edition",
+          "pages": 260
+        },
+        "as": {
+          "title": "ADRE অনুশীলন প্ৰশ্নকাকত",
+          "subtitle": "বিশটা সম্পূৰ্ণ নমুনা পৰীক্ষা",
+          "edition": "নমুনা সংস্কৰণ",
+          "pages": 260
+        }
+      }
     },
     {
       "slug": "quant-and-reasoning-drills",
-      "title": "Quant and Reasoning Drills",
-      "subtitle": "Timed sets for Bank, SSC and Railway",
       "exam": "Bank, SSC, Railway",
-      "edition": "Sample edition",
-      "pages": 200,
-      "tone": "primary",
-      "description": "Sample listing. A practice book would say how many sets it has and how they are timed.",
-      "contents": [
-        "Number system",
-        "Percentages and ratios",
-        "Puzzles",
-        "Mock sets"
-      ],
-      "priceRupees": 249
+      "contents": ["Arithmetic", "Data interpretation", "Puzzles and seating"],
+      "editions": {
+        "en": {
+          "title": "Quant and Reasoning Drills",
+          "subtitle": "For Bank, SSC and Railway exams",
+          "edition": "Sample edition",
+          "pages": 290
+        },
+        "as": {
+          "title": "গণিত আৰু যুক্তিৰ অনুশীলন",
+          "subtitle": "বেংক, SSC আৰু ৰেলৱেৰ বাবে",
+          "edition": "নমুনা সংস্কৰণ",
+          "pages": 290
+        }
+      }
     }
   ],
   "resources": [
@@ -688,6 +727,98 @@
       "excerpt": "Sample post. The commission's notification carries the answers most aspirants ask in week one - syllabus, dates, eligibility. A short walkthrough of where to find each.",
       "body": "The APSC CCE notification is the single document every plan should start from.\n\n## What to check first\n\n- **Eligibility** - age limits, attempts, domicile rules.\n- **Syllabus** - the list of papers, not a coaching brochure.\n- **Dates** - application window, prelims, mains.\n\n## A habit worth keeping\n\nRead it once at the start of preparation and once a week before each stage. Notices that look minor - a changed centre, an extra document - are the ones that cost a sitting.\n\n*This is a sample post written by the seed fixture, not by ICT.*",
       "daysAgo": 3
+    }
+  ],
+  "bundles": [
+    {
+      "slug": "apsc-foundation-set",
+      "exam": "APSC",
+      "sortOrder": 1,
+      "soldCount": 148,
+      "title": {
+        "en": "APSC Foundation Set",
+        "as": "APSC ভেটি সংকলন"
+      },
+      "tagline": {
+        "en": "History, polity and ten years of papers",
+        "as": "ইতিহাস, ৰাজনীতি আৰু দহ বছৰৰ প্ৰশ্নকাকত"
+      },
+      "description": {
+        "en": "Sample listing. ICT would describe the set here: what it covers and who it is for.",
+        "as": "নমুনা তালিকা। ICT-এ ইয়াত সংকলনটোৰ বিষয়ে লিখিব।"
+      },
+      "books": [
+        "assam-history-culture",
+        "polity-in-focus",
+        "apsc-prelims-solved-papers"
+      ],
+      "variants": {
+        "en": {
+          "priceRupees": 899,
+          "available": true,
+          "compareRupees": 1047
+        },
+        "as": {
+          "priceRupees": 849,
+          "available": true,
+          "compareRupees": 997
+        }
+      }
+    },
+    {
+      "slug": "adre-police-set",
+      "exam": "ADRE and Assam Police",
+      "sortOrder": 2,
+      "soldCount": 231,
+      "title": {
+        "en": "ADRE and Assam Police Set",
+        "as": "ADRE আৰু অসম আৰক্ষী সংকলন"
+      },
+      "tagline": {
+        "en": "GK capsule and twenty full mocks",
+        "as": "সাধাৰণ জ্ঞান আৰু বিশটা নমুনা পৰীক্ষা"
+      },
+      "description": {
+        "en": "Sample listing. ICT would describe the set here.",
+        "as": "নমুনা তালিকা।"
+      },
+      "books": ["assam-gk-capsule", "adre-practice-papers"],
+      "variants": {
+        "en": {
+          "priceRupees": 449,
+          "available": true,
+          "compareRupees": 540
+        },
+        "as": {
+          "priceRupees": 449,
+          "available": true
+        }
+      }
+    },
+    {
+      "slug": "bank-ssc-railway-set",
+      "exam": "Bank, SSC, Railway",
+      "sortOrder": 3,
+      "soldCount": 64,
+      "title": {
+        "en": "Bank, SSC and Railway Set",
+        "as": "বেংক, SSC আৰু ৰেলৱে সংকলন"
+      },
+      "description": {
+        "en": "Sample listing. ICT would describe the set here.",
+        "as": "নমুনা তালিকা।"
+      },
+      "books": ["quant-and-reasoning-drills", "assam-gk-capsule"],
+      "variants": {
+        "en": {
+          "priceRupees": 499,
+          "available": true
+        },
+        "as": {
+          "priceRupees": 499,
+          "available": false
+        }
+      }
     }
   ]
 }

@@ -32,6 +32,8 @@ export async function findVerifiedPerson(
     name: person.name,
     phone: person.phone,
     role: person.role,
+    grants: person.grants ?? [],
+    locale: person.locale,
     verifiedAt: person.verifiedAt,
     /* Carried so a Person can edit their own record. */
     revision: person.revision ?? 0,
@@ -126,7 +128,7 @@ export async function consumeRateLimit(
   // buckets would otherwise leave a row behind for every one it ever saw.
   const stale = await ctx.db
     .query("rateLimits")
-    .withIndex("by_window", (q) => q.lt("windowStart", now - STALE_AFTER))
+    .withIndex("by_windowStart", (q) => q.lt("windowStart", now - STALE_AFTER))
     .take(PRUNE_PER_CALL)
   await Promise.all(stale.map((row) => ctx.db.delete(row._id)))
 
@@ -156,6 +158,22 @@ const ENQUIRIES_PER_IP_HOUR = 20
 /** A single number has no legitimate reason to enquire this often. */
 const ENQUIRIES_PER_PHONE_HOUR = 10
 
+/** Where an enquiry came from, as the site saw it. */
+export const ATTRIBUTION = {
+  page: v.optional(v.string()),
+  utmSource: v.optional(v.string()),
+  utmMedium: v.optional(v.string()),
+  utmCampaign: v.optional(v.string()),
+  referrer: v.optional(v.string()),
+}
+
+/** Trimmed and capped; empty becomes absent. */
+const clip = (value: string | undefined, max = 200) =>
+  value?.trim().slice(0, max) || undefined
+
+/** The same enquiry twice inside this window is one enquiry. */
+const DUPLICATE_WINDOW_MS = 60_000
+
 /** Called only by the authenticated server-to-server ingestion route. */
 export const recordEnquiry = internalMutation({
   args: {
@@ -163,20 +181,17 @@ export const recordEnquiry = internalMutation({
     phone: v.string(),
     track: v.string(),
     timing: v.string(),
-    /**
-     * The visitor's address, forwarded by our own server action. Convex sees
-     * that server as the caller, so it cannot observe the visitor itself. Only
-     * a holder of the ingestion secret can set this.
-     */
+    /** The visitor's address, forwarded by our own server action. */
     ip: v.optional(v.string()),
+    ...ATTRIBUTION,
   },
   returns: v.literal("recorded"),
   handler: async (ctx, args) => {
     const parsed = parseLead(args)
     if (!parsed.ok) throw new Error("Invalid enquiry.")
     const lead = parsed.lead
-    // Checked before any write, and before the idempotency shortcut below, so
-    // a flood cannot be laundered through repeated identical submissions.
+    // Before any write and before the duplicate check, so a flood cannot be
+    // laundered through repeated identical submissions.
     if (args.ip !== undefined) {
       const allowed = await consumeRateLimit(
         ctx,
@@ -195,35 +210,47 @@ export const recordEnquiry = internalMutation({
       ))
     )
       throw new Error(ENQUIRY_RATE_LIMITED)
-    const existing = await ctx.db
-      .query("persons")
-      .withIndex("by_phone", (q) => q.eq("phone", lead.phone))
-      .first()
+
     const now = Date.now()
-    // Course and timing are validated against fixed option lists, so this key
-    // holds no visitor-entered text. The name is deliberately left out: the
-    // schema keeps free text on activities so an export of persons cannot leak
-    // it, and a corrected spelling is the same enquiry anyway.
-    const key = `${lead.track}\u0000${lead.timing}`
-    // Idempotency, not rate limiting: a double-click or a retried request repeats
-    // the identical enquiry, so acknowledge it without a second activity.
-    if (
-      existing?.lastEnquiryAt !== undefined &&
-      now - existing.lastEnquiryAt < 60_000 &&
-      existing.lastEnquiryKey === key
-    )
-      return "recorded" as const
     const personId = await upsertPersonByPhone(ctx, {
       phone: lead.phone,
       name: lead.name,
       source: "website",
     })
+    const last = await ctx.db
+      .query("enquiries")
+      .withIndex("by_person", (q) => q.eq("personId", personId))
+      .order("desc")
+      .first()
+    // A double-click or a retried request is the same enquiry.
+    if (
+      last &&
+      now - last._creationTime < DUPLICATE_WINDOW_MS &&
+      last.track === lead.track &&
+      last.timing === lead.timing
+    )
+      return "recorded" as const
+
+    const person = await ctx.db.get(personId)
     await ctx.db.patch(personId, {
-      leadStatus: existing?.leadStatus ?? "new",
+      leadStatus: person?.leadStatus ?? "new",
       interestTrack: lead.track,
-      updatedAt: now,
       lastEnquiryAt: now,
-      lastEnquiryKey: key,
+      updatedAt: now,
+    })
+    const utm = {
+      source: clip(args.utmSource, 80),
+      medium: clip(args.utmMedium, 80),
+      campaign: clip(args.utmCampaign, 120),
+    }
+    await ctx.db.insert("enquiries", {
+      personId,
+      channel: "website",
+      track: lead.track,
+      timing: lead.timing,
+      page: clip(args.page),
+      utm: utm.source || utm.medium || utm.campaign ? utm : undefined,
+      referrer: clip(args.referrer),
     })
     await ctx.db.insert("activities", {
       personId,

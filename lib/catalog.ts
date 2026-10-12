@@ -1,9 +1,10 @@
 /**
- * Book and resource shapes shared by the public pages, the admin editor and
- * the Convex functions, plus the one set of rules both sides validate with.
+ * Books, bundles and resources: the shapes the public pages, the admin editors
+ * and the Convex functions share, and the one set of rules they validate with.
  */
-export const BOOK_TONES = ["primary", "highlight", "muted"] as const
-export type BookTone = (typeof BOOK_TONES)[number]
+
+export const LANGUAGES = ["en", "as"] as const
+export type Language = (typeof LANGUAGES)[number]
 
 export const RESOURCE_KINDS = [
   "Notes",
@@ -13,23 +14,51 @@ export const RESOURCE_KINDS = [
 ] as const
 export type ResourceKind = (typeof RESOURCE_KINDS)[number]
 
-/** A book as the public pages render it. */
-export type Book = {
-  slug: string
+/** English always; Assamese when written. */
+export type Localised = { en: string; as?: string }
+
+/** An uploaded image with what a page needs to reserve its space. */
+export type Picture = {
+  url: string
+  width?: number
+  height?: number
+  blurDataUrl?: string
+}
+
+/** One language edition of a book, as the public pages show it. */
+export type PublicEdition = {
   title: string
-  subtitle: string
-  exam: string
+  subtitle?: string
   edition: string
   pages: number
+  cover: Picture | null
+  samplePages: Picture[]
+}
+
+export type PublicBook = {
+  slug: string
+  exam: string
+  editions: Partial<Record<Language, PublicEdition>>
+}
+
+export type PublicVariant = {
   pricePaise: number
-  tone: BookTone
-  description: string
-  contents: readonly string[]
-  /** How many sample pages exist; the reader shows placeholders beyond URLs. */
-  samplePages: number
-  samplePageUrls?: readonly string[]
-  coverUrl?: string | null
-  sample?: boolean
+  comparePaise?: number
+  available: boolean
+}
+
+/** A bundle as the public pages render it. */
+export type PublicBundle = {
+  slug: string
+  exam: string
+  title: Localised
+  tagline?: Localised
+  description: Localised
+  cover: Picture | null
+  variants: Record<Language, PublicVariant>
+  soldCount: number
+  books: PublicBook[]
+  sample: boolean
 }
 
 /** A resource as the public list renders it. Page images stay server-side. */
@@ -38,22 +67,41 @@ export type Resource = {
   title: string
   exam: string
   kind: ResourceKind
+  language?: Language
   pages: number
   description: string
   sample?: boolean
 }
 
-export type BookInput = {
-  slug: string
+export type EditionInput = {
   title: string
-  subtitle: string
-  exam: string
+  subtitle?: string
   edition: string
   pages: number
-  pricePaise: number
-  tone: BookTone
-  description: string
+}
+
+export type BookInput = {
+  slug: string
+  exam: string
+  description?: Localised
   contents: string[]
+  editions: Partial<Record<Language, EditionInput>>
+}
+
+export type VariantInput = {
+  pricePaise: number
+  comparePaise?: number
+  available: boolean
+}
+
+export type BundleInput = {
+  slug: string
+  exam: string
+  title: Localised
+  tagline?: Localised
+  description: Localised
+  variants: Record<Language, VariantInput>
+  sortOrder: number
 }
 
 export type ResourceInput = {
@@ -61,6 +109,7 @@ export type ResourceInput = {
   title: string
   exam: string
   kind: ResourceKind
+  language?: Language
   description: string
 }
 
@@ -68,6 +117,10 @@ export type ResourceInput = {
 export const IMAGE_MAX_BYTES = 8 * 1024 * 1024
 export const SAMPLE_PAGES_MAX = 12
 export const RESOURCE_PAGES_MAX = 300
+export const BUNDLE_BOOKS_MAX = 12
+/** Largest quantity of one bundle in one order. */
+export const BUNDLE_QUANTITY_MAX = 5
+const PRICE_MAX_PAISE = 10_000_000
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -88,39 +141,91 @@ export function slugify(text: string) {
 
 const tidy = (text: string) => text.replace(/\s+/g, " ").trim()
 
+/** Tidy both languages; an empty Assamese text becomes absent. */
+function tidyLocalised(text: Localised, keepLines = false): Localised {
+  const clean = keepLines ? (s: string) => s.trim() : tidy
+  const as = text.as === undefined ? undefined : clean(text.as)
+  return { en: clean(text.en), ...(as ? { as } : {}) }
+}
+
+const fits = (text: Localised, max: number) =>
+  text.en.length <= max && (text.as?.length ?? 0) <= max
+
+const isPaise = (value: number) =>
+  Number.isInteger(value) && value >= 0 && value <= PRICE_MAX_PAISE
+
 type Result<T> = { ok: true; value: T } | { ok: false; field: string }
 
 /** Tidies a book and names the first field that is not acceptable. */
 export function checkBook(input: BookInput): Result<BookInput> {
-  const value: BookInput = {
-    ...input,
-    slug: input.slug.trim(),
-    title: tidy(input.title),
-    subtitle: tidy(input.subtitle),
-    exam: tidy(input.exam),
-    edition: tidy(input.edition),
-    description: input.description.trim(),
-    contents: input.contents.map(tidy).filter(Boolean),
+  const editions: BookInput["editions"] = {}
+  for (const language of LANGUAGES) {
+    const edition = input.editions[language]
+    if (!edition) continue
+    const value = {
+      title: tidy(edition.title),
+      subtitle: edition.subtitle ? tidy(edition.subtitle) : undefined,
+      edition: tidy(edition.edition),
+      pages: edition.pages,
+    }
+    if (!value.title || value.title.length > 120)
+      return { ok: false, field: `${language}.title` }
+    if ((value.subtitle?.length ?? 0) > 160)
+      return { ok: false, field: `${language}.subtitle` }
+    if (value.edition.length > 60)
+      return { ok: false, field: `${language}.edition` }
+    if (!Number.isInteger(value.pages) || value.pages < 1 || value.pages > 5000)
+      return { ok: false, field: `${language}.pages` }
+    editions[language] = value
   }
-  if (!SLUG.test(value.slug) || value.slug.length > 80)
-    return { ok: false, field: "slug" }
-  if (!value.title || value.title.length > 120)
-    return { ok: false, field: "title" }
-  if (value.subtitle.length > 160) return { ok: false, field: "subtitle" }
+  const value: BookInput = {
+    slug: input.slug.trim(),
+    exam: tidy(input.exam),
+    description: input.description
+      ? tidyLocalised(input.description, true)
+      : undefined,
+    contents: input.contents.map(tidy).filter(Boolean),
+    editions,
+  }
+  if (!isSlug(value.slug)) return { ok: false, field: "slug" }
   if (!value.exam || value.exam.length > 60) return { ok: false, field: "exam" }
-  if (value.edition.length > 60) return { ok: false, field: "edition" }
-  if (!Number.isInteger(value.pages) || value.pages < 1 || value.pages > 5000)
-    return { ok: false, field: "pages" }
-  if (
-    !Number.isInteger(value.pricePaise) ||
-    value.pricePaise < 0 ||
-    value.pricePaise > 10_000_000
-  )
-    return { ok: false, field: "price" }
-  if (!BOOK_TONES.includes(value.tone)) return { ok: false, field: "tone" }
-  if (value.description.length > 2000)
+  if (!editions.en && !editions.as) return { ok: false, field: "editions" }
+  if (value.description && !fits(value.description, 2000))
     return { ok: false, field: "description" }
   if (value.contents.length > 60) return { ok: false, field: "contents" }
+  return { ok: true, value }
+}
+
+/** Tidies a bundle and names the first field that is not acceptable. */
+export function checkBundle(input: BundleInput): Result<BundleInput> {
+  const value: BundleInput = {
+    slug: input.slug.trim(),
+    exam: tidy(input.exam),
+    title: tidyLocalised(input.title),
+    tagline: input.tagline ? tidyLocalised(input.tagline) : undefined,
+    description: tidyLocalised(input.description, true),
+    variants: input.variants,
+    sortOrder: input.sortOrder,
+  }
+  if (!isSlug(value.slug)) return { ok: false, field: "slug" }
+  if (!value.exam || value.exam.length > 60) return { ok: false, field: "exam" }
+  if (!value.title.en || !fits(value.title, 120))
+    return { ok: false, field: "title" }
+  if (value.tagline && !fits(value.tagline, 160))
+    return { ok: false, field: "tagline" }
+  if (!fits(value.description, 3000)) return { ok: false, field: "description" }
+  for (const language of LANGUAGES) {
+    const variant = value.variants[language]
+    if (!isPaise(variant.pricePaise))
+      return { ok: false, field: `${language}.price` }
+    if (
+      variant.comparePaise !== undefined &&
+      (!isPaise(variant.comparePaise) ||
+        variant.comparePaise <= variant.pricePaise)
+    )
+      return { ok: false, field: `${language}.comparePrice` }
+  }
+  if (!Number.isInteger(value.sortOrder)) return { ok: false, field: "order" }
   return { ok: true, value }
 }
 
@@ -133,14 +238,18 @@ export function checkResource(input: ResourceInput): Result<ResourceInput> {
     exam: tidy(input.exam),
     description: input.description.trim(),
   }
-  if (!SLUG.test(value.slug) || value.slug.length > 80)
-    return { ok: false, field: "slug" }
+  if (!isSlug(value.slug)) return { ok: false, field: "slug" }
   if (!value.title || value.title.length > 120)
     return { ok: false, field: "title" }
   if (!value.exam || value.exam.length > 60) return { ok: false, field: "exam" }
   if (!RESOURCE_KINDS.includes(value.kind)) return { ok: false, field: "kind" }
   if (value.description.length > 600) return { ok: false, field: "description" }
   return { ok: true, value }
+}
+
+/** The text for a language, falling back to English. */
+export function inLanguage(text: Localised, language: Language): string {
+  return (language === "as" && text.as) || text.en
 }
 
 /** Keeps a rupee field to digits and one dot, with at most two decimal places. */

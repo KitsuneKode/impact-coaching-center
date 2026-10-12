@@ -1,57 +1,90 @@
-import { v } from "convex/values"
+import { type Infer, v } from "convex/values"
 
 import {
+  BUNDLE_BOOKS_MAX,
   checkBook,
+  checkBundle,
   checkResource,
   IMAGE_MAX_BYTES,
+  LANGUAGES,
   RESOURCE_PAGES_MAX,
   SAMPLE_PAGES_MAX,
   type BookInput,
+  type BundleInput,
   type ResourceInput,
 } from "../lib/catalog"
+import { recordAudit } from "./audit"
 import {
   checkRevision,
   forbidden,
+  hasGrant,
   invalidInput,
   missingRecord,
   mutationResult,
-  requireOwner,
+  requireGrant,
   type Viewer,
 } from "./authz"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
-import { BOOK_TONE, RESOURCE_KIND } from "./schema"
+import { PICTURE, pictureOf, picturesOf } from "./images"
+import { LOCALE, LOCALISED, RESOURCE_KIND, VARIANT } from "./schema"
 
 /**
- * Owner-only catalogue editing (launch plan decision 6: the owner alone edits
- * catalogue). Every save carries the revision it was read at, so two tabs
- * cannot silently overwrite each other; nothing here deletes, it unpublishes.
+ * Catalogue editing for the owner and staff with the catalogue grant. Every
+ * save carries the revision it was read at, so two tabs cannot silently
+ * overwrite each other. Nothing here deletes; records are unpublished.
  */
 
-const BOOK_FIELDS = {
-  slug: v.string(),
+type StorageId = Id<"_storage">
+
+const EDITION_FIELDS = v.object({
   title: v.string(),
-  subtitle: v.string(),
-  exam: v.string(),
+  subtitle: v.optional(v.string()),
   edition: v.string(),
   pages: v.number(),
-  pricePaise: v.number(),
-  tone: BOOK_TONE,
-  description: v.string(),
-  contents: v.array(v.string()),
-}
+})
 
-const RESOURCE_FIELDS = {
+const BOOK_FIELDS = v.object({
+  slug: v.string(),
+  exam: v.string(),
+  description: v.optional(LOCALISED),
+  contents: v.array(v.string()),
+  editions: v.object({
+    en: v.optional(EDITION_FIELDS),
+    as: v.optional(EDITION_FIELDS),
+  }),
+})
+
+/** Images per language, sent alongside the text fields. */
+const EDITION_IMAGES = v.object({
+  cover: v.optional(v.id("_storage")),
+  samplePages: v.array(v.id("_storage")),
+})
+const BOOK_IMAGES = v.object({
+  en: v.optional(EDITION_IMAGES),
+  as: v.optional(EDITION_IMAGES),
+})
+
+const BUNDLE_FIELDS = v.object({
+  slug: v.string(),
+  exam: v.string(),
+  title: LOCALISED,
+  tagline: v.optional(LOCALISED),
+  description: LOCALISED,
+  variants: v.object({ en: VARIANT, as: VARIANT }),
+  sortOrder: v.number(),
+})
+
+const RESOURCE_FIELDS = v.object({
   slug: v.string(),
   title: v.string(),
   exam: v.string(),
   kind: RESOURCE_KIND,
+  language: v.optional(LOCALE),
   description: v.string(),
-}
+})
 
-type StorageId = Id<"_storage">
-
-/** Every id is an uploaded image of a sensible size. */
+/** Every id is an uploaded image of a sensible size, and none repeats. */
 async function allImages(ctx: MutationCtx, ids: readonly StorageId[]) {
   for (const id of ids) {
     const file = await ctx.db.system.get("_storage", id)
@@ -61,118 +94,123 @@ async function allImages(ctx: MutationCtx, ids: readonly StorageId[]) {
   return new Set(ids).size === ids.length
 }
 
+function bookFiles(book: Pick<Doc<"books">, "editions">): StorageId[] {
+  return LANGUAGES.flatMap((language) => {
+    const edition = book.editions[language]
+    if (!edition) return []
+    return [...(edition.cover ? [edition.cover] : []), ...edition.samplePages]
+  })
+}
+
+type Owner = { table: "books" | "bundles" | "resources"; id: string }
+
 /**
- * Whether a record other than the one being saved still points at this file.
- * The editor uploads per field, so nothing shipped stops a console write or a
- * future caller attaching one image to two records - deleting it on one
- * record's save would 404 the other's cover with no error anywhere.
+ * Whether a record other than `except` still points at this file. Admin-only
+ * and over small tables, so the scan streams rather than collecting.
  */
 async function referencedElsewhere(
   ctx: MutationCtx,
   id: StorageId,
-  except?: { table: "books" | "resources"; id: string }
+  except?: Owner
 ) {
-  const skip = (table: string, docId: string) =>
+  const skip = (table: Owner["table"], docId: string) =>
     except?.table === table && except.id === docId
-  for (const book of await ctx.db.query("books").collect())
-    if (
-      !skip("books", book._id) &&
-      (book.cover === id || book.samplePages.includes(id))
-    )
-      return true
-  for (const resource of await ctx.db.query("resources").collect())
+  for await (const book of ctx.db.query("books"))
+    if (!skip("books", book._id) && bookFiles(book).includes(id)) return true
+  for await (const bundle of ctx.db.query("bundles"))
+    if (!skip("bundles", bundle._id) && bundle.cover === id) return true
+  for await (const resource of ctx.db.query("resources"))
     if (!skip("resources", resource._id) && resource.pageImages.includes(id))
       return true
   return false
 }
 
-/** Delete files a save stopped pointing at, so replaced images do not pile up. */
+/** Delete a file and its size record. */
+async function deleteFile(ctx: MutationCtx, id: StorageId) {
+  const meta = await ctx.db
+    .query("images")
+    .withIndex("by_storageId", (q) => q.eq("storageId", id))
+    .first()
+  if (meta) await ctx.db.delete(meta._id)
+  await ctx.storage.delete(id)
+}
+
+/** Delete files a save stopped pointing at, unless another record uses them. */
 async function dropReplaced(
   ctx: MutationCtx,
   before: readonly StorageId[],
   after: readonly StorageId[],
-  except: { table: "books" | "resources"; id: string }
+  except: Owner
 ) {
   const kept = new Set(after)
   for (const id of before)
     if (!kept.has(id) && !(await referencedElsewhere(ctx, id, except)))
-      await ctx.storage.delete(id)
+      await deleteFile(ctx, id)
 }
 
-/**
- * The audit row a catalogue write leaves behind - same transaction, actor and
- * structured fields populated, like every other privileged write.
- */
-async function recordCatalog(
+/** A slug is taken only when a different row holds it. */
+async function slugTaken(
   ctx: MutationCtx,
-  actor: Viewer,
-  entry: {
-    kind: "catalog_save" | "catalog_publish"
-    entity: "book" | "resource"
-    entityId: Id<"books"> | Id<"resources">
-    body: string
-    fromStatus?: "draft" | "published"
-    toStatus?: "draft" | "published"
-  }
+  table: "books" | "bundles" | "resources",
+  slug: string,
+  self?: string
 ) {
-  await ctx.db.insert("activities", {
-    kind: entry.kind,
-    body: entry.body,
-    actorId: actor.id,
-    entity: entry.entity,
-    entityId: entry.entityId,
-    fromStatus: entry.fromStatus,
-    toStatus: entry.toStatus,
-  })
+  const rows = await ctx.db
+    .query(table)
+    .withIndex("by_slug", (q) => q.eq("slug", slug))
+    .take(2)
+  return rows.some((row) => row._id !== self)
 }
 
-const IMAGE = v.object({
-  id: v.id("_storage"),
-  url: v.union(v.string(), v.null()),
-})
+const canEdit = (viewer: Viewer) => hasGrant(viewer, "catalog")
 
 export const canEditCatalog = query({
   args: {},
   returns: v.boolean(),
-  handler: async (ctx) => (await requireOwner(ctx)).ok,
+  handler: async (ctx) => (await requireGrant(ctx, "catalog")).ok,
 })
 
-/** A signed URL the browser posts one file to; the owner only. */
+/** A signed URL the browser posts one file to. */
 export const uploadUrl = mutation({
   args: {},
   returns: mutationResult({ url: v.string() }),
   handler: async (ctx) => {
-    const owner = await requireOwner(ctx)
-    if (!owner.ok) return owner
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
     return { ok: true as const, url: await ctx.storage.generateUploadUrl() }
   },
 })
 
-/**
- * Delete an upload no record points at - how the editor takes back an image
- * it uploaded but never saved. Files a record references are refused.
- */
+/** Take back an upload that was never saved. Referenced files are refused. */
 export const discardUpload = mutation({
   args: { storageId: v.id("_storage") },
   returns: mutationResult({}),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
-    if (!owner.ok) return owner
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
     if (await referencedElsewhere(ctx, args.storageId))
       return invalidInput("image")
-    await ctx.storage.delete(args.storageId)
+    await deleteFile(ctx, args.storageId)
     return { ok: true as const }
   },
 })
 
+/** Lists stop here; the extra row tells the UI the list is truncated. */
+const ADMIN_LIST_MAX = 500
+
 /* ----------------------------------- books ----------------------------------- */
 
-/**
- * Lists are capped so a forgetful query cannot read the whole table. The 501st
- * row is the tell: it exists, the list is truncated, and the UI says so rather
- * than quietly dropping the newest records.
- */
-const ADMIN_LIST_MAX = 500
+const ADMIN_EDITION = v.object({
+  title: v.string(),
+  subtitle: v.optional(v.string()),
+  edition: v.string(),
+  pages: v.number(),
+  cover: v.union(
+    v.object({ id: v.id("_storage"), picture: PICTURE }),
+    v.null()
+  ),
+  samplePages: v.array(v.object({ id: v.id("_storage"), picture: PICTURE })),
+})
 
 export const adminBooks = query({
   args: {},
@@ -181,11 +219,12 @@ export const adminBooks = query({
       v.object({
         id: v.id("books"),
         slug: v.string(),
-        title: v.string(),
         exam: v.string(),
-        pricePaise: v.number(),
-        coverUrl: v.union(v.string(), v.null()),
-        published: v.boolean(),
+        titles: v.object({
+          en: v.optional(v.string()),
+          as: v.optional(v.string()),
+        }),
+        cover: v.union(PICTURE, v.null()),
         sample: v.boolean(),
         revision: v.number(),
         updatedAt: v.number(),
@@ -194,28 +233,25 @@ export const adminBooks = query({
     truncated: v.boolean(),
   }),
   handler: async (ctx) => {
-    const empty = { rows: [], truncated: false }
-    if (!(await requireOwner(ctx)).ok) return empty
+    if (!(await requireGrant(ctx, "catalog")).ok)
+      return { rows: [], truncated: false }
     const found = await ctx.db
       .query("books")
       .order("desc")
       .take(ADMIN_LIST_MAX + 1)
-    const truncated = found.length > ADMIN_LIST_MAX
     const rows = await Promise.all(
       found.slice(0, ADMIN_LIST_MAX).map(async (b) => ({
         id: b._id,
         slug: b.slug,
-        title: b.title,
         exam: b.exam,
-        pricePaise: b.pricePaise,
-        coverUrl: b.cover ? await ctx.storage.getUrl(b.cover) : null,
-        published: b.published,
+        titles: { en: b.editions.en?.title, as: b.editions.as?.title },
+        cover: await pictureOf(ctx, (b.editions.en ?? b.editions.as)?.cover),
         sample: b.sample ?? false,
         revision: b.revision,
         updatedAt: b.updatedAt,
       }))
     )
-    return { rows, truncated }
+    return { rows, truncated: found.length > ADMIN_LIST_MAX }
   },
 })
 
@@ -224,61 +260,70 @@ export const adminBook = query({
   args: { id: v.string() },
   returns: v.union(
     v.object({
-      ...BOOK_FIELDS,
       id: v.id("books"),
-      published: v.boolean(),
+      slug: v.string(),
+      exam: v.string(),
+      description: v.optional(LOCALISED),
+      contents: v.array(v.string()),
+      editions: v.object({
+        en: v.optional(ADMIN_EDITION),
+        as: v.optional(ADMIN_EDITION),
+      }),
       revision: v.number(),
-      cover: v.union(IMAGE, v.null()),
-      samplePages: v.array(IMAGE),
     }),
     v.null()
   ),
   handler: async (ctx, args) => {
-    if (!(await requireOwner(ctx)).ok) return null
+    if (!(await requireGrant(ctx, "catalog")).ok) return null
     const id = ctx.db.normalizeId("books", args.id)
-    const b = id && (await ctx.db.get(id))
-    if (!b) return null
+    const book = id && (await ctx.db.get(id))
+    if (!book) return null
+    const withIds = async (ids: readonly StorageId[]) =>
+      (
+        await Promise.all(
+          ids.map(async (id) => {
+            const picture = await pictureOf(ctx, id)
+            return picture ? { id, picture } : null
+          })
+        )
+      ).filter((row) => row !== null)
+    const editions: Record<string, Infer<typeof ADMIN_EDITION>> = {}
+    for (const language of LANGUAGES) {
+      const edition = book.editions[language]
+      if (!edition) continue
+      editions[language] = {
+        title: edition.title,
+        subtitle: edition.subtitle,
+        edition: edition.edition,
+        pages: edition.pages,
+        cover: (await withIds(edition.cover ? [edition.cover] : []))[0] ?? null,
+        samplePages: await withIds(edition.samplePages),
+      }
+    }
     return {
-      id: b._id,
-      slug: b.slug,
-      title: b.title,
-      subtitle: b.subtitle,
-      exam: b.exam,
-      edition: b.edition,
-      pages: b.pages,
-      pricePaise: b.pricePaise,
-      tone: b.tone,
-      description: b.description,
-      contents: b.contents,
-      published: b.published,
-      revision: b.revision,
-      cover: b.cover
-        ? { id: b.cover, url: await ctx.storage.getUrl(b.cover) }
-        : null,
-      samplePages: await Promise.all(
-        b.samplePages.map(async (id) => ({
-          id,
-          url: await ctx.storage.getUrl(id),
-        }))
-      ),
+      id: book._id,
+      slug: book.slug,
+      exam: book.exam,
+      description: book.description,
+      contents: book.contents,
+      editions,
+      revision: book.revision,
     }
   },
 })
 
-/** Create (no id) or update (id + expectedRevision) a book. */
 export const saveBook = mutation({
   args: {
     id: v.optional(v.id("books")),
     expectedRevision: v.optional(v.number()),
-    fields: v.object(BOOK_FIELDS),
-    cover: v.optional(v.union(v.id("_storage"), v.null())),
-    samplePages: v.optional(v.array(v.id("_storage"))),
+    fields: BOOK_FIELDS,
+    images: BOOK_IMAGES,
   },
   returns: mutationResult({ id: v.id("books"), revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
-    if (!owner.ok) return owner
-    return applySaveBook(ctx, owner.value, args)
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    return applySaveBook(ctx, editor.value, args)
   },
 })
 
@@ -290,49 +335,58 @@ export async function applySaveBook(
     id?: Id<"books">
     expectedRevision?: number
     fields: BookInput
-    cover?: StorageId | null
-    samplePages?: StorageId[]
+    images: Infer<typeof BOOK_IMAGES>
   }
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!canEdit(viewer)) return forbidden
   const checked = checkBook(args.fields)
   if (!checked.ok) return invalidInput(checked.field)
-  if (args.cover && !(await allImages(ctx, [args.cover])))
-    return invalidInput("cover")
-  if (
-    args.samplePages &&
-    (args.samplePages.length > SAMPLE_PAGES_MAX ||
-      !(await allImages(ctx, args.samplePages)))
-  )
-    return invalidInput("sample pages")
 
-  /*
-   * Clash check reads all rows with the slug: `.unique()` throws on
-   * pre-existing corruption, `.first()` can return the record being saved
-   * and miss the duplicate. A slug is taken only when another row owns it.
-   */
-  const clash = await ctx.db
-    .query("books")
-    .withIndex("by_slug", (q) => q.eq("slug", checked.value.slug))
-    .collect()
-  if (clash.some((row) => row._id !== args.id))
+  const editions: Doc<"books">["editions"] = {}
+  for (const language of LANGUAGES) {
+    const text = checked.value.editions[language]
+    const images = args.images[language] ?? { samplePages: [] }
+    if (!text) {
+      if (images.cover || images.samplePages.length)
+        return invalidInput(`${language}.images`)
+      continue
+    }
+    if (images.samplePages.length > SAMPLE_PAGES_MAX)
+      return invalidInput(`${language}.samplePages`)
+    const files = [
+      ...(images.cover ? [images.cover] : []),
+      ...images.samplePages,
+    ]
+    if (!(await allImages(ctx, files)))
+      return invalidInput(`${language}.images`)
+    editions[language] = {
+      ...text,
+      cover: images.cover,
+      samplePages: images.samplePages,
+    }
+  }
+  if (await slugTaken(ctx, "books", checked.value.slug, args.id))
     return invalidInput("slug-taken")
 
+  const record = {
+    slug: checked.value.slug,
+    exam: checked.value.exam,
+    description: checked.value.description,
+    contents: checked.value.contents,
+    editions,
+  }
   const now = Date.now()
   if (!args.id) {
     const id = await ctx.db.insert("books", {
-      ...checked.value,
-      cover: args.cover ?? undefined,
-      samplePages: args.samplePages ?? [],
-      published: false,
+      ...record,
       revision: 0,
       updatedAt: now,
     })
-    await recordCatalog(ctx, viewer, {
-      kind: "catalog_save",
+    await recordAudit(ctx, viewer, {
+      action: "save",
       entity: "book",
       entityId: id,
-      body: `Added book “${checked.value.title}”.`,
+      summary: `Added book “${titleOf(record)}”.`,
     })
     return { ok: true as const, id, revision: 0 }
   }
@@ -342,34 +396,257 @@ export async function applySaveBook(
   const conflict = checkRevision(current, args.expectedRevision ?? -1)
   if (conflict) return conflict
 
-  const except = { table: "books" as const, id: args.id }
-  if (args.cover !== undefined)
-    await dropReplaced(
-      ctx,
-      current.cover ? [current.cover] : [],
-      args.cover ? [args.cover] : [],
-      except
-    )
-  if (args.samplePages)
-    await dropReplaced(ctx, current.samplePages, args.samplePages, except)
-
+  await dropReplaced(ctx, bookFiles(current), bookFiles(record), {
+    table: "books",
+    id: args.id,
+  })
   const revision = current.revision + 1
-  await ctx.db.patch(args.id, {
-    ...checked.value,
-    ...(args.cover !== undefined ? { cover: args.cover ?? undefined } : {}),
-    ...(args.samplePages ? { samplePages: args.samplePages } : {}),
+  await ctx.db.replace(args.id, {
+    ...record,
     sample: false,
     revision,
     updatedAt: now,
   })
-  await recordCatalog(ctx, viewer, {
-    kind: "catalog_save",
+  await recordAudit(ctx, viewer, {
+    action: "save",
     entity: "book",
     entityId: args.id,
-    body: `Edited book “${checked.value.title}”.`,
+    summary: `Edited book “${titleOf(record)}”.`,
   })
   return { ok: true as const, id: args.id, revision }
 }
+
+const titleOf = (book: Pick<Doc<"books">, "editions">) =>
+  book.editions.en?.title ?? book.editions.as?.title ?? ""
+
+/* ---------------------------------- bundles ---------------------------------- */
+
+export const adminBundles = query({
+  args: {},
+  returns: v.object({
+    rows: v.array(
+      v.object({
+        id: v.id("bundles"),
+        slug: v.string(),
+        exam: v.string(),
+        title: LOCALISED,
+        cover: v.union(PICTURE, v.null()),
+        variants: v.object({ en: VARIANT, as: VARIANT }),
+        books: v.number(),
+        soldCount: v.number(),
+        sortOrder: v.number(),
+        published: v.boolean(),
+        sample: v.boolean(),
+        revision: v.number(),
+        updatedAt: v.number(),
+      })
+    ),
+    truncated: v.boolean(),
+  }),
+  handler: async (ctx) => {
+    if (!(await requireGrant(ctx, "catalog")).ok)
+      return { rows: [], truncated: false }
+    const found = await ctx.db.query("bundles").take(ADMIN_LIST_MAX + 1)
+    const rows = await Promise.all(
+      found.slice(0, ADMIN_LIST_MAX).map(async (b) => ({
+        id: b._id,
+        slug: b.slug,
+        exam: b.exam,
+        title: b.title,
+        cover: await pictureOf(ctx, b.cover),
+        variants: b.variants,
+        books: b.bookIds.length,
+        soldCount: b.soldCount,
+        sortOrder: b.sortOrder,
+        published: b.published,
+        sample: b.sample ?? false,
+        revision: b.revision,
+        updatedAt: b.updatedAt,
+      }))
+    )
+    rows.sort((a, b) => a.sortOrder - b.sortOrder)
+    return { rows, truncated: found.length > ADMIN_LIST_MAX }
+  },
+})
+
+export const adminBundle = query({
+  args: { id: v.string() },
+  returns: v.union(
+    v.object({
+      id: v.id("bundles"),
+      slug: v.string(),
+      exam: v.string(),
+      title: LOCALISED,
+      tagline: v.optional(LOCALISED),
+      description: LOCALISED,
+      variants: v.object({ en: VARIANT, as: VARIANT }),
+      sortOrder: v.number(),
+      cover: v.union(
+        v.object({ id: v.id("_storage"), picture: PICTURE }),
+        v.null()
+      ),
+      bookIds: v.array(v.id("books")),
+      published: v.boolean(),
+      soldCount: v.number(),
+      revision: v.number(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    if (!(await requireGrant(ctx, "catalog")).ok) return null
+    const id = ctx.db.normalizeId("bundles", args.id)
+    const b = id && (await ctx.db.get(id))
+    if (!b) return null
+    const cover = b.cover ? await pictureOf(ctx, b.cover) : null
+    return {
+      id: b._id,
+      slug: b.slug,
+      exam: b.exam,
+      title: b.title,
+      tagline: b.tagline,
+      description: b.description,
+      variants: b.variants,
+      sortOrder: b.sortOrder,
+      cover: b.cover && cover ? { id: b.cover, picture: cover } : null,
+      bookIds: b.bookIds,
+      published: b.published,
+      soldCount: b.soldCount,
+      revision: b.revision,
+    }
+  },
+})
+
+export const saveBundle = mutation({
+  args: {
+    id: v.optional(v.id("bundles")),
+    expectedRevision: v.optional(v.number()),
+    fields: BUNDLE_FIELDS,
+    bookIds: v.array(v.id("books")),
+    cover: v.optional(v.id("_storage")),
+  },
+  returns: mutationResult({ id: v.id("bundles"), revision: v.number() }),
+  handler: async (ctx, args) => {
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    return applySaveBundle(ctx, editor.value, args)
+  },
+})
+
+export async function applySaveBundle(
+  ctx: MutationCtx,
+  viewer: Viewer,
+  args: {
+    id?: Id<"bundles">
+    expectedRevision?: number
+    fields: BundleInput
+    bookIds: Id<"books">[]
+    cover?: StorageId
+  }
+) {
+  if (!canEdit(viewer)) return forbidden
+  const checked = checkBundle(args.fields)
+  if (!checked.ok) return invalidInput(checked.field)
+  if (
+    args.bookIds.length > BUNDLE_BOOKS_MAX ||
+    new Set(args.bookIds).size !== args.bookIds.length
+  )
+    return invalidInput("books")
+  for (const bookId of args.bookIds)
+    if (!(await ctx.db.get(bookId))) return invalidInput("books")
+  if (args.cover && !(await allImages(ctx, [args.cover])))
+    return invalidInput("cover")
+  if (await slugTaken(ctx, "bundles", checked.value.slug, args.id))
+    return invalidInput("slug-taken")
+
+  const record = { ...checked.value, bookIds: args.bookIds, cover: args.cover }
+  const now = Date.now()
+  if (!args.id) {
+    const id = await ctx.db.insert("bundles", {
+      ...record,
+      soldCount: 0,
+      published: false,
+      revision: 0,
+      updatedAt: now,
+    })
+    await recordAudit(ctx, viewer, {
+      action: "save",
+      entity: "bundle",
+      entityId: id,
+      summary: `Added bundle “${record.title.en}”.`,
+    })
+    return { ok: true as const, id, revision: 0 }
+  }
+
+  const current = await ctx.db.get(args.id)
+  if (!current) return missingRecord
+  const conflict = checkRevision(current, args.expectedRevision ?? -1)
+  if (conflict) return conflict
+  // A live bundle with nothing in it is a broken product page.
+  if (current.published && record.bookIds.length === 0)
+    return invalidInput("books")
+
+  await dropReplaced(
+    ctx,
+    current.cover ? [current.cover] : [],
+    record.cover ? [record.cover] : [],
+    { table: "bundles", id: args.id }
+  )
+  const revision = current.revision + 1
+  await ctx.db.patch(args.id, {
+    ...record,
+    sample: false,
+    revision,
+    updatedAt: now,
+  })
+  await recordAudit(ctx, viewer, {
+    action: "save",
+    entity: "bundle",
+    entityId: args.id,
+    summary: `Edited bundle “${record.title.en}”.`,
+  })
+  return { ok: true as const, id: args.id, revision }
+}
+
+/**
+ * Flip one language on or off without opening the editor: the everyday
+ * "out of print" switch.
+ */
+export const setVariantAvailable = mutation({
+  args: {
+    id: v.id("bundles"),
+    language: LOCALE,
+    available: v.boolean(),
+    expectedRevision: v.number(),
+  },
+  returns: mutationResult({ revision: v.number() }),
+  handler: async (ctx, args) => {
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    const current = await ctx.db.get(args.id)
+    if (!current) return missingRecord
+    const conflict = checkRevision(current, args.expectedRevision)
+    if (conflict) return conflict
+    const revision = current.revision + 1
+    await ctx.db.patch(args.id, {
+      variants: {
+        ...current.variants,
+        [args.language]: {
+          ...current.variants[args.language],
+          available: args.available,
+        },
+      },
+      revision,
+      updatedAt: Date.now(),
+    })
+    await recordAudit(ctx, editor.value, {
+      action: "save",
+      entity: "bundle",
+      entityId: args.id,
+      summary: `${args.language === "as" ? "Assamese" : "English"} set of “${current.title.en}” ${args.available ? "available" : "unavailable"}.`,
+    })
+    return { ok: true as const, revision }
+  },
+})
 
 /* --------------------------------- resources --------------------------------- */
 
@@ -383,6 +660,7 @@ export const adminResources = query({
         title: v.string(),
         exam: v.string(),
         kind: RESOURCE_KIND,
+        language: v.optional(LOCALE),
         pages: v.number(),
         published: v.boolean(),
         sample: v.boolean(),
@@ -393,21 +671,21 @@ export const adminResources = query({
     truncated: v.boolean(),
   }),
   handler: async (ctx) => {
-    const empty = { rows: [], truncated: false }
-    if (!(await requireOwner(ctx)).ok) return empty
+    if (!(await requireGrant(ctx, "catalog")).ok)
+      return { rows: [], truncated: false }
     const found = await ctx.db
       .query("resources")
       .order("desc")
       .take(ADMIN_LIST_MAX + 1)
-    const truncated = found.length > ADMIN_LIST_MAX
     return {
-      truncated,
+      truncated: found.length > ADMIN_LIST_MAX,
       rows: found.slice(0, ADMIN_LIST_MAX).map((r) => ({
         id: r._id,
         slug: r.slug,
         title: r.title,
         exam: r.exam,
         kind: r.kind,
+        language: r.language,
         pages: r.pageImages.length,
         published: r.published,
         sample: r.sample ?? false,
@@ -422,34 +700,40 @@ export const adminResource = query({
   args: { id: v.string() },
   returns: v.union(
     v.object({
-      ...RESOURCE_FIELDS,
       id: v.id("resources"),
+      slug: v.string(),
+      title: v.string(),
+      exam: v.string(),
+      kind: RESOURCE_KIND,
+      language: v.optional(LOCALE),
+      description: v.string(),
       published: v.boolean(),
       revision: v.number(),
-      pageImages: v.array(IMAGE),
+      pageImages: v.array(v.object({ id: v.id("_storage"), picture: PICTURE })),
     }),
     v.null()
   ),
   handler: async (ctx, args) => {
-    if (!(await requireOwner(ctx)).ok) return null
+    if (!(await requireGrant(ctx, "catalog")).ok) return null
     const id = ctx.db.normalizeId("resources", args.id)
     const r = id && (await ctx.db.get(id))
     if (!r) return null
+    const pictures = await picturesOf(ctx, r.pageImages)
     return {
       id: r._id,
       slug: r.slug,
       title: r.title,
       exam: r.exam,
       kind: r.kind,
+      language: r.language,
       description: r.description,
       published: r.published,
       revision: r.revision,
-      pageImages: await Promise.all(
-        r.pageImages.map(async (id) => ({
-          id,
-          url: await ctx.storage.getUrl(id),
-        }))
-      ),
+      // picturesOf drops missing files, so pair by position only when whole.
+      pageImages:
+        pictures.length === r.pageImages.length
+          ? r.pageImages.map((id, i) => ({ id, picture: pictures[i]! }))
+          : [],
     }
   },
 })
@@ -458,14 +742,14 @@ export const saveResource = mutation({
   args: {
     id: v.optional(v.id("resources")),
     expectedRevision: v.optional(v.number()),
-    fields: v.object(RESOURCE_FIELDS),
+    fields: RESOURCE_FIELDS,
     pageImages: v.optional(v.array(v.id("_storage"))),
   },
   returns: mutationResult({ id: v.id("resources"), revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
-    if (!owner.ok) return owner
-    return applySaveResource(ctx, owner.value, args)
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    return applySaveResource(ctx, editor.value, args)
   },
 })
 
@@ -479,7 +763,7 @@ export async function applySaveResource(
     pageImages?: StorageId[]
   }
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!canEdit(viewer)) return forbidden
   const checked = checkResource(args.fields)
   if (!checked.ok) return invalidInput(checked.field)
   if (
@@ -488,13 +772,7 @@ export async function applySaveResource(
       !(await allImages(ctx, args.pageImages)))
   )
     return invalidInput("pages")
-
-  /* Same rule as saveBook: collect, and a clash is a *different* row. */
-  const clash = await ctx.db
-    .query("resources")
-    .withIndex("by_slug", (q) => q.eq("slug", checked.value.slug))
-    .collect()
-  if (clash.some((row) => row._id !== args.id))
+  if (await slugTaken(ctx, "resources", checked.value.slug, args.id))
     return invalidInput("slug-taken")
 
   const now = Date.now()
@@ -506,11 +784,11 @@ export async function applySaveResource(
       revision: 0,
       updatedAt: now,
     })
-    await recordCatalog(ctx, viewer, {
-      kind: "catalog_save",
+    await recordAudit(ctx, viewer, {
+      action: "save",
       entity: "resource",
       entityId: id,
-      body: `Added resource “${checked.value.title}”.`,
+      summary: `Added resource “${checked.value.title}”.`,
     })
     return { ok: true as const, id, revision: 0 }
   }
@@ -519,12 +797,7 @@ export async function applySaveResource(
   if (!current) return missingRecord
   const conflict = checkRevision(current, args.expectedRevision ?? -1)
   if (conflict) return conflict
-  /*
-   * applyPublish refuses to flip an empty resource on, but it cannot see a
-   * save that empties an already published one - same public broken state,
-   * different door. Refuse it here too, before the old pages are dropped,
-   * so a rejected save leaves the live copy untouched.
-   */
+  // Refused before old pages are dropped, so the live copy stays intact.
   const nextPages = args.pageImages ?? current.pageImages
   if (current.published && nextPages.length === 0) return invalidInput("pages")
   if (args.pageImages)
@@ -541,53 +814,44 @@ export async function applySaveResource(
     revision,
     updatedAt: now,
   })
-  await recordCatalog(ctx, viewer, {
-    kind: "catalog_save",
+  await recordAudit(ctx, viewer, {
+    action: "save",
     entity: "resource",
     entityId: args.id,
-    body: `Edited resource “${checked.value.title}”.`,
+    summary: `Edited resource “${checked.value.title}”.`,
   })
   return { ok: true as const, id: args.id, revision }
 }
 
 /* ------------------------------- publishing ------------------------------- */
 
-/**
- * The publish flip, shared by books and resources so the guard and the audit
- * row cannot drift apart. Split out so it can be tested without a session.
- */
+/** The publish flip for bundles and resources, with one guard and one audit row. */
 export async function applyPublish(
   ctx: MutationCtx,
   viewer: Viewer,
   args: {
-    entity: "book" | "resource"
+    entity: "bundle" | "resource"
     id: string
     published: boolean
     expectedRevision: number
   }
 ) {
-  if (viewer.role !== "owner") return forbidden
-  /* Split so the id stays single-table typed for the record's entity field. */
+  if (!canEdit(viewer)) return forbidden
   const id =
-    args.entity === "book"
-      ? ctx.db.normalizeId("books", args.id)
+    args.entity === "bundle"
+      ? ctx.db.normalizeId("bundles", args.id)
       : ctx.db.normalizeId("resources", args.id)
   const current = id ? await ctx.db.get(id) : null
   if (!id || !current) return missingRecord
   const conflict = checkRevision(current, args.expectedRevision)
   if (conflict) return conflict
-  /*
-   * A resource with no pages publishes an empty reader behind the login gate -
-   * one wrong click turns into a public broken state. The server refuses it
-   * rather than trusting the button to be disabled.
-   */
-  if (
-    args.entity === "resource" &&
-    args.published &&
-    "pageImages" in current &&
-    current.pageImages.length === 0
-  )
-    return invalidInput("pages")
+  // Publishing an empty bundle or reader is a public broken page.
+  if (args.published) {
+    if ("bookIds" in current && current.bookIds.length === 0)
+      return invalidInput("books")
+    if ("pageImages" in current && current.pageImages.length === 0)
+      return invalidInput("pages")
+  }
 
   const revision = current.revision + 1
   await ctx.db.patch(id, {
@@ -595,28 +859,32 @@ export async function applyPublish(
     revision,
     updatedAt: Date.now(),
   })
-  await recordCatalog(ctx, viewer, {
-    kind: "catalog_publish",
+  const name =
+    "title" in current && typeof current.title === "object"
+      ? current.title.en
+      : (current as Doc<"resources">).title
+  await recordAudit(ctx, viewer, {
+    action: args.published ? "publish" : "unpublish",
     entity: args.entity,
     entityId: id,
-    body: `${args.published ? "Published" : "Unpublished"} ${args.entity} “${current.title}”.`,
-    fromStatus: current.published ? "published" : "draft",
-    toStatus: args.published ? "published" : "draft",
+    summary: `${args.published ? "Published" : "Unpublished"} ${args.entity} “${name}”.`,
+    from: current.published ? "published" : "draft",
+    to: args.published ? "published" : "draft",
   })
   return { ok: true as const, revision }
 }
 
-export const setBookPublished = mutation({
+export const setBundlePublished = mutation({
   args: {
-    id: v.id("books"),
+    id: v.id("bundles"),
     published: v.boolean(),
     expectedRevision: v.number(),
   },
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
-    if (!owner.ok) return owner
-    return applyPublish(ctx, owner.value, { entity: "book", ...args })
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    return applyPublish(ctx, editor.value, { entity: "bundle", ...args })
   },
 })
 
@@ -628,8 +896,8 @@ export const setResourcePublished = mutation({
   },
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
-    if (!owner.ok) return owner
-    return applyPublish(ctx, owner.value, { entity: "resource", ...args })
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    return applyPublish(ctx, editor.value, { entity: "resource", ...args })
   },
 })

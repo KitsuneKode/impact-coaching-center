@@ -25,6 +25,7 @@ type Fixture = {
   enquiries?: unknown[]
   orders?: unknown[]
   books?: unknown[]
+  bundles?: unknown[]
   resources?: unknown[]
   posts?: unknown[]
 }
@@ -54,6 +55,16 @@ if (!flags.has("--clear")) {
       })
     )
   }
+  // The catalogue before orders: orders are priced from the seeded bundles.
+  if (fixture.books?.length || fixture.resources?.length) {
+    console.log(
+      await run("internal.devSeed.seedCatalog", {
+        books: fixture.books ?? [],
+        bundles: fixture.bundles ?? [],
+        resources: fixture.resources ?? [],
+      })
+    )
+  }
   /*
    * Orders last: each attaches to the Person with its phone number, so the
    * enquiries have to exist first or every order would create a bare Person
@@ -62,14 +73,6 @@ if (!flags.has("--clear")) {
   if (fixture.orders?.length) {
     console.log(
       await run("internal.devSeed.seedOrders", { orders: fixture.orders })
-    )
-  }
-  if (fixture.books?.length || fixture.resources?.length) {
-    console.log(
-      await run("internal.devSeed.seedCatalog", {
-        books: fixture.books ?? [],
-        resources: fixture.resources ?? [],
-      })
     )
   }
   if (fixture.posts?.length) {
