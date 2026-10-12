@@ -178,7 +178,7 @@ describe("placeOrder", () => {
       {
         bundleId: apsc,
         slug: "apsc-set",
-        title: "সংকলন apsc-set",
+        title: "Set apsc-set",
         language: "as",
         books: ["কিতাপ apsc-set"],
         quantity: 1,

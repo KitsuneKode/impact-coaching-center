@@ -6,7 +6,6 @@ import { mutation, type MutationCtx } from "./_generated/server"
 import { allocateOrderReference } from "./orders"
 import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
-import { inLanguage } from "../lib/catalog"
 import { readSettings } from "./settings"
 
 /**
@@ -149,7 +148,7 @@ export async function placeOrderAs(
     lines.push({
       bundleId: bundle._id,
       slug: bundle.slug,
-      title: inLanguage(bundle.title, line.language),
+      title: bundle.title.en,
       language: line.language,
       books: books.flatMap((book) => {
         const edition = book?.editions[line.language]

@@ -2,7 +2,6 @@ import { v } from "convex/values"
 
 import { isDevelopmentDeployment } from "../lib/dev-deployment"
 import { toE164 } from "../lib/leads"
-import { inLanguage } from "../lib/catalog"
 import type { Id } from "./_generated/dataModel"
 import { internalMutation } from "./_generated/server"
 import { allocateOrderReference } from "./orders"
@@ -180,7 +179,7 @@ export const seedOrders = internalMutation({
         lines.push({
           bundleId: bundle._id,
           slug: bundle.slug,
-          title: inLanguage(bundle.title, line.language),
+          title: bundle.title.en,
           language: line.language,
           books: books.flatMap((book) => {
             const edition = book?.editions[line.language]
