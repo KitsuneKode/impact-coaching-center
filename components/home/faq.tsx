@@ -3,13 +3,23 @@ import { useTranslations } from "next-intl"
 import { useContent } from "@/i18n/content"
 import { fillFees, type Course } from "@/lib/courses"
 
-/** Questions, all open in a grid, with FAQ structured data for search. */
-export function Faq({ courses }: { courses: readonly Course[] }) {
+/**
+ * Questions, all open in a grid. The full set carries FAQ structured data for
+ * search; a page showing only the first few (`limit`) leaves that to home.
+ */
+export function Faq({
+  courses,
+  heading,
+  limit,
+}: {
+  courses: readonly Course[]
+  heading?: string
+  limit?: number
+}) {
   const t = useTranslations("Pulse")
-  const faqs = useContent().faqs.map((item) => ({
-    q: item.q,
-    a: fillFees(item.a, courses),
-  }))
+  const faqs = useContent()
+    .faqs.slice(0, limit)
+    .map((item) => ({ q: item.q, a: fillFees(item.a, courses) }))
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -21,15 +31,17 @@ export function Faq({ courses }: { courses: readonly Course[] }) {
   }
   return (
     <section aria-labelledby="faq-heading" className="pbe-20 md:pbe-28">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
+      {limit ? null : (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
       <div className="container-page">
         <h2 id="faq-heading" className="type-display mbe-10">
-          {t("questions")}
+          {heading ?? t("questions")}
         </h2>
         <dl className="grid gap-4 md:grid-cols-2">
           {faqs.map((item) => (

@@ -530,7 +530,7 @@
     "workshops": "Free workshops",
     "youtubeHours": "hours of class on YouTube",
     "podcast": "{name}, the podcast",
-    "views": "{count} views",
+    "views": "{count} views on YouTube",
     "folderFiles": "{count, plural, one {# file, free} other {# files, free}}",
     "folderLabel": "{name}, {count, plural, one {# file} other {# files}}",
     "poster": "{name} poster",
@@ -578,6 +578,23 @@
     "setsSample": "Sample sets for now. ICT's own books replace them before launch.",
     "previousBook": "Previous book",
     "nextBook": "Next book",
-    "moreSets": "More sets"
+    "moreSets": "More sets",
+    "includesHeading": "What the course includes.",
+    "watchHeading": "Watch the same teachers teach.",
+    "taughtBy": "Taught by",
+    "alsoFor": "Also for {exam}",
+    "shelfHeading": "Books and free notes for {exam}.",
+    "beforeJoin": "Before you join.",
+    "askAbout": "Ask about {course}.",
+    "oneTime": "One fee, with tests, notes and the app.",
+    "timingLabel": "Timing",
+    "daysLabel": "Days",
+    "lengthLabel": "Length",
+    "startsLabel": "Batch starts",
+    "centreLabel": "At the centre",
+    "watchSample": "A class from the {exam} course",
+    "getApp": "Join on the ICT app",
+    "freeNotesFor": "Free notes for {exam}",
+    "promoLabel": "Announcement"
   }
 }

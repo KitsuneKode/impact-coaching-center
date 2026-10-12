@@ -730,7 +730,7 @@
     "workshops": "বিনামূলীয়া কৰ্মশালা",
     "youtubeHours": "ঘণ্টা ক্লাছ YouTubeত",
     "podcast": "{name}, পডকাষ্ট",
-    "views": "{count} বাৰ চোৱা হৈছে",
+    "views": "YouTubeত {count} বাৰ চোৱা হৈছে",
     "folderFiles": "{count, plural, other {{count}টা ফাইল, বিনামূলীয়া}}",
     "folderLabel": "{name}, {count, plural, other {{count}টা ফাইল}}",
     "poster": "{name}ৰ পোষ্টাৰ",
@@ -778,6 +778,23 @@
     "setsSample": "এতিয়ালৈ নমুনা সংকলন। মুকলি কৰাৰ আগতে ICTৰ নিজৰ কিতাপে সেইবোৰৰ ঠাই ল'ব।",
     "previousBook": "আগৰ কিতাপ",
     "nextBook": "পিছৰ কিতাপ",
-    "moreSets": "আৰু সংকলন"
+    "moreSets": "আৰু সংকলন",
+    "includesHeading": "পাঠ্যক্ৰমত কি কি আছে।",
+    "watchHeading": "একেজন শিক্ষকে পঢ়োৱা চাওক।",
+    "taughtBy": "শিক্ষক",
+    "alsoFor": "{exam}ৰ বাবে আৰু",
+    "shelfHeading": "{exam}ৰ কিতাপ আৰু বিনামূলীয়া টোকা।",
+    "beforeJoin": "যোগ দিয়াৰ আগতে।",
+    "askAbout": "{course}ৰ বিষয়ে সোধক।",
+    "oneTime": "এটাই মাচুল, পৰীক্ষা, টোকা আৰু এপ সহ।",
+    "timingLabel": "সময়",
+    "daysLabel": "দিন",
+    "lengthLabel": "ম্যাদ",
+    "startsLabel": "বেচ আৰম্ভ",
+    "centreLabel": "কেন্দ্ৰত",
+    "watchSample": "{exam} পাঠ্যক্ৰমৰ এটা শ্ৰেণী",
+    "getApp": "ICT এপত যোগ দিয়ক",
+    "freeNotesFor": "{exam}ৰ বিনামূলীয়া টোকা",
+    "promoLabel": "ঘোষণা"
   }
 }

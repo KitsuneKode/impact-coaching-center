@@ -59,7 +59,7 @@ function Menu({ className }: { className?: string }) {
     return (
       <Link
         href="/login"
-        className={`rounded-control px-3 py-1.5 text-sm text-[color-mix(in_oklch,currentColor_80%,transparent)] transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
+        className={`rounded-control px-3 py-1.5 text-sm whitespace-nowrap text-[color-mix(in_oklch,currentColor_80%,transparent)] transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
       >
         {t("login")}
       </Link>

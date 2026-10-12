@@ -55,7 +55,7 @@ export function SiteHeader() {
                 priority
               />
             </span>
-            <span className="hidden font-display text-sm font-semibold lg:inline">
+            <span className="hidden font-display text-sm font-semibold xl:inline">
               {brand.legalName}
             </span>
           </Link>

@@ -33,6 +33,7 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
       className="grid overflow-clip md:grid-cols-12"
     >
       <span
+        aria-hidden
         data-set-stage
         className="relative grid min-h-72 place-items-center p-8 md:col-span-5"
       >

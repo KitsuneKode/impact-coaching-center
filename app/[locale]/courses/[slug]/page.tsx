@@ -1,37 +1,36 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
-
-import { contentFor } from "@/i18n/content-server"
-import { exams, pick } from "@/lib/exams"
 import {
   IconArrowRight,
-  IconCalendar,
-  IconCheck,
+  IconArrowUpRight,
   IconChevronRight,
-  IconClock,
+  IconDeviceMobile,
   IconPhone,
   IconPlayerPlayFilled,
 } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import Image from "next/image"
-import { Link } from "@/i18n/navigation"
 import { notFound } from "next/navigation"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 import type { CSSProperties } from "react"
 
-import { Enquire } from "@/components/marketing/enquire"
-import { Faq } from "@/components/marketing/faq"
+import { BundleRow } from "@/components/commerce/bundle-row"
+import { Ask } from "@/components/home/ask"
+import { Faq } from "@/components/home/faq"
+import { Folder } from "@/components/home/folder"
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { Reveal } from "@/components/motion/reveal"
-import { ButtonAnchor } from "@/components/ui/button"
-import { Lede, Section } from "@/components/ui/section"
+import { contentFor } from "@/i18n/content-server"
+import { Link } from "@/i18n/navigation"
 import {
   brand,
   contact,
   facultyBySlug,
   formatPhone,
   lectureStill,
+  links,
   schedules,
   tracks,
 } from "@/lib/brand"
+import { publishedBundles, publishedResources } from "@/lib/catalog-server"
 import { contactHref } from "@/lib/contact"
 import { inr, lineup } from "@/lib/courses"
 import { liveCourse, liveCourses } from "@/lib/courses-server"
@@ -74,38 +73,90 @@ export async function generateMetadata({
   }
 }
 
-const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
+const rise = (delay: number) =>
+  ({ "--rise-delay": `${delay}s` }) as CSSProperties
 
 /** Enrolment counts are social proof only when they are large enough to be. */
 const LEARNERS_WORTH_SHOWING = 20
+
+/** "Head - body" feature lines from the store, split for display. */
+function splitFeature(text: string) {
+  const [head = "", ...rest] = text.split(" - ")
+  return { head, body: rest.join(" - ") }
+}
+
+/**
+ * Which feature cards go wide in the bento. A wide card takes two cells, and
+ * the count is chosen so the cells fill whole rows of both two and four, so
+ * the grid never ends on a hole. Tones alternate blue and amber.
+ */
+function wideTones(count: number) {
+  const wide = Math.min(count, (4 - (count % 4)) % 4 || (count >= 8 ? 4 : 0))
+  const every = wide ? Math.floor(count / wide) : 0
+  return Array.from({ length: count }, (_, i) =>
+    wide && i % every === 0 && i / every < wide
+      ? (i / every) % 2
+        ? "amber"
+        : "blue"
+      : "paper"
+  )
+}
 
 export default async function CoursePage({
   params,
 }: PageProps<"/[locale]/courses/[slug]">) {
   const { slug, locale } = await params
   setRequestLocale(locale)
-  const course = await liveCourse(slug)
+  const [course, courses, bundles, resources] = await Promise.all([
+    liveCourse(slug),
+    liveCourses(),
+    publishedBundles().catch(() => []),
+    publishedResources().catch(() => []),
+  ])
   if (!course?.track) notFound()
 
   const track = tracks.find((t) => t.exam === course.track)
   const legacy = schedules[course.id]
-  const schedule = course.timing
-    ? { when: course.timing, days: undefined, note: undefined }
-    : legacy
+  const t = await getTranslations("Pulse")
+  const detail = await getTranslations("CourseDetail")
+  const fees = await getTranslations("Fees")
+  const nav = await getTranslations("Nav")
+  const content = await contentFor(locale)
+  const { phrase } = content
+  const names = track ? content.track(track.slug) : null
+  const exam = names?.exam ?? course.track
   const people = (track?.faculty ?? []).map(facultyBySlug)
-  const { flagship, also, free } = lineup(await liveCourses(), course.track)
+  const { flagship, also, free } = lineup(courses, course.track)
   const siblings = [flagship, ...also, free].filter(
     (c): c is NonNullable<typeof c> => c !== undefined && c.id !== course.id
   )
-  const saving = course.mrp - course.price
-  const t = await getTranslations("CourseDetail")
-  const tf = await getTranslations("Fees")
-  const th = await getTranslations("Hero")
-  const tc = await getTranslations("Courses")
-  const content = await contentFor(locale)
-  const { phrase } = content
-  const trackNames = track ? content.track(track.slug) : null
-  const guides = exams.filter((exam) => exam.track === track?.slug)
+  const sets = bundles.filter((bundle) => bundle.exam === course.track)
+  const folders = [
+    ...Map.groupBy(
+      resources.filter((r) => r.exam === course.track),
+      (r) => r.kind
+    ),
+  ].map(([kind, items]) => ({ kind, count: items.length }))
+  const compact = new Intl.NumberFormat(locale === "as" ? "as-IN" : "en-IN", {
+    notation: "compact",
+  })
+
+  const tones = wideTones(course.features.length)
+  const timing =
+    course.timing ?? (legacy?.when ? phrase(legacy.when) : undefined)
+  const facts = [
+    { label: t("timingLabel"), value: timing },
+    {
+      label: t("daysLabel"),
+      value: !course.timing && legacy?.days ? phrase(legacy.days) : undefined,
+    },
+    { label: t("startsLabel"), value: course.batchStarts },
+    { label: t("lengthLabel"), value: names?.duration },
+    {
+      label: t("centreLabel"),
+      value: course.offlineFee ? inr(course.offlineFee) : undefined,
+    },
+  ].filter((fact): fact is { label: string; value: string } => !!fact.value)
 
   /* Course schema, so search can show the price beside the result */
   const jsonLd = {
@@ -129,10 +180,8 @@ export default async function CoursePage({
       "@type": "CourseInstance",
       courseMode: "Blended",
       location: `${brand.legalName}, North Lakhimpur, Assam`,
-      ...(schedule
-        ? {
-            courseSchedule: { "@type": "Schedule", description: schedule.when },
-          }
+      ...(timing
+        ? { courseSchedule: { "@type": "Schedule", description: timing } }
         : {}),
     },
   }
@@ -146,339 +195,390 @@ export default async function CoursePage({
         }}
       />
 
-      {/* ---- hero ---- */}
-      <section className="pt-26 pb-16 md:pt-30 md:pb-20">
-        <div className="container-page">
-          <nav aria-label={t("breadcrumb")} className="enter" style={delay(0)}>
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-              <li>
-                <Link href="/courses" className="hover:text-foreground">
-                  {t("courses")}
-                </Link>
-              </li>
-              {track ? (
-                <>
-                  <IconChevronRight size={14} stroke={1.75} aria-hidden />
-                  <li>{trackNames?.exam}</li>
-                </>
-              ) : null}
-              <IconChevronRight size={14} stroke={1.75} aria-hidden />
-              <li aria-current="page" className="text-foreground">
-                {course.short}
-              </li>
-            </ol>
-          </nav>
-
-          <div className="mt-8 grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-16">
-            <div>
-              <h1 className="enter type-display" style={delay(60)}>
-                <span className="text-foreground">{course.short}.</span>
-                {course.subtitle ? (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    {phrase(course.subtitle)}.
-                  </span>
-                ) : null}
-              </h1>
-
-              <div
-                className="enter mt-8 flex flex-wrap items-baseline gap-x-3 gap-y-1"
-                style={delay(140)}
+      {/* ---- the course on blue, with its poster and fee on a card ---- */}
+      <section data-hero="blue" aria-labelledby="course-heading">
+        <div data-hero-glow aria-hidden />
+        <div aria-hidden className="h-(--header-height)" />
+        <div className="relative container-page grid gap-10 pbs-6 pbe-14 lg:grid-cols-12 lg:items-end lg:gap-14 lg:pbs-10 lg:pbe-20">
+          <div className="lg:col-span-7">
+            <nav aria-label={detail("breadcrumb")}>
+              <ol className="flex flex-wrap items-center gap-1 text-sm text-on-primary">
+                <li>
+                  <Link href="/courses" data-crumb>
+                    {nav("courses")}
+                  </Link>
+                </li>
+                <li className="flex items-center gap-1">
+                  <IconChevronRight aria-hidden size={14} stroke={1.75} />
+                  <Link href={`/courses#${track?.slug ?? ""}`} data-crumb>
+                    {exam}
+                  </Link>
+                </li>
+              </ol>
+            </nav>
+            <h1
+              id="course-heading"
+              data-rise
+              className="mbs-6 font-display text-[clamp(2.3rem,1.6rem+3.5vw,4.4rem)] leading-[1.02] font-semibold tracking-[-0.04em] text-balance"
+            >
+              {course.short}
+            </h1>
+            <p
+              data-rise
+              style={rise(0.08)}
+              className="mbs-4 max-w-[44ch] text-lg text-pretty text-on-primary"
+            >
+              {course.subtitle ? phrase(course.subtitle) : names?.full}
+            </p>
+            {facts.length ? (
+              <dl
+                data-rise
+                style={rise(0.16)}
+                className="mbs-8 flex flex-wrap gap-2"
               >
-                <span className="tnum text-[2.5rem] leading-none font-medium tracking-[-0.03em]">
-                  {course.free ? t("free") : inr(course.price)}
-                </span>
-                {saving > 0 ? (
-                  <>
-                    <span className="tnum text-muted-foreground line-through">
-                      {inr(course.mrp)}
-                    </span>
-                    <span className="tnum rounded-control bg-highlight/35 px-2 py-0.5 text-sm font-medium">
-                      {t("save", { amount: inr(saving) })}
-                    </span>
-                  </>
-                ) : null}
-              </div>
+                {facts.map((fact) => (
+                  <div
+                    key={fact.label}
+                    data-fact
+                    className="tnum grid rounded-2xl ps-4 pe-4 pbs-2.5 pbe-2.5"
+                  >
+                    <dt className="text-xs text-white">{fact.label}</dt>
+                    <dd className="font-semibold">{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {course.learners >= LEARNERS_WORTH_SHOWING ? (
               <p
-                className="enter mt-3 text-sm text-muted-foreground"
-                style={delay(160)}
+                data-rise
+                style={rise(0.22)}
+                className="mbs-6 text-sm text-on-primary"
               >
-                {course.free ? t("freeNote") : tf("note")}
+                <span className="tnum font-semibold text-white">
+                  {course.learners}
+                </span>{" "}
+                {detail("learners")}
               </p>
+            ) : null}
+          </div>
 
-              {schedule ? (
-                <ul
-                  className="enter mt-6 flex flex-wrap gap-2"
-                  style={delay(200)}
+          <div className="lg:col-span-5">
+            <div
+              data-rise
+              style={rise(0.1)}
+              className="rounded-[28px] bg-card p-3 text-foreground shadow-lift"
+            >
+              {course.cover ? (
+                <span
+                  data-poster
+                  className="relative block aspect-[4/3] overflow-clip rounded-[20px] bg-secondary"
                 >
-                  <li className="inline-flex items-center gap-1.5 rounded-control border border-border bg-card px-3 py-1.5 text-sm shadow-frame">
-                    <IconClock
-                      size={15}
-                      stroke={1.75}
-                      className="text-muted-foreground"
-                    />
-                    {phrase(schedule.when)}
-                  </li>
-                  {schedule.days ? (
-                    <li className="inline-flex items-center gap-1.5 rounded-control border border-border bg-card px-3 py-1.5 text-sm shadow-frame">
-                      <IconCalendar
-                        size={15}
-                        stroke={1.75}
-                        className="text-muted-foreground"
-                      />
-                      {phrase(schedule.days)}
-                    </li>
-                  ) : null}
-                  {schedule.note ? (
-                    <li className="inline-flex items-center rounded-control bg-secondary px-3 py-1.5 text-sm text-muted-foreground">
-                      {phrase(schedule.note)}
-                    </li>
-                  ) : null}
-                </ul>
-              ) : null}
-
-              <div
-                className="enter mt-8 flex flex-wrap gap-3"
-                style={delay(260)}
-              >
-                <ButtonAnchor
-                  href={contactHref({
-                    kind: "course",
-                    courseName: course.short,
-                  })}
-                  target="_blank"
-                  size="lg"
-                >
-                  {course.free
-                    ? t("joinFree", { course: course.short })
-                    : t("enrol", { course: course.short })}
-                  <IconArrowRight data-nudge stroke={1.75} />
-                </ButtonAnchor>
-                <ButtonAnchor
-                  href={contactHref({ kind: "call" })}
-                  variant="secondary"
-                  size="lg"
-                >
-                  <IconPhone stroke={1.6} />
-                  <span className="tnum">{formatPhone(contact.phones[0])}</span>
-                </ButtonAnchor>
-              </div>
-
-              {guides.length > 0 ? (
-                <p
-                  className="enter mt-5 flex flex-wrap gap-x-5 gap-y-1 text-sm"
-                  style={delay(280)}
-                >
-                  {guides.map((guide) => (
-                    <Link
-                      key={guide.slug}
-                      href={`/exams/${guide.slug}`}
-                      className="link"
-                    >
-                      {t("howExam")}: {pick(guide.name, locale)}
-                    </Link>
-                  ))}
-                </p>
-              ) : null}
-
-              {course.learners >= LEARNERS_WORTH_SHOWING ? (
-                <p
-                  className="enter mt-5 text-sm text-muted-foreground"
-                  style={delay(300)}
-                >
-                  <span className="tnum font-medium text-foreground">
-                    {course.learners}
-                  </span>{" "}
-                  {t("learners")}
-                </p>
-              ) : null}
-            </div>
-
-            {course.cover ? (
-              <figure className="enter" style={delay(180)}>
-                <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-surface shadow-lift ring-1 ring-border">
                   <Image
                     src={course.cover}
-                    alt={t("posterAlt", { course: course.short })}
+                    alt={detail("posterAlt", { course: course.short })}
                     fill
                     priority
-                    sizes="(max-width: 1024px) 92vw, 42vw"
+                    sizes="(min-width: 1024px) 34rem, 100vw"
                     className="object-cover"
                   />
+                </span>
+              ) : null}
+              <div className="p-4 pbs-5 sm:p-5">
+                <p className="tnum flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="font-display text-4xl font-semibold tracking-[-0.03em]">
+                    {course.free ? t("free") : inr(course.price)}
+                  </span>
+                  {!course.free && course.mrp > course.price ? (
+                    <s className="text-muted-foreground">{inr(course.mrp)}</s>
+                  ) : null}
+                </p>
+                <p className="mbs-1 text-sm text-muted-foreground">
+                  {course.free ? detail("freeNote") : t("oneTime")}
+                </p>
+                <div data-course-actions className="mbs-5">
+                  <a
+                    data-press
+                    data-cta="amber"
+                    href={contactHref({
+                      kind: "course",
+                      courseName: course.short,
+                    })}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-5 font-semibold text-foreground"
+                  >
+                    {course.free
+                      ? detail("joinFree", { course: course.short })
+                      : detail("enrol", { course: course.short })}
+                    <IconArrowRight
+                      data-nudge
+                      aria-hidden
+                      size={18}
+                      stroke={2}
+                    />
+                  </a>
+                  <a
+                    data-press
+                    data-cta="ghost-paper"
+                    href={links.play}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                  >
+                    <IconDeviceMobile aria-hidden size={17} stroke={1.75} />
+                    {t("getApp")}
+                  </a>
+                  <a
+                    data-press
+                    data-cta="ghost-paper"
+                    href={contactHref({ kind: "call" })}
+                    className="tnum inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                  >
+                    <IconPhone aria-hidden size={17} stroke={1.75} />
+                    {formatPhone(contact.phones[0])}
+                  </a>
                 </div>
-                <figcaption className="mt-3 text-sm text-muted-foreground">
-                  {t("posterCaption")}
-                </figcaption>
-              </figure>
-            ) : null}
+                <p className="mbs-4 text-xs text-muted-foreground">
+                  {fees("note")}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* ---- what the fee buys ---- */}
-      <Section size="sm" className="border-t border-border">
-        <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+      {course.features.length ? (
+        <section
+          aria-labelledby="includes-heading"
+          className="container-page pbs-20 pbe-20 md:pbs-28"
+        >
           <Reveal>
-            <Lede
-              label={t("includedLabel")}
-              claim={t("includedClaim")}
-              rest={t("includedRest")}
-            />
+            <h2 id="includes-heading" className="type-display max-w-[18ch]">
+              {t("includesHeading")}
+            </h2>
           </Reveal>
-          <Reveal delay={0.08}>
-            <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-              {course.features.map((point) => (
-                <li
-                  key={point}
-                  className="flex gap-3 text-[0.9375rem] leading-snug"
-                >
-                  <IconCheck
-                    size={18}
-                    stroke={2}
-                    aria-hidden
-                    className="mt-0.5 shrink-0 text-muted-foreground"
-                  />
-                  {point}
+          <div data-includes className="mbs-10">
+            <ul>
+              {course.features.map((feature, i) => {
+                const { head, body } = splitFeature(feature)
+                return (
+                  <li key={feature} data-include={tones[i]}>
+                    <Reveal delay={(i % 4) * 0.05} className="h-full">
+                      <div
+                        data-include-card
+                        className="h-full rounded-[22px] p-5 sm:p-6"
+                      >
+                        <span
+                          aria-hidden
+                          data-include-quiet
+                          className="tnum block text-sm font-semibold"
+                        >
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <p className="mbs-3 font-semibold text-pretty">
+                          {head}
+                        </p>
+                        {body ? (
+                          <p
+                            data-include-quiet
+                            className="mbs-2 text-sm text-pretty"
+                          >
+                            {body}
+                          </p>
+                        ) : null}
+                      </div>
+                    </Reveal>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ---- the teachers, a class to watch, the rest of the exam ---- */}
+      {track ? (
+        <section
+          aria-labelledby="watch-heading"
+          className="container-page pbe-20 md:pbe-28"
+        >
+          <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
+            <div className="min-w-0 lg:col-span-7">
+              <Reveal>
+                <h2 id="watch-heading" className="type-display max-w-[16ch]">
+                  {t("watchHeading")}
+                </h2>
+              </Reveal>
+              <Reveal delay={0.06}>
+                <div className="mbs-8 rounded-[28px] bg-card p-3 shadow-[0_0_0_1px_var(--border)]">
+                  <VideoDialog
+                    id={track.sample.id}
+                    title={t("watchSample", { exam })}
+                    className="group relative block aspect-video w-full overflow-clip rounded-[20px] bg-foreground"
+                  >
+                    <Image
+                      src={lectureStill(track.sample.id)}
+                      alt=""
+                      fill
+                      sizes="(min-width: 1024px) 44rem, 100vw"
+                      className="object-cover"
+                    />
+                    <span className="absolute inset-0 grid place-items-center">
+                      <span
+                        data-play
+                        className="grid size-16 place-items-center rounded-full bg-highlight text-foreground"
+                      >
+                        <IconPlayerPlayFilled
+                          aria-hidden
+                          size={22}
+                          className="translate-x-px"
+                        />
+                      </span>
+                    </span>
+                  </VideoDialog>
+                  <p className="tnum ps-3 pe-3 pbs-3 pbe-1 text-sm text-muted-foreground">
+                    {t("views", { count: compact.format(track.sample.views) })}
+                  </p>
+                </div>
+              </Reveal>
+            </div>
+
+            <div className="min-w-0 lg:col-span-5 lg:pbs-3">
+              <h3 className="text-lg font-semibold">{t("taughtBy")}</h3>
+              <ul className="mbs-4 grid gap-3">
+                {people.map((person) => (
+                  <li key={person.slug} data-row-card>
+                    <VideoDialog
+                      id={person.lecture}
+                      title={`${person.called}, ${content.teaches(person.slug)}`}
+                      className="flex w-full items-center gap-4 rounded-[inherit] p-3 pe-5 text-start"
+                    >
+                      <span className="relative size-16 flex-none overflow-clip rounded-2xl bg-secondary">
+                        <Image
+                          src={person.portrait}
+                          alt=""
+                          fill
+                          sizes="64px"
+                          className="object-cover object-top"
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold">
+                          {person.called}
+                        </span>
+                        <span className="block text-sm text-muted-foreground">
+                          {content.teaches(person.slug)}
+                        </span>
+                      </span>
+                      <IconPlayerPlayFilled
+                        aria-hidden
+                        size={14}
+                        className="text-muted-foreground"
+                      />
+                    </VideoDialog>
+                  </li>
+                ))}
+              </ul>
+
+              {siblings.length ? (
+                <>
+                  <h3 className="mbs-10 text-lg font-semibold">
+                    {t("alsoFor", { exam })}
+                  </h3>
+                  <ul className="mbs-3 grid grid-cols-1 gap-1">
+                    {siblings.map((other) => (
+                      <li key={other.id}>
+                        <Link
+                          href={`/courses/${other.slug}`}
+                          data-sibling
+                          className="flex items-center justify-between gap-4 rounded-2xl ps-4 pe-4 pbs-3 pbe-3"
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-semibold">
+                              {other.short}
+                            </span>
+                            {other.subtitle ? (
+                              <span className="block truncate text-sm text-muted-foreground">
+                                {phrase(other.subtitle)}
+                              </span>
+                            ) : null}
+                          </span>
+                          <span className="tnum flex flex-none items-center gap-2 text-sm font-semibold">
+                            {other.free ? t("free") : inr(other.price)}
+                            <IconArrowUpRight
+                              data-nudge
+                              aria-hidden
+                              size={16}
+                              stroke={1.75}
+                            />
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {/* ---- the exam's book sets and free notes ---- */}
+      {sets.length || folders.length ? (
+        <section
+          aria-labelledby="shelf-heading"
+          className="container-page pbe-20 md:pbe-28"
+        >
+          <Reveal>
+            <h2 id="shelf-heading" className="type-display max-w-[20ch]">
+              {t("shelfHeading", { exam })}
+            </h2>
+          </Reveal>
+          {sets.length ? (
+            <ul className="mbs-10 grid gap-6">
+              {sets.map((bundle, i) => (
+                <li key={bundle.slug}>
+                  <Reveal delay={i * 0.05}>
+                    <BundleRow bundle={bundle} />
+                  </Reveal>
                 </li>
               ))}
             </ul>
-          </Reveal>
-        </div>
-      </Section>
-
-      {/* ---- who teaches it ---- */}
-      {people.length > 0 ? (
-        <Section size="sm" className="border-t border-border">
-          <Reveal>
-            <Lede
-              label={t("teachersLabel")}
-              claim={t("teachersClaim")}
-              rest={t("teachersRest")}
-            />
-          </Reveal>
-          <Reveal
-            delay={0.08}
-            className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {people.map((person) => (
-              <VideoDialog
-                key={person.slug}
-                id={person.lecture}
-                title={th("videoTitle", {
-                  called: person.called,
-                  teaches: content.teaches(person.slug),
-                })}
-                subtitle={th("videoSubtitle")}
-                className="flex w-full items-center gap-4 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
-              >
-                <span className="relative size-16 shrink-0 overflow-hidden rounded-[0.75rem] bg-surface">
-                  <Image
-                    src={person.portrait}
-                    alt=""
-                    fill
-                    sizes="64px"
-                    className="object-cover object-top"
-                  />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-medium">{person.called}</span>
-                  <span className="block text-sm text-muted-foreground">
-                    {content.teaches(person.slug)}
-                  </span>
-                  <span className="mt-1 inline-flex items-center gap-1 text-sm underline-offset-4 group-hover:underline">
-                    {t("watchClass")}
-                    <IconPlayerPlayFilled size={11} />
-                  </span>
-                </span>
-              </VideoDialog>
-            ))}
-          </Reveal>
-
-          {track ? (
-            <Reveal delay={0.12}>
-              <VideoDialog
-                id={track.sample.id}
-                title={tc("sampleTitle", { exam: trackNames?.exam ?? "" })}
-                subtitle={tc("sampleSubtitle")}
-                className="mt-4 flex w-full items-center gap-5 rounded-card border border-border bg-card p-4 shadow-frame transition-shadow hover:shadow-lift"
-              >
-                <span className="relative aspect-video w-40 shrink-0 overflow-hidden rounded-control bg-surface">
-                  <Image
-                    src={lectureStill(track.sample.id)}
-                    alt=""
-                    fill
-                    sizes="160px"
-                    className="object-cover"
-                  />
-                  <span className="absolute inset-0 grid place-items-center">
-                    <span className="grid size-9 place-items-center rounded-full bg-white/95 shadow-frame">
-                      <IconPlayerPlayFilled className="size-4" />
-                    </span>
-                  </span>
-                </span>
-                <span>
-                  <span className="block font-medium">{t("sampleFull")}</span>
-                  <span className="block text-sm text-muted-foreground">
-                    {t("sampleNote")}
-                  </span>
-                </span>
-              </VideoDialog>
-            </Reveal>
           ) : null}
-        </Section>
+          {folders.length ? (
+            <>
+              <h3 className="mbs-12 text-lg font-semibold">
+                {t("freeNotesFor", { exam })}
+              </h3>
+              <ul className="mbs-5 grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
+                {folders.map((folder) => (
+                  <li key={folder.kind}>
+                    <Link
+                      data-folder-open
+                      href={`/resources?kind=${encodeURIComponent(folder.kind)}`}
+                      aria-label={t("folderLabel", {
+                        name: phrase(folder.kind),
+                        count: folder.count,
+                      })}
+                      className="block rounded-[14px]"
+                    >
+                      <Folder
+                        name={phrase(folder.kind)}
+                        count={folder.count}
+                        label={t("folderFiles", { count: folder.count })}
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+        </section>
       ) : null}
 
-      {/* ---- the rest of the track ---- */}
-      {siblings.length > 0 && track ? (
-        <Section size="sm" className="border-t border-border">
-          <Reveal>
-            <Lede
-              label={t("moreIn", { exam: trackNames?.exam ?? track.exam })}
-              claim={t("otherWays")}
-            />
-          </Reveal>
-          <Reveal
-            delay={0.08}
-            className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {siblings.map((other) => (
-              <Link
-                key={other.id}
-                href={`/courses/${other.slug}`}
-                className="group flex flex-col overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
-              >
-                {other.cover ? (
-                  <span className="relative aspect-[4/3] bg-surface">
-                    <Image
-                      src={other.cover}
-                      alt=""
-                      fill
-                      sizes="(max-width: 640px) 92vw, 30vw"
-                      className="object-cover"
-                    />
-                  </span>
-                ) : null}
-                <span className="flex flex-1 items-end justify-between gap-3 p-5">
-                  <span>
-                    <span className="block font-medium">{other.short}</span>
-                    {other.subtitle ? (
-                      <span className="block text-sm text-muted-foreground">
-                        {phrase(other.subtitle)}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="tnum shrink-0 font-medium">
-                    {other.free ? t("free") : inr(other.price)}
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </Reveal>
-        </Section>
-      ) : null}
-
-      <Faq courses={await liveCourses()} />
-      <Enquire />
+      <Faq courses={courses} heading={t("beforeJoin")} limit={4} />
+      <Ask heading={t("askAbout", { course: course.short })} />
     </main>
   )
 }

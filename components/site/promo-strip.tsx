@@ -68,7 +68,12 @@ function Strip() {
   }
 
   return (
-    <div data-promo-strip data-hidden={hidden || undefined}>
+    <aside
+      aria-label={t("promoLabel")}
+      data-promo-strip
+      data-hidden={hidden || undefined}
+      inert={hidden}
+    >
       <div className="overflow-clip [min-block-size:0]">
         {bar ? (
           <div className="container-page flex h-11 items-center gap-3 md:h-12">
@@ -105,6 +110,6 @@ function Strip() {
           </div>
         ) : null}
       </div>
-    </div>
+    </aside>
   )
 }

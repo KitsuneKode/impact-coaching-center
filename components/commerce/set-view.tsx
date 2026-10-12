@@ -148,14 +148,20 @@ export function SetView({
                 })}
               </fieldset>
               <p className="tnum mbs-5 flex items-baseline gap-3">
-                <span className="font-display text-4xl font-semibold">
-                  {formatPaise(variant.pricePaise)}
+                <span
+                  key={language}
+                  data-swap
+                  className="flex items-baseline gap-3"
+                >
+                  <span className="font-display text-4xl font-semibold">
+                    {formatPaise(variant.pricePaise)}
+                  </span>
+                  {variant.comparePaise ? (
+                    <s className="text-lg text-muted-foreground">
+                      {formatPaise(variant.comparePaise)}
+                    </s>
+                  ) : null}
                 </span>
-                {variant.comparePaise ? (
-                  <s className="text-lg text-muted-foreground">
-                    {formatPaise(variant.comparePaise)}
-                  </s>
-                ) : null}
               </p>
               <div className="mbs-5">
                 {variant.available ? (

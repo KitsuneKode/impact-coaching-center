@@ -38,7 +38,7 @@
   --primary-foreground: oklch(100% 0 none);
   /* the pressed blue, and the muted text that sits on a blue field */
   --primary-deep: oklch(42.1% 0.151 261.2);
-  --on-primary: oklch(91% 0.036 262.8);
+  --on-primary: oklch(94% 0.028 262.8);
 
   --secondary: oklch(94.7% 0.015 260.7);
   --secondary-foreground: var(--foreground);
@@ -520,7 +520,7 @@
     position: relative;
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: clamp(1rem, -1rem + 3vw, 2rem);
     block-size: 100%;
   }
 
@@ -533,6 +533,7 @@
     color: var(--muted-foreground);
   }
   [data-site-nav] a {
+    white-space: nowrap;
     transition: color 0.15s var(--ease-out-strong);
   }
   [data-site-nav] a[aria-current="page"] {
@@ -591,6 +592,11 @@
 
     & [data-site-nav] {
       color: var(--on-primary);
+    }
+    & [data-site-nav] a[aria-current="page"] {
+      color: oklch(100% 0 none);
+      text-decoration: underline 1.5px;
+      text-underline-offset: 6px;
     }
     & [data-site-header-row] > :not(:has([data-menu-button])) {
       text-shadow:

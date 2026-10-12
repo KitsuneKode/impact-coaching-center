@@ -54,17 +54,20 @@ export function AddToCart({
         })
       }}
     >
-      {added ? (
-        <>
-          <IconCheck stroke={2} aria-hidden />
-          {t("added")}
-        </>
-      ) : (
-        <>
-          <IconShoppingBag stroke={1.75} aria-hidden />
-          {t("addToCart")}
-        </>
-      )}
+      {/* keyed, so each state enters with the swap animation in app/pulse.css */}
+      <span key={added ? "added" : "add"} data-swap="each" className="contents">
+        {added ? (
+          <>
+            <IconCheck stroke={2} aria-hidden />
+            <span>{t("added")}</span>
+          </>
+        ) : (
+          <>
+            <IconShoppingBag stroke={1.75} aria-hidden />
+            <span>{t("addToCart")}</span>
+          </>
+        )}
+      </span>
     </Button>
   )
 }
