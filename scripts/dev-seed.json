@@ -8,7 +8,8 @@
     "`note` lands on the activity record, never on the Person, because staff notes must not sit on a row that could be exported.",
     "None of this reaches production: convex/devSeed.ts refuses any deployment that is not local or the named hosted dev deployment (DEV_DEPLOYMENT_NAME).",
     "`books` are sample titles with an English and an Assamese edition; `bundles` group them by slug and carry a price per language in RUPEES (stored as paise). Everything here is published, marked sample, and replaced the moment the owner edits it.",
-    "`orders` name a bundle slug and a language per line; the seed prices them from the bundle, exactly as checkout would. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address."
+    "`orders` name a bundle slug and a language per line; the seed prices them from the bundle, exactly as checkout would. `status` is one of: awaiting_payment, paid, packed, shipped, delivered, ready_for_collection, collected, cancelled, refunded. Collection orders carry no address.",
+    "`campaigns` are sample promotions, live at once and named \"Sample: …\" so a reseed replaces them."
   ],
   "people": [
     {
@@ -819,6 +820,20 @@
           "available": false
         }
       }
+    }
+  ],
+  "campaigns": [
+    {
+      "name": "Victor 9.0 strip",
+      "kind": "bar",
+      "tag": "New batch",
+      "headline": "Victor 9.0 is open.",
+      "body": "ADRE and Assam Police SI, recorded classes and files on the app.",
+      "cta": "See the batch",
+      "href": "/courses/victor-9-0",
+      "restDays": 3,
+      "delaySeconds": 0,
+      "priority": 10
     }
   ]
 }

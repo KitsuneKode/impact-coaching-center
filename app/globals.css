@@ -2,68 +2,67 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./typeset.css";
+@import "./pulse.css";
 
 /*
- * ICT design system.
+ * ICT design system: Pulse.
  *
- * Register: calm editorial, after kobbe.io. Near-white ground, Inter only,
- * two-tone paragraphs instead of shouting headlines, hairlines instead of
- * boxes, and colour spent only where it carries meaning.
+ * Blue, amber and ink on a cool paper ground. Unbounded for headings,
+ * Figtree for reading, Anek Bangla for Assamese.
  *
- * Colour roles, all taken from the ICT logo:
- *   ink     the "CAREER TUTORIALS" graphite, deepened  -> text and every CTA
- *   blue    #1B72C4, the I-beam and IMPACT wordmark    -> links, focus, brand
- *   amber   #F9AE42, the pen nib                       -> the highlighter mark only
- *   green   #2FB04A, the two bars                      -> "verified" results only
+ * Colour roles:
+ *   blue   #1F5FD1  actions, links, focus, the hero field
+ *   amber  #FFC24A  one highlight per view: the main call to action, marks
+ *   ink    #0B1633  text, and the dark panels
+ *   green           "verified" results only
+ * Measured on the paper ground: ink 16.9:1, muted 6.0:1, blue 5.3:1;
+ * white on blue 5.7:1. Amber is never text on paper.
  *
  * Radius rule, no exceptions:
- *   control (button, input, chip) -> --radius-control 10px
- *   surface (card, panel, frame)  -> --radius-card    16px
+ *   control (button, input, chip) -> --radius-control 12px
+ *   surface (card, panel, frame)  -> --radius-card    20px
  */
 
 :root {
-  --background: oklch(0.984 0.003 85);
-  --foreground: oklch(0.205 0.006 262);
+  --background: oklch(97.6% 0.006 264.5);
+  --foreground: oklch(20.9% 0.059 265.9);
 
-  /* panels sit one step below the ground, the way kobbe's pricing panels do */
-  --surface: oklch(0.962 0.004 85);
-  --card: oklch(0.997 0.001 85);
+  /* panels sit one step into the blue */
+  --surface: oklch(95.4% 0.015 260.7);
+  --card: oklch(100% 0 none);
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.225 0.006 262);
-  --primary-foreground: oklch(0.985 0.002 85);
+  --primary: oklch(51.6% 0.188 261);
+  --primary-foreground: oklch(100% 0 none);
+  /* the pressed blue, and the muted text that sits on a blue field */
+  --primary-deep: oklch(42.1% 0.151 261.2);
+  --on-primary: oklch(91% 0.036 262.8);
 
-  --secondary: oklch(0.945 0.004 85);
+  --secondary: oklch(94.7% 0.015 260.7);
   --secondary-foreground: var(--foreground);
 
-  --muted: oklch(0.945 0.004 85);
-  --muted-foreground: oklch(0.5 0.008 262);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(48.8% 0.049 262.7);
 
-  --accent: oklch(0.945 0.004 85);
+  --accent: var(--secondary);
   --accent-foreground: var(--foreground);
 
-  --brand: oklch(0.52 0.155 253);
-  --highlight: oklch(0.85 0.14 78);
+  --brand: var(--primary);
+  --highlight: oklch(84.9% 0.149 80.9);
+  /* the highlight, lifted for hover */
+  --highlight-hover: color-mix(in oklch, var(--highlight), white 22%);
   --verified: oklch(0.56 0.14 150);
 
   --destructive: oklch(0.56 0.2 27);
-  --destructive-foreground: oklch(0.985 0.002 85);
+  --destructive-foreground: oklch(100% 0 none);
 
-  --border: oklch(0.205 0.006 262 / 9%);
-  --input: oklch(0.205 0.006 262 / 14%);
+  --border: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --input: color-mix(in oklch, var(--foreground) 16%, transparent);
   --ring: var(--brand);
 
-  /*
-   * The sidebar family the registry block expects.
-   *
-   * Declared as references rather than values, so every theme variant -
-   * elegance, twilight and both dark cuts - reaches the admin chrome without
-   * a second set of overrides. @shadcn/lint caught their absence: undeclared
-   * theme colours generate no CSS, so the sidebar would have rendered
-   * completely unstyled rather than merely off-palette.
-   */
+  /* The sidebar family the shadcn sidebar block expects. */
   --sidebar: var(--surface);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -73,151 +72,35 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
-  --radius: 0.625rem;
-  --radius-control: 0.625rem;
-  --radius-card: 1rem;
+  --radius: 0.75rem;
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
 
   /* shadows tinted to the ink, never pure black */
   --shadow-frame:
-    0 1px 1px oklch(0.205 0.006 262 / 0.04),
-    0 8px 24px -12px oklch(0.205 0.006 262 / 0.12);
+    0 1px 1px color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 8px 24px -12px color-mix(in oklch, var(--foreground) 14%, transparent);
   --shadow-lift:
-    0 2px 4px oklch(0.205 0.006 262 / 0.05),
-    0 24px 48px -20px oklch(0.205 0.006 262 / 0.22);
-}
+    0 2px 4px color-mix(in oklch, var(--foreground) 5%, transparent),
+    0 26px 48px -20px color-mix(in oklch, var(--foreground) 24%, transparent);
 
-/*
- * The two candidate palettes ICT picked, side by side, so the choice is made
- * by looking rather than by describing. Applied with `data-theme` on <html>;
- * the dev-only switcher in components/dev/theme-preview.tsx sets it.
- *
- * Both keep the near-white editorial ground. The palettes are dark-first, but
- * making navy the *ground* is a redesign rather than a palette swap - every
- * photograph, every course poster and the full-colour logo raster would have
- * to be re-judged. This shows the reversible half of the decision, which is
- * the half worth seeing first.
- *
- * Measured against the ground, not guessed:
- *   #14213D 15.3:1   #000814 19.3:1   #003566 11.8:1   -> body text
- *   #FCA311  1.94:1  #FFC300  1.54:1  #FFD60A  1.35:1  -> NEVER text
- * The golds are a surface, a highlighter and an accent. Nothing else.
- */
-
-/* Black & Gold Elegance: white ground, grey panels, black ink, navy actions. */
-:root[data-theme="elegance"] {
-  --background: oklch(1 0 89.9);
-  --surface: oklch(0.922 0 89.9);
-  --card: oklch(1 0 89.9);
-  --secondary: oklch(0.955 0 89.9);
-  --muted: oklch(0.955 0 89.9);
-  --accent: oklch(0.955 0 89.9);
-
-  --foreground: oklch(0 0 0);
-  --muted-foreground: oklch(0.48 0.012 264);
-
-  --primary: oklch(0.252 0.056 264);
-  --primary-foreground: oklch(1 0 89.9);
-  --brand: oklch(0.252 0.056 264);
-  --highlight: oklch(0.786 0.167 70);
-
-  --border: oklch(0.252 0.056 264 / 12%);
-  --input: oklch(0.252 0.056 264 / 18%);
-}
-
-/*
- * The dark half of the same two palettes: navy as the ground rather than an
- * accent. This is the direction both palettes were actually designed for.
- *
- * The number that decides it: gold is unusable as text on white (1.5-1.9:1)
- * and comfortable on dark (7.9-12.5:1). On a light ground the gold can only
- * ever be a highlighter; on a dark one it can carry a CTA, a link and a
- * heading. Whether that is worth re-judging every photograph, every course
- * poster and the full-colour logo raster is the KIT-67 decision.
- *
- *   #FFFFFF on #000000 21.00:1   #FCA311 on #000000 10.39:1
- *   #FFFFFF on #000814 20.10:1   #FFC300 on #000814 12.50:1
- *   #FCA311 on #14213D  7.90:1   #FFD60A on #001D3D 11.97:1
- */
-
-/* Black & Gold Elegance, dark: black ground, navy panels, gold actions. */
-:root[data-theme="elegance-dark"] {
-  --background: oklch(0 0 0);
-  --surface: oklch(0.252 0.056 264);
-  --card: oklch(0.18 0.04 264);
-  --secondary: oklch(0.252 0.056 264);
-  --muted: oklch(0.252 0.056 264);
-  --accent: oklch(0.252 0.056 264);
-  --popover: oklch(0.18 0.04 264);
-  --popover-foreground: oklch(1 0 89.9);
-  --card-foreground: oklch(1 0 89.9);
-
-  --foreground: oklch(1 0 89.9);
-  --muted-foreground: oklch(0.75 0.01 264);
-
-  --primary: oklch(0.786 0.167 70);
-  --primary-foreground: oklch(0 0 0);
-  --secondary-foreground: oklch(1 0 89.9);
-  --accent-foreground: oklch(1 0 89.9);
-  --brand: oklch(0.786 0.167 70);
-  --highlight: oklch(0.786 0.167 70);
-  --verified: oklch(0.72 0.16 150);
-
-  --border: oklch(1 0 89.9 / 14%);
-  --input: oklch(1 0 89.9 / 20%);
-}
-
-/* Golden Twilight, dark: the palette read the way it was drawn. */
-:root[data-theme="twilight-dark"] {
-  --background: oklch(0.131 0.034 246.6);
-  --surface: oklch(0.231 0.071 252.9);
-  --card: oklch(0.19 0.06 250);
-  --secondary: oklch(0.231 0.071 252.9);
-  --muted: oklch(0.231 0.071 252.9);
-  --accent: oklch(0.328 0.1 252.6);
-  --popover: oklch(0.19 0.06 250);
-  --popover-foreground: oklch(0.99 0.002 90);
-  --card-foreground: oklch(0.99 0.002 90);
-
-  --foreground: oklch(0.99 0.002 90);
-  --muted-foreground: oklch(0.76 0.03 250);
-
-  --primary: oklch(0.848 0.174 86.1);
-  --primary-foreground: oklch(0.131 0.034 246.6);
-  --secondary-foreground: oklch(0.99 0.002 90);
-  --accent-foreground: oklch(0.99 0.002 90);
-  --brand: oklch(0.885 0.181 94.8);
-  --highlight: oklch(0.848 0.174 86.1);
-  --verified: oklch(0.72 0.16 150);
-
-  --border: oklch(0.99 0.002 90 / 14%);
-  --input: oklch(0.99 0.002 90 / 20%);
-}
-
-/* Golden Twilight: the same ground, a deeper ink and a brighter gold. */
-:root[data-theme="twilight"] {
-  --foreground: oklch(0.131 0.034 246.6);
-  --muted-foreground: oklch(0.46 0.03 250);
-
-  --primary: oklch(0.231 0.071 252.9);
-  --primary-foreground: oklch(0.985 0.002 85);
-  --brand: oklch(0.328 0.1 252.6);
-  --highlight: oklch(0.848 0.174 86.1);
-
-  --border: oklch(0.131 0.034 246.6 / 10%);
-  --input: oklch(0.131 0.034 246.6 / 16%);
+  /* The sticky header's height; in-page links scroll clear of it. */
+  --header-height: 76px;
 }
 
 @theme inline {
   --font-sans: var(--font-sans);
-  --font-display: var(--font-sans);
+  --font-display: var(--font-display);
   --font-as: var(--font-as);
 
-  /* Two weights, site-wide: 700 for emphasis, 400 for everything else.
-     medium and semibold resolve to 700 so no third weight can creep in. */
   --font-weight-normal: 400;
-  --font-weight-medium: 700;
-  --font-weight-semibold: 700;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --font-weight-bold: 700;
+
+  --ease-out-strong: var(--ease-out-strong);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -228,6 +111,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-deep: var(--primary-deep);
+  --color-on-primary: var(--on-primary);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -236,6 +121,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-brand: var(--brand);
   --color-highlight: var(--highlight);
+  --color-highlight-hover: var(--highlight-hover);
   --color-verified: var(--verified);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -267,39 +153,16 @@
     border-color: var(--border);
   }
 
-  /*
-   * Atmosphere for the dark palettes, after patterncraft.fun's dark radial
-   * glow. Flat #000 is the single most lifeless ground available and it was
-   * making a considered palette look like a default one; the glow gives the
-   * page a light source, so the hero sits in something rather than on it.
-   *
-   * The navy is the palette's own second colour, not a new one - patterncraft
-   * ships this shape as rgb(13,26,54), which is within a hair of ICT's
-   * #14213D. Fixed attachment so the source stays put while the page scrolls
-   * rather than repeating down it.
-   */
-  :root[data-theme="elegance-dark"] body {
-    background-image: radial-gradient(
-      125% 125% at 50% 90%,
-      oklch(0 0 0) 40%,
-      oklch(0.252 0.056 264) 100%
-    );
-    background-attachment: fixed;
-  }
-
-  :root[data-theme="twilight-dark"] body {
-    background-image: radial-gradient(
-      125% 125% at 50% 90%,
-      oklch(0.131 0.034 246.6) 40%,
-      oklch(0.328 0.1 252.6) 100%
-    );
-    background-attachment: fixed;
-  }
-
   html {
     -webkit-tap-highlight-color: transparent;
-    scroll-behavior: smooth;
     scrollbar-gutter: stable;
+    /* In-page links land below the sticky header, with or without motion. */
+    scroll-padding-block-start: var(--header-height);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
@@ -320,10 +183,10 @@
   }
 
   /*
-   * Assamese pages: Anek Bangla leads, Anek Latin covers Latin runs, both
-   * from one superfamily so the two scripts share weight and colour.
+   * Assamese pages: Anek Bangla leads; Latin runs fall through to Figtree.
    * Conjuncts, matras and the hanging headline need more room than Latin:
-   * looser leading, no negative tracking anywhere.
+   * looser leading, no negative tracking, and headings a step smaller, since
+   * Bengali-script glyphs sit larger than Latin at the same size.
    */
   :lang(as) {
     font-family: var(--font-as), var(--font-sans), system-ui, sans-serif;
@@ -340,8 +203,19 @@
       h2,
       h3
     ) {
+    font-family: var(--font-as), var(--font-sans), system-ui, sans-serif;
     letter-spacing: 0;
     line-height: 1.35;
+  }
+  :lang(as) .type-hero {
+    font-size: clamp(2rem, 4.6vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  :lang(as) .type-display {
+    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.3;
   }
 
   .tnum {
@@ -401,31 +275,6 @@
     animation: mark-in 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.55s backwards;
   }
 
-  /*
-   * The highlighter has to change on a dark ground, not just change colour.
-   *
-   * At 62% over near-white it reads as a marker stroke. The same 62% over
-   * black is a solid gold block with white text sitting on it - the contrast
-   * is bad and the effect is a high-visibility vest. On dark it becomes a
-   * band under the text instead: the same gesture, drawn rather than filled.
-   */
-  :root[data-theme="elegance-dark"] .mark,
-  :root[data-theme="twilight-dark"] .mark {
-    /*
-     * Positioned in em rather than percent. Percentages resolve against the
-     * line box, so a band tuned at 36px cuts straight through the letterforms
-     * at the 60px hero size - it stopped reading as a highlight and started
-     * reading as a strikethrough. In em it keeps the same relationship to the
-     * baseline at every size.
-     */
-    background-image: linear-gradient(
-      transparent calc(100% - 0.22em),
-      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.22em),
-      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.06em),
-      transparent calc(100% - 0.06em)
-    );
-  }
-
   /* entry for above-the-fold content: CSS, so it paints without hydration */
   .enter {
     animation: enter-blur 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
@@ -454,23 +303,21 @@
    * display line and far too loose for a three-word claim at 60px.
    */
   .type-hero {
-    font-family: var(--font-sans), var(--font-as), system-ui, sans-serif;
-    font-size: clamp(2.25rem, 5.2vw, 3.75rem);
-    font-weight: 700;
-    /* A serif sets tighter than a grotesque at the same measure: its
-       counters are smaller and its serifs already carry the eye along the
-       line, so the leading that felt right for Inter reads gappy here. */
-    line-height: 1.04;
-    letter-spacing: -0.025em;
+    font-family: var(--font-display), var(--font-as), system-ui, sans-serif;
+    font-size: clamp(2.25rem, 5.4vw, 4.25rem);
+    font-weight: 600;
+    /* Unbounded is wide: tight leading and tracking keep a claim a block. */
+    line-height: 1.02;
+    letter-spacing: -0.035em;
     text-wrap: balance;
   }
 
   .type-display {
-    font-family: var(--font-sans), var(--font-as), system-ui, sans-serif;
-    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
-    font-weight: 700;
-    line-height: 1.12;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display), var(--font-as), system-ui, sans-serif;
+    font-size: clamp(1.8rem, 3.6vw, 3rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
     text-wrap: balance;
   }
 
@@ -488,6 +335,7 @@
    * system seen at two distances, rather than as two typographic decisions.
    */
   .type-display-sm {
+    /* Working screens read for hours: Figtree, not the display face. */
     font-family: var(--font-sans), var(--font-as), system-ui, sans-serif;
     font-size: clamp(1.375rem, 1.8vw, 1.75rem);
     font-weight: 700;
@@ -583,12 +431,9 @@
 @utility container-page {
   margin-inline: auto;
   width: 100%;
-  max-width: 76rem;
-  padding-inline: 1.25rem;
-
-  @media (min-width: 768px) {
-    padding-inline: 2rem;
-  }
+  /* Pulse's measure: 1240px, gutters 20px on phones to 32px from tablets. */
+  max-width: 77.5rem;
+  padding-inline: clamp(1.25rem, 0.4rem + 2.6vw, 2rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -643,5 +488,168 @@
   .typeset-docs:lang(as) :where(h1, h2, h3, h4) {
     line-height: 1.45;
     letter-spacing: 0;
+  }
+}
+
+/*
+ * Site header (components/site/site-header.tsx), Pulse's exactly. Paper by
+ * default; white over a blue hero until it sticks; frosted paper once stuck.
+ */
+@layer components {
+  [data-site-header] {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 50;
+    block-size: var(--header-height);
+    /* Content starts underneath, so a hero never reflows. */
+    margin-block-end: calc(-1 * var(--header-height) - 1px);
+    color: var(--foreground);
+    transition:
+      background-color 0.2s var(--ease-out-strong),
+      color 0.2s var(--ease-out-strong),
+      box-shadow 0.2s var(--ease-out-strong);
+  }
+  [data-site-header][data-stuck] {
+    background-color: color-mix(in oklch, var(--background) 86%, transparent);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    box-shadow: 0 1px 0 var(--border);
+  }
+
+  [data-site-header-row] {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    block-size: 100%;
+  }
+
+  [data-site-nav] {
+    display: none;
+    align-items: center;
+    gap: clamp(1.25rem, 0.2rem + 1.4vw, 1.75rem);
+    margin-inline-start: auto;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+  }
+  [data-site-nav] a {
+    transition: color 0.15s var(--ease-out-strong);
+  }
+  [data-site-nav] a[aria-current="page"] {
+    color: var(--foreground);
+  }
+  [data-site-tools] {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  [data-site-phone] {
+    margin-inline-start: auto;
+  }
+  @media (width >= 64rem) {
+    [data-site-nav],
+    [data-site-tools] {
+      display: flex;
+    }
+    [data-site-phone] {
+      margin-inline-start: 0;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-site-nav] a:hover {
+      color: var(--foreground);
+    }
+  }
+
+  [data-menu-button] {
+    display: grid;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    border-radius: 999px;
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--border);
+    transition:
+      background-color 0.2s var(--ease-out-strong),
+      box-shadow 0.2s var(--ease-out-strong);
+  }
+  [data-menu-button]:active {
+    scale: 0.96;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-menu-button] {
+      transition:
+        background-color 0.2s var(--ease-out-strong),
+        box-shadow 0.2s var(--ease-out-strong),
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+
+  /* Over a blue hero, before it sticks: white text, lifted off the photos. */
+  :root:has([data-hero="blue"]) [data-site-header]:not([data-stuck]) {
+    color: oklch(100% 0 none);
+
+    & [data-site-nav] {
+      color: var(--on-primary);
+    }
+    & [data-site-header-row] > :not(:has([data-menu-button])) {
+      text-shadow:
+        0 1px 10px color-mix(in oklch, var(--foreground) 60%, transparent),
+        0 0 22px color-mix(in oklch, var(--foreground) 35%, transparent);
+    }
+    & [data-menu-button] {
+      background-color: oklch(100% 0 none);
+      box-shadow: none;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :root:has([data-hero="blue"])
+      [data-site-header]:not([data-stuck])
+      [data-site-nav]
+      a:hover {
+      color: oklch(100% 0 none);
+    }
+  }
+}
+
+/* The announcement strip (components/site/promo-strip.tsx): an ink band that
+   folds shut into the top of the page. */
+@layer components {
+  [data-promo-strip] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    background-color: var(--foreground);
+    color: oklch(100% 0 none);
+    transition: opacity 0.2s var(--ease-out-strong);
+  }
+  [data-promo-strip] p {
+    text-wrap: nowrap;
+  }
+  [data-promo-strip][data-hidden] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  [data-promo-strip-body] {
+    color: color-mix(in oklch, var(--on-primary) 80%, var(--foreground));
+  }
+  [data-promo-strip-close] {
+    color: color-mix(in oklch, white 70%, transparent);
+    transition: color 0.15s var(--ease-out-strong);
+  }
+  [data-promo-strip-close]:active {
+    scale: 0.94;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-promo-strip] {
+      transition:
+        grid-template-rows 0.2s var(--ease-out-strong),
+        opacity 0.2s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-promo-strip-close]:hover {
+      color: oklch(100% 0 none);
+    }
   }
 }

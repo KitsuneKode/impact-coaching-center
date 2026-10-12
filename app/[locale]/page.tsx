@@ -1,36 +1,34 @@
 import { setRequestLocale } from "next-intl/server"
-import { Campus } from "@/components/marketing/campus"
-import { Classes } from "@/components/marketing/classes"
-import { liveCourses } from "@/lib/courses-server"
-import { Courses } from "@/components/marketing/courses"
+
+import { ExamMarquee } from "@/components/home/exam-marquee"
+import { ExamStack } from "@/components/home/exam-stack"
+import { Hero } from "@/components/home/hero"
+import { LoopWatch } from "@/components/home/loop-watch"
 import { Enquire } from "@/components/marketing/enquire"
 import { Faq } from "@/components/marketing/faq"
-import { Fees } from "@/components/marketing/fees"
-import { Hero } from "@/components/marketing/hero"
-import { Podcast } from "@/components/marketing/podcast"
-import { Posters } from "@/components/marketing/posters"
-import { ProofBar } from "@/components/marketing/proof-bar"
 import { Results } from "@/components/marketing/results"
 import { StudentVoices } from "@/components/marketing/student-voices"
+import { todayIst } from "@/lib/calendar"
+import { newestBatch } from "@/lib/courses"
+import { liveCourses } from "@/lib/courses-server"
 
-/* The order follows the decision a visitor actually makes: */
+/** The home page, Pulse: the pitch, the three exams, then proof and help. */
 export default async function Page({ params }: PageProps<"/[locale]">) {
   const { locale } = await params
   setRequestLocale(locale)
+  const courses = await liveCourses()
   return (
-    <main id="top">
-      <Hero />
-      <ProofBar />
-      <Results />
-      <StudentVoices limit={5} />
-      <Posters />
-      <Courses courses={await liveCourses()} />
-      <Fees />
-      <Campus />
-      <Classes />
-      <Podcast />
-      <Faq courses={await liveCourses()} />
-      <Enquire />
-    </main>
+    <>
+      <Hero newest={newestBatch(courses)} today={todayIst(Date.now())} />
+      <ExamMarquee />
+      <main>
+        <ExamStack courses={courses} />
+        <StudentVoices limit={5} />
+        <Results />
+        <Faq courses={courses} />
+        <Enquire />
+      </main>
+      <LoopWatch />
+    </>
   )
 }

@@ -1,28 +1,43 @@
 import type { Metadata, Viewport } from "next"
-import { Anek_Bangla, Anek_Latin } from "next/font/google"
+import localFont from "next/font/local"
 
 import "./globals.css"
 import { Providers } from "@/app/providers"
-import { ThemePreview } from "@/components/dev/theme-preview"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, openGraphFor, siteUrl } from "@/lib/site"
 import { themeInitScript } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 /*
- * One superfamily for both languages: Anek Latin and Anek Bangla share their
- * design, so English and Assamese read as one voice. Variable fonts, used at
- * exactly two weights (700 and 400, enforced in globals.css).
+ * Pulse: Figtree for reading, Unbounded for headings, Anek Bangla for
+ * Assamese. Served from our own files (fontsource), so a build never depends
+ * on reaching Google Fonts.
  */
-const sans = Anek_Latin({
-  subsets: ["latin"],
+const sans = localFont({
+  src: [
+    {
+      path: "../node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2",
+    },
+    {
+      path: "../node_modules/@fontsource-variable/figtree/files/figtree-latin-ext-wght-normal.woff2",
+    },
+  ],
   variable: "--font-sans",
+  weight: "300 900",
   display: "swap",
 })
 
-const assamese = Anek_Bangla({
-  subsets: ["bengali"],
+const display = localFont({
+  src: "../node_modules/@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2",
+  variable: "--font-display",
+  weight: "200 900",
+  display: "swap",
+})
+
+const assamese = localFont({
+  src: "../node_modules/@fontsource-variable/anek-bangla/files/anek-bangla-bengali-wght-normal.woff2",
   variable: "--font-as",
+  weight: "100 800",
   display: "swap",
   // English pages rarely need it; Assamese pages fetch it on first use.
   preload: false,
@@ -99,7 +114,12 @@ export default function RootLayout({
     <html
       lang="en-IN"
       data-scroll-behavior="smooth"
-      className={cn(sans.variable, assamese.variable, "antialiased")}
+      className={cn(
+        sans.variable,
+        display.variable,
+        assamese.variable,
+        "antialiased"
+      )}
       // Browser extensions add attributes to <html> before React hydrates;
       // without this React reports each one as a hydration mismatch.
       suppressHydrationWarning
@@ -129,12 +149,6 @@ export default function RootLayout({
             this empty the rest of the time.
           */}
           {authModal}
-          {/*
-            Palette comparison harness, development only. Never reaches a
-            visitor; delete with components/dev/theme-preview.tsx once KIT-67
-            picks a palette.
-          */}
-          {process.env.NODE_ENV === "development" ? <ThemePreview /> : null}
         </Providers>
       </body>
     </html>

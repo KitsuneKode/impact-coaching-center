@@ -7,6 +7,7 @@ import { internalMutation } from "./_generated/server"
 import { allocateOrderReference } from "./orders"
 import {
   ADDRESS,
+  CAMPAIGN_KIND,
   LEAD_STATUS,
   LOCALE,
   LOCALISED,
@@ -440,6 +441,46 @@ export const seedPosts = internalMutation({
     return { posts }
   },
 })
+
+/** Sample promotions, live straight away. Marked by name so they come back out. */
+export const seedCampaigns = internalMutation({
+  args: {
+    campaigns: v.array(
+      v.object({
+        name: v.string(),
+        kind: CAMPAIGN_KIND,
+        tag: v.string(),
+        headline: v.string(),
+        body: v.string(),
+        cta: v.string(),
+        href: v.string(),
+        restDays: v.number(),
+        delaySeconds: v.number(),
+        priority: v.number(),
+      })
+    ),
+  },
+  returns: v.object({ campaigns: v.number() }),
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+    for await (const row of ctx.db.query("campaigns"))
+      if (row.name.startsWith(SAMPLE_PREFIX)) await ctx.db.delete(row._id)
+    for (const campaign of args.campaigns)
+      await ctx.db.insert("campaigns", {
+        ...campaign,
+        name: `${SAMPLE_PREFIX}${campaign.name}`,
+        status: "live",
+        coupon: "",
+        reelIds: [],
+        routes: [],
+        revision: 0,
+        updatedAt: Date.now(),
+      })
+    return { campaigns: args.campaigns.length }
+  },
+})
+
+const SAMPLE_PREFIX = "Sample: "
 
 /** Take back what this module wrote, without destroying what a person earned. */
 export const clearSeed = internalMutation({

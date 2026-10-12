@@ -3,12 +3,13 @@ import type { ReactNode } from "react"
 
 import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
 import { SiteFooter } from "@/components/marketing/site-footer"
-import { SiteHeader } from "@/components/marketing/site-header"
+import { PromoStrip } from "@/components/site/promo-strip"
+import { SiteHeader } from "@/components/site/site-header"
 
 /**
  * The public site's frame: skip link, header, footer and the mobile call bar.
  * Rendered by the language layout and by the English-only (plain) group;
- * /admin and /redesign sit outside both and get none of it.
+ * /admin sits outside both and gets none of it.
  */
 export async function SiteChrome({ children }: { children: ReactNode }) {
   const t = await getTranslations("Chrome")
@@ -21,12 +22,8 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       >
         {t("skip")}
       </a>
+      <PromoStrip />
       <SiteHeader />
-      {/* A plain fade under the floating nav so scrolling text does not collide with it. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-30 h-20 bg-gradient-to-b from-background via-background/70 to-transparent"
-      />
       <div id="main" tabIndex={-1} className="outline-none">
         {children}
       </div>

@@ -1,15 +1,9 @@
-/** Palette ids next-themes may write to `data-theme`. */
-export const themes = [
-  "current",
-  "elegance",
-  "elegance-dark",
-  "twilight",
-  "twilight-dark",
-] as const
+/** Themes next-themes may write to `data-theme`. Dark arrives after launch. */
+export const themes = ["light", "dark"] as const
 
 export type ThemeId = (typeof themes)[number]
 
-export const defaultTheme: ThemeId = "current"
+export const defaultTheme: ThemeId = "light"
 
 /** Same key next-themes uses when `storageKey` is left unset. */
 export const themeStorageKey = "theme"

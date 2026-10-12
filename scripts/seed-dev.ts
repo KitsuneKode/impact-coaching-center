@@ -28,6 +28,7 @@ type Fixture = {
   bundles?: unknown[]
   resources?: unknown[]
   posts?: unknown[]
+  campaigns?: unknown[]
 }
 
 const flags = new Set(process.argv.slice(2))
@@ -73,6 +74,13 @@ if (!flags.has("--clear")) {
   if (fixture.orders?.length) {
     console.log(
       await run("internal.devSeed.seedOrders", { orders: fixture.orders })
+    )
+  }
+  if (fixture.campaigns?.length) {
+    console.log(
+      await run("internal.devSeed.seedCampaigns", {
+        campaigns: fixture.campaigns,
+      })
     )
   }
   if (fixture.posts?.length) {

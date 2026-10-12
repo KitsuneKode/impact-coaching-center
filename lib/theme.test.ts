@@ -40,10 +40,10 @@ function run(stored: string | null, fail = false) {
 }
 
 describe("themeInitScript", () => {
-  test("writes a stored palette onto the document element", () => {
-    const { attrs, style } = run("twilight-dark")
-    expect(attrs["data-theme"]).toBe("twilight-dark")
-    expect(style.colorScheme).toBeUndefined()
+  test("writes a stored theme onto the document element", () => {
+    const { attrs, style } = run("light")
+    expect(attrs["data-theme"]).toBe("light")
+    expect(style.colorScheme).toBe("light")
   })
 
   test("falls back when nothing is stored", () => {

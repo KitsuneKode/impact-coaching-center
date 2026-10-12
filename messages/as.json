@@ -29,7 +29,15 @@
     "home": "{name}, মূল পৃষ্ঠা",
     "call": "Impact Career Tutorialsলৈ ফোন কৰক",
     "openMenu": "মেনু খোলক",
-    "closeMenu": "মেনু বন্ধ কৰক"
+    "closeMenu": "মেনু বন্ধ কৰক",
+    "books": "কিতাপ",
+    "notes": "বিনামূলীয়া টোকা",
+    "exams": "পৰীক্ষা",
+    "assist": "ASSIST",
+    "library": "পুথিভঁৰাল",
+    "blog": "ব্লগ",
+    "callNumber": "{phone} ত ফোন কৰক",
+    "menu": "মেনু"
   },
   "Offer": {
     "cta": "বিনামূলীয়া কৰ্মশালাত যোগ দিয়ক",
@@ -695,5 +703,23 @@
       "result": "ফলাফল",
       "interview": "সাক্ষাৎকাৰ"
     }
+  },
+  "Pulse": {
+    "heroLabel": "পৰিচয়",
+    "heroLead": "প্ৰস্তুতিৰ ঠিকনা:",
+    "heroWords": "APSC।|ADRE।|অসম আৰক্ষী।|বেংক।|SSC।|ৰেলৱে।",
+    "heroCopy": "উত্তৰ লখিমপুৰত পুৱা, দুপৰীয়া আৰু সন্ধিয়াৰ বেটচ। ICTৰ নিজৰ কিতাপ, বিনামূলীয়া টোকা, আৰু এপত প্ৰতিটো ক্লাছ।",
+    "whatsFree": "কি বিনামূলীয়া",
+    "ticketNewest": "নতুন বেটচ",
+    "ticketStarted": "আৰম্ভ হৈছে",
+    "ticketStarts": "আৰম্ভ হ'ব",
+    "ticketNew": "নতুন",
+    "ticketBatch": "বেটচ",
+    "marquee": "APSC|ADRE|অসম আৰক্ষী|বেংক|SSC|ৰেলৱে NTPC|Warrior মক|Brahmastra|Astra Series|Axom Dhwani",
+    "stackLead": "তিনিটা পৰীক্ষা।",
+    "stackRest": "এটাই শ্ৰেণীকোঠা।",
+    "askFee": "মাচুল সোধক",
+    "coursePoster": "{name}ৰ পোষ্টাৰ",
+    "dismissPromo": "ঘোষণাটো বন্ধ কৰক"
   }
 }

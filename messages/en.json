@@ -29,7 +29,15 @@
     "home": "{name}, home",
     "call": "Call Impact Career Tutorials",
     "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "closeMenu": "Close menu",
+    "books": "Books",
+    "notes": "Free notes",
+    "exams": "Exams",
+    "assist": "ASSIST",
+    "library": "Library",
+    "blog": "Blog",
+    "callNumber": "Call {phone}",
+    "menu": "Menu"
   },
   "Offer": {
     "cta": "Join a free workshop",
@@ -495,5 +503,23 @@
       "result": "Result",
       "interview": "Interview"
     }
+  },
+  "Pulse": {
+    "heroLabel": "Introduction",
+    "heroLead": "Coaching for",
+    "heroWords": "APSC.|ADRE.|Assam Police.|banking.|SSC.|Railway.",
+    "heroCopy": "Morning, noon and evening batches in North Lakhimpur. ICT's own books, free notes, and every class on the app.",
+    "whatsFree": "What's free",
+    "ticketNewest": "The newest batch",
+    "ticketStarted": "Started",
+    "ticketStarts": "Starts",
+    "ticketNew": "New",
+    "ticketBatch": "batch",
+    "marquee": "APSC|ADRE|Assam Police|Banking|SSC|Railway NTPC|Warrior mocks|Brahmastra|Astra Series|Axom Dhwani",
+    "stackLead": "Three exams.",
+    "stackRest": "One classroom.",
+    "askFee": "Ask for the fee",
+    "coursePoster": "{name} poster",
+    "dismissPromo": "Dismiss announcement"
   }
 }

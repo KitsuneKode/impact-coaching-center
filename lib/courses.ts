@@ -37,13 +37,14 @@ export type MirrorCourse = {
   category?: string
   tags: string[]
   cover: { url: string } | null
+  createdAt?: number
   track?: string
   batchStarts?: string
   timing?: string
   offlineFeePaise?: number
 }
 
-export function fromMirror(row: MirrorCourse, createdAt?: number): Course {
+export function fromMirror(row: MirrorCourse): Course {
   return {
     id: row.classplusId,
     slug: row.slug,
@@ -58,7 +59,7 @@ export function fromMirror(row: MirrorCourse, createdAt?: number): Course {
     cover: row.cover?.url ?? null,
     track:
       row.track ?? (row.category ? CATEGORY_TRACK[row.category] : undefined),
-    createdAt,
+    createdAt: row.createdAt,
     batchStarts: row.batchStarts,
     timing: row.timing,
     offlineFee:
@@ -90,6 +91,13 @@ export function lineup(courses: readonly Course[], exam: string) {
     also: paid.slice(1),
     free: mine.find((course) => course.free),
   }
+}
+
+/** The most recently created paid course: the batch to put in front. */
+export function newestBatch(courses: readonly Course[]) {
+  return courses
+    .filter((course) => !course.free && course.track)
+    .toSorted((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0]
 }
 
 /** "25009" -> "₹25,009" */
