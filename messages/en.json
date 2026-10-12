@@ -557,7 +557,7 @@
     "fVisit": "Visit",
     "fPolicies": "Policies",
     "examsExplained": "Exams explained",
-    "directions": "Directions",
+    "directions": "Get directions",
     "whatsapp": "WhatsApp",
     "callCentre": "Call the centre",
     "privacy": "Privacy",
@@ -602,6 +602,16 @@
     "alsoFree": "Also free.",
     "freeCourse": "Free on the app",
     "youtubeTitle": "Full classes on YouTube",
-    "youtubeBody": "The same teachers, whole lectures, no log-in."
+    "youtubeBody": "The same teachers, whole lectures, no log-in.",
+    "contactTitle": "Talk to ICT, or come and sit in on a class.",
+    "contactLede": "Tell us the exam and the time of day you can study. We will point you to the right batch.",
+    "callLabel": "Call",
+    "whatsappLabel": "WhatsApp",
+    "emailLabel": "Email",
+    "visitCentre": "Visit the centre",
+    "askForPlace": "Ask for {place}.",
+    "findOn": "ICT is also on",
+    "callBack": "Request a call back.",
+    "centresHeading": "Two centres."
   }
 }

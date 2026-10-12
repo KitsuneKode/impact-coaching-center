@@ -1,13 +1,21 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
-import { IconBrandWhatsapp, IconMapPin } from "@tabler/icons-react"
+import {
+  IconArrowUpRight,
+  IconBrandWhatsapp,
+  IconMail,
+  IconMapPin,
+  IconPhone,
+} from "@tabler/icons-react"
 import type { Metadata } from "next"
-import type { CSSProperties } from "react"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { ButtonAnchor } from "@/components/ui/button"
+import { Faq } from "@/components/home/faq"
 import { CentreFinder } from "@/components/marketing/centre-finder"
-import { Lede, Section } from "@/components/ui/section"
+import { LeadForm } from "@/components/marketing/lead-form"
+import { Reveal } from "@/components/motion/reveal"
+import { PageHead } from "@/components/site/page-head"
 import { contact, formatPhone, links, place } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
+import { liveCourses } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 
 export async function generateMetadata({
@@ -25,8 +33,6 @@ export async function generateMetadata({
   }
 }
 
-const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
-
 const socials = [
   { label: "YouTube", href: links.youtube },
   { label: "Instagram", href: links.instagram },
@@ -39,104 +45,165 @@ export default async function ContactPage({
 }: PageProps<"/[locale]/contact">) {
   const { locale } = await params
   setRequestLocale(locale)
-  const t = await getTranslations("ContactPage")
-  const tc = await getTranslations("Centres")
+  const t = await getTranslations("Pulse")
+  const nav = await getTranslations("Nav")
+  const centres = await getTranslations("Centres")
+  const courses = await liveCourses()
+
+  const channels = [
+    ...contact.phones.map((phone) => ({
+      key: phone,
+      Icon: IconPhone,
+      label: t("callLabel"),
+      value: formatPhone(phone),
+      href: `tel:${phone}`,
+      external: false,
+    })),
+    {
+      key: "whatsapp",
+      Icon: IconBrandWhatsapp,
+      label: t("whatsappLabel"),
+      value: formatPhone(contact.whatsapp),
+      href: contactHref({ kind: "workshop" }),
+      external: true,
+    },
+    {
+      key: "email",
+      Icon: IconMail,
+      label: t("emailLabel"),
+      value: contact.email,
+      href: `mailto:${contact.email}`,
+      external: false,
+    },
+  ]
+
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <h1 className="enter type-display max-w-208" style={delay(0)}>
-          <span className="text-foreground">{t("claim")}</span>{" "}
-          <span className="text-muted-foreground">{t("rest")}</span>
-        </h1>
+      <PageHead
+        trail={[{ label: nav("contact") }]}
+        title={t("contactTitle")}
+        lede={t("contactLede")}
+      />
 
-        <div className="mt-12 grid gap-10 md:grid-cols-2 md:gap-14">
-          <div className="enter" style={delay(60)}>
-            <h2 className="text-lg font-medium">{t("phone")}</h2>
-            <ul className="mt-4 space-y-3">
-              {contact.phones.map((phone) => (
-                <li key={phone}>
+      <section className="container-page grid grid-cols-1 items-start gap-6 pbe-20 lg:grid-cols-12">
+        <div className="grid min-w-0 gap-3 lg:col-span-5">
+          <ul className="grid grid-cols-1 gap-3">
+            {channels.map(({ key, Icon, label, value, href, external }, i) => (
+              <li key={key}>
+                <Reveal delay={i * 0.04}>
                   <a
-                    href={`tel:${phone}`}
-                    className="inline-flex min-h-11 items-center text-[0.9375rem] text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    href={href}
+                    {...(external
+                      ? { target: "_blank", rel: "noreferrer noopener" }
+                      : {})}
+                    data-row-card
+                    data-channel
+                    className="flex items-center gap-4 p-3 pe-5"
                   >
-                    <span className="tnum">{formatPhone(phone)}</span>
+                    <span
+                      data-channel-icon
+                      className="grid size-12 flex-none place-items-center rounded-2xl"
+                    >
+                      <Icon aria-hidden size={22} stroke={1.5} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs text-muted-foreground">
+                        {label}
+                      </span>
+                      <span className="tnum block truncate font-semibold">
+                        {value}
+                      </span>
+                    </span>
+                    <IconArrowUpRight
+                      data-nudge
+                      aria-hidden
+                      size={18}
+                      stroke={1.75}
+                      className="text-muted-foreground"
+                    />
                   </a>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex flex-wrap gap-3">
-              <ButtonAnchor
-                href={contactHref({ kind: "workshop" })}
-                target="_blank"
-                size="lg"
-              >
-                <IconBrandWhatsapp stroke={1.6} />
-                {t("whatsapp")}
-              </ButtonAnchor>
-            </div>
+                </Reveal>
+              </li>
+            ))}
+          </ul>
 
-            <h2 className="mt-10 text-lg font-medium">{t("email")}</h2>
-            <a
-              href={`mailto:${contact.email}`}
-              className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            >
-              {contact.email}
-            </a>
-          </div>
-
-          <div className="enter" style={delay(120)}>
-            <h2 className="text-lg font-medium">{t("centre")}</h2>
-            <address className="mt-4 text-[0.9375rem] leading-relaxed text-muted-foreground not-italic">
-              Impact Career Tutorials
-              <br />
-              {place.street}
-              <br />
-              {place.city}, {place.region} {place.pin}
-            </address>
-            <div className="mt-4">
-              <ButtonAnchor
+          <Reveal delay={0.18}>
+            <div className="rounded-[28px] bg-primary p-6 text-white">
+              <div className="flex items-start gap-4">
+                <span className="grid size-12 flex-none place-items-center rounded-2xl bg-white/12">
+                  <IconMapPin aria-hidden size={22} stroke={1.5} />
+                </span>
+                <address className="not-italic">
+                  <span className="block font-semibold">
+                    {t("visitCentre")}
+                  </span>
+                  <span className="mbs-1 block text-on-primary">
+                    {place.street}, {place.city}, {place.region} {place.pin}.{" "}
+                    {t("askForPlace", { place: place.spoken })}
+                  </span>
+                </address>
+              </div>
+              <a
                 href={place.maps}
                 target="_blank"
-                variant="secondary"
-                size="lg"
+                rel="noreferrer noopener"
+                data-press
+                data-cta="amber"
+                className="mbs-5 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
               >
-                <IconMapPin stroke={1.6} />
-                {t("maps")}
-              </ButtonAnchor>
+                {t("directions")}
+                <IconArrowUpRight data-nudge aria-hidden size={16} stroke={2} />
+              </a>
+              <p className="mbs-5 text-sm text-on-primary">
+                {t("findOn")}{" "}
+                {socials.map((social, i) => (
+                  <span key={social.label}>
+                    {i ? ", " : ""}
+                    <a
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      data-on-blue-link
+                    >
+                      {social.label}
+                    </a>
+                  </span>
+                ))}
+                .
+              </p>
             </div>
-
-            <h2 className="mt-10 text-lg font-medium">{t("elsewhere")}</h2>
-            <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
-              {socials.map((social) => (
-                <li key={social.label}>
-                  <a
-                    href={social.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-11 items-center text-[0.9375rem] text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    {social.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </Reveal>
         </div>
-      </Section>
 
-      <Section
-        size="sm"
+        <Reveal delay={0.06} className="min-w-0 lg:col-span-7">
+          <div className="rounded-[32px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] sm:p-10">
+            <h2 className="type-display-sm">{t("callBack")}</h2>
+            <div className="mbs-6">
+              <LeadForm bare />
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      <section
         id="centres"
-        className="scroll-mt-24 border-t border-border"
+        aria-labelledby="centres-heading"
+        className="container-page pbe-20 md:pbe-28"
       >
-        <Lede
-          label={tc("label")}
-          claim={tc("claim")}
-          rest={tc("rest")}
-          className="mb-8"
-        />
-        <CentreFinder />
-      </Section>
+        <Reveal>
+          <h2 id="centres-heading" className="type-display">
+            {t("centresHeading")}
+          </h2>
+          <p className="mbs-3 max-w-[52ch] text-lg text-muted-foreground">
+            {centres("rest")}
+          </p>
+        </Reveal>
+        <div className="mbs-10">
+          <CentreFinder />
+        </div>
+      </section>
+
+      <Faq courses={courses} limit={4} />
     </main>
   )
 }

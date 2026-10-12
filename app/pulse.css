@@ -1568,3 +1568,39 @@
     color: var(--on-primary);
   }
 }
+
+@layer components {
+  /* ------------------------------------------------------------ contact */
+
+  [data-channel-icon] {
+    background-color: var(--secondary);
+    color: var(--primary);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-channel] [data-nudge] {
+      transition: translate 0.2s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-channel]:hover [data-nudge] {
+      translate: 2px -2px;
+    }
+  }
+
+  /* Text links on the blue field: white, underlined, always findable. */
+  [data-on-blue-link] {
+    color: oklch(100% 0 none);
+    text-decoration: underline 1px;
+    text-underline-offset: 4px;
+    border-radius: 3px;
+  }
+  [data-on-blue-link]:focus-visible {
+    outline: 2px solid oklch(100% 0 none);
+    outline-offset: 2px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-on-blue-link]:hover {
+      text-decoration-thickness: 2px;
+    }
+  }
+}

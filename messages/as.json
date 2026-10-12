@@ -757,7 +757,7 @@
     "fVisit": "আহক",
     "fPolicies": "নীতি",
     "examsExplained": "পৰীক্ষাৰ বিষয়ে",
-    "directions": "পথ নিৰ্দেশনা",
+    "directions": "পথ চাওক",
     "whatsapp": "WhatsApp",
     "callCentre": "কেন্দ্ৰলৈ ফোন কৰক",
     "privacy": "গোপনীয়তা",
@@ -802,6 +802,16 @@
     "alsoFree": "আৰু বিনামূলীয়া।",
     "freeCourse": "এপত বিনামূলীয়া",
     "youtubeTitle": "YouTubeত সম্পূৰ্ণ শ্ৰেণী",
-    "youtubeBody": "একেজন শিক্ষক, সম্পূৰ্ণ বক্তৃতা, লগ-ইন নালাগে।"
+    "youtubeBody": "একেজন শিক্ষক, সম্পূৰ্ণ বক্তৃতা, লগ-ইন নালাগে।",
+    "contactTitle": "ICTৰ সৈতে কথা পাতক, বা এটা শ্ৰেণীত আহি বহক।",
+    "contactLede": "পৰীক্ষাটো আৰু দিনৰ কোনটো সময়ত পঢ়িব পাৰে কওক। আমি সঠিক বেচটো দেখুৱাই দিম।",
+    "callLabel": "ফোন",
+    "whatsappLabel": "WhatsApp",
+    "emailLabel": "ইমেইল",
+    "visitCentre": "কেন্দ্ৰলৈ আহক",
+    "askForPlace": "{place}ৰ কথা সুধিব।",
+    "findOn": "ICT ইয়াতো আছে",
+    "callBack": "ফোন কৰিবলৈ অনুৰোধ কৰক।",
+    "centresHeading": "দুটা কেন্দ্ৰ।"
   }
 }
