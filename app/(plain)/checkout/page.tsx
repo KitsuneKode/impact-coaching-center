@@ -258,10 +258,14 @@ function CheckoutForm() {
     <PageShell
       title={
         <>
-          <span className="text-foreground">Checkout.</span>{" "}
-          <span className="text-muted-foreground">
-            {formatPaise(itemsPaise + deliveryPaise)}.
-          </span>
+          <span className="text-foreground">Checkout.</span>
+          {/* No total for an empty cart: delivery alone is not an order. */}
+          {rows.length ? (
+            <span className="text-muted-foreground">
+              {" "}
+              {formatPaise(itemsPaise + deliveryPaise)}.
+            </span>
+          ) : null}
         </>
       }
     >
