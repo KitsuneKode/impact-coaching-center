@@ -11,14 +11,26 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   refunded: "Refunded",
 }
 
-/** What a staff member may move this order to next. */
-export function nextStatuses(status: string, isOwner: boolean): string[] {
+/**
+ * What a staff member may move this order to next. The fulfilment route
+ * decides which forward move exists: parcels ship, collections get picked
+ * up. The server enforces the same split (convex/orders.ts).
+ */
+export function nextStatuses(
+  status: string,
+  isOwner: boolean,
+  fulfilment: "delivery" | "collection"
+): string[] {
   const moves = (() => {
     switch (status) {
       case "awaiting_payment":
         return ["cancelled"]
       case "paid":
-        return ["packed", "ready_for_collection", "cancelled", "refunded"]
+        return [
+          fulfilment === "delivery" ? "packed" : "ready_for_collection",
+          "cancelled",
+          "refunded",
+        ]
       case "packed":
         return ["shipped", "cancelled", "refunded"]
       case "shipped":

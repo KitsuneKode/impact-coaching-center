@@ -8,12 +8,17 @@ import { Section } from "@/components/ui/section"
 import { contact, formatPhone, place } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { libraryApproved, libraryFacts, libraryUpdated } from "@/lib/library"
+import { openGraphFor } from "@/lib/site"
+
+const title = "The library at ICT"
+const description =
+  "The library and study space at Impact Career Tutorials in North Lakhimpur: WiFi, study material, and a culture of group study."
 
 export const metadata: Metadata = {
-  title: "The library at ICT",
-  description:
-    "The library and study space at Impact Career Tutorials in North Lakhimpur: WiFi, study material, and a culture of group study.",
+  title,
+  description,
   alternates: { canonical: "/library" },
+  openGraph: openGraphFor("/library", title, description),
   ...(libraryApproved ? {} : { robots: { index: false, follow: true } }),
 }
 

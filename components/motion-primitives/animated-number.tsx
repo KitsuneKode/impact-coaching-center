@@ -5,7 +5,6 @@
  * Changes:
  */
 import {
-  useInView,
   useReducedMotion,
   useSpring,
   useTransform,
@@ -39,22 +38,23 @@ export function AnimatedNumber({
   springOptions = { stiffness: 90, damping: 24, mass: 0.8 },
 }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null)
-  const inView = useInView(ref, { once: true, amount: 0.6 })
   const reduce = useReducedMotion()
 
-  const spring = useSpring(reduce ? value : 0, springOptions)
+  /* Start on the real number. Counting up from zero made the proof bar read
+     as 0 subscribers until the spring arrived. Later changes still move. */
+  const spring = useSpring(value, springOptions)
   const display = useTransform(spring, (current) =>
     formatValue(current, compact, suffix)
   )
 
   useEffect(() => {
-    if (inView) spring.set(value)
-  }, [inView, spring, value])
+    if (reduce) spring.jump(value)
+    else spring.set(value)
+  }, [reduce, spring, value])
 
   /*
    * The final value is also rendered as plain text for screen readers and
-   * crawlers, which would otherwise read the spring's starting zero or every
-   * intermediate number.
+   * crawlers, which would otherwise hear every intermediate number.
    */
   return (
     <span className={className}>

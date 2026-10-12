@@ -30,10 +30,12 @@ const buttonVariants = cva(
         sm: "h-9 px-3.5 text-sm [&_svg]:size-4",
         md: "h-11 px-4.5 text-[0.9375rem] [&_svg]:size-[18px]",
         lg: "h-12 px-5.5 text-[0.9375rem] [&_svg]:size-[18px]",
-        icon: "size-10 [&_svg]:size-5",
+        /* The visible square stays compact; the invisible ::after pad is
+           what carries the 44px touch target. */
+        icon: "size-10 after:absolute after:-inset-0.5 [&_svg]:size-5",
         /* Added for registry components that ask for it (sidebar, sheet).
            Additive - no existing call site changes size. */
-        "icon-sm": "size-8 [&_svg]:size-4",
+        "icon-sm": "size-8 after:absolute after:-inset-1.5 [&_svg]:size-4",
       },
     },
     compoundVariants: [{ variant: "link", className: "h-auto px-0" }],

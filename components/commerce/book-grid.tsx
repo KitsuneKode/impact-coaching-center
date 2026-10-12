@@ -3,15 +3,13 @@
 import { BookCard } from "@/components/commerce/book-card"
 import { useExamFilter } from "@/components/commerce/use-exam-filter"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { previewBooks } from "@/lib/preview-catalogue"
-
-const exams = ["All", ...new Set(previewBooks.map((b) => b.exam))]
+import type { Book } from "@/lib/catalog"
 
 /** Books filtered by exam. */
-export function BookGrid() {
+export function BookGrid({ books }: { books: readonly Book[] }) {
+  const exams = ["All", ...new Set(books.map((b) => b.exam))]
   const [exam, setExam] = useExamFilter(exams)
-  const shown =
-    exam === "All" ? previewBooks : previewBooks.filter((b) => b.exam === exam)
+  const shown = exam === "All" ? books : books.filter((b) => b.exam === exam)
 
   return (
     <div className="mt-10 grid gap-8">

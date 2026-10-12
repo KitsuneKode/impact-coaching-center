@@ -3,8 +3,19 @@ import { describe, expect, test } from "bun:test"
 import { parseClientAddress } from "./client-address"
 
 describe("parseClientAddress", () => {
-  test("takes the leftmost entry of a forwarded chain", () => {
-    expect(parseClientAddress("203.0.113.4, 70.41.3.18")).toBe("203.0.113.4")
+  test("takes the rightmost entry of a forwarded chain", () => {
+    // Each hop appends the peer it saw; the rightmost is the edge's view.
+    expect(parseClientAddress("203.0.113.4, 70.41.3.18")).toBe("70.41.3.18")
+  })
+  test("a spoofed leading entry cannot move the bucket", () => {
+    // Whatever the client claims to be, the appended hop is what counts.
+    expect(parseClientAddress("1.1.1.1, 2.2.2.2, 203.0.113.4")).toBe(
+      "203.0.113.4"
+    )
+  })
+  test("skips a malformed tail to find the last real address", () => {
+    expect(parseClientAddress("203.0.113.4, junk")).toBe("203.0.113.4")
+    expect(parseClientAddress("junk, junk2")).toBeNull()
   })
   test("accepts a bare address and trims it", () => {
     expect(parseClientAddress("  203.0.113.4  ")).toBe("203.0.113.4")

@@ -122,7 +122,7 @@ export function QuestionnaireForm({
         event.preventDefault()
         void submit(false)
       }}
-      aria-describedby={`${id}-why`}
+      aria-describedby={`${id}-why${error ? ` ${id}-error` : ""}`}
       noValidate
     >
       <FieldGroup>
@@ -153,7 +153,7 @@ export function QuestionnaireForm({
           onChange={setPreferredBatch}
         />
 
-        {error ? <FieldError>{error}</FieldError> : null}
+        {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button

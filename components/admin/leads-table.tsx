@@ -10,10 +10,8 @@ import {
   IconSearch,
 } from "@tabler/icons-react"
 import {
-  columnFilteringFeature,
   columnVisibilityFeature,
   createColumnHelper,
-  createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
   FlexRender,
@@ -22,11 +20,12 @@ import {
   rowSortingFeature,
   tableFeatures,
   useTable,
-  type ColumnFiltersState,
   type ColumnVisibilityState,
   type SortingState,
 } from "@tanstack/react-table"
+import { useMutation } from "convex/react"
 import { createContext, useContext, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { RowsPerPage } from "@/components/admin/rows-per-page"
 import { StatusBadge } from "@/components/admin/status-badge"
@@ -46,6 +45,13 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
@@ -56,8 +62,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { api } from "@/convex/_generated/api"
+import type { InboxView } from "@/convex/leads"
 import { formatPhone } from "@/lib/brand"
 import { isDueIst } from "@/lib/ist"
+import { enquiryTracks } from "@/lib/leads"
 
 export type Lead = {
   id: string
@@ -71,14 +80,17 @@ export type Lead = {
   revision: number
 }
 
-/** The follow-up queue as a real data table. */
+/*
+ * The follow-up queue as a real data table. Filtering - status, exam,
+ * search - is the server's job (convex/leads.ts inboxPage): this table only
+ * ever holds the pages that were asked for, so a filter here could only
+ * hide rows, never find the ones not yet loaded.
+ */
 const features = tableFeatures({
-  columnFilteringFeature,
   columnVisibilityFeature,
   rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
-  filteredRowModel: createFilteredRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
 })
@@ -87,6 +99,7 @@ const columnHelper = createColumnHelper<typeof features, Lead>()
 
 /** The status filters, in the order a queue is worked. */
 const STATUS_FILTERS = [
+  { value: "action", label: "Needs action" },
   { value: "all", label: "All" },
   { value: "due", label: "Follow-up due" },
   { value: "new", label: "New" },
@@ -95,6 +108,14 @@ const STATUS_FILTERS = [
   { value: "enrolled", label: "Enrolled" },
   { value: "lost", label: "Lost" },
 ] as const
+
+/** The exam filter's "everything" option; a Select item cannot be empty. */
+const ALL_TRACKS = "all-tracks"
+
+const TRACK_ITEMS = [
+  { value: ALL_TRACKS, label: "Every exam" },
+  ...enquiryTracks.map((track) => ({ value: track, label: track })),
+]
 
 /** Sort order for statuses: what needs doing first, settled last. */
 const STATUS_ORDER: Record<string, number> = {
@@ -133,6 +154,16 @@ function exact(at: number) {
  * name cell through context rather than being baked into a column.
  */
 const OpenLeadContext = createContext<(id: string) => void>(() => {})
+
+/** Whether this lead's follow-up has come due, evaluated for this render. */
+function dueNow(lead: Lead): boolean {
+  return (
+    lead.nextFollowUpAt !== undefined &&
+    lead.leadStatus !== "enrolled" &&
+    lead.leadStatus !== "lost" &&
+    isDueIst(lead.nextFollowUpAt, Date.now())
+  )
+}
 
 function OpenLead({ lead }: { lead: Lead }) {
   const open = useContext(OpenLeadContext)
@@ -194,20 +225,6 @@ const columns = columnHelper.columns([
       </a>
     ),
     enableHiding: false,
-    // Matches the stored E.164 and the displayed form, so "94352" finds
-    // "+91 94352 …" as well as "+9194352…".
-    filterFn: (row, _id, value: string) => {
-      const needle = value.toLowerCase().replaceAll(/\s/g, "")
-      const lead = row.original
-      return (
-        lead.phone.toLowerCase().includes(needle) ||
-        formatPhone(lead.phone)
-          .toLowerCase()
-          .replaceAll(/\s/g, "")
-          .includes(needle) ||
-        lead.name.toLowerCase().includes(value.toLowerCase())
-      )
-    },
   }),
   columnHelper.accessor("interestTrack", {
     header: "Exam",
@@ -220,13 +237,6 @@ const columns = columnHelper.columns([
   columnHelper.accessor("leadStatus", {
     header: "Status",
     cell: ({ row }) => <StatusBadge status={row.original.leadStatus} />,
-    /* Exact match, declared rather than inferred. */
-    filterFn: (row, _id, value: string) =>
-      value === "due"
-        ? isDueIst(row.original.nextFollowUpAt, Date.now()) &&
-          row.original.leadStatus !== "enrolled" &&
-          row.original.leadStatus !== "lost"
-        : row.original.leadStatus === value,
     sortFn: (a, b) =>
       (STATUS_ORDER[a.original.leadStatus ?? ""] ?? 99) -
       (STATUS_ORDER[b.original.leadStatus ?? ""] ?? 99),
@@ -283,6 +293,12 @@ export function LeadsTable({
   onLoadMore,
   isOwner,
   onOpen,
+  view,
+  track,
+  search,
+  onViewChange,
+  onTrackChange,
+  onSearchChange,
 }: {
   leads: Lead[]
   canLoadMore: boolean
@@ -292,11 +308,18 @@ export function LeadsTable({
   isOwner: boolean
   /** Opens one enquiry for follow-up. */
   onOpen: (id: string) => void
+  /* The server-side slice this table is a window onto. */
+  view: InboxView
+  track: string | undefined
+  /** The raw search box text; the query gets it debounced from the page. */
+  search: string
+  onViewChange: (view: InboxView) => void
+  onTrackChange: (track: string | undefined) => void
+  onSearchChange: (search: string) => void
 }) {
   const [rowSelection, setRowSelection] = useState({})
   const [columnVisibility, setColumnVisibility] =
     useState<ColumnVisibilityState>({})
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [sorting, setSorting] = useState<SortingState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 })
 
@@ -310,20 +333,17 @@ export function LeadsTable({
       sorting,
       columnVisibility,
       rowSelection,
-      columnFilters,
       pagination,
     },
     getRowId: (row) => row.id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: setPagination,
   })
 
-  const selected = table.getFilteredSelectedRowModel().rows.length
-  const matching = table.getFilteredRowModel().rows.length
+  const selected = table.getSelectedRowModel().rows.length
   const pageCount = Math.max(1, table.getPageCount())
   const onLastLoadedPage = table.state.pagination.pageIndex >= pageCount - 1
 
@@ -338,21 +358,48 @@ export function LeadsTable({
 
   const canGoNext = table.getCanNextPage() || canLoadMore
 
-  const statusFilter =
-    (table.getColumn("leadStatus")?.getFilterValue() as string) ?? "all"
+  /*
+   * The default "action" slice is itself a filter: rows exist that it
+   * excludes. Any slice showing nothing offers a way back to "all".
+   */
+  const filtering = view !== "all" || track !== undefined || search !== ""
 
-  function setStatusFilter(value: string) {
-    table
-      .getColumn("leadStatus")
-      ?.setFilterValue(value === "all" ? undefined : value)
+  function clearFilters() {
+    onViewChange("all")
+    onTrackChange(undefined)
+    onSearchChange("")
     table.setPageIndex(0)
   }
 
   /** Download the ticked rows, as CSV. */
   const selectedCount = table.getSelectedRowModel().rows.length
+  const recordExport = useMutation(api.leads.recordExport)
+  const [exporting, setExporting] = useState(false)
 
-  function exportRows() {
+  async function exportRows() {
     const rows = table.getSelectedRowModel().rows.map((row) => row.original)
+    if (rows.length === 0) return
+    setExporting(true)
+    /* The audit row first: a CSV full of phone numbers leaves no trace of
+       itself, so if the bookkeeping cannot be written, the file does not
+       leave either. */
+    try {
+      const recorded = await recordExport({ count: rows.length })
+      if (!recorded.ok) {
+        toast.error(
+          "The export could not be recorded, so nothing was downloaded."
+        )
+        return
+      }
+    } catch {
+      toast.error(
+        "Could not reach the server - the export was not recorded, so nothing was downloaded."
+      )
+      return
+    } finally {
+      setExporting(false)
+    }
+
     const header = [
       "Name",
       "Mobile",
@@ -413,14 +460,36 @@ export function LeadsTable({
             <InputGroupInput
               placeholder="Search name or number"
               aria-label="Search enquiries by name or number"
-              value={
-                (table.getColumn("phone")?.getFilterValue() as string) ?? ""
-              }
-              onChange={(event) =>
-                table.getColumn("phone")?.setFilterValue(event.target.value)
-              }
+              value={search}
+              onChange={(event) => {
+                onSearchChange(event.target.value)
+                table.setPageIndex(0)
+              }}
             />
           </InputGroup>
+
+          <Select
+            value={track ?? ALL_TRACKS}
+            onValueChange={(value) => {
+              onTrackChange(value && value !== ALL_TRACKS ? value : undefined)
+              table.setPageIndex(0)
+            }}
+            items={TRACK_ITEMS}
+          >
+            <SelectTrigger
+              className="h-11 w-44 rounded-control px-3 text-[0.9375rem]"
+              aria-label="Filter by exam"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRACK_ITEMS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -467,10 +536,10 @@ export function LeadsTable({
             <Button
               variant="secondary"
               size="md"
-              onClick={exportRows}
-              disabled={selectedCount === 0}
+              onClick={() => void exportRows()}
+              disabled={selectedCount === 0 || exporting}
             >
-              <IconDownload stroke={1.75} />
+              {exporting ? <Spinner /> : <IconDownload stroke={1.75} />}
               {selectedCount === 0
                 ? "Export selected"
                 : `Export ${selectedCount} selected`}
@@ -481,9 +550,7 @@ export function LeadsTable({
             aria-live="polite"
             className="ml-auto text-sm text-muted-foreground"
           >
-            {selected > 0
-              ? `${selected} selected`
-              : `${matching} of ${leads.length} loaded`}
+            {selected > 0 ? `${selected} selected` : `${leads.length} loaded`}
           </p>
         </div>
 
@@ -493,8 +560,11 @@ export function LeadsTable({
           ones" should not have to open a menu to find out that is possible.
         */}
         <ToggleGroup
-          value={[statusFilter]}
-          onValueChange={(value) => setStatusFilter(value[0] ?? "all")}
+          value={[view]}
+          onValueChange={(value) => {
+            onViewChange((value[0] ?? "all") as InboxView)
+            table.setPageIndex(0)
+          }}
           aria-label="Filter by status"
           className="flex-wrap"
         >
@@ -505,13 +575,124 @@ export function LeadsTable({
           ))}
         </ToggleGroup>
 
-        <div className="overflow-x-auto rounded-card border border-border">
+        {/*
+          Two renderings of the same row model. Below md a row of cells does
+          not fit a phone, so each enquiry is a card - same selection, same
+          filters, same open action.
+        */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {table.getRowModel().rows.length === 0 ? (
+            <div className="flex flex-col items-start gap-3 rounded-card border border-border p-4">
+              <span className="text-muted-foreground">
+                {filtering
+                  ? "Nothing matched those filters."
+                  : "No enquiries yet - they appear here as soon as someone sends the form or the desk adds one."}
+              </span>
+              {filtering ? (
+                <Button variant="secondary" size="md" onClick={clearFilters}>
+                  Clear filters
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            table.getRowModel().rows.map((row) => {
+              const lead = row.original
+              const due = dueNow(lead)
+              return (
+                <div
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  className="rounded-card border border-border p-4 data-[state=selected]:border-foreground/40 data-[state=selected]:bg-muted/40"
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={row.getIsSelected()}
+                      onCheckedChange={(value) => row.toggleSelected(!!value)}
+                      aria-label={`Select ${lead.name || lead.phone}`}
+                      className="mt-1"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <OpenLead lead={lead} />
+                        <StatusBadge status={lead.leadStatus} />
+                      </div>
+                      <a
+                        href={`tel:${lead.phone}`}
+                        className="tnum mt-1 block text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
+                      >
+                        {formatPhone(lead.phone)}
+                      </a>
+                      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                        <div className="flex gap-1.5">
+                          <dt>Exam</dt>
+                          <dd>{lead.interestTrack ?? "—"}</dd>
+                        </div>
+                        {lead.lastEnquiryAt ? (
+                          <div className="flex gap-1.5">
+                            <dt>Enquired</dt>
+                            <dd>
+                              <time
+                                dateTime={new Date(
+                                  lead.lastEnquiryAt
+                                ).toISOString()}
+                                title={exact(lead.lastEnquiryAt)}
+                              >
+                                {ago(lead.lastEnquiryAt)}
+                              </time>
+                            </dd>
+                          </div>
+                        ) : null}
+                        {lead.nextFollowUpAt ? (
+                          <div className="flex gap-1.5">
+                            <dt>Follow-up</dt>
+                            <dd
+                              className={
+                                due ? "font-medium text-foreground" : ""
+                              }
+                            >
+                              <time
+                                dateTime={new Date(
+                                  lead.nextFollowUpAt
+                                ).toISOString()}
+                                title={exact(lead.nextFollowUpAt)}
+                              >
+                                {due ? "Due " : ""}
+                                {new Date(
+                                  lead.nextFollowUpAt
+                                ).toLocaleDateString("en-IN", {
+                                  timeZone: "Asia/Kolkata",
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                              </time>
+                            </dd>
+                          </div>
+                        ) : null}
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-card border border-border md:block">
           <Table className="min-w-200">
             <TableHeader className="bg-muted/40">
               {table.getHeaderGroups().map((group) => (
                 <TableRow key={group.id}>
                   {group.headers.map((header) => (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      aria-sort={
+                        header.column.getIsSorted() === "asc"
+                          ? "ascending"
+                          : header.column.getIsSorted() === "desc"
+                            ? "descending"
+                            : undefined
+                      }
+                    >
                       {header.isPlaceholder ? null : header.column.getCanSort() ? (
                         <button
                           type="button"
@@ -546,17 +727,19 @@ export function LeadsTable({
                   <TableCell colSpan={columns.length} className="h-24">
                     <div className="flex flex-col items-start gap-3">
                       <span className="text-muted-foreground">
-                        Nothing matched that search.
+                        {filtering
+                          ? "Nothing matched those filters."
+                          : "No enquiries yet - they appear here as soon as someone sends the form or the desk adds one."}
                       </span>
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={() =>
-                          table.getColumn("phone")?.setFilterValue("")
-                        }
-                      >
-                        Clear search
-                      </Button>
+                      {filtering ? (
+                        <Button
+                          variant="secondary"
+                          size="md"
+                          onClick={clearFilters}
+                        >
+                          Clear filters
+                        </Button>
+                      ) : null}
                     </div>
                   </TableCell>
                 </TableRow>

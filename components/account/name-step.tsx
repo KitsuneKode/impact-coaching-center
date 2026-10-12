@@ -128,13 +128,20 @@ function NameForm({ viewer }: { viewer: Viewer }) {
     }
     setError(null)
     setPending(true)
-    const result = await setOwnName({
-      name,
-      // The revision this screen read the Person at. KIT-55's convention: an
-      // edit names the version it is editing, so a concurrent change refuses
-      // rather than overwrites.
-      expectedRevision: viewer.revision,
-    })
+    let result
+    try {
+      result = await setOwnName({
+        name,
+        // The revision this screen read the Person at. KIT-55's convention: an
+        // edit names the version it is editing, so a concurrent change refuses
+        // rather than overwrites.
+        expectedRevision: viewer.revision,
+      })
+    } catch {
+      setError("Couldn't save. Check your connection and try again.")
+      setPending(false)
+      return
+    }
     setPending(false)
 
     /*
@@ -178,11 +185,12 @@ function NameForm({ viewer }: { viewer: Viewer }) {
               if (error) setError(null)
             }}
             aria-invalid={error ? true : undefined}
+            aria-describedby={error ? `${nameId}-error` : `${nameId}-hint`}
           />
           {error ? (
-            <FieldError>{error}</FieldError>
+            <FieldError id={`${nameId}-error`}>{error}</FieldError>
           ) : (
-            <FieldDescription>
+            <FieldDescription id={`${nameId}-hint`}>
               As you&rsquo;d like ICT to address you.
             </FieldDescription>
           )}

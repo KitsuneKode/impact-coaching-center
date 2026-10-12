@@ -24,11 +24,10 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { authClient } from "@/lib/auth-client"
-import { toE164 } from "@/lib/leads"
+import { nationalMobileDraft, toE164 } from "@/lib/leads"
 import {
   CODE_LENGTH,
   createPhoneAuthFlow,
-  PHONE_AUTH_MESSAGES,
   RESEND_MS,
 } from "@/lib/phone-auth-flow"
 
@@ -74,7 +73,7 @@ export function SignInForm({ next }: { next: string }) {
    */
   function checkPhone(value: string) {
     const ok = Boolean(toE164(value))
-    setPhoneError(ok ? null : PHONE_AUTH_MESSAGES.INVALID_PHONE_NUMBER!)
+    setPhoneError(ok ? null : "Please enter a 10 digit mobile number.")
     return ok
   }
 
@@ -121,6 +120,9 @@ export function SignInForm({ next }: { next: string }) {
               ref={codeRef}
               disabled={busy}
               aria-invalid={formError ? true : undefined}
+              aria-describedby={
+                formError ? `${codeId}-error` : `${codeId}-hint`
+              }
               containerClassName="justify-start"
             >
               <InputOTPGroup>
@@ -130,9 +132,9 @@ export function SignInForm({ next }: { next: string }) {
               </InputOTPGroup>
             </InputOTP>
             {formError ? (
-              <FieldError>{formError}</FieldError>
+              <FieldError id={`${codeId}-error`}>{formError}</FieldError>
             ) : (
-              <FieldDescription>
+              <FieldDescription id={`${codeId}-hint`}>
                 Sent on WhatsApp to {formatSentTo(sentTo)}.{" "}
                 <button
                   type="button"
@@ -201,7 +203,7 @@ export function SignInForm({ next }: { next: string }) {
               placeholder="98765 43210"
               value={phone}
               onChange={(event) => {
-                const value = event.target.value
+                const value = nationalMobileDraft(event.target.value)
                 flow.setPhone(value)
                 if (phoneError) checkPhone(value)
               }}
@@ -209,13 +211,18 @@ export function SignInForm({ next }: { next: string }) {
                 if (event.target.value) checkPhone(event.target.value)
               }}
               aria-invalid={phoneError || formError ? true : undefined}
+              aria-describedby={
+                phoneError || formError ? `${phoneId}-error` : `${phoneId}-hint`
+              }
               className="tnum"
             />
           </InputGroup>
           {phoneError || formError ? (
-            <FieldError>{phoneError ?? formError}</FieldError>
+            <FieldError id={`${phoneId}-error`}>
+              {phoneError ?? formError}
+            </FieldError>
           ) : (
-            <FieldDescription>
+            <FieldDescription id={`${phoneId}-hint`}>
               We&rsquo;ll send a 6-digit code on WhatsApp.
             </FieldDescription>
           )}

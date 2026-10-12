@@ -14,6 +14,7 @@ export type Refusal =
   | { ok: false; reason: "missing-record" }
   | { ok: false; reason: "invalid-input"; field?: string }
   | { ok: false; reason: "revision-conflict"; current: number }
+  | { ok: false; reason: "rate-limited" }
 
 export type Allowed<T> = { ok: true; value: T }
 export type Decision<T> = Allowed<T> | Refusal
@@ -51,7 +52,8 @@ export const REFUSAL = v.union(
     ok: v.literal(false),
     reason: v.literal("revision-conflict"),
     current: v.number(),
-  })
+  }),
+  v.object({ ok: v.literal(false), reason: v.literal("rate-limited") })
 )
 
 /** The shape `.paginate()` returns, for a returns validator. */
@@ -93,6 +95,9 @@ export async function requireOwner(ctx: Ctx): Promise<Decision<Viewer>> {
   if (!(await privilegedSessionFresh(ctx))) return anonymous
   return viewer
 }
+
+/** Counts stop here: past this, "99+" is the honest answer on a home screen. */
+export const COUNT_CAP = 99
 
 /** Seven days, hard-capped from sign-in, for anyone touching staff data. */
 export const STAFF_SESSION_MAX_MS = 7 * 24 * 60 * 60 * 1000
@@ -138,6 +143,8 @@ export function refusalMessage(refusal: Refusal): string {
         : "Check the details and try again."
     case "revision-conflict":
       return "Somebody else changed this while you were editing. Your changes are still here - review them against the current version."
+    case "rate-limited":
+      return "Too many attempts just now - wait a little and try again."
   }
 }
 

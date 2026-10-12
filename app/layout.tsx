@@ -6,7 +6,8 @@ import { Providers } from "@/app/providers"
 import { ThemePreview } from "@/components/dev/theme-preview"
 import { SiteChrome } from "@/components/marketing/site-chrome"
 import { brand, contact, links, place } from "@/lib/brand"
-import { indexable, siteUrl } from "@/lib/site"
+import { indexable, openGraphFor, siteUrl } from "@/lib/site"
+import { themeInitScript } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 /* Inter, the variable cut kobbe.io ships. One family: hierarchy comes from
@@ -54,15 +55,11 @@ export const metadata: Metadata = {
     "Impact Career Tutorials",
   ],
   alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    locale: "en_IN",
-    url: "/",
-    siteName: brand.legalName,
-    title: "Crack APSC from North Lakhimpur",
-    description:
-      "Classroom, night batch, and the ICT app, with faculty you can watch teach on YouTube before you pay anything.",
-  },
+  openGraph: openGraphFor(
+    "/",
+    "Crack APSC from North Lakhimpur",
+    "Classroom, night batch, and the ICT app, with faculty you can watch teach on YouTube before you pay anything."
+  ),
   twitter: { card: "summary_large_image" },
   robots: indexable
     ? { index: true, follow: true }
@@ -128,6 +125,12 @@ export default function RootLayout({
         different set of extensions.
       */}
       <body suppressHydrationWarning>
+        {/*
+          Sets data-theme from localStorage before first paint. Has to live
+          here, in the server layout: the same script inside ThemeProvider is
+          a client render, and React 19 will not execute it.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

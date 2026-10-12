@@ -80,9 +80,7 @@ export function AboutYouCard() {
           </dl>
         ) : (
           <div className="flex flex-col items-start gap-3">
-            <p className="text-muted-foreground">
-              {answers?.skippedAt ? "Not answered yet." : "Not answered yet."}
-            </p>
+            <p className="text-muted-foreground">Not answered yet.</p>
             <Button size="md" onClick={() => setEditing(true)}>
               Add answers
             </Button>

@@ -5,7 +5,8 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { useCart } from "@/lib/cart-store"
+import { track } from "@/lib/analytics"
+import { useCartActions } from "@/lib/cart-store"
 import { cn } from "@/lib/utils"
 
 /**
@@ -25,7 +26,7 @@ export function AddToCart({
   className?: string
   size?: "sm" | "md" | "lg"
 }) {
-  const add = useCart((state) => state.add)
+  const { add } = useCartActions()
   const [added, setAdded] = useState(false)
 
   return (
@@ -33,6 +34,7 @@ export function AddToCart({
       size={size}
       className={cn("min-w-36", className)}
       onClick={() => {
+        track({ name: "add_to_cart", slug })
         add(slug)
         setAdded(true)
         window.setTimeout(() => setAdded(false), 1400)

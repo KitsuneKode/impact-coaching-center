@@ -84,10 +84,10 @@ function Home() {
       icon: IconPackage,
       count: orders?.open,
       label: (n: number) => (n === 1 ? "order to fulfil" : "orders to fulfil"),
-      suffix: "",
+      suffix: orders?.capped ? "+" : "",
       note:
         orders && orders.unseen > 0
-          ? `${orders.unseen} not yet opened`
+          ? `${orders.unseen}${orders.capped ? "+" : ""} not yet opened`
           : undefined,
     },
   ]

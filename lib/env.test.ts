@@ -56,6 +56,15 @@ describe("parseTrustedOrigins", () => {
     expect(() => parseTrustedOrigins(",,")).toThrow(/empty trusted-origin/i)
     expect(() => parseTrustedOrigins("   ")).toThrow(/empty trusted-origin/i)
   })
+
+  test("refuses wildcards, which Better Auth would glob-match", () => {
+    // `*` as a trusted origin disables the CSRF origin check entirely.
+    expect(() => parseTrustedOrigins("*")).toThrow(/wildcard/i)
+    expect(() => parseTrustedOrigins("https://*.vercel.app")).toThrow(
+      /wildcard/i
+    )
+    expect(() => parseTrustedOrigins("https://ict.in,?")).toThrow(/wildcard/i)
+  })
 })
 
 describe("secretsMatch", () => {

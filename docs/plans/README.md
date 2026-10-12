@@ -8,12 +8,22 @@ update your row here and the `status:` in the plan's header when done.
 
 ## Execution order and status
 
-### Current — 22 September 2026
+### Current — 27 September 2026
 
-`2026-09-22-launch-plan.md` is the single active plan: integrate
-`fix/review-batch-1`, then ship leads, promotions (built upstream in
-Kitsu-Lab), Books and Resources as end-to-end journeys. It supersedes the
-wave/worktree dispatch below; the history is kept for reference.
+`2026-09-22-launch-plan.md` remains the launch checklist;
+`2026-09-27-next-sessions.md` is the active sequencing document: session A
+(catalogue, PR #12 on `feat/catalog-backend`), session B (production
+readiness, KIT-69), session C (leads/orders Phase-1 leftovers + KIT-70),
+session D (home-page redesign, blocked on references). Sessions A and C are
+implemented and pushed - awaiting merge. Order creation itself (KIT-59) is
+on `feat/checkout-orders` (PR #15): server cart + merge, server-priced
+`placeOrder` with idempotency and rate limiting, `/checkout` collecting
+delivery/collection. Payment stays a labelled prototype until KIT-60's
+Razorpay integration. Session B landed on `feat/production-readiness`:
+t3-env, Better Auth baseURL, the static CSP, Turnstile wiring, the
+analytics adapter, PDF import for resources, and `docs/production.md`;
+only the manual provider steps remain. The worktree-era dispatch below is
+history; the history is kept for reference.
 
 ### Delegation update — 21 September 2026
 
@@ -31,22 +41,23 @@ editorial/state spec, the audit's remaining truthfulness fixes and the
 coordination documents. Reconcile branch contents before assigning a TODO row;
 do not duplicate completed slices. No merge/deployment is implied by this update.
 
-| Plan                                            | Title                                                                       | Priority | Effort | Depends on                              | Status                                                                      |
-| ----------------------------------------------- | --------------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | --------------------------------------------------------------------------- |
-| `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)               | —        | —      | —                                       | DONE                                                                        |
-| `2026-09-20-client-materials-reconciliation.md` | Client documents agree with the ADRs; change-note drafted                   | P1       | S      | —                                       | DONE                                                                        |
-| `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                              | P1       | M      | —                                       | DONE                                                                        |
-| `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows           | P1       | M      | — (before KIT-46)                       | DONE                                                                        |
-| `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                        | P2       | M      | step 5 after/with the throttle plan     | DONE                                                                        |
-| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan         | P2       | M      | throttle plan before any shared preview | PARTIAL (build plan written; runtime half never run)                        |
-| `2026-09-20-sign-in-and-admin-leads.md`         | `/sign-in` + read-only `/admin/leads` (from the spike)                      | P2       | L      | KIT-49 before any shared preview        | DONE (90d sliding sessions shipped; staff 7d enforced in `convex/authz.ts`) |
-| `2026-09-22-audit-defects.md`                   | Defects from the 22 Sep audit: enquiry sink, inbox truth, stale docs        | P1       | S      | —                                       | DONE                                                                        |
-| `2026-09-22-shared-admin-contract.md`           | Shared admin contract and shell (KIT-55)                                    | P1       | L      | — (unblocks KIT-56/57/58/59/63)         | DONE (bootstrap: `people.bootstrapOwner`; dashboard edit is break-glass)    |
-| `2026-09-22-auth-admin-contract.md`             | Auth/admin contract: roles, refusal categories, pagination, revision        | P1       | S      | shared-admin-contract plan              | DONE (codified in `convex/authz.ts`)                                        |
-| `2026-09-22-commerce-and-account-surfaces.md`   | Settled UX direction for Books, cart, checkout, Reader, `/account`          | P1       | S      | — (read before KIT-57/58/59/60)         | DRAFT (decisions only; each ticket writes its steps)                        |
-| `2026-09-22-otp-resend-safety.md`               | One acceptable verification code per phone under concurrent resend (KIT-53) | P1       | M      | throttle plan                           | DONE (hosted WhatsApp still waits on KIT-46)                                |
-
-| `2026-09-20-library-draft.md` (no plan file) | `/library` as a draft plus its seven questions for ICT (KIT-50) | P2 | S | — | DONE (built to request, without a plan) |
+| Plan                                            | Title                                                                       | Priority | Effort | Depends on                              | Status                                                                                                             |
+| ----------------------------------------------- | --------------------------------------------------------------------------- | -------- | ------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `2026-09-19-person-foundation.md`               | Person foundation: seams, schema, phone verification (KIT-39)               | —        | —      | —                                       | DONE                                                                                                               |
+| `2026-09-20-client-materials-reconciliation.md` | Client documents agree with the ADRs; change-note drafted                   | P1       | S      | —                                       | DONE                                                                                                               |
+| `2026-09-20-policy-pages-and-contact.md`        | `/contact` + four draft policy routes (KIT-45)                              | P1       | M      | —                                       | DONE                                                                                                               |
+| `2026-09-20-otp-send-throttle.md`               | Throttle `send-otp` per phone/IP/day; sweep stale rate-limit rows           | P1       | M      | — (before KIT-46)                       | DONE                                                                                                               |
+| `2026-09-20-hygiene-batch.md`                   | Eight small audit fixes in one batch                                        | P2       | M      | step 5 after/with the throttle plan     | DONE                                                                                                               |
+| `2026-09-20-sign-in-and-admin-leads-spike.md`   | Spike `/sign-in` + read-only `/admin/leads`; produce the build plan         | P2       | M      | throttle plan before any shared preview | PARTIAL (build plan written; runtime half never run)                                                               |
+| `2026-09-20-sign-in-and-admin-leads.md`         | `/sign-in` + read-only `/admin/leads` (from the spike)                      | P2       | L      | KIT-49 before any shared preview        | DONE (90d sliding sessions shipped; staff 7d enforced in `convex/authz.ts`)                                        |
+| `2026-09-22-audit-defects.md`                   | Defects from the 22 Sep audit: enquiry sink, inbox truth, stale docs        | P1       | S      | —                                       | DONE                                                                                                               |
+| `2026-09-22-shared-admin-contract.md`           | Shared admin contract and shell (KIT-55)                                    | P1       | L      | — (unblocks KIT-56/57/58/59/63)         | DONE (bootstrap: `people.bootstrapOwner`; dashboard edit is break-glass)                                           |
+| `2026-09-22-auth-admin-contract.md`             | Auth/admin contract: roles, refusal categories, pagination, revision        | P1       | S      | shared-admin-contract plan              | DONE (codified in `convex/authz.ts`)                                                                               |
+| `2026-09-22-commerce-and-account-surfaces.md`   | Settled UX direction for Books, cart, checkout, Reader, `/account`          | P1       | S      | — (read before KIT-57/58/59/60)         | DRAFT (decisions only; each ticket writes its steps)                                                               |
+| `2026-09-22-otp-resend-safety.md`               | One acceptable verification code per phone under concurrent resend (KIT-53) | P1       | M      | throttle plan                           | DONE (hosted WhatsApp still waits on KIT-46)                                                                       |
+| `2026-09-20-library-draft.md` (no plan file)    | `/library` as a draft plus its seven questions for ICT (KIT-50)             | P2       | S      | —                                       | DONE (built to request, without a plan)                                                                            |
+| `2026-09-26-client-demo-readiness.md`           | Dev-deployment sign-in, policies, accounts, admin fixes for the client demo | P1       | L      | —                                       | DONE (merged as PR #10)                                                                                            |
+| `2026-09-27-next-sessions.md`                   | Sessions A-D: catalogue, production readiness, leads/orders, redesign       | P1       | L      | client-demo-readiness                   | IN PROGRESS (A in PR #12; C in PR #14; audit batch in PR #13; KIT-59 checkout on `feat/checkout-orders`; B/D open) |
 
 Status values: TODO · IN PROGRESS · DONE · BLOCKED (one-line reason) · REJECTED (one-line rationale).
 

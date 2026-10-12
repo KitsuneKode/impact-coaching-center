@@ -1,3 +1,5 @@
+import Image from "next/image"
+
 import { cn } from "@/lib/utils"
 
 const tones = {
@@ -19,8 +21,8 @@ const tones = {
 } as const
 
 /**
- * A book as an object: a cover with a spine and a block of page edges,
- * used until a title has a photographed cover.
+ * A book as an object: a cover with a spine and a block of page edges. The
+ * uploaded cover photo when there is one, a typeset cover until then.
  */
 export function BookCover({
   title,
@@ -28,8 +30,10 @@ export function BookCover({
   exam,
   tone,
   size = "md",
+  coverUrl,
   className,
 }: {
+  coverUrl?: string | null
   title: string
   subtitle?: string
   exam?: string
@@ -39,13 +43,31 @@ export function BookCover({
 }) {
   const t = tones[tone]
   const small = size === "sm"
+  if (coverUrl)
+    return (
+      <div className={cn("relative aspect-[3/4] w-full", className)}>
+        <PageEdges />
+        <div className="relative h-full overflow-hidden rounded-[3px_8px_8px_3px] bg-card shadow-[0_1px_1px_rgb(0_0_0/0.08),0_8px_20px_-6px_rgb(0_0_0/0.25)]">
+          <Image
+            src={coverUrl}
+            alt={`Cover of ${title}`}
+            fill
+            sizes={
+              size === "sm"
+                ? "64px"
+                : size === "lg"
+                  ? "(min-width: 1024px) 320px, 60vw"
+                  : "(min-width: 1024px) 200px, 45vw"
+            }
+            className="object-cover"
+          />
+          <Spine />
+        </div>
+      </div>
+    )
   return (
     <div className={cn("@container relative aspect-[3/4] w-full", className)}>
-      {/* page edges, visible past the cover's right side */}
-      <span
-        aria-hidden
-        className="absolute inset-y-[2%] right-[-3%] w-[6%] rounded-r-[3px] bg-[repeating-linear-gradient(90deg,var(--color-card)_0_1px,var(--color-border)_1px_2px)] shadow-sm"
-      />
+      <PageEdges />
       <div
         className={cn(
           "relative flex h-full flex-col justify-between overflow-hidden rounded-[3px_8px_8px_3px] shadow-[0_1px_1px_rgb(0_0_0/0.08),0_8px_20px_-6px_rgb(0_0_0/0.25)]",
@@ -53,15 +75,7 @@ export function BookCover({
           "p-[9cqw] pl-[14cqw]"
         )}
       >
-        {/* spine: a darker band with a highlight where the cover bends */}
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 w-[7%] bg-gradient-to-r from-black/25 via-black/10 to-transparent"
-        />
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-[7%] w-px bg-white/15"
-        />
+        <Spine />
 
         {small ? null : (
           <span
@@ -101,5 +115,31 @@ export function BookCover({
         )}
       </div>
     </div>
+  )
+}
+
+/** Page edges, visible past the cover's right side. */
+function PageEdges() {
+  return (
+    <span
+      aria-hidden
+      className="absolute inset-y-[2%] right-[-3%] w-[6%] rounded-r-[3px] bg-[repeating-linear-gradient(90deg,var(--color-card)_0_1px,var(--color-border)_1px_2px)] shadow-sm"
+    />
+  )
+}
+
+/** A darker band with a highlight where the cover bends. */
+function Spine() {
+  return (
+    <>
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-[7%] bg-gradient-to-r from-black/25 via-black/10 to-transparent"
+      />
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-[7%] w-px bg-white/15"
+      />
+    </>
   )
 }

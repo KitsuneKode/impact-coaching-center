@@ -18,7 +18,13 @@ Next.js 16 removed `next lint`; this project uses the standalone Oxlint command.
 - `app/`: App Router pages, layouts, metadata, route handlers, and server actions.
 - `components/ui/`: reusable low-level controls and layout primitives.
 - `components/marketing/`: composed public-site sections and conversion flows.
+- `components/admin/`: staff and owner surfaces - inbox, orders, people, catalog editors.
+- `components/account/`: sign-in, onboarding, and the account page.
+- `components/commerce/`: books, resources, cart, and the reader UI.
+- `components/dev/`: development-only affordances, never shipped to visitors.
 - `components/motion/` and `components/motion-primitives/`: reusable animation behavior.
+- `convex/`: schema, queries, mutations, auth, HTTP actions, and database tests.
+- `content/policies/`: the policy pages as owner-editable Markdown.
 - `lib/`: typed domain data, brand constants, catalogue data, and shared helpers.
 - `public/`: approved local brand, course, faculty, campus, and video assets.
 - `scripts/`: explicit maintenance and content-sync commands; scripts are excluded from the app TypeScript project unless deliberately added.

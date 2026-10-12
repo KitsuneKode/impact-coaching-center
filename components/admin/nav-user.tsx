@@ -10,6 +10,7 @@ import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -105,7 +106,13 @@ export function NavUser() {
                 disabled={leaving}
                 onClick={async () => {
                   setLeaving(true)
-                  await authClient.signOut()
+                  try {
+                    await authClient.signOut()
+                  } catch {
+                    setLeaving(false)
+                    toast.error("Couldn't log you out. Try again.")
+                    return
+                  }
                   router.push("/")
                   router.refresh()
                 }}

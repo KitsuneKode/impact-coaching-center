@@ -42,6 +42,23 @@ export type ParseResult =
  */
 const MOBILE = /^(?:\+?91)?0?([6-9]\d{9})$/
 
+/**
+ * Digits a mobile field is allowed to show: ten, national, nothing else.
+ *
+ * A pasted country code or trunk zero is unwrapped first. Anything past ten
+ * digits is cut from the front, never the tail, so a long paste cannot become
+ * a different real number. Letters never stay in the field. `toE164` still
+ * decides whether the ten digits are a mobile; this only stops the box
+ * growing past what an Indian mobile can be.
+ */
+export function nationalMobileDraft(input: string): string {
+  let digits = input.replace(/\D/g, "")
+  if (digits.startsWith("91") && digits.length > 10) digits = digits.slice(2)
+  if (digits.startsWith("0") && digits.length > 10) digits = digits.slice(1)
+  if (digits.startsWith("91") && digits.length > 10) digits = digits.slice(2)
+  return digits.slice(0, 10)
+}
+
 export function toE164(input: string): E164 | null {
   // Only separators people actually type are forgiven; anything else, letters
   // included, must fail rather than be quietly discarded.
@@ -59,8 +76,10 @@ export function parseLead(input: Record<string, string>): ParseResult {
   const phone = toE164(input.phone ?? "")
 
   const errors: FieldErrors = {}
-  if (name.length < 2 || name.length > 80) {
-    errors.name = "Please enter your name."
+  if (name.length < 2) {
+    errors.name = "Enter your name, at least 2 characters."
+  } else if (name.length > 80) {
+    errors.name = "Name must be 80 characters or fewer."
   }
   if (!phone) {
     errors.phone = "Please enter a 10 digit mobile number."

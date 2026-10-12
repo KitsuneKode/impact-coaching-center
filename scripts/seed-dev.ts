@@ -24,6 +24,9 @@ type Fixture = {
   people?: unknown[]
   enquiries?: unknown[]
   orders?: unknown[]
+  books?: unknown[]
+  resources?: unknown[]
+  posts?: unknown[]
 }
 
 const flags = new Set(process.argv.slice(2))
@@ -59,6 +62,19 @@ if (!flags.has("--clear")) {
   if (fixture.orders?.length) {
     console.log(
       await run("internal.devSeed.seedOrders", { orders: fixture.orders })
+    )
+  }
+  if (fixture.books?.length || fixture.resources?.length) {
+    console.log(
+      await run("internal.devSeed.seedCatalog", {
+        books: fixture.books ?? [],
+        resources: fixture.resources ?? [],
+      })
+    )
+  }
+  if (fixture.posts?.length) {
+    console.log(
+      await run("internal.devSeed.seedPosts", { posts: fixture.posts })
     )
   }
 }

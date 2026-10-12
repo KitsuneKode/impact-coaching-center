@@ -23,11 +23,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
    * build the auth instance at all when the transport is not explicitly local
    * or is not implemented yet.
    */
-  const transport = chooseTransport(
-    process.env.OTP_TRANSPORT,
-    process.env.CONVEX_SITE_URL,
-    process.env.DEV_DEPLOYMENT_NAME
-  )
+  const siteUrl = process.env.CONVEX_SITE_URL
+  const transport = chooseTransport(process.env.OTP_TRANSPORT, siteUrl)
   const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET
   if (!secret)
     throw new Error(
@@ -85,6 +82,13 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   })
   return betterAuth({
     database: authComponent.adapter(ctx),
+    /*
+     * The auth endpoints live on the Convex site URL (the /api/auth routes on
+     * the *.convex.site host), which Convex sets for us - without it Better
+     * Auth warns "Base URL is not set" and derives redirect targets from
+     * request headers instead of a fixed origin.
+     */
+    baseURL: siteUrl ? `${siteUrl}/api/auth` : undefined,
     /** The same allowlist convex/http.ts gives the route layer. */
     trustedOrigins: process.env.SITE_URL
       ? parseTrustedOrigins(process.env.SITE_URL)

@@ -1,11 +1,20 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
-/** Where an order can be, as a closed set. */
-/**
- * Where a lead is in the follow-up queue, as a closed set - same reasoning
- * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
- */
+/** How a book cover is coloured until it has a photographed cover. */
+export const BOOK_TONE = v.union(
+  v.literal("primary"),
+  v.literal("highlight"),
+  v.literal("muted")
+)
+
+export const RESOURCE_KIND = v.union(
+  v.literal("Notes"),
+  v.literal("Question paper"),
+  v.literal("Current affairs"),
+  v.literal("Practice set")
+)
+
 /** Who a Person is, as a closed set. `student` is the default, not a grant. */
 export const PERSON_ROLE = v.union(
   v.literal("student"),
@@ -13,6 +22,10 @@ export const PERSON_ROLE = v.union(
   v.literal("owner")
 )
 
+/**
+ * Where a lead is in the follow-up queue, as a closed set - same reasoning
+ * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
+ */
 export const LEAD_STATUS = v.union(
   v.literal("new"),
   v.literal("contacted"),
@@ -21,6 +34,7 @@ export const LEAD_STATUS = v.union(
   v.literal("lost")
 )
 
+/** Where an order can be, as a closed set. */
 export const ORDER_STATUS = v.union(
   v.literal("awaiting_payment"),
   v.literal("paid"),
@@ -107,14 +121,23 @@ export default defineSchema({
     // Follow-ups due, for the admin home and the queue's "due" view.
     .index("by_nextFollowUpAt", ["nextFollowUpAt"])
     /* Staff and owners, for the admin surface and for last-owner protection. */
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    /* Name lookup for the inbox search box, scoped to lead fields only. */
+    .searchIndex("search_name", {
+      searchField: "name",
+      filterFields: ["leadStatus", "interestTrack"],
+    }),
 
   /**
    * Status changes, notes and handoffs. Free text lives here and never on the
    * Person, so an export of persons cannot leak staff notes.
    */
   activities: defineTable({
-    personId: v.id("persons"),
+    /**
+     * Who the row is about. Absent on catalogue rows: a price change is about
+     * a book, not a person, and `actorId` already names who did it.
+     */
+    personId: v.optional(v.id("persons")),
     kind: v.union(
       v.literal("status_change"),
       v.literal("role_change"),
@@ -122,12 +145,27 @@ export default defineSchema({
       v.literal("call"),
       v.literal("enquiry"),
       v.literal("whatsapp_handoff"),
-      v.literal("account_deleted")
+      v.literal("account_deleted"),
+      v.literal("export"),
+      v.literal("courier_update"),
+      v.literal("order_placed"),
+      v.literal("resource_open"),
+      v.literal("catalog_save"),
+      v.literal("catalog_publish"),
+      v.literal("post_save"),
+      v.literal("post_publish")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
+    /** Which catalogue record a catalog_* or post_* row changed. */
+    entity: v.optional(
+      v.union(v.literal("book"), v.literal("resource"), v.literal("post"))
+    ),
+    entityId: v.optional(
+      v.union(v.id("books"), v.id("resources"), v.id("posts"))
+    ),
     /*
      * The structured half of an audit row. `body` is for reading; these are for
      * asking questions - "every role change this owner made" cannot be answered
@@ -141,7 +179,10 @@ export default defineSchema({
     ),
     fromStatus: v.optional(v.string()),
     toStatus: v.optional(v.string()),
-  }).index("by_person", ["personId"]),
+  })
+    .index("by_person", ["personId"])
+    /* "Every catalogue change", "every publish" - questions with no Person. */
+    .index("by_kind", ["kind"]),
 
   /** Fixed-window counters for public submission paths. */
   /** Book orders, and the fulfilment trail staff work from. */
@@ -177,6 +218,17 @@ export default defineSchema({
         pin: v.string(),
       })
     ),
+    /**
+     * Who is carrying the parcel, written when the order ships. A tracking
+     * number is the only "where is my book" answer that survives a phone
+     * call, so `shipped` refuses to apply without it (convex/orders.ts).
+     */
+    courier: v.optional(
+      v.object({
+        name: v.string(),
+        trackingNumber: v.string(),
+      })
+    ),
     /** Provider identifiers. Ours is `reference`; these are Razorpay's. */
     paymentOrderId: v.optional(v.string()),
     paymentId: v.optional(v.string()),
@@ -184,6 +236,11 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
     /** Cleared when a staff member first opens it. Drives the new-order badge. */
     seenAt: v.optional(v.number()),
+    /**
+     * Client-generated key that makes a retried or double-submitted checkout
+     * one order, not two. Unique per order.
+     */
+    idempotencyKey: v.optional(v.string()),
     revision: v.optional(v.number()),
   })
     /*
@@ -195,7 +252,8 @@ export default defineSchema({
     .index("by_person", ["personId", "placedAt"])
     /* The queue order. */
     .index("by_placedAt", ["placedAt"])
-    .index("by_reference", ["reference"]),
+    .index("by_reference", ["reference"])
+    .index("by_idempotency", ["idempotencyKey"]),
 
   rateLimits: defineTable({
     key: v.string(),
@@ -220,4 +278,95 @@ export default defineSchema({
     codeExpiresAt: v.optional(v.number()),
     attempts: v.number(),
   }).index("by_phone", ["phone"]),
+
+  /**
+   * Books ICT sells. Prices are integer paise and are read by the server when
+   * an order is priced, never taken from the browser. `sample` marks the
+   * placeholder titles seeded for demos so a page can say so.
+   */
+  books: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    subtitle: v.string(),
+    exam: v.string(),
+    edition: v.string(),
+    pages: v.number(),
+    pricePaise: v.number(),
+    tone: BOOK_TONE,
+    description: v.string(),
+    contents: v.array(v.string()),
+    cover: v.optional(v.id("_storage")),
+    samplePages: v.array(v.id("_storage")),
+    published: v.boolean(),
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published"]),
+
+  /**
+   * Free study material. Pages are images uploaded by staff (ADR-0003: the
+   * reader serves page images, never the PDF).
+   */
+  resources: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    exam: v.string(),
+    kind: RESOURCE_KIND,
+    description: v.string(),
+    pageImages: v.array(v.id("_storage")),
+    published: v.boolean(),
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published"]),
+
+  /**
+   * The signed-in shopper's cart. Guests keep theirs in localStorage; at
+   * sign-in the two merge here, union by slug keeping the newer `at`
+   * (commerce plan, 22 September). Emptied when it becomes an order.
+   */
+  carts: defineTable({
+    personId: v.id("persons"),
+    lines: v.array(
+      v.object({
+        slug: v.string(),
+        quantity: v.number(),
+        /** Write time, so the merge knows which copy is newer. */
+        at: v.number(),
+      })
+    ),
+    updatedAt: v.number(),
+  }).index("by_person", ["personId"]),
+
+  /**
+   * Owner-written posts for /blog. `body` is Markdown rendered by the same
+   * component the policy pages use; `publishedAt` is set once, the first
+   * time the post goes live, and kept across unpublishes.
+   */
+  posts: defineTable({
+    slug: v.string(),
+    title: v.string(),
+    excerpt: v.string(),
+    body: v.string(),
+    published: v.boolean(),
+    publishedAt: v.optional(v.number()),
+    authorId: v.optional(v.id("persons")),
+    /** Dev-seeded filler, same convention as books and resources. */
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published", ["published", "publishedAt"]),
+
+  /** One row per Person per resource: the first open, for staff to see. */
+  resourceOpens: defineTable({
+    personId: v.id("persons"),
+    resourceId: v.id("resources"),
+    at: v.number(),
+  }).index("by_person_resource", ["personId", "resourceId"]),
 })

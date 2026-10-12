@@ -24,8 +24,18 @@ export function parseClientAddress(
   forwarded: string | null | undefined
 ): string | null {
   if (!forwarded) return null
-  const first = forwarded.split(",")[0]?.trim()
-  if (!first || first.length > MAX_LENGTH) return null
-  if (isIpv4(first)) return first
-  return canonicalIpv6(first)
+  /* Walk right to left: every trusted proxy appends the address it actually
+     saw, so the last well-formed entry is the one the edge vouches for.
+     Entries further left were supplied by the client and can be anything the
+     sender invented - taking the leftmost made the rate-limit bucket itself
+     attacker-chosen. */
+  const parts = forwarded.split(",")
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const candidate = parts[i]?.trim()
+    if (!candidate || candidate.length > MAX_LENGTH) continue
+    if (isIpv4(candidate)) return candidate
+    const ipv6 = canonicalIpv6(candidate)
+    if (ipv6) return ipv6
+  }
+  return null
 }

@@ -1,6 +1,9 @@
 import {
+  IconBook2,
+  IconFileText,
   IconInbox,
   IconLayoutDashboard,
+  IconNews,
   IconPackage,
   IconUsers,
 } from "@tabler/icons-react"
@@ -19,12 +22,21 @@ export const COMMERCE_NAV = [
 /** Owner-only destinations, hidden from staff rather than merely disabled. */
 export const OWNER_NAV = [
   { href: "/admin/people", label: "People", icon: IconUsers },
+  { href: "/admin/books", label: "Books", icon: IconBook2 },
+  { href: "/admin/resources", label: "Resources", icon: IconFileText },
+  { href: "/admin/blog", label: "Blog", icon: IconNews },
 ] as const
+
+/** Whether a nav item is the current screen, or a screen inside it. */
+export function isActivePath(href: string, pathname: string): boolean {
+  if (href === "/admin") return pathname === href
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
 
 /** What to call the screen at this path, for the breadcrumb. */
 export function labelForPath(pathname: string): string | null {
-  const match = [...NAV, ...COMMERCE_NAV, ...OWNER_NAV].find(
-    (item) => item.href === pathname
+  const match = [...NAV, ...COMMERCE_NAV, ...OWNER_NAV].find((item) =>
+    isActivePath(item.href, pathname)
   )
   return match?.label ?? null
 }

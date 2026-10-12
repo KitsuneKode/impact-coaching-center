@@ -20,6 +20,15 @@ export function parseTrustedOrigins(value: string): string[] {
       "SITE_URL contained no usable origin. Refusing an empty trusted-origin allowlist."
     )
   }
+  /* Better Auth treats `*` and `?` in a trusted origin as glob patterns, so
+     SITE_URL="*" would pass every CSRF origin check. The entries here must be
+     literal origins - a wildcard is never anything but a misconfiguration. */
+  const wildcard = origins.find((origin) => /[*?]/.test(origin))
+  if (wildcard) {
+    throw new Error(
+      `SITE_URL entry "${wildcard}" contains a wildcard. Trusted origins must be literal origins; a pattern would disable the CSRF origin check.`
+    )
+  }
   return origins
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { enquiryTracks, parseLead } from "./leads"
+import { enquiryTracks, nationalMobileDraft, parseLead } from "./leads"
 
 const valid = {
   name: "Rituparna Das",
@@ -8,6 +8,33 @@ const valid = {
   track: enquiryTracks[0]!,
   timing: "Morning",
 }
+
+describe("nationalMobileDraft", () => {
+  test("keeps ten digits and drops an eleventh", () => {
+    expect(nationalMobileDraft("98765432109")).toBe("9876543210")
+  })
+
+  test("strips letters and separators", () => {
+    expect(nationalMobileDraft("98765 43210abc")).toBe("9876543210")
+  })
+
+  test("unwraps a pasted country code instead of keeping 91", () => {
+    expect(nationalMobileDraft("+91 98765 43210")).toBe("9876543210")
+    expect(nationalMobileDraft("919876543210")).toBe("9876543210")
+  })
+
+  test("unwraps a trunk zero", () => {
+    expect(nationalMobileDraft("09876543210")).toBe("9876543210")
+  })
+
+  test("does not treat a ten-digit number starting with 91 as a country code", () => {
+    expect(nationalMobileDraft("9198765432")).toBe("9198765432")
+  })
+
+  test("cuts a long digit run from the front, not the tail", () => {
+    expect(nationalMobileDraft("123456789876543210")).toBe("1234567898")
+  })
+})
 
 describe("parseLead", () => {
   test("normalises a spaced mobile number to E.164", () => {

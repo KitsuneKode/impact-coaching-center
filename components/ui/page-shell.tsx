@@ -56,6 +56,7 @@ function StatePanel({
   description,
   action,
   className,
+  children,
   ...props
 }: Omit<ComponentProps<typeof Empty>, "title"> & {
   icon?: ReactNode
@@ -78,7 +79,13 @@ function StatePanel({
           <EmptyDescription>{description}</EmptyDescription>
         ) : null}
       </EmptyHeader>
+      {/*
+        Children used to ride in on `...props` and then get replaced by the
+        header, so a button passed as a child never rendered. `action` is the
+        named slot; children are kept for callers that pass the button inline.
+      */}
       {action}
+      {children}
     </Empty>
   )
 }

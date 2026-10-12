@@ -11,12 +11,14 @@ import type { ReactNode } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
 import { authClient } from "@/lib/auth-client"
+import { clientEnv } from "@/lib/env.client"
+import { defaultTheme, themes } from "@/lib/theme"
 
 /**
  * Built once at module scope, not per render: a new ConvexReactClient means a
  * new websocket, and React would open one on every re-render of the tree.
  */
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
+const convexUrl = clientEnv.NEXT_PUBLIC_CONVEX_URL
 
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null
 
@@ -26,19 +28,17 @@ export const convexConfigured = convex !== null
 /** One cast, at the one boundary that needs it. */
 const providerAuthClient = authClient as unknown as AuthClient
 
-/** next-themes drives the palette attribute, not a hand-rolled switcher. */
+/**
+ * next-themes drives the palette attribute. Its own blocking script is patched
+ * out: React 19 will not execute a script rendered from this client component.
+ * The same script runs from the root layout instead (`themeInitScript`).
+ */
 function Themed({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
       attribute="data-theme"
-      defaultTheme="current"
-      themes={[
-        "current",
-        "elegance",
-        "elegance-dark",
-        "twilight",
-        "twilight-dark",
-      ]}
+      defaultTheme={defaultTheme}
+      themes={[...themes]}
       enableSystem={false}
       disableTransitionOnChange
     >

@@ -29,9 +29,17 @@ const noindexRoutes = [
   "/admin/orders",
   "/admin/people",
   // Sample content, labelled as such and noindexed by its layout.
-  "/preview",
-  "/preview/books",
-  "/preview/resources",
+  "/admin/books",
+  "/admin/books/new",
+  "/admin/resources",
+  "/admin/resources/new",
+  "/admin/blog",
+  "/admin/blog/new",
+  // A buyer's own order flow - nothing public, nothing to rank.
+  "/checkout",
+  // Noindexed while every title is a sample; list them once ICT's are in.
+  "/books",
+  "/resources",
   // Design concepts for review, noindexed by their layout.
   "/redesign",
   "/redesign/1",
@@ -40,6 +48,7 @@ const noindexRoutes = [
   "/redesign/4",
   "/redesign/5",
   "/redesign/6",
+  "/redesign/7",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
@@ -68,20 +77,23 @@ function staticRoutesOnDisk(): string[] {
   )
 }
 
-const pathnames = () => sitemap().map((entry) => new URL(entry.url).pathname)
+const pathnames = async () =>
+  (await sitemap()).map((entry) => new URL(entry.url).pathname)
 
 describe("sitemap", () => {
-  test("lists every static page in the App Router tree", () => {
+  test("lists every static page in the App Router tree", async () => {
     const expected = staticRoutesOnDisk()
       .filter((route) => !draftRoutes.includes(route))
       .sort()
-    expect([...pathnames()].sort()).toEqual(expect.arrayContaining(expected))
+    expect([...(await pathnames())].sort()).toEqual(
+      expect.arrayContaining(expected)
+    )
   })
 
-  test("an unapproved policy is absent, an approved one is listed", () => {
+  test("an unapproved policy is absent, an approved one is listed", async () => {
     // Both directions, so the gate cannot rot into "policies are never
     // listed" once ICT signs the wording off.
-    const listed = pathnames()
+    const listed = await pathnames()
     for (const route of draftRoutes) expect(listed).not.toContain(route)
     for (const policy of policies.filter((p) => p.approved))
       expect(listed).toContain(`/${policy.slug}`)
@@ -95,23 +107,25 @@ describe("sitemap", () => {
     expect(routes).toContain("/success-stories")
   })
 
-  test("lists the individual course pages", () => {
-    expect(pathnames().some((p) => p.startsWith("/courses/"))).toBe(true)
+  test("lists the individual course pages", async () => {
+    expect((await pathnames()).some((p) => p.startsWith("/courses/"))).toBe(
+      true
+    )
   })
 
-  test("contains no duplicate entries", () => {
-    const urls = sitemap().map((entry) => entry.url)
+  test("contains no duplicate entries", async () => {
+    const urls = (await sitemap()).map((entry) => entry.url)
     expect(new Set(urls).size).toBe(urls.length)
   })
 
-  test("every entry is an absolute URL", () => {
-    for (const entry of sitemap()) {
+  test("every entry is an absolute URL", async () => {
+    for (const entry of await sitemap()) {
       expect(() => new URL(entry.url)).not.toThrow()
     }
   })
 
-  test("every entry carries a priority between 0 and 1", () => {
-    for (const entry of sitemap()) {
+  test("every entry carries a priority between 0 and 1", async () => {
+    for (const entry of await sitemap()) {
       expect(entry.priority).toBeGreaterThan(0)
       expect(entry.priority).toBeLessThanOrEqual(1)
     }

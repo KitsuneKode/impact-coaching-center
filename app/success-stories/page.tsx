@@ -16,6 +16,7 @@ import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 import { contact, links, selections } from "@/lib/brand"
+import { openGraphFor } from "@/lib/site"
 import {
   guestSessions,
   publishedStories,
@@ -23,11 +24,15 @@ import {
   thumb,
 } from "@/lib/stories"
 
+const title = "Success stories and student reviews"
+const description =
+  "Two officers on the APSC CCE 2022 list prepared at ICT, the selections ICT has announced, student reviews by name and batch, and the serving officers who teach here in North Lakhimpur."
+
 export const metadata: Metadata = {
-  title: "Success stories and student reviews",
-  description:
-    "Two officers on the APSC CCE 2022 list prepared at ICT, the selections ICT has announced, student reviews by name and batch, and the serving officers who teach here in North Lakhimpur.",
+  title,
+  description,
   alternates: { canonical: "/success-stories" },
+  openGraph: openGraphFor("/success-stories", title, description),
 }
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties

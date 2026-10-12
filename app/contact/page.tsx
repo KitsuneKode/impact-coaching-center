@@ -6,12 +6,17 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 import { contact, formatPhone, links, place } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
+import { openGraphFor } from "@/lib/site"
+
+const title = "Contact"
+const description =
+  "Phone, WhatsApp, email and the address of Impact Career Tutorials on DC Bungalow Road, North Lakhimpur."
 
 export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Phone, WhatsApp, email and the address of Impact Career Tutorials on DC Bungalow Road, North Lakhimpur.",
+  title,
+  description,
   alternates: { canonical: "/contact" },
+  openGraph: openGraphFor("/contact", title, description),
 }
 
 const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties

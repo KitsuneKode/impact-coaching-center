@@ -30,8 +30,9 @@ This repo is **single-context**: no workspaces, no `packages/`, one Next.js app.
 └── app/ components/ lib/
 ```
 
-Neither `CONTEXT.md` nor `docs/adr/` exists yet. That is expected — see above; they get
-created when there's something real to record.
+Both exist in this repo: `CONTEXT.md` holds the project vocabulary, and
+`docs/adr/` holds the recorded decisions. Read `CONTEXT.md` before renaming
+domain terms, and check the ADRs before proposing an architectural change.
 
 For reference, a multi-context repo (signalled by `CONTEXT-MAP.md` at the root) would
 instead look like:

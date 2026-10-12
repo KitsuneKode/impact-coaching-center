@@ -37,12 +37,19 @@ export const concepts = [
     idea: "Bright and practical. White, navy and gold, photos first.",
     swatch: ["#FAFBFF", "#0F2A5C", "#E0A91B"],
   },
+  {
+    n: 7,
+    name: "Roll Number",
+    idea: "Warm paper, ink navy, the real result serials set as architecture.",
+    swatch: ["#F4F1EA", "#0E1A2E", "#C9A24B"],
+  },
 ] as const
 
 /** A small bar to step between concepts while comparing them. */
 export function ConceptSwitcher({ current }: { current: number }) {
-  const prev = current === 1 ? 6 : current - 1
-  const next = current === 6 ? 1 : current + 1
+  const last = concepts.length
+  const prev = current === 1 ? last : current - 1
+  const next = current === last ? 1 : current + 1
   const concept = concepts[current - 1]!
   return (
     <nav

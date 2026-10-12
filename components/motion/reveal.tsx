@@ -1,13 +1,46 @@
 "use client"
 
-import { useReducedMotion, type HTMLMotionProps } from "motion/react"
+import { useInView, useReducedMotion, type HTMLMotionProps } from "motion/react"
 import * as m from "motion/react-m"
-import { Children, type ReactNode } from "react"
+import {
+  Children,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react"
 
 const EASE = [0.16, 1, 0.3, 1] as const
 
 const hidden = { opacity: 0, y: 12 }
 const shown = { opacity: 1, y: 0 }
+
+/**
+ * SSR markup is always rendered visible: hiding happens only after hydration,
+ * and only for a block that still sits below the fold, so a stalled bundle or
+ * a no-JS render can never strand content at `opacity: 0`. The trade for that
+ * guarantee is that above-the-fold blocks simply don't animate - the page is
+ * already looking at them.
+ */
+function useScrollReveal(margin: string) {
+  const reduce = useReducedMotion()
+  const ref = useRef<HTMLDivElement | null>(null)
+  const inView = useInView(ref as RefObject<Element | null>, {
+    once: true,
+    amount: "some",
+    margin: margin as never,
+  })
+  const [armed, setArmed] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (el && el.getBoundingClientRect().top >= window.innerHeight)
+      setArmed(true)
+  }, [])
+
+  return { ref, animate: !reduce && armed && !inView ? hidden : shown }
+}
 
 /**
  * Fade-and-rise on scroll. No blur filter: animating `filter` repaints every
@@ -24,19 +57,48 @@ export function Reveal({
   className?: string
   as?: "div" | "li" | "section"
 }) {
-  const reduce = useReducedMotion()
+  const { ref, animate } = useScrollReveal("0px 0px -64px 0px")
   const Tag = m[as] as React.ComponentType<HTMLMotionProps<"div">>
 
   return (
     <Tag
+      ref={ref}
       className={className}
-      initial={reduce ? false : hidden}
-      whileInView={shown}
-      viewport={{ once: true, amount: "some", margin: "0px 0px -64px 0px" }}
+      initial={false}
+      animate={animate}
       transition={{ duration: 0.75, delay, ease: EASE }}
     >
       {children}
     </Tag>
+  )
+}
+
+function RevealItem({
+  children,
+  delay,
+  className,
+  as,
+}: {
+  children: ReactNode
+  delay: number
+  className?: string
+  as: "div" | "li"
+}) {
+  const { ref, animate } = useScrollReveal("0px 0px -48px 0px")
+  const Item = (as === "div" ? m.div : m.li) as React.ComponentType<
+    HTMLMotionProps<"div">
+  >
+
+  return (
+    <Item
+      ref={ref}
+      className={className}
+      initial={false}
+      animate={animate}
+      transition={{ duration: 0.7, delay, ease: EASE }}
+    >
+      {children}
+    </Item>
   )
 }
 
@@ -60,28 +122,20 @@ export function RevealGroup({
   itemClassName?: string
   as?: "div" | "ul" | "ol"
 }) {
-  const reduce = useReducedMotion()
   const items = Children.toArray(children)
   const Wrapper = as
-  const Item = as === "div" ? m.div : m.li
 
   return (
     <Wrapper className={className}>
       {items.map((child, index) => (
-        <Item
+        <RevealItem
           key={index}
+          as={as === "div" ? "div" : "li"}
           className={itemClassName}
-          initial={reduce ? false : hidden}
-          whileInView={shown}
-          viewport={{ once: true, amount: "some", margin: "0px 0px -48px 0px" }}
-          transition={{
-            duration: 0.7,
-            delay: Math.min(index * step, maxDelay),
-            ease: EASE,
-          }}
+          delay={Math.min(index * step, maxDelay)}
         >
           {child}
-        </Item>
+        </RevealItem>
       ))}
     </Wrapper>
   )

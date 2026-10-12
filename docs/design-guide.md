@@ -136,13 +136,17 @@ Motion explains a state change or reinforces hierarchy. It never decorates.
 - **Transactional screens get no reveal animation.** A form does not need to
   introduce itself.
 
-⚠️ **Open defect:** `Reveal` server-renders `opacity: 0` and depends on JS to
-clear it — 27 blocks on the home page. There is no `<noscript>` fallback, so a
-hydration failure leaves the page blank. Tracked in KIT-44.
+`Reveal` renders visible in SSR and arms the hidden state only after hydration
+for blocks still below the fold, so a stalled bundle can never strand content.
+The trade-off: above-the-fold blocks do not animate on first paint.
 
 ## 8. Primitives
 
-Installed: `accordion`, `badge`, `button`, `card`, `draft-notice`, `section`.
+Installed (see `components/ui/`): accordion, alert, avatar, badge, breadcrumb,
+button, card, checkbox, command, dialog, draft-notice, drawer, dropdown-menu,
+empty, field, input, input-group, input-otp, label, page-shell, section,
+select, separator, sheet, sidebar, skeleton, sonner, spinner, table, tabs,
+textarea, toggle, toggle-group, tooltip.
 
 To add, from the **installed** shadcn registry on Base UI — this is reuse of the
 existing system, not a second one:
@@ -159,12 +163,14 @@ rebuild on Base UI, or change the project's base deliberately — see §9.
 
 ## 9. Open decisions
 
-1. **Base UI or Radix.** Only four components are installed, so this is the
-   cheapest this decision will ever be. Staying on Base UI means rebuilding
-   third-party blocks; moving to Radix opens the ecosystem (tailark, 21st.dev)
-   and costs a migration of what exists.
-2. **The palette for dark mode.** There is no dark mode today — zero
-   `prefers-color-scheme`, `.dark` or `data-theme` rules. ICT has a stated
+1. **Base UI or Radix.** The `components/ui` set is on Base UI. One exception
+   already shipped: `cmdk` (the admin ⌘K menu) pulls a small Radix subtree —
+   accepted deliberately or replaced under this decision. Staying on Base UI
+   means rebuilding third-party blocks; moving to Radix opens the ecosystem
+   (tailark, 21st.dev) and costs a migration of what exists.
+2. **The palette for dark mode.** No user-facing dark mode yet — the site is
+   light-only for visitors. The `data-theme` mechanism and dark token sets do
+   exist, powering the dev-only palette harness (KIT-67). ICT has a stated
    colour preference that has not been captured. Every token in §3 needs a
    second value, and the framework's own not-found and global-error screens
    follow the OS scheme regardless of app theme. KIT-67, with KIT-65.

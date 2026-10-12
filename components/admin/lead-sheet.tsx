@@ -82,6 +82,7 @@ function describe(kind: string, from?: string, to?: string) {
   if (kind === "whatsapp_handoff") return "Opened WhatsApp from the site"
   if (kind === "role_change") return "Role changed"
   if (kind === "account_deleted") return "Deleted their account"
+  if (kind === "resource_open") return "Opened a free resource"
   return "Note"
 }
 
@@ -180,23 +181,29 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
           {lead.name.trim() || "Name not given"}
         </SheetTitle>
         <SheetDescription className="tnum text-base text-foreground">
-          {formatPhone(lead.phone)}
+          {lead.deletedAt ? "Number erased" : formatPhone(lead.phone)}
         </SheetDescription>
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <ButtonAnchor href={`tel:${lead.phone}`} variant="primary" size="md">
-            <IconPhone stroke={1.75} />
-            Call
-          </ButtonAnchor>
-          <ButtonAnchor
-            href={`https://wa.me/${digits}`}
-            target="_blank"
-            variant="secondary"
-            size="md"
-          >
-            <IconBrandWhatsapp stroke={1.75} />
-            WhatsApp
-          </ButtonAnchor>
-        </div>
+        {lead.deletedAt ? null : (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <ButtonAnchor
+              href={`tel:${lead.phone}`}
+              variant="primary"
+              size="md"
+            >
+              <IconPhone stroke={1.75} />
+              Call
+            </ButtonAnchor>
+            <ButtonAnchor
+              href={`https://wa.me/${digits}`}
+              target="_blank"
+              variant="secondary"
+              size="md"
+            >
+              <IconBrandWhatsapp stroke={1.75} />
+              WhatsApp
+            </ButtonAnchor>
+          </div>
+        )}
       </SheetHeader>
 
       <div className="flex flex-col gap-7 p-6">

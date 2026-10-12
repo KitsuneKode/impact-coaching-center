@@ -1,6 +1,15 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "noEmit": true, "incremental": false, "plugins": [] },
-  "include": ["scripts/**/*.ts", "lib/**/*.ts"],
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "plugins": [],
+    /* The materials generators are plain .mjs - included for syntax and
+       module-resolution coverage. checkJs stays off: the pdfkit/docx typings
+       flag ~80 noise errors in those generators, and tightening them is its
+       own change to files that produce client deliverables. */
+    "allowJs": true
+  },
+  "include": ["scripts/**/*.ts", "scripts/**/*.mjs", "lib/**/*.ts"],
   "exclude": ["node_modules", "**/*.test.ts"]
 }

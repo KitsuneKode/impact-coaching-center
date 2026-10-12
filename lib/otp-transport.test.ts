@@ -28,19 +28,20 @@ describe("chooseTransport", () => {
 
   test("logger runs on the hosted deployment named as development", () => {
     expect(
-      chooseTransport(
-        "logger",
-        "https://peaceful-emu-861.convex.site",
-        "peaceful-emu-861"
-      )
+      chooseTransport("logger", "https://peaceful-emu-861.convex.site")
     ).toBe("logger")
     expect(() =>
-      chooseTransport(
-        "logger",
-        "https://brave-otter-123.convex.site",
-        "peaceful-emu-861"
-      )
+      chooseTransport("logger", "https://brave-otter-123.convex.site")
     ).toThrow(/local HTTP/)
+  })
+
+  test("the dev name lives in code, so no env var can open prod", () => {
+    // The failure mode this guards: on a production deployment the platform
+    // reports production's own origin, and there is no operator-settable
+    // second factor left to paste.
+    expect(() => chooseTransport("logger", "https://ict.in")).toThrow(
+      /local HTTP/
+    )
   })
 
   test("fails closed when no transport is configured", () => {

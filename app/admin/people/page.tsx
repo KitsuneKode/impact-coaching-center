@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
-import { toE164 } from "@/lib/leads"
+import { nationalMobileDraft, toE164 } from "@/lib/leads"
 
 /** Who may use the admin. Owner only, both to see and to change. */
 const REFUSALS: Record<string, string> = {
@@ -150,15 +150,18 @@ function People() {
                 autoComplete="off"
                 placeholder="98765 43210"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(nationalMobileDraft(e.target.value))}
                 aria-invalid={error ? true : undefined}
+                aria-describedby={
+                  error ? "grant-phone-error" : "grant-phone-hint"
+                }
                 className="tnum"
               />
             </InputGroup>
             {error ? (
-              <FieldError>{error}</FieldError>
+              <FieldError id="grant-phone-error">{error}</FieldError>
             ) : (
-              <FieldDescription>
+              <FieldDescription id="grant-phone-hint">
                 They must already have verified this number. Access is never
                 created on somebody&apos;s behalf.
               </FieldDescription>
@@ -207,16 +210,20 @@ function People() {
                     size="sm"
                     onClick={async () => {
                       setError(null)
-                      const result = await setRole({
-                        personId: person.id as never,
-                        role: "student",
-                        // The revision the row was read at. If somebody else
-                        // changed this person meanwhile, the mutation refuses
-                        // rather than overwriting their change.
-                        expectedRevision: person.revision,
-                      })
-                      if (!result.ok)
-                        setError(REFUSALS[result.reason] ?? "Refused.")
+                      try {
+                        const result = await setRole({
+                          personId: person.id as never,
+                          role: "student",
+                          // The revision the row was read at. If somebody else
+                          // changed this person meanwhile, the mutation refuses
+                          // rather than overwriting their change.
+                          expectedRevision: person.revision,
+                        })
+                        if (!result.ok)
+                          setError(REFUSALS[result.reason] ?? "Refused.")
+                      } catch {
+                        setError("Could not reach the server. Try again.")
+                      }
                     }}
                   >
                     Remove access

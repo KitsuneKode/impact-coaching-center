@@ -2,12 +2,17 @@ import type { Metadata } from "next"
 
 import { AuthPage } from "@/components/account/auth-page"
 import { safeReturnPath } from "@/lib/return-path"
+import { openGraphFor } from "@/lib/site"
+
+const title = "Log in"
+const description =
+  "Log in to Impact Career Tutorials with a WhatsApp code to your mobile number."
 
 export const metadata: Metadata = {
-  title: "Log in",
-  description:
-    "Log in to Impact Career Tutorials with a WhatsApp code to your mobile number.",
+  title,
+  description,
   alternates: { canonical: "/login" },
+  openGraph: openGraphFor("/login", title, description),
   // Nothing here is worth a search result, and an indexed log-in page only
   // ever collects the wrong kind of traffic.
   robots: { index: false, follow: true },

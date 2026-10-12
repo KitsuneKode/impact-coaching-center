@@ -1,16 +1,18 @@
 "use client"
 
-import { IconInbox, IconLock, IconPlugConnectedX } from "@tabler/icons-react"
+import { IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { AddEnquiry } from "@/components/admin/add-enquiry"
 import { LeadSheet } from "@/components/admin/lead-sheet"
 import { LeadsTable } from "@/components/admin/leads-table"
 import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
+import type { InboxView } from "@/convex/leads"
 
 /** The follow-up queue. */
 export default function AdminLeadsPage() {
@@ -36,6 +38,16 @@ function Unavailable() {
   )
 }
 
+/** Debounce, so each keystroke does not start a fresh page on the server. */
+function useDebounced<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), ms)
+    return () => clearTimeout(timer)
+  }, [value, ms])
+  return debounced
+}
+
 function Inbox() {
   // Two queries on purpose. `canSeeInbox` answers the access question without
   // fetching a page of enquiries and discarding it, so a student who opens
@@ -48,15 +60,41 @@ function Inbox() {
    * decision itself lives in convex/authz.ts - this only chooses chrome.
    */
   const viewer = useQuery(api.auth.getCurrentPerson)
+
+  /*
+   * The filters live here because they are the query: changing them asks the
+   * server for a different slice rather than hiding rows already fetched.
+   * The queue opens on the work - new enquiries and due follow-ups.
+   */
+  const [view, setView] = useState<InboxView>("action")
+  const [track, setTrack] = useState<string | undefined>(undefined)
+  const [search, setSearch] = useState("")
+  const debouncedSearch = useDebounced(search.trim(), 300)
+
   const {
     results: leads,
     status,
     loadMore,
-  } = usePaginatedQuery(api.leads.inboxPage, {}, { initialNumItems: 25 })
+  } = usePaginatedQuery(
+    api.leads.inboxPage,
+    // The server refuses non-staff anyway; skipping keeps a student who lands
+    // here from spending a subscription on a queue they may not read.
+    allowed === true
+      ? { view, track, search: debouncedSearch || undefined }
+      : "skip",
+    { initialNumItems: 25 }
+  )
+
+  /* A filter change re-reads as LoadingFirstPage with empty results; only the
+     very first load earns the skeleton, or the controls vanish under a typing
+     hand. Adjusted during render, not in an effect, so no paint flashes the
+     empty state first. */
+  const [everLoaded, setEverLoaded] = useState(false)
+  if (status !== "LoadingFirstPage" && !everLoaded) setEverLoaded(true)
 
   // A skeleton in the shape of the answer, not a spinner: the reader learns
   // the page is a table of enquiries before the enquiries arrive.
-  if (allowed === undefined || status === "LoadingFirstPage")
+  if (allowed === undefined)
     return (
       <PageShell
         density="working"
@@ -91,26 +129,34 @@ function Inbox() {
       </PageShell>
     )
 
-  if (leads.length === 0)
+  /* First page only: a filter change also reads LoadingFirstPage, and there
+     the controls must stay put while the new slice arrives. */
+  if (status === "LoadingFirstPage" && !everLoaded)
     return (
       <PageShell
         density="working"
-        title={<span className="text-foreground">Enquiries.</span>}
+        title={
+          <>
+            <span className="text-foreground">Enquiries.</span>{" "}
+            <span className="text-muted-foreground">Loading…</span>
+          </>
+        }
       >
-        <StatePanel
-          icon={<IconInbox stroke={1.75} />}
-          title="No enquiries yet"
-          description="They appear here as soon as someone sends the form on the site."
-        />
+        <ListSkeleton rows={5} />
       </PageShell>
     )
 
+  /* No page-level empty state: whether zero rows means "no enquiries" or
+     "nothing matched" is the table's call - it owns the filter controls. */
   return (
     <PageShell
       density="working"
       /* No count in the heading. */
       title={<span className="text-foreground">Enquiries.</span>}
     >
+      <div className="mb-4 flex justify-end">
+        <AddEnquiry onCreated={(id) => setOpenId(id)} />
+      </div>
       <LeadsTable
         leads={leads}
         canLoadMore={status === "CanLoadMore"}
@@ -118,6 +164,12 @@ function Inbox() {
         onLoadMore={() => loadMore(25)}
         isOwner={viewer?.role === "owner"}
         onOpen={(id) => setOpenId(id as Id<"persons">)}
+        view={view}
+        track={track}
+        search={search}
+        onViewChange={setView}
+        onTrackChange={setTrack}
+        onSearchChange={setSearch}
       />
       <LeadSheet
         personId={openId}
