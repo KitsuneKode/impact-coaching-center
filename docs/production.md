@@ -10,8 +10,10 @@ Set in the host's dashboard; `NEXT_PUBLIC_*` values are inlined into the
 client bundle at build time, so changing them requires a redeploy. A missing
 required variable fails `next build` (t3-env in `lib/env.client.ts` and
 `lib/env.server.ts`; "Yes before launch" rows are required only when
-`VERCEL_ENV=production`). Preview deployments keep pointing at the dev
-deployment `peaceful-emu-861`.
+`VERCEL_ENV=production`). The Convex URLs are required only there too: a
+preview with them points at the dev deployment `peaceful-emu-861`, and a
+preview without them builds the static site with no backend (forms fall back
+to WhatsApp, the shop and log-in are off).
 
 | Variable                         | Required for production | Purpose                                                                                                                                                              |
 | -------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

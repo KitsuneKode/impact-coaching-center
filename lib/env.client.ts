@@ -10,8 +10,11 @@ import { launchBuild, skipEnvValidation } from "./env.mode"
  */
 export const clientEnv = createEnv({
   client: {
-    NEXT_PUBLIC_CONVEX_URL: z.url(),
-    NEXT_PUBLIC_CONVEX_SITE_URL: z.url(),
+    /* Required on production. A preview without them builds the static
+       site (the app treats a missing URL as "no backend"), since the shared
+       dev deployment may not run this branch's schema. */
+    NEXT_PUBLIC_CONVEX_URL: launchBuild ? z.url() : z.url().optional(),
+    NEXT_PUBLIC_CONVEX_SITE_URL: launchBuild ? z.url() : z.url().optional(),
     /* Canonical origin; a production build must name it. */
     NEXT_PUBLIC_SITE_URL: launchBuild ? z.url() : z.url().optional(),
     /* Turnstile widget; optional off production so dev stays keyless. */
