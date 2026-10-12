@@ -5,7 +5,6 @@ import { Link } from "@/i18n/navigation"
 import { notFound } from "next/navigation"
 
 import { MarkdownBody } from "@/components/marketing/markdown-body"
-import { Section } from "@/components/ui/section"
 import { brand } from "@/lib/brand"
 import { publishedPost } from "@/lib/catalog-server"
 import { alternatesFor, openGraphFor, siteUrl } from "@/lib/site"
@@ -86,49 +85,56 @@ export default async function PostPage({
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <Section size="sm" className="pt-26 md:pt-30">
-        <nav aria-label={t("breadcrumb")}>
-          <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-            <li>
-              <Link href="/blog" className="hover:text-foreground">
-                {t("blog")}
-              </Link>
-            </li>
-            <IconChevronRight size={14} stroke={1.75} aria-hidden />
-            <li aria-current="page" className="text-foreground">
-              {post.title}
-            </li>
-          </ol>
-        </nav>
+      <article className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-20 md:pbs-[calc(var(--header-height)+2.5rem)] md:pbe-28">
+        <div className="mx-auto max-w-[46rem]">
+          <nav aria-label={t("breadcrumb")}>
+            <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+              <li>
+                <Link href="/blog" className="hover:text-foreground">
+                  {t("blog")}
+                </Link>
+              </li>
+              <li className="flex min-w-0 items-center gap-1">
+                <IconChevronRight aria-hidden size={14} stroke={1.75} />
+                <span aria-current="page" className="truncate text-foreground">
+                  {post.title}
+                </span>
+              </li>
+            </ol>
+          </nav>
 
-        <h1 lang={lang} className="type-display mt-8 max-w-208">
-          <span className="text-foreground">{post.title}</span>
-        </h1>
-        {post.publishedAt ? (
-          <p className="mt-6 text-sm text-muted-foreground">
-            {tb.rich("published", {
-              date: readableDate(post.publishedAt, locale),
-              time: (chunks) => (
-                <time dateTime={new Date(post.publishedAt!).toISOString()}>
-                  {chunks}
-                </time>
-              ),
-            })}
-          </p>
-        ) : null}
-        {post.excerpt ? (
-          <p
+          <h1
             lang={lang}
-            className="type-lede mt-4 max-w-160 text-muted-foreground"
+            className="mbs-8 font-display text-[clamp(2rem,1.4rem+2.8vw,3.5rem)] leading-[1.06] font-semibold tracking-[-0.035em] text-balance"
           >
-            {post.excerpt}
-          </p>
-        ) : null}
+            {post.title}
+          </h1>
+          {post.publishedAt ? (
+            <p className="mbs-5 text-sm text-muted-foreground">
+              {tb.rich("published", {
+                date: readableDate(post.publishedAt, locale),
+                time: (chunks) => (
+                  <time dateTime={new Date(post.publishedAt!).toISOString()}>
+                    {chunks}
+                  </time>
+                ),
+              })}
+            </p>
+          ) : null}
+          {post.excerpt ? (
+            <p
+              lang={lang}
+              className="mbs-6 border-s-4 border-primary ps-5 text-xl text-pretty text-muted-foreground"
+            >
+              {post.excerpt}
+            </p>
+          ) : null}
 
-        <div lang={lang} className="mt-14 max-w-160">
-          <MarkdownBody>{post.body}</MarkdownBody>
+          <div lang={lang} className="mbs-12">
+            <MarkdownBody>{post.body}</MarkdownBody>
+          </div>
         </div>
-      </Section>
+      </article>
     </main>
   )
 }
