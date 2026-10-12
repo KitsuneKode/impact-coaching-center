@@ -7,38 +7,48 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 import { api } from "@/convex/_generated/api"
+import { BUNDLE_QUANTITY_MAX, type Language } from "@/lib/catalog"
 
-export type CartLine = { slug: string; quantity: number; at: number }
+export type CartLine = {
+  slug: string
+  language: Language
+  quantity: number
+  at: number
+}
+
+/** Which line: one bundle in one language. */
+export type LineKey = Pick<CartLine, "slug" | "language">
+
+const same = (a: LineKey, b: LineKey) =>
+  a.slug === b.slug && a.language === b.language
 
 type CartState = {
   lines: CartLine[]
-  add: (slug: string) => void
-  setQuantity: (slug: string, quantity: number) => void
-  remove: (slug: string) => void
+  add: (key: LineKey) => void
+  setQuantity: (key: LineKey, quantity: number) => void
+  remove: (key: LineKey) => void
   clear: () => void
 }
 
-/** A single copy caps at this; a bulk order is a phone call, not a cart. */
-export const MAX_QUANTITY = 10
+/** A bulk order is a phone call, not a cart. */
+export const MAX_QUANTITY = BUNDLE_QUANTITY_MAX
 
 /**
  * The cart, kept in this browser until sign-in, when `useCartSync` merges it
  * into the server copy (`at` decides which write is newer). From then on this
- * store mirrors the server: reads are local, writes are echoed by mutation.
- * It stores slugs and quantities only; prices are always looked up, and the
- * server prices the real order from `books`.
+ * store mirrors the server. It holds no prices; the server prices the order.
  */
 export const useCart = create<CartState>()(
   persist(
     (set) => ({
       lines: [],
-      add: (slug) =>
+      add: (key) =>
         set((state) => {
-          const line = state.lines.find((l) => l.slug === slug)
+          const line = state.lines.find((l) => same(l, key))
           return {
             lines: line
               ? state.lines.map((l) =>
-                  l.slug === slug
+                  same(l, key)
                     ? {
                         ...l,
                         quantity: Math.min(MAX_QUANTITY, l.quantity + 1),
@@ -46,16 +56,16 @@ export const useCart = create<CartState>()(
                       }
                     : l
                 )
-              : [...state.lines, { slug, quantity: 1, at: Date.now() }],
+              : [...state.lines, { ...key, quantity: 1, at: Date.now() }],
           }
         }),
-      setQuantity: (slug, quantity) =>
+      setQuantity: (key, quantity) =>
         set((state) => ({
           lines:
             quantity <= 0
-              ? state.lines.filter((l) => l.slug !== slug)
+              ? state.lines.filter((l) => !same(l, key))
               : state.lines.map((l) =>
-                  l.slug === slug
+                  same(l, key)
                     ? {
                         ...l,
                         quantity: Math.min(MAX_QUANTITY, quantity),
@@ -64,35 +74,20 @@ export const useCart = create<CartState>()(
                     : l
                 ),
         })),
-      remove: (slug) =>
-        set((state) => ({ lines: state.lines.filter((l) => l.slug !== slug) })),
+      remove: (key) =>
+        set((state) => ({ lines: state.lines.filter((l) => !same(l, key)) })),
       clear: () => set({ lines: [] }),
     }),
     {
       name: "ict-cart",
       skipHydration: true,
-      /*
-       * v0 carts carried {slug, quantity} with no timestamp. Upgrading in
-       * place with at:0 makes them the oldest copy, so a server line always
-       * wins the merge - anything else would let a stale ghost overwrite a
-       * deliberate server-side change.
-       */
-      version: 1,
-      migrate: (state) => ({
-        lines: (
-          (
-            state as {
-              lines?: { slug: string; quantity: number; at?: number }[]
-            }
-          ).lines ?? []
-        )
-          .filter((line) => line.slug && line.quantity > 0)
-          .map((line) => ({
-            slug: line.slug,
-            quantity: Math.min(MAX_QUANTITY, Math.floor(line.quantity)),
-            at: line.at ?? 0,
-          })),
-      }),
+      // v2: lines became bundle + language. Older carts held single books,
+      // which are no longer sold on their own, so they are dropped.
+      version: 2,
+      migrate: (state, version) => {
+        if (version < 2) return { lines: [] }
+        return state as { lines: CartLine[] }
+      },
     }
   )
 )
@@ -182,31 +177,28 @@ export function useCartActions() {
   const setLine = useMutation(api.carts.setCartLine)
   const authed = viewer != null
 
-  const push = (slug: string) => {
+  const sync = (key: LineKey, quantity: number) => {
     if (!authed) return
-    const quantity =
-      useCart.getState().lines.find((line) => line.slug === slug)?.quantity ?? 0
-    void setLine({ slug, quantity }).catch(() => {
+    void setLine({ ...key, quantity }).catch(() => {
       toast.error("Cart could not sync - check your connection.")
     })
   }
+  const quantityOf = (key: LineKey) =>
+    useCart.getState().lines.find((line) => same(line, key))?.quantity ?? 0
 
   const { add, setQuantity, remove } = useCart.getState()
   return {
-    add: (slug: string) => {
-      add(slug)
-      push(slug)
+    add: (key: LineKey) => {
+      add(key)
+      sync(key, quantityOf(key))
     },
-    setQuantity: (slug: string, quantity: number) => {
-      setQuantity(slug, quantity)
-      push(slug)
+    setQuantity: (key: LineKey, quantity: number) => {
+      setQuantity(key, quantity)
+      sync(key, quantityOf(key))
     },
-    remove: (slug: string) => {
-      remove(slug)
-      if (authed)
-        void setLine({ slug, quantity: 0 }).catch(() => {
-          toast.error("Cart could not sync - check your connection.")
-        })
+    remove: (key: LineKey) => {
+      remove(key)
+      sync(key, 0)
     },
   }
 }

@@ -17,6 +17,7 @@ import { Turnstile } from "@/components/marketing/turnstile"
 import { Button, ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, timings } from "@/lib/brand"
 import { track } from "@/lib/analytics"
+import { visitAttribution } from "@/lib/attribution"
 import { clientEnv } from "@/lib/env.client"
 import { contactHref } from "@/lib/contact"
 import {
@@ -208,7 +209,21 @@ export function LeadForm() {
           </m.div>
         ) : (
           <m.div key="form" {...swap}>
-            <form ref={formRef} action={action} noValidate className="relative">
+            <form
+              ref={formRef}
+              action={(data) => {
+                // Where this enquiry came from, read at submit time.
+                const visit = visitAttribution()
+                data.set("page", window.location.pathname)
+                data.set("utmSource", visit.utmSource)
+                if (visit.utmMedium) data.set("utmMedium", visit.utmMedium)
+                if (visit.utmCampaign)
+                  data.set("utmCampaign", visit.utmCampaign)
+                return action(data)
+              }}
+              noValidate
+              className="relative"
+            >
               {invalid.length > 0 ||
               (state.status === "error" && state.formError) ? (
                 <div

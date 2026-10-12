@@ -1,21 +1,20 @@
 "use client"
 
-import { IconArrowUpRight, IconLock, IconSearch } from "@tabler/icons-react"
+import { IconLock, IconSearch } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import {
   CATALOG_REFUSALS,
-  FIELD_LABELS,
   ImageField,
   PageImagesField,
-  PublishState,
+  toStored,
   type StoredImage,
 } from "@/components/admin/catalog-fields"
 import { Button, ButtonLink } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -25,77 +24,67 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import {
-  BOOK_TONES,
   checkBook,
+  LANGUAGES,
   pageCountDraft,
-  rupeeDraft,
-  rupeesToPaise,
   SAMPLE_PAGES_MAX,
   slugify,
-  type BookTone,
+  type BookInput,
+  type Language,
 } from "@/lib/catalog"
 
-const TONE_LABELS: Record<BookTone, string> = {
-  primary: "Ink",
-  highlight: "Amber",
-  muted: "Paper",
+export const LANGUAGE_NAMES: Record<Language, string> = {
+  en: "English",
+  as: "Assamese",
 }
-const TONE_ITEMS = BOOK_TONES.map((value) => ({
-  value,
-  label: TONE_LABELS[value],
-}))
 
-type Draft = {
+type EditionDraft = {
   title: string
-  slug: string
   subtitle: string
-  exam: string
   edition: string
   pages: string
-  price: string
-  tone: BookTone
-  description: string
-  contents: string
   cover: StoredImage | null
   samplePages: StoredImage[]
 }
 
-const EMPTY: Draft = {
+type Draft = {
+  slug: string
+  exam: string
+  descriptionEn: string
+  descriptionAs: string
+  contents: string
+  editions: Record<Language, EditionDraft | null>
+}
+
+const EMPTY_EDITION: EditionDraft = {
   title: "",
-  slug: "",
   subtitle: "",
-  exam: "",
   edition: "",
   pages: "",
-  price: "",
-  tone: "primary",
-  description: "",
-  contents: "",
   cover: null,
   samplePages: [],
 }
 
-/** What a save compares against to know whether anything changed. */
-const snapshot = (draft: Draft) =>
-  JSON.stringify({
-    ...draft,
-    cover: draft.cover?.id ?? null,
-    samplePages: draft.samplePages.map((p) => p.id),
-  })
+const EMPTY: Draft = {
+  slug: "",
+  exam: "",
+  descriptionEn: "",
+  descriptionAs: "",
+  contents: "",
+  editions: { en: { ...EMPTY_EDITION }, as: { ...EMPTY_EDITION } },
+}
 
-/** Owner-only: create a book, or edit the one at `id`. */
+const snapshot = (draft: Draft) =>
+  JSON.stringify(draft, (key, value) =>
+    key === "url" ? undefined : (value as unknown)
+  )
+
+/** Create a book, or edit the one at `id`. */
 export function BookEditor({ id }: { id?: string }) {
   const allowed = useQuery(api.catalogAdmin.canEditCatalog)
   const book = useQuery(api.catalogAdmin.adminBook, id ? { id } : "skip")
@@ -106,7 +95,7 @@ export function BookEditor({ id }: { id?: string }) {
         <ListSkeleton rows={6} />
       </Shell>
     )
-  if (!allowed) return <OwnerOnly />
+  if (!allowed) return <CatalogOnly />
   if (id && !book)
     return (
       <Shell title="Not found.">
@@ -116,7 +105,7 @@ export function BookEditor({ id }: { id?: string }) {
           description="It may have been mistyped, or the link is old."
           action={
             <ButtonLink href="/admin/books" size="md">
-              All books
+              Back to the shop
             </ButtonLink>
           }
         />
@@ -124,25 +113,31 @@ export function BookEditor({ id }: { id?: string }) {
     )
 
   if (!book) return <BookForm key="new" initial={EMPTY} />
+  const edition = (language: Language): EditionDraft | null => {
+    const e = book.editions[language]
+    return e
+      ? {
+          title: e.title,
+          subtitle: e.subtitle ?? "",
+          edition: e.edition,
+          pages: `${e.pages}`,
+          cover: e.cover ? toStored(e.cover) : null,
+          samplePages: e.samplePages.map(toStored),
+        }
+      : null
+  }
   return (
     <BookForm
       key={book.id}
       id={book.id}
       revision={book.revision}
-      published={book.published}
       initial={{
-        title: book.title,
         slug: book.slug,
-        subtitle: book.subtitle,
         exam: book.exam,
-        edition: book.edition,
-        pages: `${book.pages}`,
-        price: `${book.pricePaise / 100}`,
-        tone: book.tone,
-        description: book.description,
+        descriptionEn: book.description?.en ?? "",
+        descriptionAs: book.description?.as ?? "",
         contents: book.contents.join("\n"),
-        cover: book.cover,
-        samplePages: book.samplePages,
+        editions: { en: edition("en"), as: edition("as") },
       }}
     />
   )
@@ -152,59 +147,81 @@ function BookForm({
   id,
   initial,
   revision: loadedRevision = 0,
-  published = false,
 }: {
   id?: Id<"books">
   initial: Draft
   revision?: number
-  published?: boolean
 }) {
   const router = useRouter()
   const save = useMutation(api.catalogAdmin.saveBook)
-  const setPublished = useMutation(api.catalogAdmin.setBookPublished)
-
   const [draft, setDraft] = useState(initial)
   const [saved, setSaved] = useState(() => snapshot(initial))
   const [revision, setRevision] = useState(loadedRevision)
   const [slugTouched, setSlugTouched] = useState(Boolean(id))
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [formError, setFormError] = useState<string | null>(null)
+  const [error, setError] = useState<{
+    field?: string
+    message: string
+  } | null>(null)
   const [uploading, setUploading] = useState(0)
   const [busy, setBusy] = useState(false)
 
   const dirty = snapshot(draft) !== saved
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
-    setDraft((d) => ({
-      ...d,
-      [key]: value,
-      ...(key === "title" && !slugTouched
-        ? { slug: slugify(value as string) }
-        : {}),
-    }))
   const onBusyChange = (on: boolean) => setUploading((n) => n + (on ? 1 : -1))
+  const setEdition = (language: Language, next: EditionDraft | null) =>
+    setDraft((d) => {
+      const editions = { ...d.editions, [language]: next }
+      const english = language === "en" ? next?.title : undefined
+      return {
+        ...d,
+        editions,
+        ...(english !== undefined && !slugTouched
+          ? { slug: slugify(english) }
+          : {}),
+      }
+    })
+
+  function fields(): BookInput {
+    const editions: BookInput["editions"] = {}
+    for (const language of LANGUAGES) {
+      const e = draft.editions[language]
+      if (!e) continue
+      editions[language] = {
+        title: e.title,
+        subtitle: e.subtitle || undefined,
+        edition: e.edition,
+        pages: Number(e.pages),
+      }
+    }
+    return {
+      slug: draft.slug,
+      exam: draft.exam,
+      description: draft.descriptionEn
+        ? { en: draft.descriptionEn, as: draft.descriptionAs || undefined }
+        : undefined,
+      contents: draft.contents.split("\n"),
+      editions,
+    }
+  }
 
   async function onSave(event: React.FormEvent) {
     event.preventDefault()
-    setErrors({})
-    setFormError(null)
-
-    const pricePaise = rupeesToPaise(draft.price)
-    const fields = {
-      slug: draft.slug,
-      title: draft.title,
-      subtitle: draft.subtitle,
-      exam: draft.exam,
-      edition: draft.edition,
-      pages: Number(draft.pages),
-      pricePaise: pricePaise ?? -1,
-      tone: draft.tone,
-      description: draft.description,
-      contents: draft.contents.split("\n"),
-    }
-    const checked = checkBook(fields)
+    setError(null)
+    const checked = checkBook(fields())
     if (!checked.ok) {
-      setErrors({ [checked.field]: messageFor(checked.field) })
+      setError({ field: checked.field, message: messageFor(checked.field) })
       return
+    }
+    const images: Record<
+      string,
+      { cover?: Id<"_storage">; samplePages: Id<"_storage">[] }
+    > = {}
+    for (const language of LANGUAGES) {
+      const e = draft.editions[language]
+      if (e)
+        images[language] = {
+          cover: e.cover?.id,
+          samplePages: e.samplePages.map((p) => p.id),
+        }
     }
 
     setBusy(true)
@@ -212,304 +229,284 @@ function BookForm({
       const result = await save({
         ...(id ? { id, expectedRevision: revision } : {}),
         fields: checked.value,
-        cover: draft.cover?.id ?? null,
-        samplePages: draft.samplePages.map((p) => p.id),
+        images,
       })
       if (!result.ok) {
-        if (result.reason === "invalid-input" && result.field) {
-          const key = fieldOf(result.field)
-          if (key === "cover" || key === "sample pages")
-            setFormError(messageFor(key))
-          else setErrors({ [key]: messageFor(result.field) })
-        } else setFormError(CATALOG_REFUSALS[result.reason] ?? "Not saved.")
+        setError(
+          result.reason === "invalid-input" && result.field
+            ? { field: result.field, message: messageFor(result.field) }
+            : { message: CATALOG_REFUSALS[result.reason] ?? "Not saved." }
+        )
         return
       }
       setRevision(result.revision)
       setSaved(snapshot(draft))
-      if (!id) {
-        toast.success("Saved as a draft")
-        router.replace(`/admin/books/${result.id}`)
-      } else toast.success("Saved")
+      toast.success("Saved")
+      if (!id) router.replace(`/admin/books/${result.id}`)
     } catch {
-      setFormError("Could not reach the server. Your changes are still here.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function onPublish() {
-    if (!id) return
-    setBusy(true)
-    try {
-      const result = await setPublished({
-        id,
-        published: !published,
-        expectedRevision: revision,
+      setError({
+        message: "Could not reach the server. Your changes are still here.",
       })
-      if (!result.ok) {
-        setFormError(CATALOG_REFUSALS[result.reason] ?? "Not changed.")
-        return
-      }
-      setRevision(result.revision)
-      toast.success(published ? "Unpublished" : "Published on /books")
-    } catch {
-      setFormError("Could not reach the server. Try again.")
     } finally {
       setBusy(false)
     }
   }
 
-  const fieldProps = (name: string) => ({
-    "data-invalid": errors[name] ? true : undefined,
-  })
+  const invalid = (field: string) => error?.field === field
+  const title =
+    initial.editions.en?.title || initial.editions.as?.title || "New book"
 
   return (
-    <Shell title={id ? `${initial.title}.` : "New book."}>
-      <form
-        onSubmit={onSave}
-        noValidate
-        className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]"
-      >
-        <FieldGroup className="max-w-2xl">
-          <Field {...fieldProps("title")}>
-            <FieldLabel htmlFor="book-title">Title</FieldLabel>
-            <Input
-              id="book-title"
-              value={draft.title}
-              onChange={(e) => set("title", e.target.value)}
-              aria-invalid={!!errors.title}
-              autoComplete="off"
-            />
-            <FieldError>{errors.title}</FieldError>
-          </Field>
-          <Field {...fieldProps("slug")}>
-            <FieldLabel htmlFor="book-slug">Web address</FieldLabel>
-            <Input
-              id="book-slug"
-              value={draft.slug}
-              onChange={(e) => {
-                setSlugTouched(true)
-                set("slug", e.target.value)
-              }}
-              aria-invalid={!!errors.slug}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {errors.slug ? (
-              <FieldError>{errors.slug}</FieldError>
-            ) : (
-              <FieldDescription>
-                /books/{draft.slug || "…"}. Changing it breaks links already
-                shared.
-              </FieldDescription>
-            )}
-          </Field>
-          <Field {...fieldProps("subtitle")}>
-            <FieldLabel htmlFor="book-subtitle">Subtitle</FieldLabel>
-            <Input
-              id="book-subtitle"
-              value={draft.subtitle}
-              onChange={(e) => set("subtitle", e.target.value)}
-              aria-invalid={!!errors.subtitle}
-              autoComplete="off"
-            />
-            <FieldError>{errors.subtitle}</FieldError>
-          </Field>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <Field {...fieldProps("exam")}>
-              <FieldLabel htmlFor="book-exam">Exam</FieldLabel>
-              <Input
-                id="book-exam"
-                value={draft.exam}
-                onChange={(e) => set("exam", e.target.value)}
-                aria-invalid={!!errors.exam}
-                autoComplete="off"
-              />
-              {errors.exam ? (
-                <FieldError>{errors.exam}</FieldError>
-              ) : (
-                <FieldDescription>
-                  Books filter by this on /books.
-                </FieldDescription>
-              )}
-            </Field>
-            <Field {...fieldProps("edition")}>
-              <FieldLabel htmlFor="book-edition">Edition</FieldLabel>
-              <Input
-                id="book-edition"
-                value={draft.edition}
-                onChange={(e) => set("edition", e.target.value)}
-                aria-invalid={!!errors.edition}
-                autoComplete="off"
-              />
-              <FieldError>{errors.edition}</FieldError>
-            </Field>
-            <Field {...fieldProps("price")}>
-              <FieldLabel htmlFor="book-price">Price (₹)</FieldLabel>
-              <Input
-                id="book-price"
-                inputMode="decimal"
-                value={draft.price}
-                onChange={(e) => set("price", rupeeDraft(e.target.value))}
-                aria-invalid={!!errors.price}
-                autoComplete="off"
-              />
-              <FieldError>{errors.price}</FieldError>
-            </Field>
-            <Field {...fieldProps("pages")}>
-              <FieldLabel htmlFor="book-pages">Pages</FieldLabel>
-              <Input
-                id="book-pages"
-                inputMode="numeric"
-                value={draft.pages}
-                onChange={(e) => set("pages", pageCountDraft(e.target.value))}
-                aria-invalid={!!errors.pages}
-                autoComplete="off"
-              />
-              <FieldError>{errors.pages}</FieldError>
-            </Field>
-          </div>
-          <Field {...fieldProps("description")}>
-            <FieldLabel htmlFor="book-description">Description</FieldLabel>
-            <Textarea
-              id="book-description"
-              rows={5}
-              value={draft.description}
-              onChange={(e) => set("description", e.target.value)}
-              aria-invalid={!!errors.description}
-            />
-            <FieldError>{errors.description}</FieldError>
-          </Field>
-          <Field {...fieldProps("contents")}>
-            <FieldLabel htmlFor="book-contents">Contents</FieldLabel>
-            <Textarea
-              id="book-contents"
-              rows={6}
-              value={draft.contents}
-              onChange={(e) => set("contents", e.target.value)}
-              aria-invalid={!!errors.contents}
-            />
-            {errors.contents ? (
-              <FieldError>{errors.contents}</FieldError>
-            ) : (
-              <FieldDescription>One chapter per line.</FieldDescription>
-            )}
-          </Field>
-          <PageImagesField
-            label="Sample pages"
-            hint="Photos or scans of a few pages, in reading order. Files are sorted by name as they are added."
-            max={SAMPLE_PAGES_MAX}
-            value={draft.samplePages}
-            onChange={(next) => set("samplePages", next)}
-            onBusyChange={onBusyChange}
-          />
-        </FieldGroup>
-
-        <aside className="grid content-start gap-6 lg:sticky lg:top-6">
-          <div className="grid gap-4 rounded-card border border-border p-5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">Status</span>
-              <PublishState published={published} />
+    <Shell title={`${title}.`}>
+      <form onSubmit={onSave} noValidate className="grid gap-10">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          <FieldGroup className="max-w-2xl">
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field data-invalid={invalid("exam") || undefined}>
+                <FieldLabel htmlFor="book-exam">Exam</FieldLabel>
+                <Input
+                  id="book-exam"
+                  value={draft.exam}
+                  onChange={(e) => setDraft({ ...draft, exam: e.target.value })}
+                  aria-invalid={invalid("exam")}
+                  autoComplete="off"
+                />
+                <FieldError>
+                  {invalid("exam") ? error?.message : null}
+                </FieldError>
+              </Field>
+              <Field
+                data-invalid={
+                  invalid("slug") || invalid("slug-taken") || undefined
+                }
+              >
+                <FieldLabel htmlFor="book-slug">Short name</FieldLabel>
+                <Input
+                  id="book-slug"
+                  value={draft.slug}
+                  onChange={(e) => {
+                    setSlugTouched(true)
+                    setDraft({ ...draft, slug: e.target.value })
+                  }}
+                  aria-invalid={invalid("slug") || invalid("slug-taken")}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                {invalid("slug") || invalid("slug-taken") ? (
+                  <FieldError>{error?.message}</FieldError>
+                ) : (
+                  <FieldDescription>
+                    Used inside the admin to tell books apart.
+                  </FieldDescription>
+                )}
+              </Field>
             </div>
+            <Field>
+              <FieldLabel htmlFor="book-desc-en">
+                Description, English
+              </FieldLabel>
+              <Textarea
+                id="book-desc-en"
+                rows={3}
+                value={draft.descriptionEn}
+                onChange={(e) =>
+                  setDraft({ ...draft, descriptionEn: e.target.value })
+                }
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="book-desc-as">
+                Description, Assamese
+              </FieldLabel>
+              <Textarea
+                id="book-desc-as"
+                lang="as"
+                rows={3}
+                value={draft.descriptionAs}
+                onChange={(e) =>
+                  setDraft({ ...draft, descriptionAs: e.target.value })
+                }
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="book-contents">Contents</FieldLabel>
+              <Textarea
+                id="book-contents"
+                rows={5}
+                value={draft.contents}
+                onChange={(e) =>
+                  setDraft({ ...draft, contents: e.target.value })
+                }
+              />
+              <FieldDescription>One chapter per line.</FieldDescription>
+            </Field>
+          </FieldGroup>
+
+          <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:top-6">
+            <p className="text-sm text-muted-foreground">
+              Books are sold inside sets. Add this book to a set to put it on
+              the site.
+            </p>
             <Button
               type="submit"
               size="md"
               disabled={busy || uploading > 0 || (!!id && !dirty)}
             >
               {busy ? <Spinner /> : null}
-              {id ? (dirty ? "Save changes" : "Saved") : "Save as draft"}
+              {id ? (dirty ? "Save changes" : "Saved") : "Save book"}
             </Button>
-            {id ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="md"
-                disabled={busy || dirty || uploading > 0}
-                onClick={onPublish}
-              >
-                {published ? "Unpublish" : "Publish"}
-              </Button>
+            {error &&
+            !error.field?.includes(".") &&
+            !["exam", "slug", "slug-taken"].includes(error.field ?? "") ? (
+              <FieldError>{error.message}</FieldError>
             ) : null}
-            {formError ? (
-              <FieldError>{formError}</FieldError>
-            ) : id && dirty ? (
-              <p className="text-xs text-muted-foreground">
-                Save your changes before publishing.
-              </p>
-            ) : null}
-            {id && published && !dirty ? (
-              <Link
-                href={`/books/${draft.slug}`}
-                target="_blank"
-                className="inline-flex items-center gap-1 text-sm underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground"
-              >
-                View on the site
-                <IconArrowUpRight
-                  stroke={1.75}
-                  className="size-4"
-                  aria-hidden
-                />
-              </Link>
-            ) : null}
-          </div>
+          </aside>
+        </div>
 
-          <ImageField
-            label="Cover"
-            hint="A straight-on photo or the print file, portrait. Without one, a typeset cover is shown."
-            value={draft.cover}
-            onChange={(next) => set("cover", next)}
-            onBusyChange={onBusyChange}
-          />
-          <Field>
-            <FieldLabel htmlFor="book-tone">Typeset cover colour</FieldLabel>
-            <Select
-              value={draft.tone}
-              onValueChange={(next) => next && set("tone", next as BookTone)}
-              items={TONE_ITEMS}
-            >
-              <SelectTrigger id="book-tone" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {TONE_ITEMS.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        </aside>
+        <div className="grid gap-6 xl:grid-cols-2">
+          {LANGUAGES.map((language) => (
+            <EditionPanel
+              key={language}
+              language={language}
+              value={draft.editions[language]}
+              onChange={(next) => setEdition(language, next)}
+              onBusyChange={onBusyChange}
+              error={
+                error?.field?.startsWith(`${language}.`) ? error.message : null
+              }
+            />
+          ))}
+        </div>
       </form>
     </Shell>
   )
 }
 
-/** The server's field names, mapped onto this form's inputs. */
-function fieldOf(field: string) {
-  return field === "slug-taken" ? "slug" : field
+function EditionPanel({
+  language,
+  value,
+  onChange,
+  onBusyChange,
+  error,
+}: {
+  language: Language
+  value: EditionDraft | null
+  onChange: (next: EditionDraft | null) => void
+  onBusyChange: (busy: boolean) => void
+  error: string | null
+}) {
+  const name = LANGUAGE_NAMES[language]
+  const prefix = `edition-${language}`
+  const set = <K extends keyof EditionDraft>(key: K, next: EditionDraft[K]) =>
+    value && onChange({ ...value, [key]: next })
+
+  return (
+    <section
+      lang={language === "as" ? "as" : undefined}
+      aria-labelledby={`${prefix}-heading`}
+      className="grid content-start gap-6 rounded-card border border-border p-5"
+    >
+      <label className="flex items-center gap-3">
+        <Checkbox
+          checked={value !== null}
+          onCheckedChange={(checked) =>
+            onChange(checked ? { ...EMPTY_EDITION } : null)
+          }
+        />
+        <span id={`${prefix}-heading`} className="font-medium">
+          {name} edition
+        </span>
+      </label>
+      {value ? (
+        <>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-title`}>Title</FieldLabel>
+            <Input
+              id={`${prefix}-title`}
+              value={value.title}
+              onChange={(e) => set("title", e.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-subtitle`}>Subtitle</FieldLabel>
+            <Input
+              id={`${prefix}-subtitle`}
+              value={value.subtitle}
+              onChange={(e) => set("subtitle", e.target.value)}
+              autoComplete="off"
+            />
+          </Field>
+          <div className="grid gap-6 sm:grid-cols-2">
+            <Field>
+              <FieldLabel htmlFor={`${prefix}-edition`}>Edition</FieldLabel>
+              <Input
+                id={`${prefix}-edition`}
+                value={value.edition}
+                onChange={(e) => set("edition", e.target.value)}
+                autoComplete="off"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor={`${prefix}-pages`}>Pages</FieldLabel>
+              <Input
+                id={`${prefix}-pages`}
+                inputMode="numeric"
+                value={value.pages}
+                onChange={(e) => set("pages", pageCountDraft(e.target.value))}
+                autoComplete="off"
+              />
+            </Field>
+          </div>
+          {error ? <FieldError>{error}</FieldError> : null}
+          <ImageField
+            label="Cover"
+            hint="A straight-on photo or the print file, portrait."
+            value={value.cover}
+            onChange={(next) => set("cover", next)}
+            onBusyChange={onBusyChange}
+          />
+          <PageImagesField
+            label="Sample pages"
+            hint="A few pages in reading order, or import them from the PDF."
+            max={SAMPLE_PAGES_MAX}
+            value={value.samplePages}
+            onChange={(next) => set("samplePages", next)}
+            onBusyChange={onBusyChange}
+          />
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          No {name} edition. Tick the box to add one.
+        </p>
+      )}
+    </section>
+  )
 }
 
 function messageFor(field: string) {
-  switch (field) {
+  const [language, part] = field.includes(".") ? field.split(".") : ["", field]
+  const where = language
+    ? `${LANGUAGE_NAMES[language as Language]} edition: `
+    : ""
+  switch (part) {
     case "slug-taken":
-      return "Another book already uses this address."
+      return "Another book already uses this short name."
     case "slug":
       return "Lowercase letters, numbers and hyphens only."
-    case "title":
-      return "Give the book a title, up to 120 characters."
     case "exam":
       return "Name the exam it is for."
+    case "editions":
+      return "Add at least one edition, English or Assamese."
+    case "title":
+      return `${where}give the book a title, up to 120 characters.`
     case "pages":
-      return "A whole number of pages."
-    case "price":
-      return "A price in rupees, like 349."
-    case "cover":
-      return "The cover must be an image under 8 MB."
-    case "sample pages":
-      return "Sample pages must be images under 8 MB, twelve at most."
+      return `${where}a whole number of pages.`
+    case "images":
+    case "samplePages":
+      return `${where}images must be under 8 MB, twelve sample pages at most.`
     default:
-      return `Check the ${FIELD_LABELS[field] ?? field}.`
+      return `${where}check the ${part}.`
   }
 }
 
@@ -524,13 +521,13 @@ function Shell({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-export function OwnerOnly() {
+export function CatalogOnly() {
   return (
-    <Shell title="Owner only.">
+    <Shell title="No access.">
       <StatePanel
         icon={<IconLock stroke={1.75} />}
-        title="Only an owner can edit books and resources"
-        description="If you are the owner, log in with your own number."
+        title="Your account cannot edit the shop"
+        description="The owner can give staff access from People."
         action={
           <ButtonLink href="/admin" size="md">
             Back to the overview

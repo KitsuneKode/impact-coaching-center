@@ -47,15 +47,15 @@ function OpenButton({
       const result = await openResource({ slug: resource.slug })
       if (result.ok) {
         track({ name: "resource_opened", slug: resource.slug })
-        const placeholder = result.pageUrls.length === 0
+        const placeholder = result.pages.length === 0
         onOpened({
           title: result.title,
           placeholder,
           pages: placeholder
-            ? Array.from({ length: result.pages }, (_, i) => ({
+            ? Array.from({ length: result.pageCount }, (_, i) => ({
                 heading: i === 0 ? result.title : undefined,
               }))
-            : result.pageUrls.map((src) => ({ src })),
+            : result.pages.map((page) => ({ src: page.url })),
         })
       } else if (result.reason === "anonymous") {
         router.push(returnTo(resource.slug, locale))

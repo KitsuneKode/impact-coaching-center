@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
 import { CALENDAR_EXAMS, DATE_KINDS } from "../lib/calendar"
+import { GRANTS } from "../lib/grants"
 
 /** Interface and edition languages. */
 export const LOCALE = v.union(v.literal("en"), v.literal("as"))
@@ -27,11 +28,7 @@ export const PERSON_ROLE = v.union(
 )
 
 /** Extra areas the owner can open to a staff member. The owner has all. */
-export const GRANT = v.union(
-  v.literal("catalog"),
-  v.literal("promotions"),
-  v.literal("content")
-)
+export const GRANT = v.union(...GRANTS.map((grant) => v.literal(grant)))
 
 export const LEAD_STATUS = v.union(
   v.literal("new"),

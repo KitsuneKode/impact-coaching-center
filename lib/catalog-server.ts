@@ -1,4 +1,5 @@
 import { fetchQuery } from "convex/nextjs"
+import type { FunctionReturnType } from "convex/server"
 import { unstable_cache } from "next/cache"
 import { cache } from "react"
 
@@ -6,21 +7,41 @@ import { api } from "@/convex/_generated/api"
 
 import type { Post, PostCard } from "./blog"
 import { daysBefore, todayIst, type ExamDate } from "./calendar"
-import type { Book, Resource } from "./catalog"
+import type { PublicBundle, Resource } from "./catalog"
 import { clientEnv } from "./env.client"
+
+export type PublicCourse = FunctionReturnType<typeof api.courses.list>[number]
 
 /** Published catalogue for server-rendered pages; empty when Convex is absent. */
 const configured = () => Boolean(clientEnv.NEXT_PUBLIC_CONVEX_URL)
 
 /* `cache` so a page and its metadata share one request. */
-export const publishedBooks = cache(async (): Promise<Book[]> =>
-  configured() ? fetchQuery(api.catalog.books) : []
+export const publishedBundles = cache(async (): Promise<PublicBundle[]> =>
+  configured() ? fetchQuery(api.catalog.bundles) : []
 )
 
-export const publishedBook = cache(
-  async (slug: string): Promise<Book | null> =>
-    configured() ? fetchQuery(api.catalog.book, { slug }) : null
+export const publishedBundle = cache(
+  async (slug: string): Promise<PublicBundle | null> =>
+    configured() ? fetchQuery(api.catalog.bundle, { slug }) : null
 )
+
+/* Courses follow ClassPlus every six hours; pages need not be fresher. */
+const cachedCourses = unstable_cache(
+  (): Promise<PublicCourse[]> => fetchQuery(api.courses.list),
+  ["courses"],
+  { revalidate: 900 }
+)
+
+/** Courses from the ClassPlus mirror; empty when Convex is unreachable. */
+export const publishedCourses = cache(async (): Promise<PublicCourse[]> => {
+  if (!configured()) return []
+  try {
+    return await cachedCourses()
+  } catch (error) {
+    console.error("Courses unavailable", error)
+    return []
+  }
+})
 
 export const publishedResources = cache(async (): Promise<Resource[]> =>
   configured() ? fetchQuery(api.catalog.resources) : []

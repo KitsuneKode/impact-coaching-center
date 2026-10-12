@@ -9,24 +9,26 @@ import {
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
-import { BookGrid } from "@/components/commerce/book-grid"
+import { BundleGrid } from "@/components/commerce/bundle-grid"
 import { CatalogSkeleton } from "@/components/commerce/catalog-skeleton"
 import { SampleNotice, ShopCartButton } from "@/components/commerce/shop-shell"
 import { StatePanel } from "@/components/ui/page-shell"
 import { Section } from "@/components/ui/section"
-import { onlySamples, publishedBooks } from "@/lib/catalog-server"
+import { onlySamples, publishedBundles } from "@/lib/catalog-server"
 
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/books">): Promise<Metadata> {
   const { locale } = await params
-  const books = await publishedBooks()
+  const bundles = await publishedBundles()
   const t = await getTranslations({ locale, namespace: "BooksPage" })
   return {
     title: t("title"),
     description: t("description"),
     alternates: alternatesFor("/books", locale),
-    ...(onlySamples(books) ? { robots: { index: false, follow: false } } : {}),
+    ...(onlySamples(bundles)
+      ? { robots: { index: false, follow: false } }
+      : {}),
   }
 }
 
@@ -41,12 +43,12 @@ export default async function BooksPage({
 }: PageProps<"/[locale]/books">) {
   const { locale } = await params
   setRequestLocale(locale)
-  const books = await publishedBooks()
+  const bundles = await publishedBundles()
   const t = await getTranslations("BooksPage")
 
   return (
     <Section size="sm" className="pt-10 md:pt-12">
-      {books.length && onlySamples(books) ? (
+      {bundles.length && onlySamples(bundles) ? (
         <div className="mb-8">
           <SampleNotice>{t("sample")}</SampleNotice>
         </div>
@@ -71,10 +73,10 @@ export default async function BooksPage({
           ))}
         </ul>
       </div>
-      {books.length ? (
+      {bundles.length ? (
         /* The filter reads the URL; this keeps the rest of the page static. */
         <Suspense fallback={<CatalogSkeleton kind="books" />}>
-          <BookGrid books={books} />
+          <BundleGrid bundles={bundles} />
         </Suspense>
       ) : (
         <StatePanel

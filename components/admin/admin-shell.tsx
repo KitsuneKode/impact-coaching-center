@@ -76,7 +76,7 @@ function Shell({ children }: { children: ReactNode }) {
         <AdminHeader />
         {children}
       </SidebarInset>
-      <AdminCommandMenu isOwner={viewer.role === "owner"} />
+      <AdminCommandMenu viewer={viewer} />
     </SidebarProvider>
   )
 }

@@ -4,7 +4,7 @@ import { IconFileText } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 
 import { convexConfigured } from "@/app/providers"
-import { OwnerOnly } from "@/components/admin/book-editor"
+import { CatalogOnly } from "@/components/admin/book-editor"
 import { CatalogList } from "@/components/admin/catalog-list"
 import { PaperPage } from "@/components/commerce/paper-page"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
@@ -35,7 +35,7 @@ function Resources() {
         <ListSkeleton rows={5} />
       </PageShell>
     )
-  if (!allowed) return <OwnerOnly />
+  if (!allowed) return <CatalogOnly />
 
   return (
     <CatalogList

@@ -20,6 +20,7 @@ import {
 import {
   COMMERCE_NAV,
   isActivePath,
+  contentNavFor,
   NAV,
   OWNER_NAV,
 } from "@/components/admin/nav"
@@ -32,6 +33,7 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const viewer = useQuery(api.auth.getCurrentPerson)
   const isOwner = viewer?.role === "owner"
+  const content = viewer ? contentNavFor(viewer) : []
   /*
    * The closest thing to a notification this product can honestly offer. A real
    * alert needs a channel, and the only one here is WhatsApp, which is not
@@ -103,6 +105,28 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {content.length ? (
+          <SidebarGroup>
+            <SidebarGroupLabel>Content</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {content.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      isActive={isActivePath(item.href, pathname)}
+                      tooltip={item.label}
+                      render={<Link href={item.href} />}
+                    >
+                      <item.icon stroke={1.75} />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
 
         {/*
           Hidden rather than disabled. A disabled control tells a staff member a

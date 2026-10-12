@@ -7,12 +7,13 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { OwnerOnly } from "@/components/admin/book-editor"
+import { CatalogOnly } from "@/components/admin/book-editor"
 import {
   CATALOG_REFUSALS,
   FIELD_LABELS,
   PageImagesField,
   PublishState,
+  toStored,
   type StoredImage,
 } from "@/components/admin/catalog-fields"
 import { Button, ButtonLink } from "@/components/ui/button"
@@ -81,7 +82,7 @@ export function ResourceEditor({ id }: { id?: string }) {
         <ListSkeleton rows={6} />
       </Shell>
     )
-  if (!allowed) return <OwnerOnly />
+  if (!allowed) return <CatalogOnly />
   if (id && !resource)
     return (
       <Shell title="Not found.">
@@ -111,7 +112,7 @@ export function ResourceEditor({ id }: { id?: string }) {
         exam: resource.exam,
         kind: resource.kind,
         description: resource.description,
-        pageImages: resource.pageImages,
+        pageImages: resource.pageImages.map(toStored),
       }}
     />
   )

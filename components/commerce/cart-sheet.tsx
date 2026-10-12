@@ -20,6 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import { useCart, useCartActions, useCartHydrated } from "@/lib/cart-store"
+import { inLanguage, type Language } from "@/lib/catalog"
 import { formatPaise } from "@/lib/money"
 
 /** The cart button with its count, shown once the saved cart has loaded. */
@@ -45,10 +46,8 @@ export function CartButton({ onOpen }: { onOpen: () => void }) {
 }
 
 /**
- * The cart as a side sheet, so the shopper never leaves the book they were
- * reading. Prices are the published ones from Convex; a line whose book is no
- * longer published drops out. Checkout is a labelled prototype until payments
- * are live, and the server will price the real order.
+ * The cart as a side sheet, so the shopper never leaves the set they were
+ * looking at. Prices are the published ones; the server prices the real order.
  */
 export function CartSheet({
   open,
@@ -62,22 +61,23 @@ export function CartSheet({
   const { setQuantity, remove } = useCartActions()
   /* No subscription while the sheet is closed: a hidden cart should not keep
      a live catalogue query open on every page it is mounted on. */
-  const books = useQuery(api.catalog.books, open ? {} : "skip")
-  const loading = books === undefined && lines.length > 0
+  const bundles = useQuery(api.catalog.bundles, open ? {} : "skip")
+  const loading = bundles === undefined && lines.length > 0
 
-  /*
-   * A line whose book has vanished (unpublished or removed) is rendered as a
-   * dead row with a remove control, not silently dropped - otherwise the
-   * badge keeps counting an item the shopper can neither see nor clear.
-   */
-  const rows = lines.flatMap((line) => {
-    const book = books?.find((b) => b.slug === line.slug)
-    return [{ line, book: book ?? null }]
+  /* A line whose set is gone or switched off stays as a dead row with a
+     remove control, so the badge never counts something nobody can clear. */
+  const rows = lines.map((line) => {
+    const bundle = bundles?.find((b) => b.slug === line.slug)
+    const live = bundle?.variants[line.language].available ? bundle : null
+    return { line, bundle: live }
   })
   const subtotal = rows.reduce(
-    (sum, { line, book }) => sum + line.quantity * (book?.pricePaise ?? 0),
+    (sum, { line, bundle }) =>
+      sum + line.quantity * (bundle?.variants[line.language].pricePaise ?? 0),
     0
   )
+  const setName = (language: Language) =>
+    language === "as" ? t("assameseSet") : t("englishSet")
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -98,7 +98,10 @@ export function CartSheet({
         {loading ? (
           <div aria-hidden className="grid flex-1 content-start gap-4 p-6">
             {lines.map((line) => (
-              <Skeleton key={line.slug} className="h-24 w-full" />
+              <Skeleton
+                key={`${line.slug}:${line.language}`}
+                className="h-24 w-full"
+              />
             ))}
           </div>
         ) : rows.length === 0 ? (
@@ -114,68 +117,70 @@ export function CartSheet({
           </div>
         ) : (
           <ul className="flex-1 divide-y divide-border overflow-y-auto">
-            {rows.map(({ line, book }) =>
-              book ? (
-                <li
-                  key={book.slug}
-                  className="grid grid-cols-[64px_1fr] gap-4 p-6"
-                >
-                  <BookCover
-                    title={book.title}
-                    tone={book.tone}
-                    coverUrl={book.coverUrl}
-                    size="sm"
-                  />
+            {rows.map(({ line, bundle }) => {
+              const key = `${line.slug}:${line.language}`
+              if (!bundle)
+                return (
+                  <li
+                    key={key}
+                    className="flex items-center justify-between gap-4 p-6 text-muted-foreground"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium">{t("unavailable")}</p>
+                      <p className="truncate text-sm">{line.slug}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(line)}
+                      aria-label={t("removeFromCart", { slug: line.slug })}
+                    >
+                      <IconTrash stroke={1.75} aria-hidden />
+                      {t("remove")}
+                    </Button>
+                  </li>
+                )
+              const title = inLanguage(bundle.title, line.language)
+              const price = bundle.variants[line.language].pricePaise
+              const first = bundle.books[0]?.editions[line.language]
+              return (
+                <li key={key} className="grid grid-cols-[64px_1fr] gap-4 p-6">
+                  <BookCover title={title} cover={first?.cover} size="sm" />
                   <div className="grid min-w-0 gap-3">
                     <div className="min-w-0 break-words">
                       <Link
-                        href={`/books/${book.slug}`}
+                        href={`/books/${bundle.slug}`}
                         onClick={() => onOpenChange(false)}
                         className="font-medium hover:underline"
                       >
-                        {book.title}
+                        {title}
                       </Link>
                       <p className="tnum text-muted-foreground">
-                        {t("each", { price: formatPaise(book.pricePaise) })}
+                        {setName(line.language)} ·{" "}
+                        {t("each", { price: formatPaise(price) })}
                       </p>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <QuantityStepper
                         value={line.quantity}
-                        label={book.title}
-                        onChange={(next) => setQuantity(book.slug, next)}
+                        label={t("setOf", {
+                          set: title,
+                          language: setName(line.language),
+                        })}
+                        onChange={(next) => setQuantity(line, next)}
                       />
                       <span className="tnum font-medium">
-                        {formatPaise(line.quantity * book.pricePaise)}
+                        {formatPaise(line.quantity * price)}
                       </span>
                     </div>
                   </div>
                 </li>
-              ) : (
-                <li
-                  key={line.slug}
-                  className="flex items-center justify-between gap-4 p-6 text-muted-foreground"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium">{t("unavailable")}</p>
-                    <p className="truncate text-sm">{line.slug}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => remove(line.slug)}
-                    aria-label={t("removeFromCart", { slug: line.slug })}
-                  >
-                    <IconTrash stroke={1.75} aria-hidden />
-                    {t("remove")}
-                  </Button>
-                </li>
               )
-            )}
+            })}
           </ul>
         )}
 
-        {rows.some((row) => row.book) ? (
+        {rows.some((row) => row.bundle) ? (
           <SheetFooter className="gap-3 border-t border-border p-6">
             <div className="flex items-baseline justify-between">
               <span className="text-muted-foreground">{t("subtotal")}</span>

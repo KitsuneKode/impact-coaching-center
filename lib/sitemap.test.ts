@@ -31,6 +31,10 @@ const noindexRoutes = [
   // Sample content, labelled as such and noindexed by its layout.
   "/admin/books",
   "/admin/books/new",
+  "/admin/courses",
+  "/admin/settings",
+  "/admin/bundles",
+  "/admin/bundles/new",
   "/admin/resources",
   "/admin/resources/new",
   "/admin/blog",

@@ -569,7 +569,19 @@
     "bookCount": "{count}খন কিতাপ",
     "samplePages": "{count}টা নমুনা পৃষ্ঠা।",
     "placeholderBookPages": "নমুনা পৃষ্ঠা। কিতাপখনৰ নিজৰ পৃষ্ঠা ইয়াত আহিব।",
-    "sampleTag": "নমুনা।"
+    "sampleTag": "নমুনা।",
+    "englishSet": "ইংৰাজী সংস্কৰণ",
+    "assameseSet": "অসমীয়া সংস্কৰণ",
+    "chooseSet": "কিতাপৰ ভাষা",
+    "booksInSet": "{count, plural, other {এই সংকলনত {count}খন কিতাপ}}",
+    "sold": "{count, plural, other {{count}টা বিক্ৰী হৈছে}}",
+    "fromPrice": "{price}ৰ পৰা",
+    "notAvailable": "এতিয়া উপলব্ধ নহয়",
+    "allSets": "সকলো সংকলন",
+    "setCount": "{count, plural, other {{count}টা সংকলন}}",
+    "insideSet": "সংকলনত কি আছে",
+    "placeholderSet": "এই সংকলন আৰু মূল্য নমুনা মাত্ৰ, পৃষ্ঠাটোৱে কেনেকৈ কাম কৰে দেখুৱাবলৈ।",
+    "setOf": "{set}, {language}"
   },
   "Library": {
     "claim": "পঢ়াৰ বাবে এটা প্ৰকৃত ঠাই।",

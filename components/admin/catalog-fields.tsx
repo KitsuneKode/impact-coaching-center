@@ -24,9 +24,38 @@ import { cn } from "@/lib/utils"
 /** An image held by a record: stored in Convex, plus something to show. */
 export type StoredImage = { id: Id<"_storage">; url: string | null }
 
+/** A record's image as the admin queries return it. */
+export const toStored = (image: {
+  id: Id<"_storage">
+  picture: { url: string }
+}): StoredImage => ({ id: image.id, url: image.picture.url })
+
+/**
+ * Width, height and a few-hundred-byte placeholder, measured in the browser
+ * so public pages can reserve space and blur in. Null if it cannot decode.
+ */
+async function measure(file: File) {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = 16 / Math.max(bitmap.width, bitmap.height)
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    canvas
+      .getContext("2d")
+      ?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const size = { width: bitmap.width, height: bitmap.height }
+    bitmap.close()
+    return { ...size, blurDataUrl: canvas.toDataURL("image/webp", 0.6) }
+  } catch {
+    return null
+  }
+}
+
 export const CATALOG_REFUSALS: Record<string, string> = {
   anonymous: "Your session has ended. Log in again; your changes are kept.",
-  forbidden: "Only an owner can change books and resources.",
+  forbidden:
+    "Your account cannot change the catalogue. Ask the owner for access.",
   "missing-record": "This record no longer exists.",
   "revision-conflict":
     "This was changed in another tab. Reload to see that version, then make your change again.",
@@ -51,6 +80,7 @@ export const FIELD_LABELS: Record<string, string> = {
 /** Uploads one image to Convex storage and returns its id. */
 export function useImageUpload() {
   const uploadUrl = useMutation(api.catalogAdmin.uploadUrl)
+  const recordImage = useMutation(api.images.recordImage)
   return async (file: File): Promise<StoredImage | null> => {
     if (!file.type.startsWith("image/")) {
       toast.error(`${file.name} is not an image.`)
@@ -75,6 +105,9 @@ export function useImageUpload() {
       const { storageId } = (await response.json()) as {
         storageId: Id<"_storage">
       }
+      const size = await measure(file)
+      // Best effort: a missing size only costs the placeholder, not the image.
+      if (size) void recordImage({ storageId, ...size }).catch(() => {})
       return { id: storageId, url: URL.createObjectURL(file) }
     } catch {
       toast.error(

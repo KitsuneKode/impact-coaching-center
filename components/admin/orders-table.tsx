@@ -61,9 +61,11 @@ export type OrderRow = {
   reference: string
   status: string
   fulfilment: "delivery" | "collection"
-  items: {
+  lines: {
+    slug: string
     title: string
-    edition?: string
+    language: "en" | "as"
+    books: string[]
     quantity: number
     unitPaise: number
   }[]
@@ -81,6 +83,7 @@ export type OrderRow = {
   seen: boolean
   revision: number
   courier?: { name: string; trackingNumber: string }
+  receiptNumber?: string
   buyerName: string
   buyerPhone: string
   buyerDeleted: boolean
@@ -755,26 +758,27 @@ function OrderDetail({
       <div>
         <h3 className="text-sm font-medium">Items</h3>
         <ul className="mt-3 flex flex-col gap-2">
-          {order.items.map((item, index) => (
-            <li
-              key={`${item.title}-${index}`}
-              className="flex items-baseline justify-between gap-4"
-            >
-              <span>
-                {item.title}
-                {item.edition ? (
+          {order.lines.map((line) => (
+            <li key={`${line.slug}:${line.language}`} className="grid gap-1">
+              <span className="flex items-baseline justify-between gap-4">
+                <span>
+                  {line.title}
                   <span className="text-muted-foreground">
                     {" "}
-                    · {item.edition}
+                    · {line.language === "as" ? "Assamese" : "English"} set
                   </span>
-                ) : null}
-                <span className="tnum text-muted-foreground">
-                  {" "}
-                  × {item.quantity}
+                  <span className="tnum text-muted-foreground">
+                    {" "}
+                    × {line.quantity}
+                  </span>
+                </span>
+                <span className="tnum whitespace-nowrap text-muted-foreground">
+                  {formatPaise(line.unitPaise * line.quantity)}
                 </span>
               </span>
-              <span className="tnum whitespace-nowrap text-muted-foreground">
-                {formatPaise(item.unitPaise * item.quantity)}
+              {/* The packing list: exactly which books go in the parcel. */}
+              <span className="text-sm text-muted-foreground">
+                {line.books.join(" · ")}
               </span>
             </li>
           ))}

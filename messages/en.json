@@ -369,7 +369,19 @@
     "bookCount": "{count, plural, one {# book} other {# books}}",
     "samplePages": "{count} sample pages.",
     "placeholderBookPages": "Placeholder pages. The book's own pages appear here.",
-    "sampleTag": "Sample."
+    "sampleTag": "Sample.",
+    "englishSet": "English set",
+    "assameseSet": "Assamese set",
+    "chooseSet": "Language of the books",
+    "booksInSet": "{count, plural, one {# book} other {# books}} in this set",
+    "sold": "{count, plural, one {# sold} other {# sold}}",
+    "fromPrice": "From {price}",
+    "notAvailable": "Not available right now",
+    "allSets": "All sets",
+    "setCount": "{count, plural, one {# set} other {# sets}}",
+    "insideSet": "What's in the set",
+    "placeholderSet": "A placeholder set and price, to show how a set page works.",
+    "setOf": "{set}, {language}"
   },
   "Library": {
     "claim": "A place to actually study.",

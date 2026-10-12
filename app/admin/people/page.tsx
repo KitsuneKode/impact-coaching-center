@@ -6,6 +6,7 @@ import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
   Field,
@@ -31,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
+import { GRANT_LABELS, GRANTS } from "@/lib/grants"
 import { formatPhone } from "@/lib/brand"
 import { nationalMobileDraft, toE164 } from "@/lib/leads"
 
@@ -66,6 +68,7 @@ function People() {
 
   const grant = useMutation(api.people.grantStaffByPhone)
   const setRole = useMutation(api.people.setRole)
+  const setGrants = useMutation(api.people.setGrants)
 
   const [phone, setPhone] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -177,12 +180,13 @@ function People() {
       </form>
 
       <div className="mt-12 overflow-x-auto">
-        <Table className="min-w-160">
+        <Table className="min-w-200">
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Mobile</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Areas</TableHead>
               <TableHead>Access</TableHead>
             </TableRow>
           </TableHeader>
@@ -203,6 +207,51 @@ function People() {
                   >
                     {person.role === "owner" ? "Owner" : "Staff"}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {person.role === "owner" ? (
+                    <span className="text-sm text-muted-foreground">
+                      Everything
+                    </span>
+                  ) : (
+                    <div className="grid gap-1.5">
+                      <span className="text-xs text-muted-foreground">
+                        Enquiries and orders, plus:
+                      </span>
+                      {GRANTS.map((grant) => (
+                        <label
+                          key={grant}
+                          className="flex items-center gap-2 text-sm"
+                        >
+                          <Checkbox
+                            checked={person.grants.includes(grant)}
+                            onCheckedChange={async (on) => {
+                              setError(null)
+                              const grants = on
+                                ? [...person.grants, grant]
+                                : person.grants.filter((g) => g !== grant)
+                              try {
+                                const result = await setGrants({
+                                  personId: person.id as never,
+                                  grants,
+                                  expectedRevision: person.revision,
+                                })
+                                if (!result.ok)
+                                  setError(
+                                    REFUSALS[result.reason] ?? "Refused."
+                                  )
+                              } catch {
+                                setError(
+                                  "Could not reach the server. Try again."
+                                )
+                              }
+                            }}
+                          />
+                          {GRANT_LABELS[grant]}
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Button

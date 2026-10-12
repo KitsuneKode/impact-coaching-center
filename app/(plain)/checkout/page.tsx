@@ -24,13 +24,14 @@ import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import { track } from "@/lib/analytics"
 import { useCart, useCartHydrated, useCartSync } from "@/lib/cart-store"
-import { DELIVERY_CHARGE_PAISE, FULFILMENT_LABELS } from "@/lib/checkout"
+import { inLanguage } from "@/lib/catalog"
+import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 /*
  * Checkout. The page prices nothing itself for the write: the server reads
- * the shopper's cart and the books table, so what is shown here is a
+ * the shopper's cart and the published sets, so what is shown here is a
  * preview of what placeOrder will charge, not the charge.
  *
  * Payment is deliberately not taken. Until Razorpay is approved and wired
@@ -115,7 +116,8 @@ type Placed = { reference: string; totalPaise: number }
 
 function CheckoutForm() {
   const lines = useCart((s) => s.lines)
-  const books = useQuery(api.catalog.books)
+  const bundles = useQuery(api.catalog.bundles)
+  const shop = useQuery(api.settings.shop)
   const placeOrder = useMutation(api.checkout.placeOrder)
   const [fulfilment, setFulfilment] = useState<"delivery" | "collection">(
     "delivery"
@@ -136,16 +138,24 @@ function CheckoutForm() {
   const errorId = useId()
 
   const rows = lines.flatMap((line) => {
-    const book = books?.find((b) => b.slug === line.slug)
-    return book && !book.sample
-      ? [{ ...line, title: book.title, unitPaise: book.pricePaise }]
+    const bundle = bundles?.find((b) => b.slug === line.slug)
+    const variant = bundle?.variants[line.language]
+    return bundle && !bundle.sample && variant?.available
+      ? [
+          {
+            ...line,
+            title: `${inLanguage(bundle.title, line.language)} (${line.language === "as" ? "Assamese" : "English"} set)`,
+            unitPaise: variant.pricePaise,
+          },
+        ]
       : []
   })
+  const shippingPaise = shop?.shippingPaise ?? 0
   const itemsPaise = rows.reduce(
     (sum, row) => sum + row.unitPaise * row.quantity,
     0
   )
-  const deliveryPaise = fulfilment === "delivery" ? DELIVERY_CHARGE_PAISE : 0
+  const deliveryPaise = fulfilment === "delivery" ? shippingPaise : 0
 
   const set =
     (field: keyof typeof address) =>
@@ -258,8 +268,8 @@ function CheckoutForm() {
       {rows.length === 0 ? (
         <StatePanel
           icon={<IconPackage stroke={1.75} />}
-          title={books === undefined ? "Loading…" : "Your cart is empty"}
-          description="The books you add wait here until you place the order."
+          title={bundles === undefined ? "Loading…" : "Your cart is empty"}
+          description="The sets you add wait here until you place the order."
           action={
             <ButtonLink href="/books" className="mt-6">
               Browse the books
@@ -274,7 +284,7 @@ function CheckoutForm() {
               <ul className="mt-4 divide-y divide-border">
                 {rows.map((row) => (
                   <li
-                    key={row.slug}
+                    key={`${row.slug}:${row.language}`}
                     className="flex items-baseline justify-between gap-4 py-3"
                   >
                     <span>
@@ -332,7 +342,7 @@ function CheckoutForm() {
                       </span>
                       <span className="block text-sm text-muted-foreground">
                         {value === "delivery"
-                          ? `${formatPaise(DELIVERY_CHARGE_PAISE)} delivery, shown at checkout`
+                          ? `${formatPaise(shippingPaise)} delivery`
                           : "From the centre, when it's ready - free"}
                       </span>
                     </span>

@@ -74,8 +74,8 @@ export function OrdersCard() {
                 })}
               </time>
               {" · "}
-              {order.items
-                .map((item) => `${item.title} × ${item.quantity}`)
+              {order.lines
+                .map((line) => `${line.title} × ${line.quantity}`)
                 .join(", ")}
               {" · "}
               <span className="tnum">{formatPaise(order.totalPaise)}</span>

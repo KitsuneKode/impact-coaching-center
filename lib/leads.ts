@@ -102,8 +102,16 @@ export function parseLead(input: Record<string, string>): ParseResult {
 }
 
 /** Where a parsed Lead goes. */
+/** Where an enquiry came from: the page and the visit's first source. */
+export type LeadSource = {
+  page?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+}
+
 export interface LeadSink {
-  submit(lead: Lead): Promise<void>
+  submit(lead: Lead, source?: LeadSource): Promise<void>
 }
 
 /**

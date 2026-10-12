@@ -9,6 +9,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { track } from "@/lib/analytics"
 import { useCartActions } from "@/lib/cart-store"
+import type { Language } from "@/lib/catalog"
 import { cn } from "@/lib/utils"
 
 /**
@@ -17,13 +18,17 @@ import { cn } from "@/lib/utils"
  */
 export function AddToCart({
   slug,
+  language,
   title,
+  disabled,
   onOpenCart,
   className,
   size = "md",
 }: {
   slug: string
+  language: Language
   title: string
+  disabled?: boolean
   onOpenCart?: () => void
   className?: string
   size?: "sm" | "md" | "lg"
@@ -36,9 +41,10 @@ export function AddToCart({
     <Button
       size={size}
       className={cn("min-w-36", className)}
+      disabled={disabled}
       onClick={() => {
         track({ name: "add_to_cart", slug })
-        add(slug)
+        add({ slug, language })
         setAdded(true)
         window.setTimeout(() => setAdded(false), 1400)
         toast.success(t("addedToast", { title }), {

@@ -7,6 +7,7 @@ import { findVerifiedPerson } from "./persons"
 import { components } from "./_generated/api"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
 import type { GRANT } from "./schema"
+import { hasGrant } from "../lib/grants"
 
 /** One place that answers "may this caller do this". */
 export type Refusal =
@@ -90,11 +91,7 @@ export async function requireStaff(ctx: Ctx): Promise<Decision<Viewer>> {
 
 type Grant = Infer<typeof GRANT>
 
-/** The owner, or staff the owner has opened this area to. */
-export function hasGrant(viewer: Viewer, grant: Grant): boolean {
-  if (viewer.role === "owner") return true
-  return viewer.role === "staff" && viewer.grants.includes(grant)
-}
+export { hasGrant }
 
 /** Owner, or staff holding `grant`. */
 export async function requireGrant(

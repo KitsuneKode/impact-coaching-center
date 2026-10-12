@@ -2,34 +2,47 @@ import { describe, expect, test } from "bun:test"
 
 import {
   checkBook,
+  checkBundle,
   checkResource,
+  inLanguage,
   pageCountDraft,
   rupeeDraft,
   rupeesToPaise,
   slugify,
   type BookInput,
+  type BundleInput,
 } from "./catalog"
 
 const book: BookInput = {
   slug: "assam-gk-capsule",
-  title: "  Assam GK   Capsule ",
-  subtitle: "Quick revision",
   exam: "ADRE and Assam Police",
-  edition: "2026",
-  pages: 120,
-  pricePaise: 19900,
-  tone: "muted",
-  description: "Notes.",
+  description: { en: "Notes.", as: "   " },
   contents: ["Geography", " ", "Polity"],
+  editions: {
+    en: { title: "  Assam GK   Capsule ", edition: "2026", pages: 120 },
+  },
+}
+
+const bundle: BundleInput = {
+  slug: "adre-police-set",
+  exam: "ADRE and Assam Police",
+  title: { en: " ADRE  Set ", as: "ADRE সংকলন" },
+  description: { en: "Two books." },
+  variants: {
+    en: { pricePaise: 44900, comparePaise: 54000, available: true },
+    as: { pricePaise: 44900, available: false },
+  },
+  sortOrder: 2,
 }
 
 describe("catalog rules", () => {
-  test("tidies text and drops empty contents lines", () => {
+  test("tidies text, drops empty contents lines and blank Assamese", () => {
     const result = checkBook(book)
     expect(result.ok).toBe(true)
     if (result.ok) {
-      expect(result.value.title).toBe("Assam GK Capsule")
+      expect(result.value.editions.en?.title).toBe("Assam GK Capsule")
       expect(result.value.contents).toEqual(["Geography", "Polity"])
+      expect(result.value.description).toEqual({ en: "Notes." })
     }
   })
 
@@ -38,14 +51,16 @@ describe("catalog rules", () => {
       ok: false,
       field: "slug",
     })
-    expect(checkBook({ ...book, pricePaise: 12.5 })).toEqual({
+    expect(checkBook({ ...book, editions: {} })).toEqual({
       ok: false,
-      field: "price",
+      field: "editions",
     })
-    expect(checkBook({ ...book, title: "   " })).toEqual({
-      ok: false,
-      field: "title",
-    })
+    expect(
+      checkBook({
+        ...book,
+        editions: { as: { title: "   ", edition: "", pages: 10 } },
+      })
+    ).toEqual({ ok: false, field: "as.title" })
     expect(
       checkResource({
         slug: "x",
@@ -55,6 +70,34 @@ describe("catalog rules", () => {
         description: "",
       })
     ).toEqual({ ok: false, field: "kind" })
+  })
+
+  test("a bundle needs whole-paise prices and a struck price above the price", () => {
+    const ok = checkBundle(bundle)
+    expect(ok.ok && ok.value.title.en).toBe("ADRE Set")
+    expect(
+      checkBundle({
+        ...bundle,
+        variants: {
+          ...bundle.variants,
+          en: { pricePaise: 12.5, available: true },
+        },
+      })
+    ).toEqual({ ok: false, field: "en.price" })
+    expect(
+      checkBundle({
+        ...bundle,
+        variants: {
+          ...bundle.variants,
+          en: { pricePaise: 44900, comparePaise: 44900, available: true },
+        },
+      })
+    ).toEqual({ ok: false, field: "en.comparePrice" })
+  })
+
+  test("Assamese text falls back to English", () => {
+    expect(inLanguage({ en: "Set" }, "as")).toBe("Set")
+    expect(inLanguage({ en: "Set", as: "সংকলন" }, "as")).toBe("সংকলন")
   })
 
   test("keeps a rupee field to digits and two decimal places", () => {

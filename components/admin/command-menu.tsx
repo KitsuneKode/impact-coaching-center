@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { COMMERCE_NAV, NAV, OWNER_NAV } from "@/components/admin/nav"
+import {
+  COMMERCE_NAV,
+  contentNavFor,
+  NAV,
+  OWNER_NAV,
+} from "@/components/admin/nav"
+import type { Grant } from "@/lib/grants"
 import {
   Command,
   CommandDialog,
@@ -20,7 +26,11 @@ import {
 import { authClient } from "@/lib/auth-client"
 
 /** ⌘K / Ctrl+K in the admin. */
-export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
+export function AdminCommandMenu({
+  viewer,
+}: {
+  viewer: { role: "student" | "staff" | "owner"; grants: Grant[] }
+}) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
@@ -41,9 +51,12 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
     action()
   }
 
-  const destinations = isOwner
-    ? [...NAV, ...COMMERCE_NAV, ...OWNER_NAV]
-    : [...NAV, ...COMMERCE_NAV]
+  const destinations = [
+    ...NAV,
+    ...COMMERCE_NAV,
+    ...contentNavFor(viewer),
+    ...(viewer.role === "owner" ? OWNER_NAV : []),
+  ]
 
   return (
     <CommandDialog

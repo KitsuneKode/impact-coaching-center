@@ -7,9 +7,10 @@ import {
 import { ConvexReactClient } from "convex/react"
 import { LazyMotion } from "motion/react"
 import { ThemeProvider } from "next-themes"
-import type { ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
+import { visitAttribution } from "@/lib/attribution"
 import { authClient } from "@/lib/auth-client"
 import { clientEnv } from "@/lib/env.client"
 import { defaultTheme, themes } from "@/lib/theme"
@@ -55,6 +56,14 @@ function Themed({ children }: { children: ReactNode }) {
 const loadFeatures = () =>
   import("@/components/motion/features").then((res) => res.default)
 
+/** Notes where this visit came from, once, on the page it landed on. */
+function VisitSource() {
+  useEffect(() => {
+    visitAttribution()
+  }, [])
+  return null
+}
+
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <LazyMotion features={loadFeatures} strict>
@@ -71,6 +80,7 @@ export function Providers({ children }: { children: ReactNode }) {
         )}
         {/* Bottom-right on desktop; lifted on phones above the call bar. */}
         <Toaster position="bottom-right" mobileOffset={{ bottom: 88 }} />
+        <VisitSource />
       </Themed>
     </LazyMotion>
   )
