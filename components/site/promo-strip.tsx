@@ -1,37 +1,16 @@
 "use client"
 
 import { IconArrowRight, IconX } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
-import { api } from "@/convex/_generated/api"
-import { usePathname } from "@/i18n/navigation"
-import { isRested } from "@/lib/campaigns"
-
-/** The time, to the minute: queries never read the clock themselves. */
-function useMinute() {
-  const [now, setNow] = useState<number | null>(null)
-  useEffect(() => {
-    const tick = () => setNow(Math.floor(Date.now() / 60_000) * 60_000)
-    tick()
-    const timer = setInterval(tick, 60_000)
-    return () => clearInterval(timer)
-  }, [])
-  return now
-}
-
-const storeKey = (id: string, revision: number) => `ict-promo:${id}:${revision}`
-
-function closedAt(key: string): number | null {
-  try {
-    const value = localStorage.getItem(key)
-    return value ? Number(value) : null
-  } catch {
-    return null
-  }
-}
+import {
+  isAvailable,
+  rememberClosed,
+  storeKey,
+  useLivePromos,
+} from "@/components/site/use-live-promos"
 
 /** The announcement strip: Pulse's ink band above the header. */
 export function PromoStrip() {
@@ -41,29 +20,16 @@ export function PromoStrip() {
 
 function Strip() {
   const t = useTranslations("Pulse")
-  const path = usePathname()
-  const now = useMinute()
-  const live = useQuery(
-    api.campaigns.liveCampaigns,
-    now === null ? "skip" : { path, now }
-  )
+  const { rows, now } = useLivePromos()
   const [closed, setClosed] = useState<string | null>(null)
-  const bar = live?.find((c) => c.kind === "bar")
-  const key = bar ? storeKey(bar.id, bar.revision) : null
+  const bar = rows?.find((c) => c.kind === "bar")
+  const key = bar ? storeKey(bar) : null
   const hidden =
-    !bar ||
-    closed === key ||
-    (key !== null &&
-      now !== null &&
-      !isRested(closedAt(key), bar.restDays, now))
+    !bar || closed === key || (now !== null && !isAvailable(bar, now))
 
   const dismiss = () => {
     if (!key) return
-    try {
-      localStorage.setItem(key, String(Date.now()))
-    } catch {
-      /* blocked storage only means it may show again */
-    }
+    rememberClosed(key)
     setClosed(key)
   }
 

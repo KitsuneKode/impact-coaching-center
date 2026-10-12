@@ -41,6 +41,8 @@ const noindexRoutes = [
   "/admin/blog/new",
   "/admin/calendar",
   "/admin/calendar/new",
+  "/admin/promotions",
+  "/admin/promotions/new",
   // A buyer's own order flow - nothing public, nothing to rank.
   "/checkout",
   // Noindexed while every title is a sample; list them once ICT's are in.

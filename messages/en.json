@@ -636,5 +636,13 @@
     "assistVideosNote": "From ICT's own YouTube channel.",
     "assistVideo1": "ASSIST 4.0",
     "assistVideo2": "Free APSC coaching"
+  },
+  "Promos": {
+    "code": "Code",
+    "copy": "Copy the code {code}",
+    "copied": "Copied",
+    "notNow": "Not now",
+    "close": "Close",
+    "label": "Offer"
   }
 }

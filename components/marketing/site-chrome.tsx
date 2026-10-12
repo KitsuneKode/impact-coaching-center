@@ -1,12 +1,14 @@
 import { getTranslations } from "next-intl/server"
 import type { ReactNode } from "react"
 
+import { LivePromos } from "@/components/site/live-promos"
 import { SiteFooter } from "@/components/site/site-footer"
 import { PromoStrip } from "@/components/site/promo-strip"
 import { SiteHeader } from "@/components/site/site-header"
 
 /**
- * The public site's frame: skip link, promo strip, header and footer.
+ * The public site's frame: skip link, promo strip, header, the live
+ * promotions below the page, and the footer.
  * Rendered by the language layout and by the English-only (plain) group;
  * /admin sits outside both and gets none of it.
  */
@@ -25,6 +27,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       <SiteHeader />
       <div id="main" tabIndex={-1} className="outline-none">
         {children}
+        <LivePromos />
       </div>
       <SiteFooter />
     </>

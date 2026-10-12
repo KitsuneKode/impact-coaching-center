@@ -18,7 +18,10 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   // The admin is English. Shared shop components read the "Shop" strings.
   return (
-    <NextIntlClientProvider locale="en" messages={{ Shop: en.Shop }}>
+    <NextIntlClientProvider
+      locale="en"
+      messages={{ Shop: en.Shop, Promos: en.Promos }}
+    >
       <AdminShell>{children}</AdminShell>
     </NextIntlClientProvider>
   )

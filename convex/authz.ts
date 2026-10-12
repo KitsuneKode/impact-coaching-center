@@ -93,14 +93,15 @@ type Grant = Infer<typeof GRANT>
 
 export { hasGrant }
 
-/** Owner, or staff holding `grant`. */
+/** Owner, or staff holding `grant` (or, given a list, any one of them). */
 export async function requireGrant(
   ctx: Ctx,
-  grant: Grant
+  grant: Grant | readonly Grant[]
 ): Promise<Decision<Viewer>> {
   const viewer = await requireStaff(ctx)
   if (!viewer.ok) return viewer
-  return hasGrant(viewer.value, grant) ? viewer : forbidden
+  const wanted: readonly Grant[] = typeof grant === "string" ? [grant] : grant
+  return wanted.some((g) => hasGrant(viewer.value, g)) ? viewer : forbidden
 }
 
 /** Owner only. Every write that changes who may do what goes through this. */

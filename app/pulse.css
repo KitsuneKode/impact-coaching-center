@@ -1738,3 +1738,62 @@
     }
   }
 }
+
+@layer components {
+  /* ------------------------------------------------------- promo pop-up */
+
+  [data-promo-backdrop] {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background-color: color-mix(in oklch, var(--foreground) 55%, transparent);
+    opacity: 1;
+  }
+  [data-promo-popup] {
+    position: fixed;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    z-index: 61;
+    inline-size: min(28rem, 100% - 2rem);
+    max-block-size: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-radius: 28px;
+    translate: -50% -50%;
+    box-shadow: 0 40px 80px -30px
+      color-mix(in oklch, var(--foreground) 60%, transparent);
+  }
+  /* The dialog takes focus so its heading is read first; it is not a
+     control, so no ring (a transparent outline still shows in forced colours). */
+  [data-promo-popup]:focus-visible {
+    outline: 2px solid transparent;
+  }
+  /* Enter and leave: a fade, plus a small rise in scale when motion is fine.
+     A modal stays centred, never grows from nothing. */
+  [data-promo-backdrop],
+  [data-promo-popup] {
+    transition: opacity 0.2s ease-out;
+  }
+  [data-promo-backdrop][data-starting-style],
+  [data-promo-backdrop][data-ending-style],
+  [data-promo-popup][data-starting-style],
+  [data-promo-popup][data-ending-style] {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-promo-popup] {
+      transition:
+        opacity 0.24s var(--ease-out-strong),
+        scale 0.24s var(--ease-out-strong);
+    }
+    [data-promo-popup][data-starting-style],
+    [data-promo-popup][data-ending-style] {
+      scale: 0.96;
+    }
+    /* Leaving is quicker than arriving. */
+    [data-promo-popup][data-ending-style],
+    [data-promo-backdrop][data-ending-style] {
+      transition-duration: 0.15s;
+    }
+  }
+}

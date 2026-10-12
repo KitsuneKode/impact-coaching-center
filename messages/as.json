@@ -836,5 +836,13 @@
     "assistVideosNote": "ICTৰ নিজৰ YouTube চেনেলৰ পৰা।",
     "assistVideo1": "ASSIST 4.0",
     "assistVideo2": "বিনামূলীয়া APSC কোচিং"
+  },
+  "Promos": {
+    "code": "ক'ড",
+    "copy": "{code} ক'ডটো কপি কৰক",
+    "copied": "কপি কৰা হ'ল",
+    "notNow": "এতিয়া নহয়",
+    "close": "বন্ধ কৰক",
+    "label": "অফাৰ"
   }
 }

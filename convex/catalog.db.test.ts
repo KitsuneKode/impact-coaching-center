@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test"
 import type { BookInput, BundleInput } from "../lib/catalog"
 import { openResourceAs } from "./catalog"
 import {
+  applyDiscardUpload,
   applyPublish,
   applySaveBook,
   applySaveBundle,
@@ -577,5 +578,80 @@ describe("catalogue audit trail", () => {
         })
       )
     ).toMatchObject({ ok: true })
+  })
+})
+
+describe("discardUpload", () => {
+  test("an upload nothing uses is deleted", async () => {
+    const t = convexTest(schema, modules)
+    const orphan = await upload(t, "image/png")
+    const result = await t.run((ctx) => applyDiscardUpload(ctx, orphan))
+    expect(result.ok).toBe(true)
+    expect(
+      await t.run((ctx) => ctx.db.system.get("_storage", orphan))
+    ).toBeNull()
+  })
+
+  test("a file a promotion, a course or a post uses is refused and kept", async () => {
+    const t = convexTest(schema, modules)
+    const promo = await upload(t, "image/png")
+    const course = await upload(t, "image/png")
+    const post = await upload(t, "image/png")
+    await t.run(async (ctx) => {
+      await ctx.db.insert("campaigns", {
+        name: "Free workshop",
+        kind: "modal",
+        tag: "",
+        headline: "Start with a free workshop.",
+        body: "Two days, on the app.",
+        cta: "Join",
+        href: "/contact",
+        coupon: "",
+        reelIds: [],
+        routes: [],
+        delaySeconds: 0,
+        restDays: 7,
+        priority: 10,
+        image: promo,
+        status: "live",
+        revision: 0,
+        updatedAt: 0,
+      })
+      await ctx.db.insert("courses", {
+        classplusId: 1,
+        slug: "lakhya-2027",
+        source: {
+          name: "Lakhya 2027",
+          description: "",
+          pricePaise: 0,
+          finalPricePaise: 0,
+          free: false,
+          enrolled: 0,
+          tags: [],
+        },
+        cover: course,
+        local: { hidden: false },
+        syncedAt: 0,
+        revision: 0,
+      })
+      await ctx.db.insert("posts", {
+        slug: "notice",
+        title: "Notice",
+        excerpt: "",
+        body: "Text.",
+        cover: post,
+        published: true,
+        publishedAt: 1,
+        revision: 0,
+        updatedAt: 1,
+      })
+    })
+    for (const id of [promo, course, post]) {
+      const result = await t.run((ctx) => applyDiscardUpload(ctx, id))
+      expect(result).toMatchObject({ ok: false, reason: "invalid-input" })
+      expect(
+        await t.run((ctx) => ctx.db.system.get("_storage", id))
+      ).not.toBeNull()
+    }
   })
 })

@@ -122,6 +122,13 @@ async function referencedElsewhere(
   for await (const resource of ctx.db.query("resources"))
     if (!skip("resources", resource._id) && resource.pageImages.includes(id))
       return true
+  /* Files other areas own: never this module's to delete. */
+  for await (const course of ctx.db.query("courses"))
+    if (course.cover === id) return true
+  for await (const post of ctx.db.query("posts"))
+    if (post.cover === id) return true
+  for await (const campaign of ctx.db.query("campaigns"))
+    if (campaign.image === id) return true
   return false
 }
 
@@ -171,11 +178,14 @@ export const canEditCatalog = query({
 })
 
 /** A signed URL the browser posts one file to. */
+/** Anyone who edits something with pictures: the shop, promotions, the blog. */
+const UPLOAD_GRANTS = ["catalog", "promotions", "content"] as const
+
 export const uploadUrl = mutation({
   args: {},
   returns: mutationResult({ url: v.string() }),
   handler: async (ctx) => {
-    const editor = await requireGrant(ctx, "catalog")
+    const editor = await requireGrant(ctx, UPLOAD_GRANTS)
     if (!editor.ok) return editor
     return { ok: true as const, url: await ctx.storage.generateUploadUrl() }
   },
@@ -186,14 +196,18 @@ export const discardUpload = mutation({
   args: { storageId: v.id("_storage") },
   returns: mutationResult({}),
   handler: async (ctx, args) => {
-    const editor = await requireGrant(ctx, "catalog")
+    const editor = await requireGrant(ctx, UPLOAD_GRANTS)
     if (!editor.ok) return editor
-    if (await referencedElsewhere(ctx, args.storageId))
-      return invalidInput("image")
-    await deleteFile(ctx, args.storageId)
-    return { ok: true as const }
+    return applyDiscardUpload(ctx, args.storageId)
   },
 })
+
+/** The discard itself, split out so it can be tested without a session. */
+export async function applyDiscardUpload(ctx: MutationCtx, id: StorageId) {
+  if (await referencedElsewhere(ctx, id)) return invalidInput("image")
+  await deleteFile(ctx, id)
+  return { ok: true as const }
+}
 
 /** Lists stop here; the extra row tells the UI the list is truncated. */
 const ADMIN_LIST_MAX = 500
