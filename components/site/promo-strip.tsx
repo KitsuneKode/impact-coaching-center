@@ -69,7 +69,7 @@ function Strip() {
 
   return (
     <div data-promo-strip data-hidden={hidden || undefined}>
-      <div className="min-bs-0 overflow-clip">
+      <div className="overflow-clip [min-block-size:0]">
         {bar ? (
           <div className="container-page flex h-11 items-center gap-3 md:h-12">
             <p className="min-w-0 flex-1 truncate text-sm">

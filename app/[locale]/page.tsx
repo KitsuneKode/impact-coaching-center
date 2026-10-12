@@ -8,9 +8,8 @@ import { Enquire } from "@/components/marketing/enquire"
 import { Faq } from "@/components/marketing/faq"
 import { Results } from "@/components/marketing/results"
 import { StudentVoices } from "@/components/marketing/student-voices"
-import { todayIst } from "@/lib/calendar"
 import { newestBatch } from "@/lib/courses"
-import { liveCourses } from "@/lib/courses-server"
+import { liveCourses, todayInIndia } from "@/lib/courses-server"
 
 /** The home page, Pulse: the pitch, the three exams, then proof and help. */
 export default async function Page({ params }: PageProps<"/[locale]">) {
@@ -19,7 +18,7 @@ export default async function Page({ params }: PageProps<"/[locale]">) {
   const courses = await liveCourses()
   return (
     <>
-      <Hero newest={newestBatch(courses)} today={todayIst(Date.now())} />
+      <Hero newest={newestBatch(courses)} today={await todayInIndia()} />
       <ExamMarquee />
       <main>
         <ExamStack courses={courses} />

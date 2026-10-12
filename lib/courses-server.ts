@@ -1,5 +1,6 @@
 import { cache } from "react"
 
+import { todayIst } from "./calendar"
 import { catalogue } from "./catalogue"
 import { publishedCourses } from "./catalog-server"
 import { fromMirror, fromSnapshot, type Course } from "./courses"
@@ -19,3 +20,6 @@ export const liveCourses = cache(async (): Promise<Course[]> => {
 export const liveCourse = cache(async (slug: string) =>
   (await liveCourses()).find((course) => course.slug === slug)
 )
+
+/** Today in IST, `yyyy-mm-dd`, once per request. */
+export const todayInIndia = cache(async () => todayIst(Date.now()))

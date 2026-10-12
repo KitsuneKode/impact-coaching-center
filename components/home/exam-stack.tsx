@@ -53,7 +53,7 @@ export function ExamStack({ courses }: { courses: readonly Course[] }) {
                 <Link
                   href={`/courses/${course.slug}`}
                   data-panel={track.slug}
-                  className="md:min-bs-[480px] grid items-center gap-8 p-7 sm:p-10 md:grid-cols-12 md:gap-10"
+                  className="grid items-center gap-8 p-7 sm:p-10 md:grid-cols-12 md:gap-10 md:[min-block-size:480px]"
                 >
                   <div className="md:col-span-7">
                     <div className="flex flex-wrap gap-2">
