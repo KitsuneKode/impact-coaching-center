@@ -1316,3 +1316,255 @@
     }
   }
 }
+
+@layer components {
+  /* --------------------------------------------------------- free notes */
+
+  [data-chip][aria-pressed="true"] {
+    background-color: var(--foreground);
+    color: var(--background);
+    box-shadow: none;
+  }
+  [data-chip]:active {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-chip] {
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+
+  [data-notes-search] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    inline-size: min(100%, 22rem);
+    block-size: 2.75rem;
+    padding-inline: 1rem;
+    border-radius: 999px;
+    background-color: var(--card);
+    color: var(--muted-foreground);
+    box-shadow: inset 0 0 0 1.5px var(--border);
+  }
+  [data-notes-search]:focus-within {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-notes-search] input {
+    flex: 1;
+    min-inline-size: 0;
+    background: none;
+    color: var(--foreground);
+    /* The pill shows focus; a transparent outline still appears in forced colours. */
+    outline: 2px solid transparent;
+  }
+
+  /* Folders: as many as fit, never narrower than a readable tab. */
+  [data-notes-folders] {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+    gap: 1.5rem 1rem;
+  }
+  /* The chosen folder stays open, with a bar under it. Not by fading the
+     rest: their labels must keep their contrast. */
+  [data-notes-folder] {
+    position: relative;
+  }
+  [data-notes-folder]::after {
+    content: "";
+    position: absolute;
+    inset: auto 30% -0.75rem;
+    block-size: 3px;
+    border-radius: 3px;
+    background-color: var(--primary);
+    scale: 0 1;
+  }
+  [data-notes-folder][aria-pressed="true"]::after {
+    scale: 1;
+  }
+  [data-notes-folder][aria-pressed="true"] [data-folder-front] {
+    rotate: x -16deg;
+  }
+  [data-notes-folder][aria-pressed="true"] [data-folder-paper="0"] {
+    translate: 0 -18%;
+  }
+  [data-notes-folder][aria-pressed="true"] [data-folder-paper="1"] {
+    translate: 0 -26%;
+    rotate: 6deg;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-notes-folder] {
+      transition: scale 0.16s var(--ease-out-strong);
+    }
+    [data-notes-folder]::after {
+      transition: scale 0.25s var(--ease-out-strong);
+    }
+  }
+
+  /* The list and its preview: side by side when the area is wide enough,
+     otherwise the chosen file opens in place under its row. */
+  [data-notes-body] {
+    container-type: inline-size;
+  }
+  [data-notes-split] {
+    display: grid;
+    gap: 1.25rem;
+  }
+  [data-notes-preview] {
+    display: none;
+  }
+  @container (width > 52rem) {
+    [data-notes-split] {
+      grid-template-columns: 5fr 7fr;
+      align-items: start;
+    }
+    [data-notes-preview] {
+      display: block;
+      position: sticky;
+      inset-block-start: calc(var(--header-height) + 1.5rem);
+    }
+    [data-notes-split] [data-notes-inline] {
+      display: none;
+    }
+  }
+  [data-notes-list] {
+    display: grid;
+    gap: 0.5rem;
+  }
+  [data-notes-list] > li {
+    border-radius: 18px;
+    background-color: var(--card);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  [data-notes-list] > li[data-on] {
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  [data-notes-file] {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    inline-size: 100%;
+    padding: 1rem;
+    border-radius: inherit;
+    text-align: start;
+  }
+  [data-notes-file] svg {
+    flex: none;
+    margin-block-start: 0.125rem;
+    color: var(--muted-foreground);
+  }
+  [data-notes-file]:active {
+    scale: 0.99;
+  }
+  [data-notes-inline] {
+    display: grid;
+    justify-items: start;
+    gap: 0.875rem;
+    padding: 0 1rem 1rem 3.125rem;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-notes-list] > li {
+      transition: box-shadow 0.2s ease;
+    }
+    [data-notes-file] {
+      transition: scale 0.16s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-notes-list] > li:not([data-on]):hover {
+      box-shadow: inset 0 0 0 1px
+        color-mix(in oklch, var(--foreground) 22%, transparent);
+    }
+  }
+
+  /* The preview: a typeset sheet with a blue rule along its top edge. */
+  [data-notes-sheet] {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-block-size: 20rem;
+    padding: clamp(1.25rem, 0.75rem + 2cqi, 2.25rem);
+    border-radius: 12px;
+    background-color: oklch(100% 0 none);
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 6%, transparent),
+      0 30px 50px -28px
+        color-mix(in oklch, var(--primary-deep) 50%, transparent);
+  }
+  [data-notes-sheet]::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    block-size: 6px;
+    border-radius: 12px 12px 0 0;
+    background-color: var(--primary);
+  }
+  [data-notes-kind] {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  [data-notes-lines] {
+    margin-block-start: auto;
+    padding-block-start: 1.5rem;
+    block-size: 6rem;
+    background: repeating-linear-gradient(
+        to bottom,
+        color-mix(in oklch, var(--foreground) 9%, transparent) 0 2px,
+        transparent 2px 12px
+      )
+      content-box;
+    mask-image: linear-gradient(to bottom, black 30%, transparent);
+  }
+
+  /* The one action on a file. */
+  [data-notes-read] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-block-size: 3rem;
+    padding-inline: 1.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+    background-color: var(--highlight);
+    color: var(--foreground);
+  }
+  [data-notes-read][data-wait] {
+    opacity: 0.5;
+  }
+  [data-notes-read]:active {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-notes-read] {
+      transition:
+        background-color 0.15s ease,
+        scale 0.16s var(--ease-out-strong);
+    }
+    [data-notes-read] [data-nudge] {
+      transition: translate 0.2s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-notes-read]:hover {
+      background-color: var(--highlight-hover);
+    }
+    [data-notes-read]:hover [data-nudge] {
+      translate: 3px 0;
+    }
+  }
+}
+
+@layer components {
+  /* The YouTube card among the free courses: the one blue tile. */
+  [data-row-card][data-youtube-card] {
+    background-color: var(--primary);
+    color: oklch(100% 0 none);
+  }
+  [data-youtube-card] > span > span:last-child {
+    color: var(--on-primary);
+  }
+}

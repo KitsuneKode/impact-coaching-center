@@ -795,6 +795,13 @@
     "watchSample": "{exam} পাঠ্যক্ৰমৰ এটা শ্ৰেণী",
     "getApp": "ICT এপত যোগ দিয়ক",
     "freeNotesFor": "{exam}ৰ বিনামূলীয়া টোকা",
-    "promoLabel": "ঘোষণা"
+    "promoLabel": "ঘোষণা",
+    "notesTitle": "বিনামূলীয়া টোকা আৰু প্ৰশ্নকাকত, ফোল্ডাৰত।",
+    "readFree": "বিনামূলীয়াকৈ পঢ়ক",
+    "filesIn": "{name}ৰ ফাইল",
+    "alsoFree": "আৰু বিনামূলীয়া।",
+    "freeCourse": "এপত বিনামূলীয়া",
+    "youtubeTitle": "YouTubeত সম্পূৰ্ণ শ্ৰেণী",
+    "youtubeBody": "একেজন শিক্ষক, সম্পূৰ্ণ বক্তৃতা, লগ-ইন নালাগে।"
   }
 }

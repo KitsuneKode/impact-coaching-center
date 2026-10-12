@@ -595,6 +595,13 @@
     "watchSample": "A class from the {exam} course",
     "getApp": "Join on the ICT app",
     "freeNotesFor": "Free notes for {exam}",
-    "promoLabel": "Announcement"
+    "promoLabel": "Announcement",
+    "notesTitle": "Free notes and papers, in folders.",
+    "readFree": "Read free",
+    "filesIn": "Files in {name}",
+    "alsoFree": "Also free.",
+    "freeCourse": "Free on the app",
+    "youtubeTitle": "Full classes on YouTube",
+    "youtubeBody": "The same teachers, whole lectures, no log-in."
   }
 }
