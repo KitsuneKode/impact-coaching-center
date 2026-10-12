@@ -1,39 +1,58 @@
+import { IconArrowRight } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 
-import { buttonVariants } from "@/components/ui/button"
-import { Section } from "@/components/ui/section"
 import { Link } from "@/i18n/navigation"
 
-/** The branded 404, in the reader's language. */
+/** The branded 404, in the reader's language, on the blue field. */
 export default function NotFound() {
   const t = useTranslations("NotFound")
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <div className="max-w-160">
-          <h1 className="type-display">
-            <span className="text-foreground">{t("claim")}</span>{" "}
-            <span className="text-muted-foreground">{t("rest")}</span>
+      <section data-hero="blue" aria-labelledby="missing-heading">
+        <div data-hero-glow aria-hidden />
+        <div aria-hidden className="h-(--header-height)" />
+        <div className="relative container-page pbs-10 pbe-20 md:pbs-16 md:pbe-28">
+          <p
+            aria-hidden
+            className="tnum font-display text-[clamp(5rem,3rem+12vw,12rem)] leading-none font-semibold tracking-[-0.06em] text-[color-mix(in_oklch,white_22%,transparent)]"
+          >
+            404
+          </p>
+          <h1
+            id="missing-heading"
+            className="mbs-6 max-w-[20ch] font-display text-[clamp(1.8rem,1.3rem+2.4vw,3.2rem)] leading-[1.08] font-semibold tracking-[-0.035em] text-balance"
+          >
+            {t("claim")} <span className="text-on-primary">{t("rest")}</span>
           </h1>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/" className={buttonVariants()}>
+          <div className="mbs-10 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              data-press
+              data-cta="amber"
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+            >
               {t("home")}
+              <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
             </Link>
             <Link
               href="/courses"
-              className={buttonVariants({ variant: "secondary" })}
+              data-press
+              data-cta="ghost-blue"
+              className="inline-flex h-12 items-center rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
             >
               {t("courses")}
             </Link>
             <Link
               href="/contact"
-              className={buttonVariants({ variant: "ghost" })}
+              data-press
+              data-cta="ghost-blue"
+              className="inline-flex h-12 items-center rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
             >
               {t("talk")}
             </Link>
           </div>
         </div>
-      </Section>
+      </section>
     </main>
   )
 }
