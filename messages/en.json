@@ -631,6 +631,10 @@
     "libStep2": "Come to the centre on {place} and see the room.",
     "libStep3": "Pay at the desk and take your seat. No online payment.",
     "libSeatsLabel": "Seats in the reading room, filling up through the day",
-    "libAsk": "Ask about a seat"
+    "libAsk": "Ask about a seat",
+    "assistVideos": "ICT on ASSIST",
+    "assistVideosNote": "From ICT's own YouTube channel.",
+    "assistVideo1": "ASSIST 4.0",
+    "assistVideo2": "Free APSC coaching"
   }
 }

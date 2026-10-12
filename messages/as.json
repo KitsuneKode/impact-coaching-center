@@ -831,6 +831,10 @@
     "libStep2": "{place}ত থকা কেন্দ্ৰলৈ আহি কোঠাটো চাওক।",
     "libStep3": "ডেস্কত পৰিশোধ কৰি আসন লওক। অনলাইন পেমেণ্ট নাই।",
     "libSeatsLabel": "পঢ়া কোঠাৰ আসন, দিনটোত ভৰি পৰে",
-    "libAsk": "আসনৰ বিষয়ে সোধক"
+    "libAsk": "আসনৰ বিষয়ে সোধক",
+    "assistVideos": "ASSISTৰ বিষয়ে ICT",
+    "assistVideosNote": "ICTৰ নিজৰ YouTube চেনেলৰ পৰা।",
+    "assistVideo1": "ASSIST 4.0",
+    "assistVideo2": "বিনামূলীয়া APSC কোচিং"
   }
 }
