@@ -48,13 +48,13 @@ The catalogue editors, owner permissions, revision checks, image upload, referen
 Define shared shapes:
 
 ```ts
-export type BookLanguage = 'as' | 'en'
+export type BookLanguage = "as" | "en"
 export type BundleMember = { editionId: string; quantity: number }
 export type BundleVariantDraft = {
   language: BookLanguage
   members: BundleMember[]
   pricePaise: number
-  availability: 'available' | 'unavailable'
+  availability: "available" | "unavailable"
 }
 export function physicalBookCount(members: readonly BundleMember[]): number {
   return members.reduce((sum, member) => sum + member.quantity, 0)
@@ -66,8 +66,23 @@ export function physicalBookCount(members: readonly BundleMember[]): number {
 - [ ] Write tests before schema edits:
 
 ```ts
-expect(physicalBookCount([{editionId:'a', quantity:2}, {editionId:'b', quantity:1}])).toBe(3)
-expect(validateBundleVariant({language:'as', members:[{editionId:'en1',quantity:1}], pricePaise:10000, availability:'available'}, [{id:'en1',language:'en'}]).ok).toBe(false)
+expect(
+  physicalBookCount([
+    { editionId: "a", quantity: 2 },
+    { editionId: "b", quantity: 1 },
+  ])
+).toBe(3)
+expect(
+  validateBundleVariant(
+    {
+      language: "as",
+      members: [{ editionId: "en1", quantity: 1 }],
+      pricePaise: 10000,
+      availability: "available",
+    },
+    [{ id: "en1", language: "en" }]
+  ).ok
+).toBe(false)
 ```
 
 - [ ] Add `bookEditions`, `bundles`, `bundleVariants` and published snapshot storage using Convex validators. Reference existing `books` as the initial book identity, leaving legacy prices/routes intact. Book editions carry language, edition label, cover/sample IDs and revision. Bundle variants have stable identity and language, editable draft payload and published snapshot reference; store price/contents in the snapshot. Use explicit foreign-key IDs in database tables even if the pure validator uses strings.

@@ -220,7 +220,6 @@ Kanban boards, charts on the admin home, A/B tests or audience segments for
 promotions, avatar uploads, email flows, Assamese translation, a second Reader,
 more coordination documents.
 
-
 ## 29 September: approved bundle direction and Kitsu integration
 
 The owner confirmed that physical books are sold in bundles, with an explicit
