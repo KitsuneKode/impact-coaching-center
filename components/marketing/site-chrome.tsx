@@ -1,13 +1,12 @@
 import { getTranslations } from "next-intl/server"
 import type { ReactNode } from "react"
 
-import { MobileActionBar } from "@/components/marketing/mobile-action-bar"
-import { SiteFooter } from "@/components/marketing/site-footer"
+import { SiteFooter } from "@/components/site/site-footer"
 import { PromoStrip } from "@/components/site/promo-strip"
 import { SiteHeader } from "@/components/site/site-header"
 
 /**
- * The public site's frame: skip link, header, footer and the mobile call bar.
+ * The public site's frame: skip link, promo strip, header and footer.
  * Rendered by the language layout and by the English-only (plain) group;
  * /admin sits outside both and gets none of it.
  */
@@ -28,7 +27,6 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
         {children}
       </div>
       <SiteFooter />
-      <MobileActionBar />
     </>
   )
 }

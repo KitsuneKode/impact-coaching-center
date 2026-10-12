@@ -14,7 +14,7 @@ import { useActionState, useEffect, useId, useRef, useState } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Turnstile } from "@/components/marketing/turnstile"
-import { Button, ButtonAnchor } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, timings } from "@/lib/brand"
 import { track } from "@/lib/analytics"
 import { visitAttribution } from "@/lib/attribution"
@@ -63,7 +63,10 @@ function ChoiceGroup({
               defaultChecked={defaultValue === option}
               className="peer sr-only"
             />
-            <span className="inline-flex h-10 cursor-pointer items-center rounded-control border border-input bg-card px-3.5 text-sm shadow-frame transition-colors select-none peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-secondary peer-checked:hover:bg-primary">
+            <span
+              data-choice
+              className="inline-flex h-10 cursor-pointer items-center rounded-full border border-input bg-card px-4 text-sm select-none peer-checked:border-foreground peer-checked:bg-foreground peer-checked:text-background peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring"
+            >
               {/* The value sent stays English so the staff inbox does not change. */}
               {t.has(`options.${option}`) ? t(`options.${option}`) : option}
             </span>
@@ -79,7 +82,8 @@ function ChoiceGroup({
   )
 }
 
-export function LeadForm() {
+/** `bare` drops the form's own panel, for a card that already provides one. */
+export function LeadForm({ bare = false }: { bare?: boolean }) {
   const t = useTranslations("Lead")
   const [state, action, pending] = useActionState<LeadState, FormData>(
     submitLead,
@@ -135,7 +139,13 @@ export function LeadForm() {
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6 md:p-8">
+    <div
+      className={
+        bare
+          ? undefined
+          : "rounded-card border border-border bg-surface p-6 md:p-8"
+      }
+    >
       <AnimatePresence mode="wait" initial={false}>
         {state.status !== "idle" && state.status !== "error" && !again ? (
           <m.div key="done" {...swap} role="status" aria-live="polite">
@@ -361,11 +371,12 @@ export function LeadForm() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">{t("privacy")}</p>
-                <Button
+                <button
                   type="submit"
-                  size="lg"
+                  data-press
+                  data-cta="amber"
                   disabled={pending}
-                  className="sm:min-w-56"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground disabled:opacity-70 sm:min-w-56"
                 >
                   {pending ? (
                     <>
@@ -375,10 +386,10 @@ export function LeadForm() {
                   ) : (
                     <>
                       {t("submit")}
-                      <IconArrowRight data-nudge stroke={1.75} />
+                      <IconArrowRight data-nudge size={18} stroke={2} />
                     </>
                   )}
-                </Button>
+                </button>
               </div>
             </form>
           </m.div>

@@ -8,20 +8,7 @@ import {
 } from "@/components/ui/accordion"
 import { Section } from "@/components/ui/section"
 import { useContent } from "@/i18n/content"
-import { tracks } from "@/lib/brand"
-import { inr, lineup, type Course } from "@/lib/courses"
-
-/** Replace {apsc} and {apscFee} style marks with each exam's lead course. */
-function fillFees(text: string, courses: readonly Course[]) {
-  let out = text
-  for (const track of tracks) {
-    const lead = lineup(courses, track.exam).flagship
-    out = out
-      .replaceAll(`{${track.slug}}`, lead?.short ?? track.exam)
-      .replaceAll(`{${track.slug}Fee}`, lead ? inr(lead.price) : "")
-  }
-  return out
-}
+import { fillFees, type Course } from "@/lib/courses"
 
 /**
  * Objection handling. Each question here is one a parent or a working

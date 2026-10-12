@@ -1,31 +1,45 @@
 import { setRequestLocale } from "next-intl/server"
 
+import { Ask } from "@/components/home/ask"
+import { Books } from "@/components/home/books"
 import { ExamMarquee } from "@/components/home/exam-marquee"
 import { ExamStack } from "@/components/home/exam-stack"
+import { Faq } from "@/components/home/faq"
+import { FreeFirst } from "@/components/home/free-first"
 import { Hero } from "@/components/home/hero"
+import { JoinBand } from "@/components/home/join-band"
 import { LoopWatch } from "@/components/home/loop-watch"
-import { Enquire } from "@/components/marketing/enquire"
-import { Faq } from "@/components/marketing/faq"
-import { Results } from "@/components/marketing/results"
-import { StudentVoices } from "@/components/marketing/student-voices"
+import { Results } from "@/components/home/results"
+import { StudentFan } from "@/components/home/student-fan"
+import { Teachers } from "@/components/home/teachers"
+import { publishedBundles, publishedResources } from "@/lib/catalog-server"
 import { newestBatch } from "@/lib/courses"
 import { liveCourses, todayInIndia } from "@/lib/courses-server"
 
-/** The home page, Pulse: the pitch, the three exams, then proof and help. */
+/** The home page, Pulse: the pitch, the three exams, proof, free, books, help. */
 export default async function Page({ params }: PageProps<"/[locale]">) {
   const { locale } = await params
   setRequestLocale(locale)
-  const courses = await liveCourses()
+  const [courses, bundles, resources, today] = await Promise.all([
+    liveCourses(),
+    publishedBundles().catch(() => []),
+    publishedResources().catch(() => []),
+    todayInIndia(),
+  ])
   return (
     <>
-      <Hero newest={newestBatch(courses)} today={await todayInIndia()} />
+      <Hero newest={newestBatch(courses)} today={today} />
       <ExamMarquee />
       <main>
         <ExamStack courses={courses} />
-        <StudentVoices limit={5} />
+        <StudentFan />
+        <FreeFirst resources={resources} courses={courses} />
+        <Books bundles={bundles} />
+        <Teachers />
         <Results />
         <Faq courses={courses} />
-        <Enquire />
+        <Ask />
+        <JoinBand />
       </main>
       <LoopWatch />
     </>

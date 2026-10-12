@@ -78,6 +78,8 @@ export function fromSnapshot(course: CatalogueCourse): Course {
   return { ...course, track: track?.exam, tags: [] }
 }
 
+const TEST_SERIES = /\bmock|test series\b/i
+
 /**
  * One exam's courses: the lead course, the other paid ones and the free one.
  * The list arrives in ICT's order (admin position, then dearest), so the lead
@@ -86,9 +88,12 @@ export function fromSnapshot(course: CatalogueCourse): Course {
 export function lineup(courses: readonly Course[], exam: string) {
   const mine = courses.filter((course) => course.track === exam)
   const paid = mine.filter((course) => !course.free)
+  // A mock-test series sells beside a batch; it is never the exam's lead.
+  const flagship =
+    paid.find((course) => !TEST_SERIES.test(course.name)) ?? paid[0]
   return {
-    flagship: paid[0],
-    also: paid.slice(1),
+    flagship,
+    also: paid.filter((course) => course !== flagship),
     free: mine.find((course) => course.free),
   }
 }
@@ -96,8 +101,22 @@ export function lineup(courses: readonly Course[], exam: string) {
 /** The most recently created paid course: the batch to put in front. */
 export function newestBatch(courses: readonly Course[]) {
   return courses
-    .filter((course) => !course.free && course.track)
+    .filter(
+      (course) => !course.free && course.track && !TEST_SERIES.test(course.name)
+    )
     .toSorted((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0]
+}
+
+/** Replace {apsc} and {apscFee} style marks with each exam's lead course. */
+export function fillFees(text: string, courses: readonly Course[]) {
+  let out = text
+  for (const track of tracks) {
+    const lead = lineup(courses, track.exam).flagship
+    out = out
+      .replaceAll(`{${track.slug}}`, lead?.short ?? track.exam)
+      .replaceAll(`{${track.slug}Fee}`, lead ? inr(lead.price) : "")
+  }
+  return out
 }
 
 /** "25009" -> "₹25,009" */
