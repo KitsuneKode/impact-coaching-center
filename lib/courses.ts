@@ -67,7 +67,9 @@ export function fromMirror(row: MirrorCourse): Course {
     features: row.features,
     cover: row.cover?.url ?? null,
     track:
-      row.track ?? (row.category ? CATEGORY_TRACK[row.category] : undefined),
+      row.track ??
+      trackFromName(row.name) ??
+      (row.category ? CATEGORY_TRACK[row.category] : undefined),
     createdAt: row.createdAt,
     batchStarts: row.batchStarts,
     timing: row.timing,
