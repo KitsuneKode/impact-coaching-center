@@ -5,24 +5,23 @@ export const libraryApproved = false
 
 export const libraryUpdated = "2026-09-20"
 
+/** A way to use the library, as ICT prices it. Prices in rupees. */
+export type LibraryPlan = {
+  name: string
+  /** "per month", "for 3 months" */
+  period: string
+  price: number
+  includes: readonly string[]
+}
+
 /**
- * Every claim below already appears on the site, sourced from ICT's own
- * storefront and FAQ. Nothing here is new.
+ * ICT's plans, once ICT confirms them (see `libraryQuestions`). Empty means
+ * the page says to ask for the fee rather than guessing one.
  */
-export const libraryFacts: readonly LibraryFact[] = [
-  {
-    heading: "A room to work in, not just a shelf",
-    body: "ICT's stated intent is a culture of group study in the library, so that preparation is engaging and competitive from the start rather than something you do alone at home.",
-  },
-  {
-    heading: "WiFi and study material",
-    body: "The centre has a library and study space with WiFi, and study material available there.",
-  },
-  {
-    heading: "Open to enrolled students",
-    body: "The library is open to students enrolled at ICT. If you are not enrolled yet, ask when you enquire and ICT will tell you what is possible.",
-  },
-]
+export const libraryPlans: readonly LibraryPlan[] = []
+
+/** Opening hours as ICT words them, e.g. "7 AM to 9 PM, every day"; null until confirmed. */
+export const libraryHours: string | null = null
 
 /** What ICT has to answer before this page can be published. */
 export const libraryQuestions: readonly string[] = [

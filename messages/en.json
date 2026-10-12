@@ -612,6 +612,25 @@
     "askForPlace": "Ask for {place}.",
     "findOn": "ICT is also on",
     "callBack": "Request a call back.",
-    "centresHeading": "Two centres."
+    "centresHeading": "Two centres.",
+    "libraryTitle": "A quiet seat, WiFi and study material, at the centre.",
+    "libraryLede": "Most of preparation is hours in a chair. The library at ICT is where students put those hours in, together.",
+    "libFact1Title": "A room to work in, not just a shelf",
+    "libFact1Body": "ICT's stated intent is a culture of group study in the library, so preparation is engaging and competitive from the start rather than something done alone at home.",
+    "libFact2Title": "WiFi and study material",
+    "libFact2Body": "The centre has a library and study space with WiFi, and study material to use there.",
+    "libFact3Title": "Open to enrolled students",
+    "libFact3Body": "The library is open to students enrolled at ICT. Not enrolled yet? Ask when you enquire and ICT will tell you what is possible.",
+    "libFactsHeading": "What the library gives you.",
+    "libPlansHeading": "Plans and fees.",
+    "libPlansPending": "ICT will publish its plans here. Until then, ask for the fee and the hours: there is no online payment, you pay at the centre.",
+    "libHours": "Hours",
+    "libHoursPending": "Ask for the hours",
+    "libStepsHeading": "How to get a seat.",
+    "libStep1": "Ask on WhatsApp or call, and say when you want to study.",
+    "libStep2": "Come to the centre on {place} and see the room.",
+    "libStep3": "Pay at the desk and take your seat. No online payment.",
+    "libSeatsLabel": "Seats in the reading room, filling up through the day",
+    "libAsk": "Ask about a seat"
   }
 }
