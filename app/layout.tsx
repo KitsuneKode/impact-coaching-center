@@ -7,6 +7,7 @@ import { ThemePreview } from "@/components/dev/theme-preview"
 import { SiteChrome } from "@/components/marketing/site-chrome"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, openGraphFor, siteUrl } from "@/lib/site"
+import { themeInitScript } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
 /* Inter, the variable cut kobbe.io ships. One family: hierarchy comes from
@@ -124,6 +125,12 @@ export default function RootLayout({
         different set of extensions.
       */}
       <body suppressHydrationWarning>
+        {/*
+          Sets data-theme from localStorage before first paint. Has to live
+          here, in the server layout: the same script inside ThemeProvider is
+          a client render, and React 19 will not execute it.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

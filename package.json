@@ -61,5 +61,8 @@
     "pptxgenjs": "4.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "patchedDependencies": {
+    "next-themes@0.4.6": "patches/next-themes@0.4.6.patch"
   }
 }

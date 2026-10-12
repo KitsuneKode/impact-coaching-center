@@ -219,3 +219,40 @@ orders → owner fulfils (the orders queue already exists).
 Kanban boards, charts on the admin home, A/B tests or audience segments for
 promotions, avatar uploads, email flows, Assamese translation, a second Reader,
 more coordination documents.
+
+
+## 29 September: approved bundle direction and Kitsu integration
+
+The owner confirmed that physical books are sold in bundles, with an explicit
+choice of Assamese OR English per set. Interface language does not change the
+purchased variant. This supersedes the individual-book-only assumptions in
+Phase 3; do not expose bundle purchasing until cart identity, checkout and
+packing snapshots are migrated together.
+
+- [ ] Execute [Bundle catalogue foundation](2026-09-29-bundle-foundation.md)
+      after plan review, preserving existing catalogue routes and data.
+- [ ] Coordinate Phase 2 with Kitsu's
+      `docs/superpowers/plans/2026-09-29-kitsu-ict-promotion-integration.md`.
+      Generic media/reader fixes belong upstream; ICT owns authentication,
+      catalogue, storage, campaign persistence and business outcomes.
+- [ ] Install only a reviewed Kitsu snapshot with recorded commit/checksums;
+      no runtime cross-repo imports or automatic latest upgrades.
+
+Source audit at ICT `40e1a37`: catalogue editors and browser PDF import already
+exist (`catalog-fields.tsx`, `lib/pdf-pages.ts`), as do image ordering, owner
+permissions, revisions and operational dashboard queues. Preserve them.
+Independent saved drafts for published catalogue records do not yet exist;
+current saves patch the published record. Build published snapshots for new
+bundle/campaign previews. The existing resource gate discloses reusable
+storage URLs; do not describe it as per-fetch authorization.
+
+Low-cost media direction: prepared video clips in R2 when qualified, existing
+ICT admin/backend, optional Instagram source link, no managed encoding
+subscription. Keep existing Convex assets until a measured migration benefit.
+Current analytics logs in development only; production measurement needs an
+explicit destination and must not report invented results.
+
+The current request authorizes coordinated planning/auditing for both repos;
+it does not assert that the upstream component is release-qualified or remove
+production/deployment approval gates. One writer owns shared Convex schema
+changes. Preserve active theme/dependency work.
