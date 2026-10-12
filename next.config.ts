@@ -40,6 +40,8 @@ function contentSecurityPolicy(): string {
   ].join("; ")
 }
 
+const isDev = process.env.NODE_ENV === "development"
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -54,7 +56,19 @@ const nextConfig: NextConfig = {
         hostname: "*.convex.cloud",
         pathname: "/api/storage/**",
       },
+      // A local Convex backend serves storage from loopback, in development only.
+      ...(isDev
+        ? [
+            {
+              protocol: "http" as const,
+              hostname: "127.0.0.1",
+              port: "3210",
+              pathname: "/api/storage/**",
+            },
+          ]
+        : []),
     ],
+    dangerouslyAllowLocalIP: isDev,
   },
   /**
    * /login and /register are the real routes, because those are the words

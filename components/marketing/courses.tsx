@@ -15,7 +15,7 @@ import { Reveal } from "@/components/motion/reveal"
 import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
 import { hasStarted } from "@/lib/batch-date"
-import { courseById, inr } from "@/lib/catalogue"
+import { inr, lineup, type Course } from "@/lib/courses"
 import { facultyBySlug, lectureStill, tracks, type Track } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { cn } from "@/lib/utils"
@@ -35,12 +35,14 @@ function views(n: number) {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K` : `${n}`
 }
 
-/** A pricing card per track, priced from ICT's own catalogue. */
+/** A pricing card per track, priced from ICT's ClassPlus courses. */
 function TrackCard({
   track,
+  courses,
   featured = false,
 }: {
   track: Track
+  courses: readonly Course[]
   featured?: boolean
 }) {
   const t = useTranslations("Courses")
@@ -48,11 +50,10 @@ function TrackCard({
   const locale = useLocale()
   // The WhatsApp message keeps the English exam name ICT's staff read.
   const names = useContent().track(track.slug)
-  const course = courseById(track.flagshipId)
+  const { flagship: course, also, free } = lineup(courses, track.exam)
   if (!course) return null
-
-  const free = track.freeId ? courseById(track.freeId) : null
-  const also = track.alsoIds.map(courseById).filter(Boolean)
+  // ICT's batch date from the admin, else the one written into the brand file.
+  const startsOn = course.batchStarts ?? track.startsOn
   const people = track.faculty.map(facultyBySlug)
   const muted = featured ? "text-white/60" : "text-muted-foreground"
   const rule = featured ? "border-white/15" : "border-border"
@@ -180,15 +181,15 @@ function TrackCard({
         </dl>
       ) : null}
 
-      {track.startsOn && !hasStarted(track.startsOn) ? (
-        <UntilDate date={track.startsOn}>
+      {startsOn && !hasStarted(startsOn) ? (
+        <UntilDate date={startsOn}>
           <p
             className={cn(
               "mt-5 rounded-control px-3 py-2 text-sm",
               featured ? "bg-white/10" : "bg-highlight/25"
             )}
           >
-            {t("startDate", { date: startsLabel(track.startsOn, locale) })}
+            {t("startDate", { date: startsLabel(startsOn, locale) })}
           </p>
         </UntilDate>
       ) : null}
@@ -258,7 +259,7 @@ function TrackCard({
   )
 }
 
-export function Courses() {
+export function Courses({ courses }: { courses: readonly Course[] }) {
   const t = useTranslations("Courses")
   return (
     <Section id="courses">
@@ -274,6 +275,7 @@ export function Courses() {
           <TrackCard
             key={track.slug}
             track={track}
+            courses={courses}
             featured={track.slug === "apsc"}
           />
         ))}

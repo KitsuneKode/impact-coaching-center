@@ -1,8 +1,7 @@
 import type { MetadataRoute } from "next"
 
-import { listedCourseIds } from "@/lib/brand"
 import { publishedPosts } from "@/lib/catalog-server"
-import { catalogue } from "@/lib/catalogue"
+import { liveCourses } from "@/lib/courses-server"
 import { exams } from "@/lib/exams"
 import { libraryApproved } from "@/lib/library"
 import { policies } from "@/lib/policies"
@@ -31,8 +30,8 @@ function bothLanguages(entry: Entry): Entry[] {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   /* Convex may be absent at build time; the static list still ships. */
   const posts = await publishedPosts().catch(() => [])
-  const courses = catalogue
-    .filter((course) => listedCourseIds.has(course.id))
+  const courses = (await liveCourses().catch(() => []))
+    .filter((course) => course.track)
     .map((course) => ({
       url: `${siteUrl}/courses/${course.slug}`,
       changeFrequency: "weekly" as const,

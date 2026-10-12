@@ -16,7 +16,8 @@ import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { facultyBySlug, schedules, tracks } from "@/lib/brand"
 import { splitCalendar } from "@/lib/calendar"
-import { courseById, inr } from "@/lib/catalogue"
+import { inr, lineup } from "@/lib/courses"
+import { liveCourses } from "@/lib/courses-server"
 import { examDates } from "@/lib/catalog-server"
 import { contactHref } from "@/lib/contact"
 import { examBySlug, exams, pick } from "@/lib/exams"
@@ -64,8 +65,12 @@ export default async function ExamGuidePage({
   const t = await getTranslations("Exams")
   const content = await contentFor(locale)
   const track = tracks.find((item) => item.slug === exam.track)!
-  const course = courseById(track.flagshipId)
-  const schedule = schedules[track.flagshipId]
+  const course = lineup(await liveCourses(), track.exam).flagship
+  const schedule = course?.timing
+    ? { when: course.timing }
+    : course
+      ? schedules[course.id]
+      : undefined
   const people = track.faculty.map(facultyBySlug)
   const calendar = await examDates()
   const tc = await getTranslations("Calendar")

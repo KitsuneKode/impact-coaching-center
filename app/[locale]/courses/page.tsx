@@ -12,7 +12,8 @@ import { contentFor } from "@/i18n/content-server"
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
 import { schedules, tracks } from "@/lib/brand"
-import { courseById, inr, type CatalogueCourse } from "@/lib/catalogue"
+import { inr, lineup, type Course } from "@/lib/courses"
+import { liveCourses } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 import { cn } from "@/lib/utils"
 
@@ -37,13 +38,13 @@ function CourseTile({
   course,
   flagship,
 }: {
-  course: CatalogueCourse
+  course: Course
   flagship: boolean
 }) {
   const t = useTranslations("CoursesPage")
   const tc = useTranslations("Courses")
   const { phrase } = useContent()
-  const schedule = schedules[course.id]
+  const when = course.timing ?? schedules[course.id]?.when
   return (
     <Link
       href={`/courses/${course.slug}`}
@@ -79,10 +80,10 @@ function CourseTile({
           </span>
         ) : null}
 
-        {schedule ? (
+        {when ? (
           <span className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
             <IconClock size={14} stroke={1.75} />
-            {phrase(schedule.when)}
+            {phrase(when)}
           </span>
         ) : null}
 
@@ -119,6 +120,7 @@ export default async function CoursesPage({
   setRequestLocale(locale)
   const t = await getTranslations("CoursesPage")
   const content = await contentFor(locale)
+  const courses = await liveCourses()
   return (
     <main>
       <section className="pt-26 pb-10 md:pt-30">
@@ -155,10 +157,9 @@ export default async function CoursesPage({
       </section>
 
       {tracks.map((track, index) => {
-        const ids = [track.flagshipId, ...track.alsoIds, track.freeId].filter(
-          (id): id is number => id !== null
-        )
-        const list = ids.map(courseById).filter((c) => c !== undefined)
+        const { flagship, also, free } = lineup(courses, track.exam)
+        const list = [flagship, ...also, free].filter((c) => c !== undefined)
+        if (!list.length) return null
         return (
           <Section
             key={track.slug}
@@ -181,7 +182,7 @@ export default async function CoursesPage({
                 <CourseTile
                   key={course.id}
                   course={course}
-                  flagship={course.id === track.flagshipId}
+                  flagship={course.id === flagship?.id}
                 />
               ))}
             </Reveal>

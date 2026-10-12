@@ -1,6 +1,7 @@
 import { setRequestLocale } from "next-intl/server"
 import { Campus } from "@/components/marketing/campus"
 import { Classes } from "@/components/marketing/classes"
+import { liveCourses } from "@/lib/courses-server"
 import { Courses } from "@/components/marketing/courses"
 import { Enquire } from "@/components/marketing/enquire"
 import { Faq } from "@/components/marketing/faq"
@@ -23,12 +24,12 @@ export default async function Page({ params }: PageProps<"/[locale]">) {
       <Results />
       <StudentVoices limit={5} />
       <Posters />
-      <Courses />
+      <Courses courses={await liveCourses()} />
       <Fees />
       <Campus />
       <Classes />
       <Podcast />
-      <Faq />
+      <Faq courses={await liveCourses()} />
       <Enquire />
     </main>
   )

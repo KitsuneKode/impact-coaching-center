@@ -5,7 +5,6 @@ import { LocaleSwitch } from "@/components/i18n/locale-switch"
 import { Link } from "@/i18n/navigation"
 
 import { brand, contact, formatPhone, links, place, tracks } from "@/lib/brand"
-import { courseById } from "@/lib/catalogue"
 
 /** Kobbe's footer: identity on the left, quiet link columns, nothing else. */
 export function SiteFooter() {
@@ -14,13 +13,11 @@ export function SiteFooter() {
     {
       title: t("courses"),
       items: [
-        ...tracks.map((track) => {
-          const course = courseById(track.flagshipId)
-          return {
-            label: course?.short ?? track.exam,
-            href: `/courses/${course?.slug ?? ""}`,
-          }
-        }),
+        // Each exam's section on /courses: never stale the way a batch name is.
+        ...tracks.map((track) => ({
+          label: track.exam,
+          href: `/courses#${track.slug}`,
+        })),
         { label: t("allCourses"), href: "/courses" },
       ],
     },

@@ -29,20 +29,21 @@ import {
   facultyBySlug,
   formatPhone,
   lectureStill,
-  listedCourseIds,
   schedules,
-  trackForCourse,
+  tracks,
 } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
-import { catalogue, courseById, courseBySlug, inr } from "@/lib/catalogue"
+import { inr, lineup } from "@/lib/courses"
+import { liveCourse, liveCourses } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor, siteUrl } from "@/lib/site"
 
-/* only courses a track points at get a page; anything else is a 404 */
-export const dynamicParams = false
+/* Courses come from ClassPlus every few hours; a new one gets its page on
+   first visit and every page refreshes within the quarter hour. */
+export const revalidate = 900
 
-export function generateStaticParams() {
-  return catalogue
-    .filter((course) => listedCourseIds.has(course.id))
+export async function generateStaticParams() {
+  return (await liveCourses())
+    .filter((course) => course.track)
     .map((course) => ({ slug: course.slug }))
 }
 
@@ -50,7 +51,7 @@ export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/courses/[slug]">): Promise<Metadata> {
   const { slug, locale } = await params
-  const course = courseBySlug(slug)
+  const course = await liveCourse(slug)
   if (!course) return {}
   const t = await getTranslations({ locale, namespace: "CourseDetail" })
   const { phrase } = await contentFor(locale)
@@ -83,18 +84,19 @@ export default async function CoursePage({
 }: PageProps<"/[locale]/courses/[slug]">) {
   const { slug, locale } = await params
   setRequestLocale(locale)
-  const course = courseBySlug(slug)
-  if (!course) notFound()
+  const course = await liveCourse(slug)
+  if (!course?.track) notFound()
 
-  const track = trackForCourse(course.id)
-  const schedule = schedules[course.id]
+  const track = tracks.find((t) => t.exam === course.track)
+  const legacy = schedules[course.id]
+  const schedule = course.timing
+    ? { when: course.timing, days: undefined, note: undefined }
+    : legacy
   const people = (track?.faculty ?? []).map(facultyBySlug)
-  const siblings = track
-    ? [track.flagshipId, ...track.alsoIds, track.freeId]
-        .filter((id): id is number => id !== null && id !== course.id)
-        .map(courseById)
-        .filter((c) => c !== undefined)
-    : []
+  const { flagship, also, free } = lineup(await liveCourses(), course.track)
+  const siblings = [flagship, ...also, free].filter(
+    (c): c is NonNullable<typeof c> => c !== undefined && c.id !== course.id
+  )
   const saving = course.mrp - course.price
   const t = await getTranslations("CourseDetail")
   const tf = await getTranslations("Fees")
@@ -475,7 +477,7 @@ export default async function CoursePage({
         </Section>
       ) : null}
 
-      <Faq />
+      <Faq courses={await liveCourses()} />
       <Enquire />
     </main>
   )

@@ -430,7 +430,7 @@ export const timings = [
 export const faqs = [
   {
     q: "What are the fees?",
-    a: "The complete APSC course (Lakhya 2027) is Rs 25,009. ADRE and Assam Police (VICTOR 8.0) is Rs 6,009, and the Banking, SSC and Railway batch is Rs 7,009. One fee covers classes, tests, notes and the app. Scholarships are available through ICT's ASSIST test.",
+    a: "The complete APSC course ({apsc}) is {apscFee}. ADRE and Assam Police ({adre}) is {adreFee}, and the Banking, SSC and Railway batch ({banking}) is {bankingFee}. One fee covers classes, tests, notes and the app. Scholarships are available through ICT's ASSIST test.",
   },
   {
     q: "Can I attend a class before I pay?",
@@ -438,7 +438,7 @@ export const faqs = [
   },
   {
     q: "I have a job. Is there a batch that fits?",
-    a: "Two. PRAGATI 2027 is ICT's APSC batch built for working professionals, and VICTOR 8.0 runs 8 to 10 AM for ADRE and Assam Police.",
+    a: "Two. PRAGATI 2027 is ICT's APSC batch built for working professionals, and {adre} runs the ADRE and Assam Police batch.",
   },
   {
     q: "What happens if I miss a class?",

@@ -288,7 +288,7 @@ const listed = (course: Doc<"courses">) =>
 /** ClassPlus lists a few dozen courses at most. */
 const COURSES_MAX = 100
 
-/** Courses on the site: ICT's order first, then the dearest first. */
+/** Courses on the site: ICT's order first, then the newest. */
 export const list = query({
   args: {},
   returns: v.array(PUBLIC_COURSE),
@@ -299,6 +299,7 @@ export const list = query({
     rows.sort(
       (a, b) =>
         (a.local.sortOrder ?? Infinity) - (b.local.sortOrder ?? Infinity) ||
+        (b.source.createdAt ?? 0) - (a.source.createdAt ?? 0) ||
         b.source.finalPricePaise - a.source.finalPricePaise
     )
     return Promise.all(rows.map((row) => toPublic(ctx, row)))
