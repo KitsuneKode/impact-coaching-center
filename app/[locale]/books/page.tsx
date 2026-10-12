@@ -1,5 +1,3 @@
-import { alternatesFor } from "@/lib/site"
-import { getTranslations, setRequestLocale } from "next-intl/server"
 import {
   IconBook,
   IconBooks,
@@ -7,14 +5,18 @@ import {
   IconTruckDelivery,
 } from "@tabler/icons-react"
 import type { Metadata } from "next"
-import { Suspense } from "react"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { BundleGrid } from "@/components/commerce/bundle-grid"
-import { CatalogSkeleton } from "@/components/commerce/catalog-skeleton"
-import { SampleNotice, ShopCartButton } from "@/components/commerce/shop-shell"
+import { BundleRow } from "@/components/commerce/bundle-row"
+import { ShopCartButton } from "@/components/commerce/shop-shell"
+import { Reveal } from "@/components/motion/reveal"
+import { JumpChips } from "@/components/site/jump-chips"
+import { PageHead } from "@/components/site/page-head"
 import { StatePanel } from "@/components/ui/page-shell"
-import { Section } from "@/components/ui/section"
+import { contentFor } from "@/i18n/content-server"
 import { onlySamples, publishedBundles } from "@/lib/catalog-server"
+import { slugify } from "@/lib/catalog"
+import { alternatesFor, openGraphFor } from "@/lib/site"
 
 export async function generateMetadata({
   params,
@@ -26,6 +28,7 @@ export async function generateMetadata({
     title: t("title"),
     description: t("description"),
     alternates: alternatesFor("/books", locale),
+    openGraph: openGraphFor("/books", t("title"), t("description"), locale),
     ...(onlySamples(bundles)
       ? { robots: { index: false, follow: false } }
       : {}),
@@ -38,6 +41,7 @@ const promises = [
   { icon: IconBuildingStore, key: "promiseCollect" },
 ] as const
 
+/** ICT's book sets, grouped by exam; each opens to choose English or Assamese. */
 export default async function BooksPage({
   params,
 }: PageProps<"/[locale]/books">) {
@@ -45,47 +49,85 @@ export default async function BooksPage({
   setRequestLocale(locale)
   const bundles = await publishedBundles()
   const t = await getTranslations("BooksPage")
+  const pulse = await getTranslations("Pulse")
+  const nav = await getTranslations("Nav")
+  const { phrase } = await contentFor(locale)
+  const groups = [...Map.groupBy(bundles, (bundle) => bundle.exam)]
 
   return (
-    <Section size="sm" className="pt-10 md:pt-12">
-      {bundles.length && onlySamples(bundles) ? (
-        <div className="mb-8">
-          <SampleNotice>{t("sample")}</SampleNotice>
-        </div>
-      ) : null}
-      <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
-        <div className="grid gap-5">
-          <h1 className="type-display max-w-[20ch]">{t("heading")}</h1>
-          <div>
-            <ShopCartButton />
-          </div>
-        </div>
-        <ul className="grid gap-2.5 text-sm text-muted-foreground">
+    <main>
+      <PageHead
+        trail={[{ label: nav("books") }]}
+        title={pulse("booksTitle")}
+        lede={
+          bundles.length && onlySamples(bundles)
+            ? pulse("setsSample")
+            : undefined
+        }
+      >
+        <ul className="mbs-8 flex flex-wrap gap-3">
           {promises.map(({ icon: Icon, key }) => (
-            <li key={key} className="flex items-center gap-2.5">
-              <Icon
-                stroke={1.5}
-                className="size-[18px] text-foreground"
-                aria-hidden
-              />
+            <li
+              key={key}
+              className="inline-flex items-center gap-3 rounded-full bg-card ps-2 pe-5 pbs-2 pbe-2 text-sm text-muted-foreground shadow-[0_0_0_1px_var(--border)]"
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-secondary text-foreground">
+                <Icon aria-hidden stroke={1.5} className="size-[18px]" />
+              </span>
               {t(key)}
             </li>
           ))}
         </ul>
-      </div>
-      {bundles.length ? (
-        /* The filter reads the URL; this keeps the rest of the page static. */
-        <Suspense fallback={<CatalogSkeleton kind="books" />}>
-          <BundleGrid bundles={bundles} />
-        </Suspense>
+        <div className="mbs-6 flex flex-wrap items-center justify-between gap-4">
+          {groups.length > 1 ? (
+            <JumpChips
+              label={pulse("jumpExam")}
+              items={groups.map(([exam]) => ({
+                href: `#${slugify(exam)}`,
+                label: phrase(exam),
+              }))}
+            />
+          ) : (
+            <span />
+          )}
+          <ShopCartButton />
+        </div>
+      </PageHead>
+
+      {groups.length ? (
+        groups.map(([exam, sets]) => (
+          <section
+            key={exam}
+            id={slugify(exam)}
+            aria-labelledby={`${slugify(exam)}-heading`}
+            className="container-page pbe-16"
+          >
+            <h2
+              id={`${slugify(exam)}-heading`}
+              className="font-display text-xl font-semibold"
+            >
+              {phrase(exam)}
+            </h2>
+            <ul className="mbs-6 grid gap-6">
+              {sets.map((bundle, i) => (
+                <li key={bundle.slug}>
+                  <Reveal delay={i * 0.05}>
+                    <BundleRow bundle={bundle} />
+                  </Reveal>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       ) : (
-        <StatePanel
-          className="mt-10"
-          icon={<IconBooks stroke={1.75} />}
-          title={t("empty")}
-          description={t("emptyNote")}
-        />
+        <div className="container-page pbe-20">
+          <StatePanel
+            icon={<IconBooks stroke={1.75} />}
+            title={t("empty")}
+            description={t("emptyNote")}
+          />
+        </div>
       )}
-    </Section>
+    </main>
   )
 }

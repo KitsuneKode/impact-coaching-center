@@ -943,3 +943,101 @@
     }
   }
 }
+
+@layer components {
+  /* ------------------------------------------------------- inner pages */
+
+  [data-chip] {
+    box-shadow: inset 0 0 0 1.5px var(--border);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-chip]:hover {
+      background-color: var(--secondary);
+    }
+  }
+
+  /* A row card: a course or a set, linking to its page. */
+  [data-row-card] {
+    position: relative;
+    isolation: isolate;
+    border-radius: 28px;
+    background-color: var(--card);
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 6%, transparent),
+      0 26px 44px -30px
+        color-mix(in oklch, var(--primary-deep) 40%, transparent);
+  }
+  [data-row-card]:active {
+    scale: 0.99;
+  }
+  [data-row-go] {
+    background-color: var(--highlight);
+    color: var(--foreground);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-row-card] {
+      transition:
+        box-shadow 0.3s var(--ease-out-strong),
+        scale 0.16s var(--ease-out-strong);
+    }
+    [data-row-go] {
+      transition: translate 0.3s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-row-card]:hover {
+      box-shadow:
+        0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+        0 30px 50px -28px
+          color-mix(in oklch, var(--primary-deep) 55%, transparent);
+    }
+    [data-row-card]:hover [data-row-go] {
+      translate: 4px 0;
+    }
+  }
+
+  [data-avatar] {
+    box-shadow: 0 0 0 3px var(--background);
+  }
+}
+
+@layer components {
+  /* -------------------------------------------------- set card stage */
+
+  [data-set-stage] {
+    background:
+      radial-gradient(
+        closest-side,
+        color-mix(in oklch, white 16%, transparent),
+        transparent
+      ),
+      var(--primary);
+  }
+  [data-set-book] {
+    grid-area: 1 / 1;
+    inline-size: clamp(8.5rem, 5rem + 9vw, 12.5rem);
+    translate: calc(var(--offset) * 58%) calc(var(--abs) * 10px);
+    rotate: calc(var(--offset) * 6deg);
+    z-index: calc(3 - var(--abs));
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-set-book] {
+      transition:
+        translate 0.5s var(--ease-out-strong),
+        rotate 0.5s var(--ease-out-strong);
+    }
+  }
+  /* A mouse spreads the books a little. */
+  @media (hover: hover) and (pointer: fine) {
+    [data-row-card]:hover [data-set-book] {
+      translate: calc(var(--offset) * 72%) calc(var(--abs) * 4px);
+      rotate: calc(var(--offset) * 3deg);
+    }
+  }
+  [data-set-price] {
+    background-color: var(--secondary);
+  }
+  [data-set-price][data-off] {
+    opacity: 0.6;
+  }
+}

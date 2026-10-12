@@ -1,21 +1,18 @@
-import { useTranslations } from "next-intl"
-import { getTranslations, setRequestLocale } from "next-intl/server"
-import { IconArrowRight, IconClock } from "@tabler/icons-react"
+import { IconArrowRight } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import Image from "next/image"
-import { Link } from "@/i18n/navigation"
-import type { CSSProperties } from "react"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { Enquire } from "@/components/marketing/enquire"
-import { useContent } from "@/i18n/content"
-import { contentFor } from "@/i18n/content-server"
+import { Ask } from "@/components/home/ask"
 import { Reveal } from "@/components/motion/reveal"
-import { Lede, Section } from "@/components/ui/section"
-import { schedules, tracks } from "@/lib/brand"
-import { inr, lineup, type Course } from "@/lib/courses"
+import { JumpChips } from "@/components/site/jump-chips"
+import { PageHead } from "@/components/site/page-head"
+import { contentFor } from "@/i18n/content-server"
+import { Link } from "@/i18n/navigation"
+import { facultyBySlug, schedules, tracks } from "@/lib/brand"
+import { inr, lineup } from "@/lib/courses"
 import { liveCourses } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
-import { cn } from "@/lib/utils"
 
 export async function generateMetadata({
   params,
@@ -32,165 +29,168 @@ export async function generateMetadata({
   }
 }
 
-const delay = (ms: number) => ({ "--enter-delay": `${ms}ms` }) as CSSProperties
-
-function CourseTile({
-  course,
-  flagship,
-}: {
-  course: Course
-  flagship: boolean
-}) {
-  const t = useTranslations("CoursesPage")
-  const tc = useTranslations("Courses")
-  const { phrase } = useContent()
-  const when = course.timing ?? schedules[course.id]?.when
-  return (
-    <Link
-      href={`/courses/${course.slug}`}
-      className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-card border bg-card shadow-frame transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-lift",
-        flagship ? "border-foreground/15" : "border-border"
-      )}
-    >
-      {course.cover ? (
-        <span className="relative aspect-[4/3] bg-surface">
-          <Image
-            src={course.cover}
-            alt={`${course.short} course poster`}
-            fill
-            sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 30vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-          />
-        </span>
-      ) : null}
-
-      <span className="flex flex-1 flex-col p-5">
-        {flagship ? (
-          <span className="mb-2 self-start rounded-control bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground">
-            {t("main")}
-          </span>
-        ) : null}
-        <span className="block text-[1.0625rem] font-medium">
-          {course.short}
-        </span>
-        {course.subtitle ? (
-          <span className="mt-0.5 block text-sm text-muted-foreground">
-            {phrase(course.subtitle)}
-          </span>
-        ) : null}
-
-        {when ? (
-          <span className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-            <IconClock size={14} stroke={1.75} />
-            {phrase(when)}
-          </span>
-        ) : null}
-
-        <span className="mt-auto flex items-end justify-between gap-3 pt-5">
-          <span className="flex items-baseline gap-2">
-            <span className="tnum text-[1.375rem] leading-none font-medium tracking-[-0.02em]">
-              {course.free ? tc("free") : inr(course.price)}
-            </span>
-            {course.mrp > course.price ? (
-              <span className="tnum text-sm text-muted-foreground line-through">
-                {inr(course.mrp)}
-              </span>
-            ) : null}
-          </span>
-          <span className="inline-flex items-center gap-1 text-sm font-medium">
-            {t("details")}
-            <IconArrowRight
-              size={15}
-              stroke={1.75}
-              className="transition-transform group-hover:translate-x-0.5"
-            />
-          </span>
-        </span>
-      </span>
-    </Link>
-  )
-}
-
-/** Every live course, grouped by exam, priced from ICT's own catalogue. */
+/** Every live course, grouped by exam, straight from ICT's ClassPlus store. */
 export default async function CoursesPage({
   params,
 }: PageProps<"/[locale]/courses">) {
   const { locale } = await params
   setRequestLocale(locale)
-  const t = await getTranslations("CoursesPage")
+  const t = await getTranslations("Pulse")
+  const fees = await getTranslations("Fees")
+  const nav = await getTranslations("Nav")
   const content = await contentFor(locale)
   const courses = await liveCourses()
+
+  const groups = tracks.flatMap((track) => {
+    const { flagship, also, free } = lineup(courses, track.exam)
+    const items = [flagship, ...also, free].filter((c) => c !== undefined)
+    return items.length ? [{ track, items }] : []
+  })
+
   return (
     <main>
-      <section className="pt-26 pb-10 md:pt-30">
-        <div className="container-page">
-          <h1 className="enter type-display max-w-[48rem]" style={delay(0)}>
-            <span className="text-foreground">{t("claim")}</span>
-            <span className="text-muted-foreground"> {t("rest")}</span>
-          </h1>
-          <nav
-            aria-label={t("find")}
-            className="enter mt-8 flex flex-wrap gap-2"
-            style={delay(80)}
-          >
-            <a
-              href="#apsc"
-              className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary"
-            >
-              APSC
-            </a>
-            <a
-              href="#adre"
-              className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary"
-            >
-              {content.track("adre").exam}
-            </a>
-            <a
-              href="#banking"
-              className="rounded-control border border-border bg-card px-3.5 py-2 text-sm font-medium shadow-frame transition-colors hover:bg-secondary"
-            >
-              {content.track("banking").full}
-            </a>
-          </nav>
-        </div>
-      </section>
+      <PageHead
+        trail={[{ label: nav("courses") }]}
+        title={t("coursesTitle")}
+        lede={`${fees("note")} ${fees("scholarship")}`}
+      >
+        <JumpChips
+          label={t("jumpExam")}
+          items={groups.map(({ track }) => ({
+            href: `#${track.slug}`,
+            label: content.track(track.slug).exam,
+          }))}
+        />
+      </PageHead>
 
-      {tracks.map((track, index) => {
-        const { flagship, also, free } = lineup(courses, track.exam)
-        const list = [flagship, ...also, free].filter((c) => c !== undefined)
-        if (!list.length) return null
+      {groups.map(({ track, items }) => {
+        const names = content.track(track.slug)
+        const teachers = track.faculty.map(facultyBySlug)
         return (
-          <Section
+          <section
             key={track.slug}
             id={track.slug}
-            size="sm"
-            className={index > 0 ? "border-t border-border" : undefined}
+            aria-labelledby={`${track.slug}-heading`}
+            className="container-page pbe-20"
           >
-            <Reveal>
-              <Lede
-                label={content.track(track.slug).exam}
-                claim={`${content.track(track.slug).full}.`}
-                rest={`${content.track(track.slug).covers}.`}
-              />
-            </Reveal>
-            <Reveal
-              delay={0.08}
-              className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {list.map((course) => (
-                <CourseTile
-                  key={course.id}
-                  course={course}
-                  flagship={course.id === flagship?.id}
-                />
-              ))}
-            </Reveal>
-          </Section>
+            <div className="grid gap-8 lg:grid-cols-12">
+              <Reveal className="lg:col-span-4">
+                <div className="lg:sticky lg:top-28">
+                  <h2 id={`${track.slug}-heading`} className="type-display">
+                    {names.exam}
+                  </h2>
+                  <p className="mbs-3 text-muted-foreground">{names.full}</p>
+                  <p className="mbs-2 max-w-[34ch] text-muted-foreground">
+                    {names.covers}. {names.duration}.
+                  </p>
+                  <ul
+                    className="mbs-5 flex items-center"
+                    aria-label={t("faculty")}
+                  >
+                    {teachers.map((teacher, k) => (
+                      <li
+                        key={teacher.slug}
+                        className={k ? "-ms-2.5" : undefined}
+                      >
+                        <span
+                          data-avatar
+                          className="relative block size-11 overflow-clip rounded-full"
+                          title={`${teacher.name}, ${content.teaches(teacher.slug)}`}
+                        >
+                          <Image
+                            src={teacher.portrait}
+                            alt={`${teacher.name}, ${content.teaches(teacher.slug)}`}
+                            fill
+                            sizes="44px"
+                            className="object-cover object-top"
+                          />
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+
+              <ul className="grid gap-4 lg:col-span-8">
+                {items.map((course, i) => {
+                  const legacy = schedules[course.id]
+                  const when = course.timing
+                    ? course.timing
+                    : legacy?.when
+                      ? `${content.phrase(legacy.when)}${legacy.days ? `, ${content.phrase(legacy.days)}` : ""}`
+                      : t("askTiming")
+                  return (
+                    <li key={course.id}>
+                      <Reveal delay={i * 0.05}>
+                        <Link
+                          href={`/courses/${course.slug}`}
+                          data-row-card
+                          className="flex flex-col gap-5 overflow-clip p-3 sm:flex-row sm:items-center"
+                        >
+                          {course.cover ? (
+                            <span
+                              data-frame
+                              className="relative block aspect-[4/3] w-full flex-none overflow-clip rounded-2xl sm:w-52"
+                            >
+                              <Image
+                                src={course.cover}
+                                alt={t("poster", { name: course.short })}
+                                fill
+                                sizes="(min-width: 640px) 208px, 100vw"
+                                className="object-cover"
+                              />
+                            </span>
+                          ) : null}
+                          <span className="min-w-0 flex-1 ps-2 pe-2 pbe-2 sm:ps-0 sm:pe-0 sm:pbe-0">
+                            <span className="block font-display text-xl font-semibold tracking-[-0.02em]">
+                              {course.short}
+                            </span>
+                            {course.subtitle ? (
+                              <span className="mbs-1 block text-muted-foreground">
+                                {content.phrase(course.subtitle)}
+                              </span>
+                            ) : null}
+                            <span className="tnum mbs-3 block text-sm text-muted-foreground">
+                              {when}
+                              {course.offlineFee
+                                ? ` · ${t("offline", { fee: inr(course.offlineFee) })}`
+                                : ""}
+                            </span>
+                          </span>
+                          <span className="flex items-center justify-between gap-4 ps-2 pe-2 pbe-2 sm:flex-col sm:items-end sm:ps-4 sm:pe-4 sm:pbe-0">
+                            <span className="tnum text-end">
+                              <span className="block font-display text-2xl font-semibold">
+                                {course.free ? t("free") : inr(course.price)}
+                              </span>
+                              {!course.free && course.mrp > course.price ? (
+                                <s className="text-sm text-muted-foreground">
+                                  {inr(course.mrp)}
+                                </s>
+                              ) : null}
+                            </span>
+                            <span
+                              data-row-go
+                              className="grid size-11 place-items-center rounded-full"
+                            >
+                              <IconArrowRight
+                                aria-hidden
+                                size={18}
+                                stroke={2}
+                              />
+                            </span>
+                          </span>
+                        </Link>
+                      </Reveal>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </section>
         )
       })}
 
-      <Enquire />
+      <Ask />
     </main>
   )
 }

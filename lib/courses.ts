@@ -22,6 +22,15 @@ const CATEGORY_TRACK: Record<string, string> = {
   "Bank Exams": "Bank, SSC, Railway",
 }
 
+/** An exam named in the course's own title beats ClassPlus's category. */
+function trackFromName(name: string): string | undefined {
+  if (/\bAPSC\b/i.test(name)) return "APSC"
+  if (/\b(ADRE|Assam Police)\b/i.test(name)) return "ADRE and Assam Police"
+  if (/\b(Bank|Banking|SSC|Railway|NTPC)\b/i.test(name))
+    return "Bank, SSC, Railway"
+  return undefined
+}
+
 /** The shape `api.courses.list` returns, kept loose to stay importable anywhere. */
 export type MirrorCourse = {
   classplusId: number

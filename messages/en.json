@@ -564,6 +564,17 @@
     "terms": "Terms",
     "refunds": "Refunds",
     "shipping": "Shipping",
-    "copyright": "© {year} Impact Career Tutorials, {city}"
+    "copyright": "© {year} Impact Career Tutorials, {city}",
+    "coursesTitle": "Every course, by exam.",
+    "askTiming": "Ask for the timing",
+    "free": "Free",
+    "faculty": "Faculty",
+    "home": "Home",
+    "jumpExam": "Jump to an exam",
+    "offline": "Offline {fee}",
+    "starts": "Starts {date}",
+    "booksTitle": "ICT's books, for the exams it teaches.",
+    "seeSet": "See the set",
+    "setsSample": "Sample sets for now. ICT's own books replace them before launch."
   }
 }

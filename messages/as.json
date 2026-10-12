@@ -764,6 +764,17 @@
     "terms": "চৰ্তাৱলী",
     "refunds": "ধন ঘূৰাই দিয়া",
     "shipping": "প্ৰেৰণ",
-    "copyright": "© {year} Impact Career Tutorials, {city}"
+    "copyright": "© {year} Impact Career Tutorials, {city}",
+    "coursesTitle": "পৰীক্ষা অনুসৰি প্ৰতিটো পাঠ্যক্ৰম।",
+    "askTiming": "সময় সোধক",
+    "free": "বিনামূলীয়া",
+    "faculty": "শিক্ষক",
+    "home": "মূল পৃষ্ঠা",
+    "jumpExam": "পৰীক্ষালৈ যাওক",
+    "offline": "অফলাইন {fee}",
+    "starts": "{date}ৰ পৰা",
+    "booksTitle": "ICTৰ কিতাপ, যিবোৰ পৰীক্ষাৰ বাবে পঢ়ায়।",
+    "seeSet": "সংকলনটো চাওক",
+    "setsSample": "এতিয়ালৈ নমুনা সংকলন। মুকলি কৰাৰ আগতে ICTৰ নিজৰ কিতাপে সেইবোৰৰ ঠাই ল'ব।"
   }
 }

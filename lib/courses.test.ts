@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test"
 
-import { fillFees, lineup, newestBatch, type Course } from "./courses"
+import {
+  fillFees,
+  fromMirror,
+  lineup,
+  newestBatch,
+  type Course,
+} from "./courses"
 
 const course = (over: Partial<Course>): Course => ({
   id: 1,
@@ -59,5 +65,27 @@ describe("lineup", () => {
 test("fee placeholders fill from each exam's lead course", () => {
   expect(fillFees("APSC ({apsc}) is {apscFee}.", apsc)).toBe(
     "APSC (Lakhya 2027) is ₹25,009."
+  )
+})
+
+test("an exam in the title beats the ClassPlus category", () => {
+  const mirror = {
+    classplusId: 893950,
+    slug: "kouxal",
+    name: "Kouxal- Free APSC Workshop",
+    short: "Kouxal",
+    subtitle: "Free APSC Workshop",
+    features: [],
+    pricePaise: 0,
+    finalPricePaise: 0,
+    free: true,
+    enrolled: 18,
+    category: "State govt exams- SSC",
+    tags: [],
+    cover: null,
+  }
+  expect(fromMirror(mirror).track).toBe("APSC")
+  expect(fromMirror({ ...mirror, track: "Bank, SSC, Railway" }).track).toBe(
+    "Bank, SSC, Railway"
   )
 })
