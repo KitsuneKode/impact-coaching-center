@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Reveal } from "@/components/motion/reveal"
-import { Lede, Section } from "@/components/ui/section"
+import { PageHead } from "@/components/site/page-head"
 import { Link } from "@/i18n/navigation"
 import { exams, pick } from "@/lib/exams"
 import { alternatesFor, openGraphFor } from "@/lib/site"
@@ -21,7 +21,7 @@ export async function generateMetadata({
   }
 }
 
-/** Every exam ICT teaches, one guide each. */
+/** Every exam ICT teaches, one guide each, and the dates calendar. */
 export default async function ExamsPage({
   params,
 }: PageProps<"/[locale]/exams">) {
@@ -29,62 +29,79 @@ export default async function ExamsPage({
   setRequestLocale(locale)
   const t = await getTranslations("Exams")
   const tc = await getTranslations("Calendar")
+  const nav = await getTranslations("Nav")
+
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <Lede as="h1" size="lg" claim={t("claim")} rest={t("rest")} />
-        <Reveal className="mt-12 grid gap-4 md:grid-cols-2">
-          {exams.map((exam) => (
-            <Link
-              key={exam.slug}
-              href={`/exams/${exam.slug}`}
-              className="group flex flex-col rounded-card border border-border bg-card p-7 shadow-frame transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-lift"
-            >
-              <span className="text-sm text-muted-foreground">
-                {pick(exam.body, locale)}
-              </span>
-              <span className="mt-2 text-xl leading-snug font-bold text-balance">
-                {pick(exam.name, locale)}
-              </span>
-              <span className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
-                {pick(exam.summary, locale)}
-              </span>
-              <span className="mt-auto inline-flex items-center gap-1 pt-6 text-sm font-bold">
-                {t("read")}
-                <IconArrowRight
-                  size={15}
-                  stroke={2}
-                  aria-hidden
-                  className="transition-transform duration-200 ease-out group-hover:translate-x-0.5"
-                />
-              </span>
-            </Link>
+      <PageHead
+        trail={[{ label: nav("exams") }]}
+        title={t("claim")}
+        lede={t("rest")}
+      />
+
+      <section className="container-page pbe-20 md:pbe-28">
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,26rem),1fr))] gap-4">
+          {exams.map((exam, i) => (
+            <li key={exam.slug}>
+              <Reveal delay={(i % 2) * 0.05} className="h-full">
+                <Link
+                  href={`/exams/${exam.slug}`}
+                  data-row-card
+                  className="flex h-full flex-col p-7"
+                >
+                  <span className="text-sm font-semibold text-primary">
+                    {pick(exam.body, locale)}
+                  </span>
+                  <span className="mbs-2 font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-balance">
+                    {pick(exam.name, locale)}
+                  </span>
+                  <span className="mbs-3 text-muted-foreground">
+                    {pick(exam.summary, locale)}
+                  </span>
+                  <span className="mbs-auto flex items-center justify-between gap-4 pbs-6 font-semibold">
+                    {t("read")}
+                    <span
+                      data-row-go
+                      className="grid size-11 place-items-center rounded-full"
+                    >
+                      <IconArrowRight aria-hidden size={18} stroke={2} />
+                    </span>
+                  </span>
+                </Link>
+              </Reveal>
+            </li>
           ))}
-          <Link
-            href="/exams/calendar"
-            className="group flex items-center gap-5 rounded-card bg-surface p-7 transition-transform duration-300 hover:-translate-y-0.5 md:col-span-2"
-          >
-            <span className="grid size-12 shrink-0 place-items-center rounded-control bg-card shadow-frame">
-              <IconCalendarEvent size={22} stroke={1.75} aria-hidden />
-            </span>
-            <span className="grid min-w-0">
-              <span className="text-xl leading-snug font-bold">
-                {tc("calendar")}
-              </span>
-              <span className="text-[0.9375rem] text-muted-foreground">
-                {tc("calendarRest")}
-              </span>
-            </span>
-            <IconArrowRight
-              size={18}
-              stroke={2}
-              aria-hidden
-              className="ml-auto shrink-0 transition-transform duration-200 ease-out group-hover:translate-x-0.5"
-            />
-          </Link>
-        </Reveal>
-        <p className="mt-8 text-sm text-muted-foreground">{t("changes")}</p>
-      </Section>
+          <li className="col-span-full">
+            <Reveal>
+              <Link
+                href="/exams/calendar"
+                data-row-card
+                data-calendar-card
+                className="flex items-center gap-5 p-6 md:p-7"
+              >
+                <span className="grid size-12 flex-none place-items-center rounded-2xl bg-white/12">
+                  <IconCalendarEvent aria-hidden size={22} stroke={1.75} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display text-xl font-semibold">
+                    {tc("calendar")}
+                  </span>
+                  <span className="block text-on-primary">
+                    {tc("calendarRest")}
+                  </span>
+                </span>
+                <span
+                  data-row-go
+                  className="grid size-11 flex-none place-items-center rounded-full"
+                >
+                  <IconArrowRight aria-hidden size={18} stroke={2} />
+                </span>
+              </Link>
+            </Reveal>
+          </li>
+        </ul>
+        <p className="mbs-8 text-sm text-muted-foreground">{t("changes")}</p>
+      </section>
     </main>
   )
 }

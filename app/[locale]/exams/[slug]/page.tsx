@@ -1,8 +1,4 @@
-import {
-  IconArrowRight,
-  IconArrowUpRight,
-  IconChevronRight,
-} from "@tabler/icons-react"
+import { IconArrowRight, IconArrowUpRight } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 import Image from "next/image"
@@ -10,8 +6,7 @@ import { notFound } from "next/navigation"
 
 import { ExamDateList } from "@/components/marketing/exam-dates"
 import { Reveal } from "@/components/motion/reveal"
-import { ButtonAnchor, buttonVariants } from "@/components/ui/button"
-import { Section } from "@/components/ui/section"
+import { PageHead } from "@/components/site/page-head"
 import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { facultyBySlug, schedules, tracks } from "@/lib/brand"
@@ -79,168 +74,187 @@ export default async function ExamGuidePage({
     calendar.today
   ).upcoming.slice(0, 4)
 
+  const name = pick(exam.name, locale)
+
   return (
     <main>
-      <section className="pt-26 pb-12 md:pt-30 md:pb-16">
-        <div className="container-page">
-          <nav aria-label={t("breadcrumb")}>
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-              <li>
-                <Link href="/exams" className="hover:text-foreground">
-                  {t("exams")}
-                </Link>
-              </li>
-              <IconChevronRight size={14} stroke={1.75} aria-hidden />
-              <li aria-current="page" className="text-foreground">
-                {pick(exam.name, locale)}
-              </li>
-            </ol>
-          </nav>
-          <h1 className="type-display mt-8 max-w-[56rem]">
-            <span className="text-foreground">{pick(exam.name, locale)}.</span>{" "}
-            <span className="text-muted-foreground">
-              {pick(exam.summary, locale)}
-            </span>
-          </h1>
-          <p className="mt-5 text-sm text-muted-foreground">
-            {t("conductedBy", { body: pick(exam.body, locale) })}{" "}
-            {t("checked", { date: checkedOn(exam.checked, locale) })}
-          </p>
-        </div>
-      </section>
+      <PageHead
+        trail={[{ label: t("exams"), href: "/exams" }, { label: name }]}
+        title={name}
+        lede={pick(exam.summary, locale)}
+      >
+        <p className="mbs-5 text-sm text-muted-foreground">
+          {t("conductedBy", { body: pick(exam.body, locale) })}{" "}
+          {t("checked", { date: checkedOn(exam.checked, locale) })}
+        </p>
+      </PageHead>
 
-      <Section size="sm" className="border-t border-border">
-        <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-          <div>
-            <h2 className="type-lede">
-              <span className="text-foreground">{tc("guideDates")}</span>
+      {/* ---- the next dates ---- */}
+      <section
+        aria-labelledby="dates-heading"
+        className="container-page pbe-20"
+      >
+        <div className="grid gap-8 rounded-[28px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-9 lg:grid-cols-12 lg:gap-12">
+          <div className="lg:col-span-4">
+            <h2
+              id="dates-heading"
+              className="font-display text-2xl font-semibold tracking-[-0.02em]"
+            >
+              {tc("guideDates")}
             </h2>
             <Link
               href="/exams/calendar"
-              className="link mt-3 inline-flex items-center gap-1 text-sm"
+              className="mbs-3 inline-flex min-h-11 items-center gap-1 text-sm font-semibold underline decoration-foreground/30 underline-offset-4"
             >
               {tc("fullCalendar")}
-              <IconArrowRight size={14} stroke={1.75} aria-hidden />
+              <IconArrowRight aria-hidden size={14} stroke={2} />
             </Link>
           </div>
-          {upcoming.length > 0 ? (
-            <ExamDateList
-              dates={upcoming}
-              today={calendar.today}
-              locale={locale}
-              showExam={false}
-            />
-          ) : (
-            <p className="text-[0.9375rem] text-muted-foreground">
-              {tc("guideNone")}
-            </p>
-          )}
+          <div className="min-w-0 lg:col-span-8">
+            {upcoming.length > 0 ? (
+              <ExamDateList
+                dates={upcoming}
+                today={calendar.today}
+                locale={locale}
+                showExam={false}
+              />
+            ) : (
+              <p className="text-muted-foreground">{tc("guideNone")}</p>
+            )}
+          </div>
         </div>
-      </Section>
+      </section>
 
-      {/* The stages, as a numbered sequence. */}
-      <Section size="sm" className="border-t border-border">
-        <p className="type-label">{t("stages")}</p>
-        <ol className="mt-6 grid gap-4 md:grid-cols-2">
+      {/* ---- the stages, in order ---- */}
+      <section
+        aria-labelledby="stages-heading"
+        className="container-page pbe-20 md:pbe-28"
+      >
+        <Reveal>
+          <h2 id="stages-heading" className="type-display">
+            {t("stages")}
+          </h2>
+        </Reveal>
+        <ol className="mbs-10 grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-4">
           {exam.stages.map((stage, index) => (
-            <Reveal key={stage.name.en} delay={index * 0.05}>
-              <li className="flex h-full flex-col rounded-card border border-border bg-card p-6 shadow-frame md:p-7">
-                <span className="tnum text-sm text-muted-foreground">
-                  {t("stage", { n: index + 1 })}
-                </span>
-                <h2 className="mt-1 text-xl leading-snug font-bold">
-                  {pick(stage.name, locale)}
+            <li key={stage.name.en}>
+              <Reveal delay={index * 0.05} className="h-full">
+                <div className="flex h-full flex-col rounded-[28px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-8">
+                  <span
+                    aria-hidden
+                    className="tnum font-display text-5xl leading-none font-semibold text-primary"
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <h3 className="mbs-4 font-display text-xl leading-snug font-semibold">
+                    <span className="sr-only">
+                      {t("stage", { n: index + 1 })}:{" "}
+                    </span>
+                    {pick(stage.name, locale)}
+                  </h3>
+                  {stage.facts ? (
+                    <p className="tnum mbs-4 rounded-2xl bg-secondary ps-4 pe-4 pbs-2.5 pbe-2.5 font-semibold">
+                      {pick(stage.facts, locale)}
+                    </p>
+                  ) : null}
+                  <ul className="mbs-4 grid gap-2.5">
+                    {stage.points.map((point) => (
+                      <li
+                        key={point.en}
+                        className="tnum flex gap-3 text-muted-foreground"
+                      >
+                        <span
+                          aria-hidden
+                          className="mbs-2.5 size-1.5 flex-none rounded-full bg-primary"
+                        />
+                        {pick(point, locale)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+        <p className="mbs-6 text-sm text-muted-foreground">{t("changes")}</p>
+      </section>
+
+      {/* ---- who can sit it, and past papers ---- */}
+      {exam.eligibility || exam.papers.length > 0 ? (
+        <section className="container-page grid grid-cols-[repeat(auto-fit,minmax(min(100%,26rem),1fr))] gap-4 pbe-20 md:pbe-28">
+          {exam.eligibility ? (
+            <Reveal className="h-full">
+              <div className="h-full rounded-[28px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-8">
+                <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+                  {t("eligibility")}
                 </h2>
-                {stage.facts ? (
-                  <p className="tnum mt-3 rounded-control bg-secondary px-3 py-2 text-[0.9375rem] font-bold">
-                    {pick(stage.facts, locale)}
-                  </p>
-                ) : null}
-                <ul className="mt-4 space-y-2.5">
-                  {stage.points.map((point) => (
+                <ul className="mbs-5 grid">
+                  {exam.eligibility.map((line) => (
                     <li
-                      key={point.en}
-                      className="tnum flex gap-2.5 text-[0.9375rem] leading-relaxed text-muted-foreground"
+                      key={line.en}
+                      className="tnum border-bs border-border pbs-4 pbe-4 first:border-bs-0 first:pbs-0"
                     >
-                      <span
-                        aria-hidden
-                        className="mt-2.5 size-1.5 shrink-0 rounded-full bg-foreground/40"
-                      />
-                      {pick(point, locale)}
+                      {pick(line, locale)}
                     </li>
                   ))}
                 </ul>
-              </li>
+              </div>
             </Reveal>
-          ))}
-        </ol>
-        <p className="mt-6 text-sm text-muted-foreground">{t("changes")}</p>
-      </Section>
-
-      {exam.eligibility ? (
-        <Section size="sm" className="border-t border-border">
-          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-            <h2 className="type-lede">
-              <span className="text-foreground">{t("eligibility")}</span>
-            </h2>
-            <ul>
-              {exam.eligibility.map((line) => (
-                <li
-                  key={line.en}
-                  className="tnum border-t border-border py-4 text-[0.9375rem] leading-relaxed first:border-t-0 first:pt-0"
-                >
-                  {pick(line, locale)}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Section>
-      ) : null}
-
-      {exam.papers.length > 0 ? (
-        <Section size="sm" className="border-t border-border">
-          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
-            <h2 className="type-lede">
-              <span className="text-foreground">{t("papers")}</span>
-            </h2>
-            <ul>
-              {exam.papers.map((paper) => (
-                <li key={paper.href}>
-                  <a
-                    href={paper.href}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="row-link group text-[0.9375rem] hover:text-foreground"
-                  >
-                    {pick(paper.label, locale)}
-                    <IconArrowUpRight
-                      size={16}
-                      stroke={1.75}
-                      aria-hidden
-                      className="shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                    />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </Section>
-      ) : null}
-
-      {/* ICT's batch for this exam. */}
-      {course ? (
-        <Section size="sm" className="border-t border-border">
-          <div className="rounded-card bg-surface p-7 md:p-10">
-            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-14">
-              <div>
-                <h2 className="type-lede">
-                  <span className="text-foreground">{t("prepare")}.</span>{" "}
-                  <span className="text-muted-foreground">
-                    {t("prepareRest")}
-                  </span>
+          ) : null}
+          {exam.papers.length > 0 ? (
+            <Reveal delay={0.05} className="h-full">
+              <div className="h-full rounded-[28px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-8">
+                <h2 className="font-display text-2xl font-semibold tracking-[-0.02em]">
+                  {t("papers")}
                 </h2>
-                <p className="mt-6 text-xl font-bold">{course.short}</p>
-                <p className="tnum mt-1 text-muted-foreground">
+                <ul className="mbs-4 grid gap-1">
+                  {exam.papers.map((paper) => (
+                    <li key={paper.href}>
+                      <a
+                        href={paper.href}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        data-sibling
+                        className="flex items-center justify-between gap-4 rounded-2xl ps-4 pe-4 pbs-3 pbe-3"
+                      >
+                        {pick(paper.label, locale)}
+                        <IconArrowUpRight
+                          data-nudge
+                          aria-hidden
+                          size={16}
+                          stroke={1.75}
+                          className="flex-none"
+                        />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          ) : null}
+        </section>
+      ) : null}
+
+      {/* ---- ICT's batch for this exam ---- */}
+      {course ? (
+        <section
+          aria-labelledby="prepare-heading"
+          className="container-page pbe-20 md:pbe-28"
+        >
+          <Reveal>
+            <div className="grid gap-10 rounded-[32px] bg-primary p-7 text-white md:p-12 lg:grid-cols-12 lg:items-center">
+              <div className="lg:col-span-7">
+                <h2
+                  id="prepare-heading"
+                  className="font-display text-[clamp(1.6rem,1.2rem+1.8vw,2.5rem)] leading-tight font-semibold tracking-[-0.03em] text-balance"
+                >
+                  {t("prepare")}.{" "}
+                  <span className="text-on-primary">{t("prepareRest")}</span>
+                </h2>
+                <p className="mbs-6 font-display text-2xl font-semibold">
+                  {course.short}
+                </p>
+                <p className="tnum mbs-1 text-on-primary">
                   {[
                     schedule ? content.phrase(schedule.when) : null,
                     content.track(track.slug).duration,
@@ -249,78 +263,106 @@ export default async function ExamGuidePage({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
-                <div className="mt-5 flex -space-x-2">
-                  {people.map((person) => (
-                    <span
-                      key={person.slug}
-                      title={person.called}
-                      className="relative size-10 overflow-hidden rounded-full bg-card ring-2 ring-surface"
-                    >
-                      <Image
-                        src={person.portrait}
-                        alt={person.called}
-                        fill
-                        sizes="40px"
-                        className="object-cover object-top"
-                      />
-                    </span>
+                <ul className="mbs-5 flex items-center">
+                  {people.map((person, k) => (
+                    <li key={person.slug} className={k ? "-ms-2.5" : undefined}>
+                      <span
+                        data-avatar
+                        className="relative block size-11 overflow-clip rounded-full"
+                        title={person.called}
+                      >
+                        <Image
+                          src={person.portrait}
+                          alt={person.called}
+                          fill
+                          sizes="44px"
+                          className="object-cover object-top"
+                        />
+                      </span>
+                    </li>
                   ))}
-                </div>
-                <div className="mt-7 flex flex-wrap gap-3">
+                </ul>
+                <div className="mbs-7 flex flex-wrap gap-3">
                   <Link
                     href={`/courses/${course.slug}`}
-                    className={buttonVariants({ size: "lg" })}
+                    data-press
+                    data-cta="amber"
+                    className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
                   >
                     {t("seeCourse")}
-                    <IconArrowRight data-nudge stroke={1.75} />
+                    <IconArrowRight
+                      data-nudge
+                      aria-hidden
+                      size={18}
+                      stroke={2}
+                    />
                   </Link>
-                  <ButtonAnchor
+                  <a
                     href={contactHref({ kind: "track", exam: track.exam })}
                     target="_blank"
-                    variant="secondary"
-                    size="lg"
+                    rel="noreferrer noopener"
+                    data-press
+                    data-cta="ghost-blue"
+                    className="inline-flex h-12 items-center rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
                   >
                     {t("enquire")}
-                  </ButtonAnchor>
+                  </a>
                 </div>
               </div>
-              <ul className="grid gap-2">
-                <li>
-                  <Link href="/resources" className="row-link text-[0.9375rem]">
-                    {t("freeMaterial")}
-                    <IconArrowRight size={16} stroke={1.75} aria-hidden />
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/books" className="row-link text-[0.9375rem]">
-                    {t("books")}
-                    <IconArrowRight size={16} stroke={1.75} aria-hidden />
-                  </Link>
-                </li>
+              <ul className="grid gap-2 lg:col-span-5">
+                {[
+                  { href: "/resources", label: t("freeMaterial") },
+                  { href: "/books", label: t("books") },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      data-blue-row
+                      className="flex items-center justify-between gap-4 rounded-2xl ps-5 pe-5 pbs-4 pbe-4 font-semibold"
+                    >
+                      {item.label}
+                      <IconArrowRight
+                        data-nudge
+                        aria-hidden
+                        size={18}
+                        stroke={2}
+                      />
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
-          </div>
-        </Section>
+          </Reveal>
+        </section>
       ) : null}
 
-      <Section size="sm" className="border-t border-border">
-        <p className="type-label">{t("sources")}</p>
-        <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+      {/* ---- where every fact above comes from ---- */}
+      <section
+        aria-labelledby="sources-heading"
+        className="container-page pbe-20"
+      >
+        <h2
+          id="sources-heading"
+          className="text-sm font-semibold text-muted-foreground"
+        >
+          {t("sources")}
+        </h2>
+        <ul className="mbs-3 flex flex-wrap gap-x-6 gap-y-2 text-sm">
           {exam.sources.map((source) => (
             <li key={source.href}>
               <a
                 href={source.href}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="link inline-flex items-center gap-1"
+                className="inline-flex min-h-11 items-center gap-1 underline decoration-foreground/30 underline-offset-4"
               >
                 {pick(source.label, locale)}
-                <IconArrowUpRight size={14} stroke={1.75} aria-hidden />
+                <IconArrowUpRight aria-hidden size={14} stroke={1.75} />
               </a>
             </li>
           ))}
         </ul>
-      </Section>
+      </section>
     </main>
   )
 }

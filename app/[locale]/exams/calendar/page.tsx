@@ -3,8 +3,7 @@ import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { dayInWords, ExamDateList } from "@/components/marketing/exam-dates"
-import { ButtonAnchor } from "@/components/ui/button"
-import { Lede, Section } from "@/components/ui/section"
+import { PageHead } from "@/components/site/page-head"
 import { byMonth, splitCalendar } from "@/lib/calendar"
 import { examDates } from "@/lib/catalog-server"
 import { contactHref } from "@/lib/contact"
@@ -39,44 +38,54 @@ export default async function CalendarPage({
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getTranslations("Calendar")
+  const te = await getTranslations("Exams")
   const { today, dates } = await examDates()
   const { upcoming, recent } = splitCalendar(dates, today)
 
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
-        <Lede as="h1" size="lg" claim={t("claim")} rest={t("rest")} />
-      </Section>
+      <PageHead
+        trail={[
+          { label: te("exams"), href: "/exams" },
+          { label: t("calendar") },
+        ]}
+        title={t("claim")}
+        lede={t("rest")}
+      />
 
-      <Section size="sm" className="border-t border-border">
+      <section className="container-page pbe-20">
         {upcoming.length === 0 ? (
-          <div className="grid gap-10 rounded-card bg-surface p-7 md:p-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
-            <div>
-              <h2 className="type-lede">
-                <span className="text-foreground">{t("emptyTitle")}</span>{" "}
-                <span className="text-muted-foreground">{t("emptyRest")}</span>
+          <div className="grid gap-10 rounded-[32px] bg-highlight p-7 md:p-10 lg:grid-cols-12 lg:gap-14">
+            <div className="lg:col-span-6">
+              <h2 className="font-display text-[clamp(1.5rem,1.2rem+1.4vw,2.25rem)] leading-tight font-semibold tracking-[-0.03em] text-balance">
+                {t("emptyTitle")}{" "}
+                <span className="text-[color-mix(in_oklch,var(--foreground)_78%,var(--highlight))]">
+                  {t("emptyRest")}
+                </span>
               </h2>
-              <ButtonAnchor
+              <a
                 href={contactHref({ kind: "dates" })}
                 target="_blank"
-                size="lg"
-                className="mt-8"
+                rel="noreferrer noopener"
+                data-press
+                className="mbs-8 inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-6 font-semibold text-background"
               >
-                <IconBrandWhatsapp stroke={1.75} aria-hidden />
+                <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
                 {t("notify")}
-              </ButtonAnchor>
+              </a>
             </div>
-            <ul className="grid content-start gap-2">
+            <ul className="grid content-start gap-2 lg:col-span-6">
               {exams.map((exam) => (
                 <li key={exam.slug}>
                   <a
                     href={exam.sources[0].href}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="row-link text-[0.9375rem]"
+                    data-row-card
+                    className="flex items-center justify-between gap-4 ps-5 pe-5 pbs-4 pbe-4"
                   >
                     <span className="grid">
-                      <span className="font-bold">
+                      <span className="font-semibold">
                         {pick(exam.name, locale)}
                       </span>
                       <span className="text-sm text-muted-foreground">
@@ -104,7 +113,7 @@ export default async function CalendarPage({
               >
                 <h2
                   id={`month-${month}`}
-                  className="text-xl font-bold lg:sticky lg:top-24 lg:self-start"
+                  className="font-display text-2xl font-semibold tracking-[-0.02em] lg:sticky lg:top-[calc(var(--header-height)+1.5rem)] lg:self-start"
                 >
                   {dayInWords(`${month}-01`, locale, {
                     month: "long",
@@ -116,13 +125,13 @@ export default async function CalendarPage({
             ))}
           </div>
         )}
-        <p className="mt-12 text-sm text-muted-foreground">{t("note")}</p>
-      </Section>
+        <p className="mbs-12 text-sm text-muted-foreground">{t("note")}</p>
+      </section>
 
       {recent.length > 0 ? (
-        <Section size="sm" className="border-t border-border">
+        <section className="container-page pbe-20 md:pbe-28">
           <div className="grid gap-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-12">
-            <h2 className="text-xl font-bold text-muted-foreground">
+            <h2 className="font-display text-2xl font-semibold tracking-[-0.02em] text-muted-foreground">
               {t("recent")}
             </h2>
             <ExamDateList
@@ -132,7 +141,7 @@ export default async function CalendarPage({
               past
             />
           </div>
-        </Section>
+        </section>
       ) : null}
     </main>
   )

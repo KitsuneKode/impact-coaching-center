@@ -1697,3 +1697,44 @@
     color: oklch(100% 0 none);
   }
 }
+
+@layer components {
+  /* The calendar link among the exam cards: the one blue row. */
+  [data-row-card][data-calendar-card] {
+    background-color: var(--primary);
+    color: oklch(100% 0 none);
+  }
+}
+
+@layer components {
+  /* Quiet link rows on a blue card. */
+  [data-blue-row] {
+    background-color: color-mix(in oklch, white 10%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, white 16%, transparent);
+  }
+  [data-blue-row]:focus-visible {
+    outline: 2px solid oklch(100% 0 none);
+    outline-offset: 2px;
+  }
+  [data-blue-row]:active {
+    scale: 0.99;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-blue-row] {
+      transition:
+        background-color 0.15s ease,
+        scale 0.16s var(--ease-out-strong);
+    }
+    [data-blue-row] [data-nudge] {
+      transition: translate 0.2s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-blue-row]:hover {
+      background-color: color-mix(in oklch, white 16%, transparent);
+    }
+    [data-blue-row]:hover [data-nudge] {
+      translate: 3px 0;
+    }
+  }
+}
