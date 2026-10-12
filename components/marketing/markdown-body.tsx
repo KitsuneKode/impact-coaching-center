@@ -1,10 +1,11 @@
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
+import { cn } from "@/lib/utils"
+
 /**
- * The prose skin every Markdown document on the site renders with. The
- * policy pages add their marker links on top; the blog and its editor
- * preview use it as-is.
+ * The prose skin the policy pages render with (they add marker links on
+ * top). Blog posts use Typeset instead, through MarkdownBody below.
  */
 export const proseComponents: Components = {
   h2: ({ children }) => (
@@ -65,11 +66,22 @@ export const proseComponents: Components = {
   ),
 }
 
-/** One renderer for every Markdown body: policies, posts, editor previews. */
-export function MarkdownBody({ children }: { children: string }) {
+/**
+ * Long-form Markdown (blog posts and their editor preview), styled by
+ * Typeset: plain elements inside one container, no classes on the content.
+ */
+export function MarkdownBody({
+  children,
+  className,
+}: {
+  children: string
+  className?: string
+}) {
   return (
-    <Markdown remarkPlugins={[remarkGfm]} components={proseComponents} skipHtml>
-      {children}
-    </Markdown>
+    <div className={cn("typeset typeset-docs max-w-[37em]", className)}>
+      <Markdown remarkPlugins={[remarkGfm]} skipHtml>
+        {children}
+      </Markdown>
+    </div>
   )
 }

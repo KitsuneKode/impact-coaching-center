@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import Image from "next/image"
 
 import { cn } from "@/lib/utils"
@@ -41,6 +42,7 @@ export function BookCover({
   size?: "sm" | "md" | "lg"
   className?: string
 }) {
+  const tr = useTranslations("Shop")
   const t = tones[tone]
   const small = size === "sm"
   if (coverUrl)
@@ -50,7 +52,7 @@ export function BookCover({
         <div className="relative h-full overflow-hidden rounded-[3px_8px_8px_3px] bg-card shadow-[0_1px_1px_rgb(0_0_0/0.08),0_8px_20px_-6px_rgb(0_0_0/0.25)]">
           <Image
             src={coverUrl}
-            alt={`Cover of ${title}`}
+            alt={tr("coverAlt", { title })}
             fill
             sizes={
               size === "sm"

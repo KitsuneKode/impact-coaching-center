@@ -14,6 +14,10 @@ export type EnquiryIntent =
       timing: string
       phone: string
     }
+  /** Asking to hear when the next ASSIST scholarship test is announced. */
+  | { kind: "assist" }
+  /** Asking to hear when new exam dates are notified. */
+  | { kind: "dates" }
   | { kind: "call" }
 
 function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
@@ -26,6 +30,10 @@ function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
       return `Hello ICT, I would like to try the free ${intent.exam} workshop on the app.`
     case "course":
       return `Hello ICT, I want to enrol in ${intent.courseName}. Please share the next steps.`
+    case "assist":
+      return "Hello ICT, please tell me when the next ASSIST scholarship test is announced."
+    case "dates":
+      return "Hello ICT, please message me when new exam dates are announced."
     case "whatsapp-handoff":
       return `Hello ICT, I am ${intent.name}. I just enquired about ${intent.track}, ${intent.timing.toLowerCase()} batch. My number is ${intent.phone}.`
   }

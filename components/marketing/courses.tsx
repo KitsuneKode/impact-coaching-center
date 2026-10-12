@@ -1,3 +1,4 @@
+import { useLocale, useTranslations } from "next-intl"
 import {
   IconArrowRight,
   IconArrowUpRight,
@@ -5,7 +6,8 @@ import {
   IconPlayerPlayFilled,
 } from "@tabler/icons-react"
 import Image from "next/image"
-import Link from "next/link"
+import { useContent } from "@/i18n/content"
+import { Link } from "@/i18n/navigation"
 
 import { UntilDate } from "@/components/marketing/batch-countdown"
 import { VideoDialog } from "@/components/marketing/video-dialog"
@@ -14,22 +16,19 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { Lede, Section } from "@/components/ui/section"
 import { hasStarted } from "@/lib/batch-date"
 import { courseById, inr } from "@/lib/catalogue"
-import {
-  facultyBySlug,
-  fees,
-  lectureStill,
-  tracks,
-  type Track,
-} from "@/lib/brand"
+import { facultyBySlug, lectureStill, tracks, type Track } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { cn } from "@/lib/utils"
 
-function startsLabel(iso: string) {
-  return new Date(`${iso}T00:00:00+05:30`).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "long",
-    timeZone: "Asia/Kolkata",
-  })
+function startsLabel(iso: string, locale: string) {
+  return new Date(`${iso}T00:00:00+05:30`).toLocaleDateString(
+    locale === "as" ? "as-IN-u-nu-latn" : "en-IN",
+    {
+      day: "numeric",
+      month: "long",
+      timeZone: "Asia/Kolkata",
+    }
+  )
 }
 
 function views(n: number) {
@@ -44,6 +43,11 @@ function TrackCard({
   track: Track
   featured?: boolean
 }) {
+  const t = useTranslations("Courses")
+  const tf = useTranslations("Fees")
+  const locale = useLocale()
+  // The WhatsApp message keeps the English exam name ICT's staff read.
+  const names = useContent().track(track.slug)
   const course = courseById(track.flagshipId)
   if (!course) return null
 
@@ -64,7 +68,7 @@ function TrackCard({
     >
       <header className="min-h-20">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="type-lede">{track.exam}</h3>
+          <h3 className="type-lede">{names.exam}</h3>
           <span
             className={cn(
               "shrink-0 rounded-control px-2.5 py-1 text-sm",
@@ -73,10 +77,10 @@ function TrackCard({
                 : "bg-secondary text-muted-foreground"
             )}
           >
-            {track.duration}
+            {names.duration}
           </span>
         </div>
-        <p className={cn("mt-1.5 text-sm", muted)}>{track.covers}</p>
+        <p className={cn("mt-1.5 text-sm", muted)}>{names.covers}</p>
       </header>
 
       <div className={cn("mt-6 border-t pt-6", rule)}>
@@ -90,9 +94,11 @@ function TrackCard({
               {inr(course.mrp)}
             </span>
           ) : null}
-          <span className={cn("text-sm", muted)}>{fees.unit}</span>
+          <span className={cn("text-sm", muted)}>{tf("unit")}</span>
         </p>
-        <p className={cn("mt-2 text-sm leading-relaxed", muted)}>{fees.note}</p>
+        <p className={cn("mt-2 text-sm leading-relaxed", muted)}>
+          {tf("note")}
+        </p>
       </div>
 
       <ButtonAnchor
@@ -102,7 +108,7 @@ function TrackCard({
         size="lg"
         className={cn("mt-5 w-full", featured && "border-transparent")}
       >
-        Enrol for {track.exam}
+        {t("enrol", { exam: names.exam })}
         <IconArrowRight data-nudge stroke={1.75} />
       </ButtonAnchor>
 
@@ -113,7 +119,7 @@ function TrackCard({
           featured ? "text-white" : "text-foreground"
         )}
       >
-        See the full {course.short} course
+        {t("seeFull", { course: course.short })}
         <IconArrowRight size={14} stroke={1.75} />
       </Link>
 
@@ -129,7 +135,7 @@ function TrackCard({
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          Or try {free.short} free on the app
+          {t("tryFree", { course: free.short })}
           <IconArrowUpRight size={14} stroke={1.75} />
         </a>
       ) : null}
@@ -167,7 +173,7 @@ function TrackCard({
                 {other!.short}
               </Link>
               <span className={cn("tnum shrink-0", muted)}>
-                {other!.free ? "Free" : inr(other!.price)}
+                {other!.free ? t("free") : inr(other!.price)}
               </span>
             </dd>
           ))}
@@ -182,7 +188,7 @@ function TrackCard({
               featured ? "bg-white/10" : "bg-highlight/25"
             )}
           >
-            Batch start date: {startsLabel(track.startsOn)}
+            {t("startDate", { date: startsLabel(track.startsOn, locale) })}
           </p>
         </UntilDate>
       ) : null}
@@ -215,8 +221,8 @@ function TrackCard({
 
         <VideoDialog
           id={track.sample.id}
-          title={`Sample ${track.exam} class`}
-          subtitle="From the ICT channel"
+          title={t("sampleTitle", { exam: names.exam })}
+          subtitle={t("sampleSubtitle")}
           className="group/sample mt-4 flex w-full items-center gap-3"
         >
           <span
@@ -240,10 +246,10 @@ function TrackCard({
           </span>
           <span className="text-sm">
             <span className="font-medium underline-offset-4 group-hover/sample:underline">
-              Watch a sample class
+              {t("watchSample")}
             </span>
             <span className={cn("block", muted)}>
-              {views(track.sample.views)} views
+              {t("views", { count: views(track.sample.views) })}
             </span>
           </span>
         </VideoDialog>
@@ -253,14 +259,11 @@ function TrackCard({
 }
 
 export function Courses() {
+  const t = useTranslations("Courses")
   return (
     <Section id="courses">
       <Reveal>
-        <Lede
-          label="Courses"
-          claim="Three tracks, one classroom."
-          rest="These are ICT's live courses and their current prices, the same ones the app charges. Every batch is taught on DC Bungalow Road and recorded to the app the same day."
-        />
+        <Lede label={t("label")} claim={t("claim")} rest={t("rest")} />
       </Reveal>
 
       <Reveal

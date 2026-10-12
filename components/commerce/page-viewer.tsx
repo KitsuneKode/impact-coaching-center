@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
+
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -42,6 +44,7 @@ export function PageViewer({
   pages: readonly ViewerPage[]
   startAt?: number
 }) {
+  const t = useTranslations("Shop")
   const [index, setIndex] = useState(startAt)
   const [direction, setDirection] = useState<1 | -1>(1)
   const [zoomed, setZoomed] = useState(false)
@@ -78,10 +81,7 @@ export function PageViewer({
           <DialogDescription className="text-sm text-muted-foreground">
             {note}
           </DialogDescription>
-          <p className="sr-only">
-            Use the left and right arrow keys to turn pages, + to zoom in and 0
-            to fit the page again.
-          </p>
+          <p className="sr-only">{t("viewerHelp")}</p>
         </div>
 
         <div
@@ -105,7 +105,11 @@ export function PageViewer({
             {page?.src ? (
               <Image
                 src={page.src}
-                alt={`${title} - image of printed page ${index + 1} of ${pages.length}`}
+                alt={t("pageAlt", {
+                  title,
+                  page: index + 1,
+                  count: pages.length,
+                })}
                 width={760}
                 height={1075}
                 sizes={
@@ -135,7 +139,7 @@ export function PageViewer({
             aria-keyshortcuts="ArrowLeft"
           >
             <IconChevronLeft stroke={1.75} aria-hidden />
-            Previous
+            {t("previous")}
           </Button>
           <div className="flex items-center gap-2">
             <p
@@ -150,7 +154,7 @@ export function PageViewer({
                 size="icon-sm"
                 onClick={() => setZoomed((z) => !z)}
                 aria-pressed={zoomed}
-                aria-label={zoomed ? "Fit page to width" : "Zoom in"}
+                aria-label={zoomed ? t("fit") : t("zoomIn")}
                 aria-keyshortcuts="+ - 0"
               >
                 {zoomed ? (
@@ -168,7 +172,7 @@ export function PageViewer({
             disabled={index === pages.length - 1}
             aria-keyshortcuts="ArrowRight"
           >
-            Next
+            {t("next")}
             <IconChevronRight stroke={1.75} aria-hidden />
           </Button>
         </div>

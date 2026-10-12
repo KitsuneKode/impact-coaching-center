@@ -1,41 +1,30 @@
 import type { Metadata, Viewport } from "next"
-import { Fraunces, Inter, Noto_Sans_Bengali } from "next/font/google"
+import { Anek_Bangla, Anek_Latin } from "next/font/google"
 
 import "./globals.css"
 import { Providers } from "@/app/providers"
 import { ThemePreview } from "@/components/dev/theme-preview"
-import { SiteChrome } from "@/components/marketing/site-chrome"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, openGraphFor, siteUrl } from "@/lib/site"
 import { themeInitScript } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
-/* Inter, the variable cut kobbe.io ships. One family: hierarchy comes from
-   tone and size, and headings stay at regular weight, which is most of what
-   makes that site read so calm. */
-const sans = Inter({
+/*
+ * One superfamily for both languages: Anek Latin and Anek Bangla share their
+ * design, so English and Assamese read as one voice. Variable fonts, used at
+ * exactly two weights (700 and 400, enforced in globals.css).
+ */
+const sans = Anek_Latin({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
 })
 
-/* Fraunces for headings only. */
-const display = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-  // Only the axis that is actually varied. SOFT and WONK were requested and
-  // then pinned to 0 in the stylesheet, which is payload bought for nothing -
-  // on this audience's connections that is the difference that matters.
-  axes: ["opsz"],
-})
-
-/* Loaded because ICT genuinely teaches in Assamese. */
-const assamese = Noto_Sans_Bengali({
+const assamese = Anek_Bangla({
   subsets: ["bengali"],
   variable: "--font-as",
-  weight: ["400", "500"],
   display: "swap",
+  // English pages rarely need it; Assamese pages fetch it on first use.
   preload: false,
 })
 
@@ -110,12 +99,7 @@ export default function RootLayout({
     <html
       lang="en-IN"
       data-scroll-behavior="smooth"
-      className={cn(
-        sans.variable,
-        display.variable,
-        assamese.variable,
-        "antialiased"
-      )}
+      className={cn(sans.variable, assamese.variable, "antialiased")}
       // Browser extensions add attributes to <html> before React hydrates;
       // without this React reports each one as a hydration mismatch.
       suppressHydrationWarning
@@ -138,26 +122,7 @@ export default function RootLayout({
           }}
         />
         <Providers>
-          {/*
-            WCAG 2.4.1, Level A. The header renders the whole navigation before the
-            content on every page, so without this a keyboard or switch user tabs
-            through it again on each route.
-          */}
-          <a
-            href="#main"
-            className="sr-only rounded-control bg-primary px-4 py-2 text-primary-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-100"
-          >
-            Skip to content
-          </a>
-          {/*
-            SiteChrome decides whether this route gets the public header, footer, edge
-            blur and call bar. /admin gets none of them:
-          */}
-          <SiteChrome>
-            <div id="main" tabIndex={-1} className="outline-none">
-              {children}
-            </div>
-          </SiteChrome>
+          {children}
           {/*
             The intercepted /login and /register routes render here, over the
             page the visitor was already on. app/@authModal/default.tsx keeps

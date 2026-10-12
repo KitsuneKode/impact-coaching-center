@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
+
 import { IconCheck, IconShoppingBag } from "@tabler/icons-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -26,6 +28,7 @@ export function AddToCart({
   className?: string
   size?: "sm" | "md" | "lg"
 }) {
+  const t = useTranslations("Shop")
   const { add } = useCartActions()
   const [added, setAdded] = useState(false)
 
@@ -38,9 +41,9 @@ export function AddToCart({
         add(slug)
         setAdded(true)
         window.setTimeout(() => setAdded(false), 1400)
-        toast.success(`${title} added to your cart`, {
+        toast.success(t("addedToast", { title }), {
           action: onOpenCart
-            ? { label: "View cart", onClick: onOpenCart }
+            ? { label: t("viewCart"), onClick: onOpenCart }
             : undefined,
         })
       }}
@@ -48,12 +51,12 @@ export function AddToCart({
       {added ? (
         <>
           <IconCheck stroke={2} aria-hidden />
-          Added
+          {t("added")}
         </>
       ) : (
         <>
           <IconShoppingBag stroke={1.75} aria-hidden />
-          Add to cart
+          {t("addToCart")}
         </>
       )}
     </Button>

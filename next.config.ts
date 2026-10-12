@@ -1,3 +1,4 @@
+import createNextIntlPlugin from "next-intl/plugin"
 import type { NextConfig } from "next"
 
 /**
@@ -86,7 +87,8 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            // geolocation for "nearest centre", asked only when the reader taps it
+            value: "camera=(), microphone=(), geolocation=(self)",
           },
         ],
       },
@@ -94,4 +96,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default createNextIntlPlugin()(nextConfig)

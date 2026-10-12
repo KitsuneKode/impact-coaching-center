@@ -13,6 +13,8 @@ import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
 import type * as blog from "../blog.js";
 import type * as blogAdmin from "../blogAdmin.js";
+import type * as calendar from "../calendar.js";
+import type * as calendarAdmin from "../calendarAdmin.js";
 import type * as carts from "../carts.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogAdmin from "../catalogAdmin.js";
@@ -38,6 +40,8 @@ declare const fullApi: ApiFromModules<{
   authz: typeof authz;
   blog: typeof blog;
   blogAdmin: typeof blogAdmin;
+  calendar: typeof calendar;
+  calendarAdmin: typeof calendarAdmin;
   carts: typeof carts;
   catalog: typeof catalog;
   catalogAdmin: typeof catalogAdmin;

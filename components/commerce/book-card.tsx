@@ -1,7 +1,8 @@
 "use client"
 
 import { IconPlus } from "@tabler/icons-react"
-import Link from "next/link"
+import { useContent } from "@/i18n/content"
+import { Link } from "@/i18n/navigation"
 import { toast } from "sonner"
 
 import { BookCover } from "@/components/commerce/book-cover"
@@ -13,6 +14,7 @@ import type { Book } from "@/lib/catalog"
 
 /** A book on its shelf: the cover, then title, exam and price, with quick add. */
 export function BookCard({ book }: { book: Book }) {
+  const { phrase } = useContent()
   const add = useCart((s) => s.add)
   const openCart = useOpenCart()
   const href = `/books/${book.slug}`
@@ -34,7 +36,9 @@ export function BookCard({ book }: { book: Book }) {
           />
         </span>
         <span className="grid gap-0.5 pr-12">
-          <span className="text-xs text-muted-foreground">{book.exam}</span>
+          <span className="text-xs text-muted-foreground">
+            {phrase(book.exam)}
+          </span>
           <span className="font-medium text-balance group-hover:underline">
             {book.title}
           </span>

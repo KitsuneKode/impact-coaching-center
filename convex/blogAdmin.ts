@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 
 import { checkPost, type PostInput } from "../lib/blog"
+import { POST_LANGUAGE } from "./blog"
 import {
   checkRevision,
   forbidden,
@@ -24,6 +25,7 @@ const POST_FIELDS = {
   title: v.string(),
   excerpt: v.string(),
   body: v.string(),
+  language: POST_LANGUAGE,
 }
 
 /**
@@ -64,6 +66,7 @@ export const list = query({
         slug: v.string(),
         title: v.string(),
         excerpt: v.string(),
+        language: POST_LANGUAGE,
         published: v.boolean(),
         publishedAt: v.optional(v.number()),
         revision: v.number(),
@@ -87,6 +90,7 @@ export const list = query({
         slug: row.slug,
         title: row.title,
         excerpt: row.excerpt,
+        language: row.language ?? "en",
         published: row.published,
         publishedAt: row.publishedAt,
         revision: row.revision,
@@ -121,6 +125,7 @@ export const get = query({
       title: row.title,
       excerpt: row.excerpt,
       body: row.body,
+      language: row.language ?? "en",
       published: row.published,
       publishedAt: row.publishedAt,
       revision: row.revision,
@@ -135,6 +140,8 @@ export const save = mutation({
     id: v.optional(v.id("posts")),
     expectedRevision: v.optional(v.number()),
     ...POST_FIELDS,
+    /* Optional so an editor from before the field keeps saving. */
+    language: v.optional(POST_LANGUAGE),
   },
   returns: mutationResult({ id: v.id("posts"), revision: v.number() }),
   handler: async (ctx, args) => {
@@ -155,14 +162,18 @@ export async function applySavePost(
     title: string
     excerpt: string
     body: string
+    /** Absent keeps the post's current language; a new post is English. */
+    language?: PostInput["language"]
   }
 ) {
   if (viewer.role !== "owner") return forbidden
+  const kept = args.id ? (await ctx.db.get(args.id))?.language : undefined
   const fields: PostInput = {
     slug: args.slug,
     title: args.title,
     excerpt: args.excerpt,
     body: args.body,
+    language: args.language ?? kept ?? "en",
   }
   const checked = checkPost(fields)
   if (!checked.ok) return invalidInput(checked.field)

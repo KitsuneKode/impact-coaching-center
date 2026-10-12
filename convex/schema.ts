@@ -1,6 +1,8 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
+import { CALENDAR_EXAMS, DATE_KINDS } from "../lib/calendar"
+
 /** How a book cover is coloured until it has a photographed cover. */
 export const BOOK_TONE = v.union(
   v.literal("primary"),
@@ -153,18 +155,30 @@ export default defineSchema({
       v.literal("catalog_save"),
       v.literal("catalog_publish"),
       v.literal("post_save"),
-      v.literal("post_publish")
+      v.literal("post_publish"),
+      v.literal("date_save"),
+      v.literal("date_publish")
     ),
     body: v.optional(v.string()),
     actorId: v.optional(v.id("persons")),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
-    /** Which catalogue record a catalog_* or post_* row changed. */
+    /** Which record a catalog_*, post_* or date_* row changed. */
     entity: v.optional(
-      v.union(v.literal("book"), v.literal("resource"), v.literal("post"))
+      v.union(
+        v.literal("book"),
+        v.literal("resource"),
+        v.literal("post"),
+        v.literal("examDate")
+      )
     ),
     entityId: v.optional(
-      v.union(v.id("books"), v.id("resources"), v.id("posts"))
+      v.union(
+        v.id("books"),
+        v.id("resources"),
+        v.id("posts"),
+        v.id("examDates")
+      )
     ),
     /*
      * The structured half of an audit row. `body` is for reading; these are for
@@ -352,6 +366,8 @@ export default defineSchema({
     title: v.string(),
     excerpt: v.string(),
     body: v.string(),
+    /** The language the post is written in; absent on older posts, read as "en". */
+    language: v.optional(v.union(v.literal("en"), v.literal("as"))),
     published: v.boolean(),
     publishedAt: v.optional(v.number()),
     authorId: v.optional(v.id("persons")),
@@ -362,6 +378,26 @@ export default defineSchema({
   })
     .index("by_slug", ["slug"])
     .index("by_published", ["published", "publishedAt"]),
+
+  /**
+   * Exam dates for /exams/calendar, entered by the owner from official
+   * notices. Days are IST `yyyy-mm-dd` strings: a date has no time of day, and
+   * strings sort and compare without a timezone. `source` is required - a date
+   * we cannot point to is not one we publish.
+   */
+  examDates: defineTable({
+    exam: v.union(...CALENDAR_EXAMS.map((exam) => v.literal(exam))),
+    kind: v.union(...DATE_KINDS.map((kind) => v.literal(kind))),
+    title: v.string(),
+    titleAs: v.optional(v.string()),
+    starts: v.string(),
+    ends: v.optional(v.string()),
+    tentative: v.boolean(),
+    source: v.string(),
+    published: v.boolean(),
+    revision: v.number(),
+    updatedAt: v.number(),
+  }).index("by_published_and_starts", ["published", "starts"]),
 
   /** One row per Person per resource: the first open, for staff to see. */
   resourceOpens: defineTable({

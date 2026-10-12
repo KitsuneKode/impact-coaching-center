@@ -1,3 +1,4 @@
+import { useTranslations } from "next-intl"
 import { LectureList } from "@/components/marketing/lecture-list"
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
@@ -8,17 +9,18 @@ import { links } from "@/lib/brand"
  * hour of ICT teaching before they message anyone.
  */
 export function Classes() {
+  const t = useTranslations("Classes")
   return (
     <Section id="classes">
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
         <Reveal>
           <Lede
-            label="Free classes"
-            claim="Watch a full class before you decide."
-            rest="These are the most-watched lectures on the ICT channel this year, by the same teachers you would join."
+            label={t("label")}
+            claim={t("claim")}
+            rest={t("rest")}
             link={{
               href: links.youtube,
-              label: "All lectures",
+              label: t("all"),
               external: true,
             }}
           />

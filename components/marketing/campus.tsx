@@ -1,23 +1,26 @@
+import { useContent } from "@/i18n/content"
+import { useTranslations } from "next-intl"
 import { IconPlayerPlayFilled } from "@tabler/icons-react"
 import Image from "next/image"
 
 import { Reveal } from "@/components/motion/reveal"
 import { Lede, Section } from "@/components/ui/section"
 import { VideoDialog } from "@/components/marketing/video-dialog"
-import { place } from "@/lib/brand"
 import { campus } from "@/lib/stories"
 
 /** The actual room, from ICT's own videos. */
 export function Campus() {
+  const t = useTranslations("Campus")
+  const content = useContent()
   const [lead, ...rest] = campus
 
   return (
     <Section id="campus">
       <Reveal>
         <Lede
-          label="The centre"
-          claim={`${place.spoken}, on an ordinary week.`}
-          rest="Not stock photography. These are frames from ICT's own clips of mock tests, classes and guest sessions."
+          label={t("label")}
+          claim={t("claim", { place: content.place })}
+          rest={t("rest")}
         />
       </Reveal>
 
@@ -48,12 +51,13 @@ function Figure({
   className?: string
   priority?: boolean
 }) {
+  const subtitle = useTranslations("Campus")("subtitle")
   return (
     <figure className="flex h-full flex-col">
       <VideoDialog
         id={item.video}
         title={item.caption}
-        subtitle="At the ICT centre, North Lakhimpur"
+        subtitle={subtitle}
         vertical
         className="flex h-full w-full flex-col text-left"
       >

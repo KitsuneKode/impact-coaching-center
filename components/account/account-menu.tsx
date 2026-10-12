@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import {
   IconInbox,
   IconLogout,
@@ -36,6 +37,7 @@ export function AccountMenu({ className }: { className?: string }) {
 }
 
 function Menu({ className }: { className?: string }) {
+  const t = useTranslations("Account")
   const viewer = useQuery(api.auth.getCurrentPerson)
   const router = useRouter()
   const [leaving, setLeaving] = useState(false)
@@ -59,7 +61,7 @@ function Menu({ className }: { className?: string }) {
         href="/login"
         className={`rounded-control px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
       >
-        Log in
+        {t("login")}
       </Link>
     )
 
@@ -75,7 +77,7 @@ function Menu({ className }: { className?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`Account: ${label}`}
+        aria-label={t("account", { name: label })}
         className={`relative inline-flex size-9 items-center justify-center rounded-full transition-colors after:absolute after:-inset-1 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
       >
         <Avatar className="size-8">
@@ -104,12 +106,12 @@ function Menu({ className }: { className?: string }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem render={<Link href="/account" />}>
             <IconUserCircle stroke={1.75} />
-            Your details
+            {t("details")}
           </DropdownMenuItem>
           {viewer.role === "staff" || viewer.role === "owner" ? (
             <DropdownMenuItem render={<Link href="/admin/leads" />}>
               <IconInbox stroke={1.75} />
-              Enquiries
+              {t("enquiries")}
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem
@@ -120,7 +122,7 @@ function Menu({ className }: { className?: string }) {
                 await authClient.signOut()
               } catch {
                 setLeaving(false)
-                toast.error("Couldn't log you out. Try again.")
+                toast.error(t("logoutFailed"))
                 return
               }
               // `refresh` as well as `push`: the server components above this
@@ -131,7 +133,7 @@ function Menu({ className }: { className?: string }) {
             }}
           >
             {leaving ? <Spinner /> : <IconLogout stroke={1.75} />}
-            Log out
+            {t("logout")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

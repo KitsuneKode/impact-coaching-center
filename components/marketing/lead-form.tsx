@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import {
   IconArrowRight,
   IconBrandWhatsapp,
@@ -29,14 +30,6 @@ import { cn } from "@/lib/utils"
 /** Document order, so focus lands on the first thing the visitor sees. */
 const FIELD_ORDER: readonly LeadField[] = ["name", "phone", "track", "timing"]
 
-/** What the summary calls each field, matching its visible label. */
-const FIELD_LABELS: Record<LeadField, string> = {
-  name: "Your name",
-  phone: "Mobile number",
-  track: "Which exam",
-  timing: "When can you study",
-}
-
 const field =
   "h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground shadow-frame transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-[invalid=true]:border-destructive"
 
@@ -54,6 +47,7 @@ function ChoiceGroup({
   defaultValue?: string
   error?: string
 }) {
+  const t = useTranslations("Lead")
   const id = useId()
   return (
     <fieldset aria-describedby={error ? `${id}-error` : undefined}>
@@ -69,7 +63,8 @@ function ChoiceGroup({
               className="peer sr-only"
             />
             <span className="inline-flex h-10 cursor-pointer items-center rounded-control border border-input bg-card px-3.5 text-sm shadow-frame transition-colors select-none peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-secondary peer-checked:hover:bg-primary">
-              {option}
+              {/* The value sent stays English so the staff inbox does not change. */}
+              {t.has(`options.${option}`) ? t(`options.${option}`) : option}
             </span>
           </label>
         ))}
@@ -84,6 +79,7 @@ function ChoiceGroup({
 }
 
 export function LeadForm() {
+  const t = useTranslations("Lead")
   const [state, action, pending] = useActionState<LeadState, FormData>(
     submitLead,
     {
@@ -156,25 +152,27 @@ export function LeadForm() {
               />
             )}
             <p className="type-lede mt-4">
-              Thank you, {state.name.split(" ")[0]}.
+              {t("thanks", { name: state.name.split(" ")[0] ?? "" })}
               <span className="text-muted-foreground">
                 {" "}
                 {state.status === "ok"
-                  ? "Your enquiry was received. Your callback number is "
+                  ? t("ok")
                   : state.status === "throttled"
-                    ? "A temporary submission limit was reached. Please try again later or contact ICT directly. Your number is "
-                    : "We could not confirm receipt. Send your enquiry on WhatsApp or call ICT. Your number is "}
-                <span className="tnum">{formatPhone(state.phone)}</span> about{" "}
-                {state.track === "Not sure yet"
-                  ? "the right course for you"
-                  : state.track}
-                .
+                    ? t("throttled")
+                    : t("unconfirmed")}{" "}
+                <span className="tnum">{formatPhone(state.phone)}</span>{" "}
+                {t("about", {
+                  track:
+                    state.track === "Not sure yet"
+                      ? t("rightCourse")
+                      : t.has(`options.${state.track}`)
+                        ? t(`options.${state.track}`)
+                        : state.track,
+                })}
               </span>
             </p>
             <p className="mt-6 text-sm text-muted-foreground">
-              {state.status === "handoff"
-                ? "Continue below to send your details to ICT."
-                : "You can also contact ICT directly."}
+              {state.status === "handoff" ? t("handoff") : t("direct")}
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               <ButtonAnchor
@@ -189,14 +187,14 @@ export function LeadForm() {
                 size="lg"
               >
                 <IconBrandWhatsapp stroke={1.6} />
-                Continue on WhatsApp
+                {t("whatsapp")}
               </ButtonAnchor>
               <ButtonAnchor
                 href={contactHref({ kind: "call" })}
                 variant="secondary"
                 size="lg"
               >
-                Call{" "}
+                {t("call")}{" "}
                 <span className="tnum">{formatPhone(contact.phones[0])}</span>
               </ButtonAnchor>
             </div>
@@ -205,7 +203,7 @@ export function LeadForm() {
               onClick={() => setAgain(true)}
               className="mt-4 inline-flex min-h-11 items-center rounded-control text-sm font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              Ask about another exam
+              {t("again")}
             </button>
           </m.div>
         ) : (
@@ -220,10 +218,10 @@ export function LeadForm() {
                 >
                   <p className="text-sm font-medium text-destructive">
                     {state.status === "error" && state.formError
-                      ? state.formError
+                      ? t("errors.verification")
                       : invalid.length === 1
-                        ? "One field needs attention before we can send this:"
-                        : `${invalid.length} fields need attention before we can send this:`}
+                        ? t("oneField")
+                        : t("manyFields", { count: invalid.length })}
                   </p>
                   <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                     {invalid.map((name) => (
@@ -233,7 +231,7 @@ export function LeadForm() {
                           onClick={() => focusField(name)}
                           className="min-h-11 text-sm text-destructive underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
-                          {FIELD_LABELS[name]}
+                          {t(`fields.${name}`)}
                         </button>
                       </li>
                     ))}
@@ -243,7 +241,7 @@ export function LeadForm() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <label htmlFor={nameId} className="text-sm font-medium">
-                    Your name
+                    {t("fields.name")}
                   </label>
                   <input
                     id={nameId}
@@ -262,13 +260,13 @@ export function LeadForm() {
                       id={`${nameId}-error`}
                       className="text-sm text-destructive"
                     >
-                      {errors.name}
+                      {t("errors.name")}
                     </p>
                   ) : null}
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor={phoneId} className="text-sm font-medium">
-                    Mobile number
+                    {t("fields.phone")}
                   </label>
                   <input
                     id={phoneId}
@@ -297,7 +295,7 @@ export function LeadForm() {
                       id={`${phoneId}-error`}
                       className="text-sm text-destructive"
                     >
-                      {errors.phone}
+                      {t("errors.phone")}
                     </p>
                   ) : null}
                 </div>
@@ -306,19 +304,19 @@ export function LeadForm() {
               <div className="mt-6">
                 <ChoiceGroup
                   name="track"
-                  legend="Which exam"
+                  legend={t("fields.track")}
                   options={enquiryTracks}
                   defaultValue={values.track}
-                  error={errors.track}
+                  error={errors.track ? t("errors.track") : undefined}
                 />
               </div>
               <div className="mt-6">
                 <ChoiceGroup
                   name="timing"
-                  legend="When can you study"
+                  legend={t("fields.timing")}
                   options={timings}
                   defaultValue={values.timing}
-                  error={errors.timing}
+                  error={errors.timing ? t("errors.timing") : undefined}
                 />
               </div>
 
@@ -328,7 +326,7 @@ export function LeadForm() {
                 className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
               >
                 <label>
-                  Leave this field empty
+                  {t("honeypot")}
                   <input
                     name={HONEYPOT_FIELD}
                     tabIndex={-1}
@@ -347,9 +345,7 @@ export function LeadForm() {
               ) : null}
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  We only use your number to call you back.
-                </p>
+                <p className="text-sm text-muted-foreground">{t("privacy")}</p>
                 <Button
                   type="submit"
                   size="lg"
@@ -359,11 +355,11 @@ export function LeadForm() {
                   {pending ? (
                     <>
                       <IconLoader2 className="animate-spin" stroke={1.75} />
-                      Sending
+                      {t("sending")}
                     </>
                   ) : (
                     <>
-                      Request a call back
+                      {t("submit")}
                       <IconArrowRight data-nudge stroke={1.75} />
                     </>
                   )}

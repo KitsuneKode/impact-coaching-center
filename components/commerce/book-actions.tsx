@@ -1,5 +1,7 @@
 "use client"
 
+import { useTranslations } from "next-intl"
+
 import { IconBook } from "@tabler/icons-react"
 import Image from "next/image"
 import { useState } from "react"
@@ -23,14 +25,18 @@ function samplePages(book: Book) {
   }))
 }
 
-function noteFor(book: Book) {
+function noteFor(
+  book: Book,
+  t: (key: string, values?: { count: number }) => string
+) {
   return book.samplePageUrls?.length
-    ? `${book.samplePageUrls.length} sample pages.`
-    : "Placeholder pages. The book's own pages appear here."
+    ? t("samplePages", { count: book.samplePageUrls.length })
+    : t("placeholderBookPages")
 }
 
 /** Add to cart and open the sample reader. */
 export function BookActions({ book }: { book: Book }) {
+  const t = useTranslations("Shop")
   const openCart = useOpenCart()
   const [reading, setReading] = useState(false)
   return (
@@ -49,7 +55,7 @@ export function BookActions({ book }: { book: Book }) {
             onClick={() => setReading(true)}
           >
             <IconBook stroke={1.75} aria-hidden />
-            Read a sample
+            {t("readSample")}
           </Button>
         ) : null}
       </div>
@@ -57,7 +63,7 @@ export function BookActions({ book }: { book: Book }) {
         open={reading}
         onOpenChange={setReading}
         title={book.title}
-        note={noteFor(book)}
+        note={noteFor(book, t)}
         pages={samplePages(book)}
       />
     </>
@@ -66,6 +72,7 @@ export function BookActions({ book }: { book: Book }) {
 
 /** The first sample pages as thumbnails; each opens the reader at that page. */
 export function SampleStrip({ book }: { book: Book }) {
+  const t = useTranslations("Shop")
   const pages = samplePages(book)
   const [start, setStart] = useState<number | null>(null)
   if (!pages.length) return null
@@ -78,7 +85,7 @@ export function SampleStrip({ book }: { book: Book }) {
             <button
               type="button"
               onClick={() => setStart(i)}
-              aria-label={`Open sample page ${i + 1}`}
+              aria-label={t("openSample", { page: i + 1 })}
               className="block w-full rounded-[2px] outline-offset-2 transition-transform duration-200 ease-out focus-visible:outline-2 focus-visible:outline-ring active:scale-[0.97] [@media(hover:hover)]:hover:-translate-y-0.5"
             >
               {"src" in page ? (
@@ -106,7 +113,7 @@ export function SampleStrip({ book }: { book: Book }) {
         open={start !== null}
         onOpenChange={(open) => !open && setStart(null)}
         title={book.title}
-        note={noteFor(book)}
+        note={noteFor(book, t)}
         pages={pages}
         startAt={start ?? 0}
       />

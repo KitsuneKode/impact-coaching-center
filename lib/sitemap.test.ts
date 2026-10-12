@@ -35,6 +35,8 @@ const noindexRoutes = [
   "/admin/resources/new",
   "/admin/blog",
   "/admin/blog/new",
+  "/admin/calendar",
+  "/admin/calendar/new",
   // A buyer's own order flow - nothing public, nothing to rank.
   "/checkout",
   // Noindexed while every title is a sample; list them once ICT's are in.
@@ -64,7 +66,15 @@ function staticRoutesOnDisk(): string[] {
   return (
     [...glob.scanSync(".")]
       .map(
-        (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
+        (file) =>
+          "/" +
+          file
+            .replace(/^app\//, "")
+            .replace(/\/?page\.tsx$/, "")
+            // Route groups add no URL segment; [locale] is the language
+            // prefix, and English (the default) is served without it.
+            .replace(/\([^)./]+\)\/?/g, "")
+            .replace(/^\[locale\]\/?/, "")
       )
       .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
       .filter((route) => !route.includes("["))
@@ -111,6 +121,14 @@ describe("sitemap", () => {
     expect((await pathnames()).some((p) => p.startsWith("/courses/"))).toBe(
       true
     )
+  })
+
+  test("every public page also has its Assamese version", async () => {
+    const listed = await pathnames()
+    expect(listed).toContain("/as")
+    expect(listed).toContain("/as/courses")
+    for (const entry of await sitemap())
+      expect(entry.alternates?.languages).toBeDefined()
   })
 
   test("contains no duplicate entries", async () => {
