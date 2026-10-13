@@ -23,6 +23,7 @@ import type * as catalogAdmin from "../catalogAdmin.js";
 import type * as checkout from "../checkout.js";
 import type * as courses from "../courses.js";
 import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
 import type * as devSeed from "../devSeed.js";
 import type * as files from "../files.js";
 import type * as http from "../http.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   checkout: typeof checkout;
   courses: typeof courses;
   crons: typeof crons;
+  dashboard: typeof dashboard;
   devSeed: typeof devSeed;
   files: typeof files;
   http: typeof http;

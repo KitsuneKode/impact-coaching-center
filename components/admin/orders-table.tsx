@@ -104,13 +104,9 @@ const FILTERS = [
   { value: "refunded", label: "Refunded" },
 ] as const
 
-const OPEN = new Set([
-  "awaiting_payment",
-  "paid",
-  "packed",
-  "shipped",
-  "ready_for_collection",
-])
+/* Paid and on its way; an order awaiting payment is the buyer's move and
+   has its own filter. */
+const OPEN = new Set(["paid", "packed", "shipped", "ready_for_collection"])
 
 function ago(at: number) {
   const minutes = Math.round((Date.now() - at) / 60000)
@@ -639,6 +635,16 @@ function OrderRows({
               new
             </span>
           )}
+          {order.receiptNumber ? (
+            <a
+              href={`/account/receipt/${order.reference}`}
+              target="_blank"
+              rel="noopener"
+              className="tnum mt-0.5 block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              Receipt {order.receiptNumber}
+            </a>
+          ) : null}
         </TableCell>
         <TableCell>
           <span className="block">
@@ -902,6 +908,16 @@ function OrderCard({
           <OrderStatusBadge status={order.status} />
         </div>
       </div>
+      {order.receiptNumber ? (
+        <a
+          href={`/account/receipt/${order.reference}`}
+          target="_blank"
+          rel="noopener"
+          className="tnum block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Receipt {order.receiptNumber}
+        </a>
+      ) : null}
 
       <div className="mt-1 text-sm">
         {order.buyerDeleted ? (

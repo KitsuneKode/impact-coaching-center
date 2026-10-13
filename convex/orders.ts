@@ -75,9 +75,11 @@ const STAFF_SETTABLE = new Set([
 /** Asserts money moved back. Owner-only until a provider can prove it. */
 const OWNER_SETTABLE = new Set(["refunded"])
 
-/** Statuses that still need somebody to do something. */
+/**
+ * Statuses that still need somebody to pack, send or hand over. An order
+ * awaiting payment is the buyer's move, so it is counted on its own.
+ */
 const OPEN_STATUSES = new Set([
-  "awaiting_payment",
   "paid",
   "packed",
   "shipped",
@@ -177,11 +179,12 @@ export const orderCounts = query({
   returns: v.object({
     open: v.number(),
     unseen: v.number(),
+    unpaid: v.number(),
     capped: v.boolean(),
   }),
   handler: async (ctx) => {
     const staff = await requireStaff(ctx)
-    if (!staff.ok) return { open: 0, unseen: 0, capped: false }
+    if (!staff.ok) return { open: 0, unseen: 0, unpaid: 0, capped: false }
 
     /* Bounded reads: one capped page per open status, never a full collect of
        a table that only ever grows. */
@@ -196,7 +199,14 @@ export const orderCounts = query({
       )
     )
     const rows = open.flat()
+    const unpaid = await ctx.db
+      .query("orders")
+      .withIndex("by_status_and_placedAt", (q) =>
+        q.eq("status", "awaiting_payment")
+      )
+      .take(COUNT_CAP + 1)
     return {
+      unpaid: Math.min(unpaid.length, COUNT_CAP),
       open: Math.min(rows.length, COUNT_CAP),
       unseen: Math.min(rows.filter((order) => !order.seenAt).length, COUNT_CAP),
       capped: rows.length > COUNT_CAP,
