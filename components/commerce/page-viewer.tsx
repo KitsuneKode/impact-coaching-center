@@ -1,33 +1,30 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+import { IconX } from "@tabler/icons-react"
+import { useMemo, useRef } from "react"
 
 import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconZoomIn,
-  IconZoomOut,
-} from "@tabler/icons-react"
-import Image from "next/image"
-import { useState } from "react"
-
+  BookPreview,
+  pageEngine,
+  type BookPreviewPage,
+  type BookPreviewSource,
+} from "@/components/book-preview"
+import { curlEngine } from "@/components/book-preview/engines/curl-engine.meta"
+import { pdfEngine } from "@/components/book-preview/engines/pdf-engine.meta"
 import { PaperPage } from "@/components/commerce/paper-page"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
 
 /** A page image when there is one, otherwise a placeholder sheet. */
 export type ViewerPage = { heading?: string; src?: string }
 
+const ENGINES = [pageEngine, curlEngine, pdfEngine]
+
 /**
- * A page-by-page reader: arrows, the keyboard's left and right keys, a zoom
- * for the dense pages, and a page count. Used for book samples and free
- * resources alike, so there is one reading experience on the site.
+ * The site's one reader, for book samples and free notes alike: the kitsu-lab
+ * BookPreview with its page-curl book, opened full screen over the page.
+ * A PDF (`pdfUrl`, e.g. a signed R2 link) is rasterised in the browser a few
+ * pages at a time, so length does not matter; stored page images and
+ * placeholder sheets read the same way.
  */
 export function PageViewer({
   open,
@@ -35,148 +32,94 @@ export function PageViewer({
   title,
   note,
   pages,
+  pdfUrl,
   startAt = 0,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   note: string
-  pages: readonly ViewerPage[]
+  pages?: readonly ViewerPage[]
+  pdfUrl?: string
   startAt?: number
 }) {
-  const t = useTranslations("Shop")
-  const [index, setIndex] = useState(startAt)
-  const [direction, setDirection] = useState<1 | -1>(1)
-  const [zoomed, setZoomed] = useState(false)
-  const [lastStart, setLastStart] = useState(startAt)
-
-  // Opening at a different thumbnail restarts from that page.
-  if (lastStart !== startAt) {
-    setLastStart(startAt)
-    setIndex(startAt)
-    setZoomed(false)
-  }
-
-  const go = (step: 1 | -1) => {
-    const next = index + step
-    if (next < 0 || next >= pages.length) return
-    setDirection(step)
-    setIndex(next)
-  }
-  const page = pages[index]
+  const popup = useRef<HTMLDivElement>(null)
+  const source = useMemo<BookPreviewSource>(() => {
+    if (pdfUrl) return { title, pdfUrl, revision: pdfUrl }
+    return {
+      title,
+      revision: (pages ?? []).map((page) => page.src ?? page.heading).join("|"),
+      pages: (pages ?? []).map((page, index): BookPreviewPage => ({
+        id: `p-${index + 1}`,
+        pageNumber: index + 1,
+        title: page.heading,
+        render: () =>
+          page.src ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, sized by the reader
+            <img
+              src={page.src}
+              alt={`${title}, page ${index + 1}`}
+              className="block size-full object-contain"
+              draggable={false}
+            />
+          ) : (
+            <PaperPage
+              running={title}
+              heading={page.heading}
+              lines={18}
+              className="size-full"
+            />
+          ),
+      })),
+    }
+  }, [pdfUrl, pages, title])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="gap-5 p-5 sm:max-w-xl md:p-6"
-        onKeyDown={(event) => {
-          if (event.key === "ArrowRight") go(1)
-          if (event.key === "ArrowLeft") go(-1)
-          if (event.key === "+" || event.key === "=") setZoomed(true)
-          if (event.key === "-" || event.key === "0") setZoomed(false)
-        }}
-      >
-        <div className="pr-8">
-          <DialogTitle className="text-base font-medium">{title}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            {note}
-          </DialogDescription>
-          <p className="sr-only">{t("viewerHelp")}</p>
-        </div>
-
-        <div
-          className={cn(
-            "rounded-control bg-surface p-4 md:p-6",
-            zoomed ? "max-h-[60vh] overflow-auto" : "overflow-hidden"
-          )}
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Backdrop data-reader-backdrop />
+        {/* Focus starts on the book itself, so the arrow keys turn pages
+            straight away; the close button is one Tab back. */}
+        <DialogPrimitive.Popup
+          ref={popup}
+          data-reader-popup
+          initialFocus={() =>
+            popup.current?.querySelector<HTMLElement>(".book-preview") ?? true
+          }
         >
-          <div
-            key={index}
-            className={cn(
-              "mx-auto animate-in duration-200 ease-out fade-in-0 motion-reduce:slide-in-from-left-0 motion-reduce:slide-in-from-right-0",
-              direction === 1
-                ? "slide-in-from-right-4"
-                : "slide-in-from-left-4",
-              zoomed
-                ? "w-[min(720px,180vw)]"
-                : "w-[min(100%,380px,calc(56vh/1.414))]"
-            )}
-          >
-            {page?.src ? (
-              <Image
-                src={page.src}
-                alt={t("pageAlt", {
-                  title,
-                  page: index + 1,
-                  count: pages.length,
-                })}
-                width={760}
-                height={1075}
-                sizes={
-                  zoomed
-                    ? "(min-width: 720px) 720px, 180vw"
-                    : "(min-width: 640px) 380px, 90vw"
-                }
-                priority
-                className="h-auto w-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_10px_30px_-12px_rgb(0_0_0/0.25)] ring-1 ring-border"
-              />
-            ) : (
-              <PaperPage
-                running={title}
-                heading={page?.heading}
-                number={index + 1}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => go(-1)}
-            disabled={index === 0}
-            aria-keyshortcuts="ArrowLeft"
-          >
-            <IconChevronLeft stroke={1.75} aria-hidden />
-            {t("previous")}
-          </Button>
-          <div className="flex items-center gap-2">
-            <p
-              aria-live="polite"
-              className="tnum text-sm text-muted-foreground"
+          <header className="flex items-center justify-between gap-4 ps-4 pe-2 pbs-2 pbe-2 sm:ps-6">
+            <div className="min-w-0">
+              <DialogPrimitive.Title className="truncate font-display text-lg font-semibold">
+                {title}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="truncate text-xs text-muted-foreground">
+                {note}
+              </DialogPrimitive.Description>
+            </div>
+            <DialogPrimitive.Close
+              data-press
+              aria-label="Close the reader"
+              className="grid size-11 flex-none place-items-center rounded-full hover:bg-secondary"
             >
-              Page {index + 1} of {pages.length}
-            </p>
-            {page?.src ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setZoomed((z) => !z)}
-                aria-pressed={zoomed}
-                aria-label={zoomed ? t("fit") : t("zoomIn")}
-                aria-keyshortcuts="+ - 0"
-              >
-                {zoomed ? (
-                  <IconZoomOut stroke={1.75} aria-hidden />
-                ) : (
-                  <IconZoomIn stroke={1.75} aria-hidden />
-                )}
-              </Button>
-            ) : null}
+              <IconX aria-hidden size={20} stroke={1.75} />
+            </DialogPrimitive.Close>
+          </header>
+          <div className="min-h-0 flex-1">
+            <BookPreview
+              source={source}
+              engines={ENGINES}
+              enabledModes={pdfUrl ? ["curl", "pdf"] : ["curl", "page"]}
+              defaultMode="curl"
+              defaultPageIndex={startAt}
+              layout="fill"
+              persistPreferences
+              share={false}
+              label={title}
+              className="size-full"
+            />
           </div>
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => go(1)}
-            disabled={index === pages.length - 1}
-            aria-keyshortcuts="ArrowRight"
-          >
-            {t("next")}
-            <IconChevronRight stroke={1.75} aria-hidden />
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }

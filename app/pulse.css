@@ -1826,3 +1826,53 @@
     color: black;
   }
 }
+
+@layer components {
+  /* ------------------------------------------------------------- reader */
+
+  [data-reader-backdrop] {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    background-color: color-mix(in oklch, var(--foreground) 70%, transparent);
+  }
+  /* Full screen on a phone, a large framed sheet on a wide screen. */
+  [data-reader-popup] {
+    position: fixed;
+    inset: 0;
+    z-index: 71;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--background);
+  }
+  @media (width >= 48rem) {
+    [data-reader-popup] {
+      inset: 1.5rem;
+      border-radius: 24px;
+      overflow: clip;
+      box-shadow: 0 40px 80px -30px
+        color-mix(in oklch, var(--foreground) 60%, transparent);
+    }
+  }
+  [data-reader-backdrop],
+  [data-reader-popup] {
+    transition: opacity 0.2s ease-out;
+  }
+  [data-reader-backdrop][data-starting-style],
+  [data-reader-backdrop][data-ending-style],
+  [data-reader-popup][data-starting-style],
+  [data-reader-popup][data-ending-style] {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-reader-popup] {
+      transition:
+        opacity 0.24s var(--ease-out-strong),
+        translate 0.28s var(--ease-out-strong);
+    }
+    [data-reader-popup][data-starting-style],
+    [data-reader-popup][data-ending-style] {
+      translate: 0 1.5rem;
+    }
+  }
+}
