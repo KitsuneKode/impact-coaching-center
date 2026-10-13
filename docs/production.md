@@ -96,6 +96,27 @@ page images instead, so nothing breaks. Locally any S3-compatible server
 works; a SeaweedFS container on `http://localhost:8333` with
 `-s3.domainName=localhost` was used in development.
 
+## WhatsApp sign-in codes (Convex deployment settings)
+
+`OTP_TRANSPORT=whatsapp` sends the 6-digit code through the WhatsApp Cloud
+API with an approved **copy-code authentication template**
+(`lib/otp-transport.ts`). The deployment refuses to start the auth instance
+when it is chosen without its settings, so a misconfiguration shows at once
+rather than as silent missing codes.
+
+| Variable                   | Purpose                                                          |
+| -------------------------- | ---------------------------------------------------------------- |
+| `WHATSAPP_ACCESS_TOKEN`    | A permanent system-user token with `whatsapp_business_messaging` |
+| `WHATSAPP_PHONE_NUMBER_ID` | The ID of ICT's new sending number (not the number itself)       |
+| `WHATSAPP_OTP_TEMPLATE`    | The approved template's name; defaults to `verification_code`    |
+| `WHATSAPP_OTP_LANGUAGE`    | The template's language code; defaults to `en`                   |
+
+Meta steps for ICT: a Meta Business portfolio verified with the GSTIN; a
+new number (not the one on the WhatsApp Business app) added to the
+WhatsApp Business Account; an authentication template with a copy-code
+button, submitted and approved; a system user with a permanent token. Codes
+are billed per message by Meta (authentication category, India rate).
+
 Convex sets `CONVEX_URL`, `CONVEX_SITE_URL` itself — do not set them.
 
 ## Regions
