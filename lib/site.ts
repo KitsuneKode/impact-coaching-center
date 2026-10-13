@@ -46,7 +46,8 @@ export function openGraphFor(
   path: string,
   title: string,
   description: string,
-  locale = "en"
+  locale = "en",
+  image?: { url: string; alt: string }
 ): NonNullable<Metadata["openGraph"]> {
   return {
     type: "website",
@@ -55,7 +56,26 @@ export function openGraphFor(
     siteName: brand.legalName,
     title,
     description,
+    // A page's own openGraph replaces the parent's, image included, so every
+    // page names one: its own picture when it has one, else ICT's card.
+    images: [image ?? SHARE_IMAGE],
   }
+}
+
+/** ICT's share card, 1200x630: the five teachers and the headline. */
+const SHARE_IMAGE = {
+  url: "/og/ict.jpg",
+  width: 1200,
+  height: 630,
+  alt: "Impact Career Tutorials: Crack APSC from North Lakhimpur. Portraits of the five ICT teachers.",
+}
+
+/** A meta description of at most `max` characters, cut at a word. */
+export function clipDescription(text: string, max = 160) {
+  const flat = text.replace(/\s+/g, " ").trim()
+  if (flat.length <= max) return flat
+  const cut = flat.slice(0, max - 1)
+  return `${cut.slice(0, cut.lastIndexOf(" ")).replace(/[,.;:]$/, "")}…`
 }
 
 /** A public path in a given language: English unprefixed, Assamese under /as. */

@@ -9,7 +9,13 @@ import { SampleNotice } from "@/components/commerce/shop-shell"
 import { contentFor } from "@/i18n/content-server"
 import { inLanguage, LANGUAGES, type Language } from "@/lib/catalog"
 import { publishedBundle, publishedBundles } from "@/lib/catalog-server"
-import { alternatesFor, localePath, openGraphFor, siteUrl } from "@/lib/site"
+import {
+  alternatesFor,
+  clipDescription,
+  localePath,
+  openGraphFor,
+  siteUrl,
+} from "@/lib/site"
 
 /* Catalogue data is cached for five minutes (lib/catalog-server.ts); the
    page is static and rebuilt in the background on the same beat. */
@@ -28,9 +34,12 @@ export async function generateMetadata({
   if (!bundle) return { title: "Not found" }
   const language = locale as Language
   const title = inLanguage(bundle.title, language)
-  const description = bundle.tagline
-    ? inLanguage(bundle.tagline, language)
-    : inLanguage(bundle.description, language).slice(0, 160)
+  const description = clipDescription(
+    [bundle.tagline, bundle.description]
+      .map((text) => (text ? inLanguage(text, language) : ""))
+      .filter(Boolean)
+      .join(" ")
+  )
   return {
     title,
     description,
@@ -39,7 +48,8 @@ export async function generateMetadata({
       `/books/${bundle.slug}`,
       title,
       description,
-      locale
+      locale,
+      bundle.cover ? { url: bundle.cover.url, alt: title } : undefined
     ),
     ...(bundle.sample ? { robots: { index: false, follow: false } } : {}),
   }

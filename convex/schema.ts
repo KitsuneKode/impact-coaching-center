@@ -464,6 +464,8 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
     /** First time a staff member opened it; drives the new-order badge. */
     seenAt: v.optional(v.number()),
+    /** Set when the daily job cancelled it for going unpaid. */
+    expiredAt: v.optional(v.number()),
     idempotencyKey: v.optional(v.string()),
     revision: v.optional(v.number()),
   })

@@ -19,7 +19,8 @@ export async function generateMetadata({
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "Meta" })
   return {
-    title: { default: t("title"), template: `%s | ${t("site")}` },
+    // Absolute: the root layout's template would add the name a second time.
+    title: { absolute: t("title"), template: `%s | ${t("site")}` },
     description: t("description"),
     alternates: alternatesFor("/", locale),
     openGraph: openGraphFor("/", t("ogTitle"), t("ogDescription"), locale),

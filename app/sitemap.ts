@@ -1,6 +1,11 @@
 import type { MetadataRoute } from "next"
 
-import { publishedPosts } from "@/lib/catalog-server"
+import {
+  onlySamples,
+  publishedBundles,
+  publishedPosts,
+  publishedResources,
+} from "@/lib/catalog-server"
 import { liveCourses } from "@/lib/courses-server"
 import { exams } from "@/lib/exams"
 import { libraryApproved } from "@/lib/library"
@@ -30,6 +35,11 @@ function bothLanguages(entry: Entry): Entry[] {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   /* Convex may be absent at build time; the static list still ships. */
   const posts = await publishedPosts().catch(() => [])
+  // The shop and notes pages are noindex while they hold only samples, so
+  // they join the sitemap with the first real set or note.
+  const bundles = await publishedBundles().catch(() => [])
+  const resources = await publishedResources().catch(() => [])
+  const realSets = bundles.filter((bundle) => !bundle.sample)
   const courses = (await liveCourses().catch(() => []))
     .filter((course) => course.track)
     .map((course) => ({
@@ -87,6 +97,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ]
       : []),
     ...courses,
+    ...(realSets.length
+      ? [
+          {
+            url: `${siteUrl}/books`,
+            changeFrequency: "weekly" as const,
+            priority: 0.8,
+          },
+          ...realSets.map((bundle) => ({
+            url: `${siteUrl}/books/${bundle.slug}`,
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          })),
+        ]
+      : []),
+    ...(resources.length && !onlySamples(resources)
+      ? [
+          {
+            url: `${siteUrl}/resources`,
+            changeFrequency: "weekly" as const,
+            priority: 0.7,
+          },
+        ]
+      : []),
   ]
   return entries.flatMap(bothLanguages)
 }

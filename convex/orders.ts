@@ -16,6 +16,7 @@ import {
 } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import {
+  internalMutation,
   mutation,
   type MutationCtx,
   query,
@@ -484,5 +485,45 @@ export const markOrderSeen = mutation({
 
     await ctx.db.patch(args.orderId, { seenAt: Date.now() })
     return { ok: true as const }
+  },
+})
+
+/** How long an order may wait for payment before the daily job cancels it. */
+export const UNPAID_EXPIRY_MS = 3 * 24 * 60 * 60 * 1000
+
+/**
+ * Cancel orders left unpaid for three days, oldest first, a batch at a
+ * time. They are marked `expiredAt`, so a payment that still arrives
+ * revives the order (payments.settle) instead of being lost.
+ */
+export const expireUnpaid = internalMutation({
+  args: { now: v.optional(v.number()) },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    const now = args.now ?? Date.now()
+    const stale = await ctx.db
+      .query("orders")
+      .withIndex("by_status_and_placedAt", (q) =>
+        q
+          .eq("status", "awaiting_payment")
+          .lt("placedAt", now - UNPAID_EXPIRY_MS)
+      )
+      .take(100)
+    for (const order of stale) {
+      await ctx.db.patch(order._id, {
+        status: "cancelled",
+        expiredAt: now,
+        updatedAt: now,
+        revision: (order.revision ?? 0) + 1,
+      })
+      await ctx.db.insert("activities", {
+        personId: order.personId,
+        kind: "order_status",
+        body: `Order ${order.reference} expired unpaid after three days.`,
+        from: "awaiting_payment",
+        to: "cancelled",
+      })
+    }
+    return stale.length
   },
 })

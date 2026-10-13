@@ -31,7 +31,7 @@ export async function generateMetadata({
     description: post.excerpt,
     alternates: alternatesFor(path, locale),
     openGraph: {
-      ...openGraphFor(path, post.title, post.excerpt),
+      ...openGraphFor(path, post.title, post.excerpt, locale),
       type: "article",
       ...(post.publishedAt
         ? { publishedTime: new Date(post.publishedAt).toISOString() }

@@ -34,7 +34,12 @@ import { publishedBundles, publishedResources } from "@/lib/catalog-server"
 import { contactHref } from "@/lib/contact"
 import { inr, lineup } from "@/lib/courses"
 import { liveCourse, liveCourses } from "@/lib/courses-server"
-import { alternatesFor, openGraphFor, siteUrl } from "@/lib/site"
+import {
+  alternatesFor,
+  clipDescription,
+  openGraphFor,
+  siteUrl,
+} from "@/lib/site"
 
 /* Courses come from ClassPlus every few hours; a new one gets its page on
    first visit and every page refreshes within the quarter hour. */
@@ -57,9 +62,11 @@ export async function generateMetadata({
   const price = course.free ? t("freeLower") : inr(course.price)
   const title = t("titleSuffix", { course: course.short, price })
   const subtitle = course.subtitle ? `: ${phrase(course.subtitle)}` : ""
-  const description = `${course.short}${subtitle}. ${course.features
-    .slice(0, 3)
-    .join(". ")}. ${t("descSuffix")}`
+  const description = clipDescription(
+    `${course.short}${subtitle}. ${t("descSuffix")} ${course.features
+      .slice(0, 3)
+      .join(". ")}.`
+  )
   return {
     title,
     description,
@@ -68,7 +75,8 @@ export async function generateMetadata({
       `/courses/${course.slug}`,
       title,
       description,
-      locale
+      locale,
+      course.cover ? { url: course.cover, alt: course.short } : undefined
     ),
   }
 }

@@ -185,3 +185,45 @@ describe("attachGatewayOrder", () => {
     expect(kept).toBe("order_G")
   })
 })
+
+describe("unpaid orders", () => {
+  test("expire after three days, and a late payment revives one", async () => {
+    const t = convexTest(schema, modules)
+    const { orderId, bundleId, totalPaise } = await placed(
+      t,
+      "+919800000091",
+      "order_late"
+    )
+    const now = Date.now()
+    expect(await t.mutation(internal.orders.expireUnpaid, { now })).toBe(0)
+    expect(
+      await t.mutation(internal.orders.expireUnpaid, {
+        now: now + 3 * 24 * 60 * 60 * 1000 + 1000,
+      })
+    ).toBe(1)
+    const expired = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(expired?.status).toBe("cancelled")
+    expect(expired?.expiredAt).toBeDefined()
+
+    const receipt = await settle(t, "order_late", totalPaise, "pay_late")
+    expect(receipt).toMatch(/^ICT\//)
+    const paid = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(paid?.status).toBe("paid")
+    expect(paid?.expiredAt).toBeUndefined()
+    const set = await t.run((ctx) => ctx.db.get("bundles", bundleId))
+    expect(set?.soldCount).toBe(5)
+  })
+
+  test("a payment for an order a person cancelled is flagged, not kept", async () => {
+    const t = convexTest(schema, modules)
+    const { orderId, totalPaise } = await placed(t, "+919800000092", "order_x")
+    await t.run((ctx) => ctx.db.patch(orderId, { status: "cancelled" }))
+    expect(await settle(t, "order_x", totalPaise, "pay_x")).toBeNull()
+    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(order?.status).toBe("cancelled")
+    const notes = await t.run((ctx) => ctx.db.query("activities").collect())
+    expect(
+      notes.some((note) => note.body?.includes("Refund it in Razorpay"))
+    ).toBe(true)
+  })
+})

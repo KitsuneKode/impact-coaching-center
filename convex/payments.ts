@@ -401,8 +401,31 @@ export const settle = internalMutation({
       .first()
     if (!order) return null
     if (order.receiptNumber) return order.receiptNumber
-    if (order.status !== "awaiting_payment") return null
     if (args.amountPaise !== order.totalPaise) return null
+    // An order expired for going unpaid is revived by a payment that still
+    // arrives (Razorpay can capture late). One a person cancelled is not:
+    // the money is flagged for a refund instead of silently kept.
+    const revived =
+      order.status === "cancelled" && order.expiredAt !== undefined
+    if (order.status !== "awaiting_payment" && !revived) {
+      if (order.status === "cancelled") {
+        await ctx.db.insert("activities", {
+          personId: order.personId,
+          kind: "order_status",
+          body: `Payment ${args.paymentId} received for cancelled order ${order.reference}. Refund it in Razorpay.`,
+          from: "cancelled",
+          to: "cancelled",
+        })
+        await recordAudit(ctx, null, {
+          action: "payment",
+          entity: "order",
+          entityId: order._id,
+          summary: `Payment ${args.paymentId} arrived for cancelled order ${order.reference}; refund needed.`,
+        })
+      }
+      return null
+    }
+    const from = order.status
 
     const now = Date.now()
     const receipt = await nextReceipt(ctx, now)
@@ -415,6 +438,7 @@ export const settle = internalMutation({
         paidAt: now,
       },
       receiptNumber: receipt,
+      expiredAt: undefined,
       updatedAt: now,
       revision: (order.revision ?? 0) + 1,
     })
@@ -422,16 +446,16 @@ export const settle = internalMutation({
     await ctx.db.insert("activities", {
       personId: order.personId,
       kind: "order_status",
-      body: `Order ${order.reference} paid · ₹${Math.round(order.totalPaise / 100)} · receipt ${receipt}`,
-      from: "awaiting_payment",
+      body: `Order ${order.reference} paid · ₹${Math.round(order.totalPaise / 100)} · receipt ${receipt}${revived ? " (after it had expired)" : ""}`,
+      from,
       to: "paid",
     })
     await recordAudit(ctx, null, {
       action: "payment",
       entity: "order",
       entityId: order._id,
-      summary: `Order ${order.reference} paid (${args.source}, ${args.method}).`,
-      from: "awaiting_payment",
+      summary: `Order ${order.reference} paid (${args.source}, ${args.method})${revived ? " after it had expired" : ""}.`,
+      from,
       to: "paid",
     })
     return receipt

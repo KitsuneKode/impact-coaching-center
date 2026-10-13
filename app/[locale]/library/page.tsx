@@ -32,7 +32,7 @@ export async function generateMetadata({
 }: PageProps<"/[locale]/library">): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: "Pulse" })
-  const title = t("libraryTitle")
+  const title = t("libraryMetaTitle")
   const description = t("libraryLede")
   return {
     title,
