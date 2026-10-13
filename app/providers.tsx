@@ -76,11 +76,13 @@ function VisitSource() {
         : href.startsWith("https://wa.me/")
           ? "whatsapp"
           : null
-      if (!kind) return
+      // Staff calling leads from the admin are not visitors reaching ICT.
+      const page = window.location.pathname
+      if (!kind || /^\/(admin|account|checkout)(\/|$)/.test(page)) return
       void client
         .mutation(api.contactTaps.record, {
           kind,
-          page: window.location.pathname,
+          page,
           source: visitAttribution().utmSource ?? "direct",
         })
         .catch(() => {})
