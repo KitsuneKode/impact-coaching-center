@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 
 import { hasGrant, requireStaff } from "./authz"
+import { indiaDay } from "./contactTaps"
 import { query } from "./_generated/server"
 
 const DAY = 24 * 60 * 60 * 1000
@@ -25,6 +26,11 @@ export const weekly = query({
           capped: v.boolean(),
         })
       ),
+      taps: v.object({
+        whatsapp: v.number(),
+        call: v.number(),
+        topPages: v.array(v.object({ page: v.string(), count: v.number() })),
+      }),
       enquiries: v.object({
         total: v.number(),
         capped: v.boolean(),
@@ -71,6 +77,38 @@ export const weekly = query({
       .map(([source, count]) => ({ source, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
+
+    /* WhatsApp and phone taps, from the daily totals. */
+    const days = Array.from({ length: 7 }, (_, i) =>
+      indiaDay(args.now - i * DAY)
+    )
+    const tapRows = (
+      await Promise.all(
+        days.map((day) =>
+          ctx.db
+            .query("contactTaps")
+            .withIndex("by_day_and_kind_and_page_and_source", (q) =>
+              q.eq("day", day)
+            )
+            .take(200)
+        )
+      )
+    ).flat()
+    const pages = new Map<string, number>()
+    for (const row of tapRows)
+      pages.set(row.page, (pages.get(row.page) ?? 0) + row.count)
+    const taps = {
+      whatsapp: tapRows
+        .filter((row) => row.kind === "whatsapp")
+        .reduce((sum, row) => sum + row.count, 0),
+      call: tapRows
+        .filter((row) => row.kind === "call")
+        .reduce((sum, row) => sum + row.count, 0),
+      topPages: [...pages]
+        .map(([page, count]) => ({ page, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3),
+    }
 
     /* Orders: owners and staff who handle the shop. */
     let sales
@@ -133,6 +171,7 @@ export const weekly = query({
     }
 
     return {
+      taps,
       sales,
       enquiries: {
         total: Math.min(enquiries.length, WEEK_CAP),

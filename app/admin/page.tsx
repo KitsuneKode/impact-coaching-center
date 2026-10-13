@@ -237,6 +237,22 @@ function Week() {
             <span className="text-sm text-muted-foreground">None yet</span>
           )}
         </Card>
+        <Card href="/admin/leads" label="WhatsApp and call taps, 7 days">
+          <span className="tnum text-2xl font-semibold">
+            {week.taps.whatsapp + week.taps.call}
+          </span>
+          <span className="tnum text-sm text-muted-foreground">
+            WhatsApp {week.taps.whatsapp} · calls {week.taps.call}
+          </span>
+          {week.taps.topPages.length ? (
+            <span className="truncate text-xs text-muted-foreground">
+              Most from{" "}
+              {week.taps.topPages
+                .map((row) => `${row.page} (${row.count})`)
+                .join(", ")}
+            </span>
+          ) : null}
+        </Card>
         {week.topSets ? (
           <Card href="/admin/books" label="Best-selling sets">
             {week.topSets.length ? (

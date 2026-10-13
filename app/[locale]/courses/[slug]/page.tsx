@@ -578,7 +578,10 @@ export default async function CoursePage({
       ) : null}
 
       <Faq courses={courses} heading={t("beforeJoin")} limit={4} />
-      <Ask heading={t("askAbout", { course: course.short })} />
+      <Ask
+        heading={t("askAbout", { course: course.short })}
+        defaultTrack={course.track}
+      />
     </main>
   )
 }

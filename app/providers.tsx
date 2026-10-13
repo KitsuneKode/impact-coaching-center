@@ -10,6 +10,7 @@ import { ThemeProvider } from "next-themes"
 import { useEffect, type ReactNode } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
+import { api } from "@/convex/_generated/api"
 import { visitAttribution } from "@/lib/attribution"
 import { authClient } from "@/lib/auth-client"
 import { clientEnv } from "@/lib/env.client"
@@ -60,6 +61,33 @@ const loadFeatures = () =>
 function VisitSource() {
   useEffect(() => {
     visitAttribution()
+    if (!convex) return
+    const client = convex
+    /*
+     * Count taps on WhatsApp and phone links: most of ICT's enquiries start
+     * there, and nothing else records them. Anonymous daily totals per page
+     * and source (convex/contactTaps.ts); a failed count is simply dropped.
+     */
+    function onClick(event: MouseEvent) {
+      const link = (event.target as Element | null)?.closest("a")
+      const href = link?.getAttribute("href") ?? ""
+      const kind = href.startsWith("tel:")
+        ? "call"
+        : href.startsWith("https://wa.me/")
+          ? "whatsapp"
+          : null
+      if (!kind) return
+      void client
+        .mutation(api.contactTaps.record, {
+          kind,
+          page: window.location.pathname,
+          source: visitAttribution().utmSource ?? "direct",
+        })
+        .catch(() => {})
+    }
+    document.addEventListener("click", onClick, { capture: true })
+    return () =>
+      document.removeEventListener("click", onClick, { capture: true })
   }, [])
   return null
 }

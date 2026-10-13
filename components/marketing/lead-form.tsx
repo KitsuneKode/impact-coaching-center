@@ -83,7 +83,14 @@ function ChoiceGroup({
 }
 
 /** `bare` drops the form's own panel, for a card that already provides one. */
-export function LeadForm({ bare = false }: { bare?: boolean }) {
+export function LeadForm({
+  bare = false,
+  defaultTrack,
+}: {
+  bare?: boolean
+  /** Pre-selects the exam, e.g. on a course page, so asking is one tap shorter. */
+  defaultTrack?: string
+}) {
   const t = useTranslations("Lead")
   const [state, action, pending] = useActionState<LeadState, FormData>(
     submitLead,
@@ -331,7 +338,7 @@ export function LeadForm({ bare = false }: { bare?: boolean }) {
                   name="track"
                   legend={t("fields.track")}
                   options={enquiryTracks}
-                  defaultValue={values.track}
+                  defaultValue={values.track ?? defaultTrack}
                   error={errors.track ? t("errors.track") : undefined}
                 />
               </div>

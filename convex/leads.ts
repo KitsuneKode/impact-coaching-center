@@ -439,6 +439,16 @@ const LEAD_DETAIL = v.object({
   preferredBatch: v.optional(v.string()),
   deletedAt: v.optional(v.number()),
   revision: v.number(),
+  /** Where this person first reached ICT: the form's page and campaign. */
+  firstTouch: v.optional(
+    v.object({
+      channel: v.string(),
+      page: v.optional(v.string()),
+      source: v.optional(v.string()),
+      campaign: v.optional(v.string()),
+      referrer: v.optional(v.string()),
+    })
+  ),
 })
 
 /** How much history the detail sheet shows. Older rows stay in the table. */
@@ -470,8 +480,22 @@ export async function readLeadDetail(
     )
   )
 
+  const first = await ctx.db
+    .query("enquiries")
+    .withIndex("by_person", (q) => q.eq("personId", personId))
+    .first()
+
   return allow({
     lead: {
+      firstTouch: first
+        ? {
+            channel: first.channel,
+            page: first.page,
+            source: first.utm?.source,
+            campaign: first.utm?.campaign,
+            referrer: first.referrer,
+          }
+        : undefined,
       id: person._id,
       name: person.name,
       phone: person.phone,

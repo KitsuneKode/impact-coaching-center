@@ -3,7 +3,13 @@ import { useTranslations } from "next-intl"
 import { LeadForm } from "@/components/marketing/lead-form"
 
 /** The enquiry form on a white card. */
-export function Ask({ heading }: { heading?: string }) {
+export function Ask({
+  heading,
+  defaultTrack,
+}: {
+  heading?: string
+  defaultTrack?: string
+}) {
   const t = useTranslations("Pulse")
   return (
     <section
@@ -16,7 +22,7 @@ export function Ask({ heading }: { heading?: string }) {
           {heading ?? t("askHeading")}
         </h2>
         <div className="mbs-8">
-          <LeadForm bare />
+          <LeadForm bare defaultTrack={defaultTrack} />
         </div>
       </div>
     </section>

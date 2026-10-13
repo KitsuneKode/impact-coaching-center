@@ -183,6 +183,11 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
         <SheetDescription className="tnum text-base text-foreground">
           {lead.deletedAt ? "Number erased" : formatPhone(lead.phone)}
         </SheetDescription>
+        {lead.firstTouch ? (
+          <p className="text-sm text-muted-foreground">
+            Came from {firstTouchText(lead.firstTouch)}
+          </p>
+        ) : null}
         {lead.deletedAt ? null : (
           <div className="grid grid-cols-2 gap-2 pt-1">
             <ButtonAnchor
@@ -433,4 +438,38 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
       </div>
     </>
   )
+}
+
+const CHANNEL_WORDS: Record<string, string> = {
+  website: "the website",
+  walk_in: "a walk-in",
+  phone_call: "a phone call",
+  whatsapp: "WhatsApp",
+  referral: "a referral",
+  other: "elsewhere",
+}
+
+/**
+ * "the website, /as/courses/lakhya-2027 · facebook / october-batch": the
+ * channel, then the page and campaign or referring site when there were any.
+ */
+function firstTouchText(touch: {
+  channel: string
+  page?: string
+  source?: string
+  campaign?: string
+  referrer?: string
+}) {
+  const parts = [CHANNEL_WORDS[touch.channel] ?? touch.channel]
+  if (touch.page) parts.push(touch.page)
+  const campaign = [touch.source, touch.campaign].filter(Boolean).join(" / ")
+  if (campaign) parts.push(campaign)
+  else if (touch.referrer) {
+    try {
+      parts.push(new URL(touch.referrer).hostname.replace(/^www\./, ""))
+    } catch {
+      parts.push(touch.referrer.slice(0, 40))
+    }
+  }
+  return parts.join(" · ")
 }

@@ -481,6 +481,24 @@ export default defineSchema({
     orderId: v.optional(v.id("orders")),
   }).index("by_eventId", ["eventId"]),
 
+  /**
+   * Taps on WhatsApp and phone links, as daily totals per page and source.
+   * No person, no number: just which pages and campaigns bring contact.
+   */
+  contactTaps: defineTable({
+    /** India date, e.g. "2026-10-13". */
+    day: v.string(),
+    kind: v.union(v.literal("whatsapp"), v.literal("call")),
+    page: v.string(),
+    source: v.string(),
+    count: v.number(),
+  }).index("by_day_and_kind_and_page_and_source", [
+    "day",
+    "kind",
+    "page",
+    "source",
+  ]),
+
   /** Named counters, e.g. receipt numbers per financial year. */
   counters: defineTable({
     name: v.string(),
