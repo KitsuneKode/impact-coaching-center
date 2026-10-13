@@ -10,6 +10,7 @@ import { Link, usePathname } from "@/i18n/navigation"
 import { brand, contact, formatPhone } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { NAV_LINKS } from "./nav-links"
+import { SiteSearch } from "@/components/site/site-search"
 import { SiteMenu } from "./site-menu"
 
 /**
@@ -75,6 +76,8 @@ export function SiteHeader() {
               </Link>
             ))}
           </nav>
+
+          <SiteSearch />
 
           <div data-site-tools>
             <LocaleSwitch />

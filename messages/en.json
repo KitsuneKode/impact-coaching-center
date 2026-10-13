@@ -635,7 +635,20 @@
     "assistVideos": "ICT on ASSIST",
     "assistVideosNote": "From ICT's own YouTube channel.",
     "assistVideo1": "ASSIST 4.0",
-    "assistVideo2": "Free APSC coaching"
+    "assistVideo2": "Free APSC coaching",
+    "searchLabel": "Search",
+    "searchOpen": "Search the site",
+    "searchPlaceholder": "Search courses, books, notes, exams…",
+    "searchEmpty": "Nothing matched. Try an exam, like APSC or ADRE.",
+    "searchLoading": "Loading…",
+    "searchFailed": "Search could not load. Check your connection.",
+    "searchCourses": "Courses",
+    "searchSets": "Book sets",
+    "searchNotes": "Free notes",
+    "searchExams": "Exam guides",
+    "searchPosts": "Blog",
+    "searchPages": "Pages",
+    "searchCalendar": "Exam calendar"
   },
   "Promos": {
     "code": "Code",

@@ -788,3 +788,39 @@
     }
   }
 }
+
+/* The header's search button: a 44px target in the header's own colour. */
+@layer components {
+  [data-site-search="header"] {
+    display: grid;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    border-radius: 999px;
+    color: inherit;
+  }
+  [data-site-search="header"]:active {
+    scale: 0.94;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-site-search="header"] {
+      transition:
+        background-color 0.15s ease,
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-site-search="header"]:hover {
+      background-color: color-mix(in oklch, currentColor 10%, transparent);
+    }
+  }
+  /* On a phone it sits beside the phone number, before the menu. */
+  @media (width < 64rem) {
+    [data-site-search="header"] {
+      margin-inline-start: auto;
+    }
+    [data-site-search="header"] ~ [data-site-phone] {
+      margin-inline-start: 0;
+    }
+  }
+}

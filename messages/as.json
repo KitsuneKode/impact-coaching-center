@@ -835,7 +835,20 @@
     "assistVideos": "ASSISTৰ বিষয়ে ICT",
     "assistVideosNote": "ICTৰ নিজৰ YouTube চেনেলৰ পৰা।",
     "assistVideo1": "ASSIST 4.0",
-    "assistVideo2": "বিনামূলীয়া APSC কোচিং"
+    "assistVideo2": "বিনামূলীয়া APSC কোচিং",
+    "searchLabel": "বিচাৰক",
+    "searchOpen": "ৱেবছাইটত বিচাৰক",
+    "searchPlaceholder": "পাঠ্যক্ৰম, কিতাপ, টোকা, পৰীক্ষা বিচাৰক…",
+    "searchEmpty": "একো মিল নাখালে। APSC বা ADREৰ দৰে পৰীক্ষাৰ নাম লিখি চাওক।",
+    "searchLoading": "লোড হৈছে…",
+    "searchFailed": "বিচাৰিব পৰা নগ'ল। সংযোগ পৰীক্ষা কৰক।",
+    "searchCourses": "পাঠ্যক্ৰম",
+    "searchSets": "কিতাপৰ সংকলন",
+    "searchNotes": "বিনামূলীয়া টোকা",
+    "searchExams": "পৰীক্ষাৰ নিৰ্দেশিকা",
+    "searchPosts": "ব্লগ",
+    "searchPages": "পৃষ্ঠা",
+    "searchCalendar": "পৰীক্ষাৰ কেলেণ্ডাৰ"
   },
   "Promos": {
     "code": "ক'ড",
