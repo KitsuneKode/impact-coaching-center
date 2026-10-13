@@ -1,6 +1,6 @@
 "use client"
 
-import { IconArrowRight, IconLoader2 } from "@tabler/icons-react"
+import { IconArrowRight, IconCheck, IconLoader2 } from "@tabler/icons-react"
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 
 import { NameStep } from "@/components/account/name-step"
@@ -52,6 +52,7 @@ export function SignInForm({ next }: { next: string }) {
       flow.getServerSnapshot
     )
   const [verified, setVerified] = useState(false)
+  const [accepted, setAccepted] = useState(false)
   const [phoneError, setPhoneError] = useState<string | null>(null)
   const cooldown = useSecondsUntil(resendAt)
   const codeRef = useRef<HTMLInputElement>(null)
@@ -93,9 +94,18 @@ export function SignInForm({ next }: { next: string }) {
     void flow.send()
   }
 
-  /* Hand over to the name step rather than redirecting here. */
+  /*
+   * Hand over to the name step rather than redirecting here, after the
+   * boxes have had a moment to show the code was right.
+   */
   function verify() {
-    void flow.verify(() => setVerified(true))
+    void flow.verify(() => {
+      setAccepted(true)
+      const still = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches
+      window.setTimeout(() => setVerified(true), still ? 0 : 650)
+    })
   }
 
   const formError = error
@@ -108,7 +118,7 @@ export function SignInForm({ next }: { next: string }) {
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          verify()
+          if (!accepted) verify()
         }}
         noValidate
       >
@@ -124,16 +134,19 @@ export function SignInForm({ next }: { next: string }) {
               onChange={flow.setCode}
               onComplete={verify}
               ref={codeRef}
-              disabled={busy}
+              // Read-only, not disabled, while it is checked: the digits keep
+              // their colour and run the checking wave instead of greying out.
+              readOnly={busy || accepted}
+              success={accepted}
               aria-invalid={formError ? true : undefined}
               aria-describedby={
                 formError ? `${codeId}-error` : `${codeId}-hint`
               }
-              containerClassName="justify-start"
+              containerClassName={formError ? "otp-shake" : undefined}
             >
               <InputOTPGroup>
                 {Array.from({ length: CODE_LENGTH }, (_, index) => (
-                  <InputOTPSlot key={index} index={index} className="size-11" />
+                  <InputOTPSlot key={index} index={index} />
                 ))}
               </InputOTPGroup>
             </InputOTP>
@@ -155,8 +168,13 @@ export function SignInForm({ next }: { next: string }) {
           </Field>
 
           <Field orientation="horizontal">
-            <Button type="submit" size="md" disabled={busy}>
-              {busy ? (
+            <Button type="submit" size="md" disabled={busy && !accepted}>
+              {accepted ? (
+                <>
+                  <IconCheck stroke={2} />
+                  Logged in
+                </>
+              ) : busy ? (
                 <>
                   <IconLoader2 className="animate-spin" stroke={1.75} />
                   Checking
@@ -235,7 +253,7 @@ export function SignInForm({ next }: { next: string }) {
         </Field>
 
         <Field>
-          <Button type="submit" size="md" disabled={busy}>
+          <Button type="submit" size="md" disabled={busy && !accepted}>
             {busy ? (
               <>
                 <IconLoader2 className="animate-spin" stroke={1.75} />

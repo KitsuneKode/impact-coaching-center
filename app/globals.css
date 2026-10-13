@@ -910,3 +910,120 @@ body :lang(as) {
     letter-spacing: 0;
   }
 }
+
+/*
+ * The sign-in code boxes (components/ui/input-otp.tsx, after Kobra's): a
+ * ring that glides between boxes, a sweep when a code is pasted, a wave
+ * across the digits while it is checked, and a bounce when it is right.
+ */
+:root {
+  --otp-wave-duration: 1150ms;
+  --otp-wave-stagger: 70ms;
+  --otp-wave-dim: 0.28;
+  --otp-trail-duration: 400ms;
+  --otp-trail-stagger: 45ms;
+  --otp-trail-width: 3px;
+  --otp-trail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --otp-trail-color: color-mix(in oklch, var(--primary) 45%, transparent);
+  --otp-success-duration: 340ms;
+  --otp-success-stagger: 48ms;
+  --otp-success-width: 3px;
+  --otp-success-color: var(--primary);
+  --otp-bounce-duration: 420ms;
+  --otp-bounce-lift: 8px;
+}
+@keyframes otp-trail {
+  from {
+    box-shadow: 0 0 0 var(--otp-trail-width) var(--otp-trail-color);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes otp-trail-success {
+  0%,
+  24% {
+    box-shadow: 0 0 0 var(--otp-success-width) var(--otp-success-color);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes otp-bounce {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: var(--otp-trail-ease);
+  }
+  22% {
+    transform: translateY(calc(var(--otp-bounce-lift) * -1));
+    animation-timing-function: linear;
+  }
+  38% {
+    transform: translateY(calc(var(--otp-bounce-lift) * -1));
+    animation-timing-function: cubic-bezier(0.4, 0, 0.5, 1);
+  }
+  60% {
+    transform: translateY(calc(var(--otp-bounce-lift) * 0.3));
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  78% {
+    transform: translateY(calc(var(--otp-bounce-lift) * -0.15));
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  92% {
+    transform: translateY(calc(var(--otp-bounce-lift) * 0.06));
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes otp-processing {
+  0%,
+  40%,
+  100% {
+    opacity: 1;
+  }
+  16% {
+    opacity: var(--otp-wave-dim);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .otp-processing {
+    animation: otp-processing var(--otp-wave-duration) ease-in-out
+      calc(var(--otp-wave-index) * var(--otp-wave-stagger)) infinite both;
+  }
+  .otp-trail {
+    animation: otp-trail var(--otp-trail-duration) var(--otp-trail-ease)
+      calc(var(--otp-trail-index) * var(--otp-trail-stagger)) forwards;
+  }
+  .otp-trail-success {
+    animation: otp-trail-success var(--otp-success-duration)
+      cubic-bezier(0.33, 0, 0.67, 1)
+      calc(var(--otp-trail-index) * var(--otp-success-stagger)) forwards;
+  }
+  .otp-bounce {
+    animation: otp-bounce var(--otp-bounce-duration) linear
+      calc(var(--otp-trail-index) * var(--otp-success-stagger)) forwards;
+  }
+}
+/* A refused code: the boxes shake once, a short no. */
+@keyframes otp-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20%,
+  60% {
+    translate: -6px;
+  }
+  40%,
+  80% {
+    translate: 6px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .otp-shake {
+    animation: otp-shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+}
