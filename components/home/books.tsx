@@ -72,10 +72,10 @@ export function Books({ bundles }: { bundles: readonly PublicBundle[] }) {
                       pages={edition?.pages}
                       tone={TONES[i % TONES.length]}
                     />
-                    <span className="mbs-4 block ps-[18px] pe-[18px] font-semibold">
+                    <span className="mbs-4 block ps-1 pe-1 font-semibold text-balance sm:ps-[18px] sm:pe-[18px]">
                       {title}
                     </span>
-                    <span className="flex items-center justify-between gap-2 ps-[18px] pe-[18px] text-sm text-on-primary">
+                    <span className="flex items-center justify-between gap-2 ps-1 pe-1 text-sm text-on-primary sm:ps-[18px] sm:pe-[18px]">
                       <span className="tnum">
                         {price === null
                           ? shop("notAvailable")
@@ -83,7 +83,7 @@ export function Books({ bundles }: { bundles: readonly PublicBundle[] }) {
                       </span>
                       <span
                         data-book-more
-                        className="inline-flex items-center gap-1 text-highlight"
+                        className="hidden items-center gap-1 text-highlight sm:inline-flex"
                       >
                         {t("lookInside")}
                         <IconArrowRight aria-hidden size={14} stroke={2} />

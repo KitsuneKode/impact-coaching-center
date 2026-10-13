@@ -2097,3 +2097,46 @@
     }
   }
 }
+
+/* Questions: a plus that turns to a cross, and an answer that glides open
+   where the browser can animate to auto height. */
+@layer components {
+  [data-faq] summary {
+    list-style: none;
+  }
+  [data-faq] summary::-webkit-details-marker {
+    display: none;
+  }
+  [data-faq] summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+    border-radius: 22px;
+  }
+  [data-faq][open] [data-faq-icon] {
+    rotate: 45deg;
+    color: var(--foreground);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-faq] {
+      interpolate-size: allow-keywords;
+    }
+    [data-faq]::details-content {
+      block-size: 0;
+      overflow: clip;
+      transition:
+        block-size 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        content-visibility 0.28s allow-discrete;
+    }
+    [data-faq][open]::details-content {
+      block-size: auto;
+    }
+    [data-faq-icon] {
+      transition: rotate 0.2s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-faq] summary:hover [data-faq-icon] {
+      color: var(--foreground);
+    }
+  }
+}

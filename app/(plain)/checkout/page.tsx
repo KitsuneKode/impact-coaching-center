@@ -36,9 +36,9 @@ import { cn } from "@/lib/utils"
  * the shopper's cart and the published sets, so what is shown here is a
  * preview of what placeOrder will charge, not the charge.
  *
- * Payment is deliberately not taken. Until Razorpay is approved and wired
- * (KIT-60), an order lands as "awaiting payment" and ICT confirms it with
- * the buyer - the copy says so rather than pretending a click moved money.
+ * Placing saves the order as "awaiting payment"; the pay step that follows
+ * (components/commerce/pay-order.tsx) takes the money through Razorpay, and
+ * only its verified payment marks the order paid.
  */
 export default function CheckoutPage() {
   if (!convexConfigured)
@@ -475,7 +475,7 @@ function CheckoutForm() {
               onClick={() => void submit()}
               aria-describedby={error ? errorId : undefined}
             >
-              {placing ? "Placing…" : "Place order"}
+              {placing ? "Saving your order…" : "Continue to payment"}
             </Button>
             {error && (
               <FieldError id={errorId} className="text-left">
@@ -483,10 +483,9 @@ function CheckoutForm() {
               </FieldError>
             )}
             <FieldDescription className="text-center">
-              No payment is taken yet. Placing the order saves it under{" "}
-              <span className="text-foreground">awaiting payment</span>, and ICT
-              calls your number to confirm - online payment arrives with
-              Razorpay.
+              Your order is saved first, then you pay securely with Razorpay:
+              UPI, cards or net banking. If a payment fails, the order waits in
+              your account to try again.
             </FieldDescription>
           </aside>
         </div>

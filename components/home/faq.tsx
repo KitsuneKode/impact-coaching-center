@@ -1,11 +1,14 @@
+import { IconPlus } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 
 import { useContent } from "@/i18n/content"
 import { fillFees, type Course } from "@/lib/courses"
 
 /**
- * Questions, all open in a grid. The full set carries FAQ structured data for
- * search; a page showing only the first few (`limit`) leaves that to home.
+ * Questions that open on a tap, one at a time, the first open to show how.
+ * Every answer stays in the page, so search reads them all; the full set
+ * carries FAQ structured data, and a page showing only the first few
+ * (`limit`) leaves that to home.
  */
 export function Faq({
   courses,
@@ -43,17 +46,31 @@ export function Faq({
         <h2 id="faq-heading" className="type-display mbe-10">
           {heading ?? t("questions")}
         </h2>
-        <dl className="grid gap-4 md:grid-cols-2">
-          {faqs.map((item) => (
-            <div
+        <div className="grid items-start gap-3 md:grid-cols-2">
+          {faqs.map((item, index) => (
+            <details
               key={item.q}
-              className="rounded-[22px] bg-card p-6 shadow-[0_0_0_1px_var(--border)]"
+              name="faq"
+              open={index === 0}
+              data-faq
+              className="rounded-[22px] bg-card shadow-[0_0_0_1px_var(--border)]"
             >
-              <dt className="font-semibold">{item.q}</dt>
-              <dd className="mbs-2 text-muted-foreground">{item.a}</dd>
-            </div>
+              <summary className="flex cursor-pointer items-start justify-between gap-4 p-5 font-semibold sm:p-6">
+                {item.q}
+                <IconPlus
+                  aria-hidden
+                  size={18}
+                  stroke={2}
+                  data-faq-icon
+                  className="mbs-0.5 flex-none text-muted-foreground"
+                />
+              </summary>
+              <p className="ps-5 pe-5 pbe-5 text-muted-foreground sm:ps-6 sm:pe-6 sm:pbe-6">
+                {item.a}
+              </p>
+            </details>
           ))}
-        </dl>
+        </div>
       </div>
     </section>
   )

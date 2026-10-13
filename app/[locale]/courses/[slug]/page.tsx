@@ -1,6 +1,7 @@
 import {
   IconArrowRight,
   IconArrowUpRight,
+  IconCheck,
   IconChevronRight,
   IconDeviceMobile,
   IconPhone,
@@ -377,13 +378,14 @@ export default async function CoursePage({
                         data-include-card
                         className="h-full rounded-[22px] p-5 sm:p-6"
                       >
-                        <span
+                        {/* A tick, not a number: the cards are what is
+                            included, not steps, and the grid reorders them. */}
+                        <IconCheck
                           aria-hidden
+                          size={20}
+                          stroke={2.25}
                           data-include-quiet
-                          className="tnum block text-sm font-semibold"
-                        >
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
+                        />
                         <p className="mbs-3 font-semibold text-pretty">
                           {head}
                         </p>

@@ -15,6 +15,7 @@ import { inr, lineup, type Course } from "@/lib/courses"
  */
 export function ExamStack({ courses }: { courses: readonly Course[] }) {
   const t = useTranslations("Pulse")
+  const finder = useTranslations("Finder")
   const content = useContent()
   const panels = tracks.flatMap((track) => {
     const course = lineup(courses, track.exam).flagship
@@ -33,6 +34,18 @@ export function ExamStack({ courses }: { courses: readonly Course[] }) {
             {t("stackLead")}{" "}
             <span className="text-muted-foreground">{t("stackRest")}</span>
           </h2>
+          <Link
+            href="/courses#finder"
+            className="mbs-5 block max-w-[36ch] py-2 font-semibold underline decoration-foreground/25 underline-offset-4"
+          >
+            {finder("homeLink")}{" "}
+            <IconArrowRight
+              aria-hidden
+              size={18}
+              stroke={2}
+              className="inline-block align-[-3px]"
+            />
+          </Link>
         </Reveal>
         <div
           data-stack

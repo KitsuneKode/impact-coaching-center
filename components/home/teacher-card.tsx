@@ -57,7 +57,7 @@ export function TeacherCard({ teacher }: { teacher: Teacher }) {
             <span className="flex items-center justify-between gap-2 bg-card p-4">
               <span className="min-w-0">
                 <span className="block font-semibold">{teacher.name}</span>
-                <span className="block truncate text-sm text-muted-foreground">
+                <span className="line-clamp-2 text-sm text-muted-foreground">
                   {teaches}
                 </span>
               </span>
