@@ -39,6 +39,13 @@ export const LEAD_STATUS = v.union(
 )
 
 /** A PDF in R2: its object key, page count, size and the name it was uploaded as. */
+export const CAMPAIGN_WORDS = v.object({
+  tag: v.string(),
+  headline: v.string(),
+  body: v.string(),
+  cta: v.string(),
+})
+
 export const PDF_DOCUMENT = v.object({
   key: v.string(),
   pages: v.number(),
@@ -402,6 +409,8 @@ export default defineSchema({
     headline: v.string(),
     body: v.string(),
     cta: v.string(),
+    /** Assamese wording, shown on /as pages when set. */
+    as: v.optional(CAMPAIGN_WORDS),
     href: v.string(),
     image: v.optional(v.id("_storage")),
     coupon: v.string(),

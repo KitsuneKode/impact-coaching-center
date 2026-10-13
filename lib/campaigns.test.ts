@@ -11,6 +11,7 @@ import {
   msToIstInput,
   parseVideos,
   youtubeId,
+  wordsIn,
   type CampaignInput,
 } from "./campaigns"
 
@@ -188,5 +189,39 @@ describe("isRested", () => {
   })
   test("zero rest days means it may show again straight away", () => {
     expect(isRested(500, 0, 500)).toBe(true)
+  })
+})
+
+describe("Assamese wording", () => {
+  const empty = { tag: "", headline: "", body: "", cta: "" }
+
+  test("is dropped when every field is empty", () => {
+    const r = checkCampaign({ ...base, as: { ...empty, tag: "  " } })
+    expect(r.ok && r.value.as).toBeUndefined()
+  })
+
+  test("needs a headline, and a button when the English has one", () => {
+    expect(fail({ as: { ...empty, body: "বাৰ্তা" } })).toBe("Assamese headline")
+    expect(fail({ as: { ...empty, headline: "নতুন বেটচ" } })).toBe(
+      "Assamese button"
+    )
+    const r = checkCampaign({
+      ...base,
+      as: { ...empty, headline: " নতুন বেটচ ", cta: "যোগ দিয়ক" },
+    })
+    expect(r.ok && r.value.as?.headline).toBe("নতুন বেটচ")
+  })
+
+  test("shows on Assamese pages, English filling what it leaves out", () => {
+    const promo = {
+      ...base,
+      as: { tag: "", headline: "নতুন বেটচ", body: "", cta: "যোগ দিয়ক" },
+    }
+    expect(wordsIn(promo, "en").headline).toBe(base.headline)
+    const as = wordsIn(promo, "as")
+    expect(as.headline).toBe("নতুন বেটচ")
+    expect(as.tag).toBe(base.tag)
+    expect(as.cta).toBe("যোগ দিয়ক")
+    expect(wordsIn(base, "as")).toBe(base)
   })
 })

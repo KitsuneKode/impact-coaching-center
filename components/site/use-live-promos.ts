@@ -1,11 +1,12 @@
 "use client"
 
 import { useQuery } from "convex/react"
-import { useEffect, useState } from "react"
+import { useLocale } from "next-intl"
+import { useEffect, useMemo, useState } from "react"
 
 import { api } from "@/convex/_generated/api"
 import { usePathname } from "@/i18n/navigation"
-import { isRested } from "@/lib/campaigns"
+import { isRested, wordsIn } from "@/lib/campaigns"
 
 /** The time, to the minute: queries never read the clock themselves. */
 export function useMinute() {
@@ -26,9 +27,15 @@ export function useMinute() {
 export function useLivePromos() {
   const path = usePathname()
   const now = useMinute()
-  const rows = useQuery(
+  const locale = useLocale()
+  const live = useQuery(
     api.campaigns.liveCampaigns,
     now === null ? "skip" : { path, now }
+  )
+  // Assamese pages read the Assamese wording where the editor wrote one.
+  const rows = useMemo(
+    () => live?.map((promo) => wordsIn(promo, locale)),
+    [live, locale]
   )
   return { rows, now }
 }

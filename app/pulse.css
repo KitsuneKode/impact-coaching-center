@@ -809,7 +809,10 @@
   [data-book-sub] {
     position: relative;
     margin-block-start: 8px;
-    font: 400 10px/1.35 var(--font-sans);
+    font:
+      400 10px/1.35 var(--font-sans),
+      var(--font-as),
+      sans-serif;
     opacity: 0.75;
     text-wrap: balance;
   }
@@ -819,7 +822,10 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font: 500 8.5px/1 var(--font-sans);
+    font:
+      500 8.5px/1 var(--font-sans),
+      var(--font-as),
+      sans-serif;
     opacity: 0.8;
   }
   [data-book-foot] img {

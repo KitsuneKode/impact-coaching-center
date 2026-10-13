@@ -64,6 +64,10 @@ const MESSAGES: Record<string, string> = {
   delay: `Use a whole number of seconds from 0 to ${CAMPAIGN_LIMITS.delayMax}.`,
   "rest days": `Use a whole number of days from 0 to ${CAMPAIGN_LIMITS.restMax}.`,
   priority: `Use a whole number from 0 to ${CAMPAIGN_LIMITS.priorityMax}.`,
+  "Assamese label": `Keep the Assamese label to ${CAMPAIGN_LIMITS.tag} characters.`,
+  "Assamese headline": `Write an Assamese headline of up to ${CAMPAIGN_LIMITS.headline} characters, or clear all the Assamese fields.`,
+  "Assamese message": `Keep the Assamese message to ${CAMPAIGN_LIMITS.body} characters.`,
+  "Assamese button": `Add Assamese button text of up to ${CAMPAIGN_LIMITS.cta} characters.`,
 }
 
 /** What each type does, said where the type is chosen. */
@@ -82,6 +86,10 @@ type Draft = {
   headline: string
   body: string
   cta: string
+  asTag: string
+  asHeadline: string
+  asBody: string
+  asCta: string
   href: string
   coupon: string
   videos: string
@@ -100,6 +108,10 @@ const EMPTY: Draft = {
   headline: "",
   body: "",
   cta: "",
+  asTag: "",
+  asHeadline: "",
+  asBody: "",
+  asCta: "",
   href: "",
   coupon: "",
   videos: "",
@@ -188,6 +200,10 @@ export function PromotionEditor({ id }: { id?: string }) {
         headline: campaign.headline,
         body: campaign.body,
         cta: campaign.cta,
+        asTag: campaign.as?.tag ?? "",
+        asHeadline: campaign.as?.headline ?? "",
+        asBody: campaign.as?.body ?? "",
+        asCta: campaign.as?.cta ?? "",
         href: campaign.href,
         coupon: campaign.coupon,
         videos: campaign.reelIds.map((v) => `https://youtu.be/${v}`).join("\n"),
@@ -252,6 +268,12 @@ function PromotionForm({
       headline: draft.headline,
       body: draft.body,
       cta: draft.cta,
+      as: {
+        tag: draft.asTag,
+        headline: draft.asHeadline,
+        body: draft.asBody,
+        cta: draft.asCta,
+      },
       href: draft.href,
       coupon: draft.coupon.toUpperCase(),
       reelIds: videos.ids,
@@ -457,6 +479,67 @@ function PromotionForm({
               )}
             </Field>
           </div>
+
+          <details
+            className="group rounded-card border border-border p-4"
+            open={Boolean(draft.asHeadline) || undefined}
+          >
+            <summary className="cursor-pointer text-sm font-medium">
+              Assamese wording (optional)
+            </summary>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Shown on the Assamese pages. Leave it empty and they show the
+              English.
+            </p>
+            <div lang="as-IN" className="mt-4 grid gap-6">
+              <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_12rem]">
+                <Field {...bad("Assamese headline")}>
+                  <FieldLabel htmlFor="p-as-headline">Headline</FieldLabel>
+                  <Input
+                    id="p-as-headline"
+                    value={draft.asHeadline}
+                    onChange={(e) => set("asHeadline", e.target.value)}
+                    aria-invalid={!!errors["Assamese headline"]}
+                    autoComplete="off"
+                  />
+                  <FieldError>{errors["Assamese headline"]}</FieldError>
+                </Field>
+                <Field {...bad("Assamese label")}>
+                  <FieldLabel htmlFor="p-as-tag">Label</FieldLabel>
+                  <Input
+                    id="p-as-tag"
+                    value={draft.asTag}
+                    onChange={(e) => set("asTag", e.target.value)}
+                    aria-invalid={!!errors["Assamese label"]}
+                    autoComplete="off"
+                  />
+                  <FieldError>{errors["Assamese label"]}</FieldError>
+                </Field>
+              </div>
+              <Field {...bad("Assamese message")}>
+                <FieldLabel htmlFor="p-as-body">Message</FieldLabel>
+                <Textarea
+                  id="p-as-body"
+                  value={draft.asBody}
+                  onChange={(e) => set("asBody", e.target.value)}
+                  aria-invalid={!!errors["Assamese message"]}
+                  rows={3}
+                />
+                <FieldError>{errors["Assamese message"]}</FieldError>
+              </Field>
+              <Field {...bad("Assamese button")} className="sm:max-w-sm">
+                <FieldLabel htmlFor="p-as-cta">Button text</FieldLabel>
+                <Input
+                  id="p-as-cta"
+                  value={draft.asCta}
+                  onChange={(e) => set("asCta", e.target.value)}
+                  aria-invalid={!!errors["Assamese button"]}
+                  autoComplete="off"
+                />
+                <FieldError>{errors["Assamese button"]}</FieldError>
+              </Field>
+            </div>
+          </details>
 
           {withImage ? (
             <Field {...bad("image")}>

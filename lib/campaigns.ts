@@ -32,8 +32,18 @@ export const CAMPAIGN_LIMITS = {
   priorityMax: 100,
 } as const
 
+/** The words a visitor reads; English always, Assamese when written. */
+export type CampaignWords = {
+  tag: string
+  headline: string
+  body: string
+  cta: string
+}
+
 export type CampaignInput = {
   name: string
+  /** Assamese wording for /as pages; English shows where it is absent. */
+  as?: CampaignWords
   kind: CampaignKind
   tag: string
   headline: string
@@ -98,6 +108,28 @@ export function checkCampaign(input: CampaignInput): Checked {
     return { ok: false, field: "link" }
   if (coupon && !COUPON.test(coupon)) return { ok: false, field: "code" }
 
+  // Assamese wording is optional, but once begun it needs a headline, and
+  // a button label when the English has one, within the same limits.
+  let as: CampaignWords | undefined
+  if (input.as) {
+    const w = {
+      tag: input.as.tag.trim(),
+      headline: input.as.headline.trim(),
+      body: input.as.body.trim(),
+      cta: input.as.cta.trim(),
+    }
+    if (w.tag || w.headline || w.body || w.cta) {
+      if (w.tag.length > L.tag) return { ok: false, field: "Assamese label" }
+      if (w.headline.length < 1 || w.headline.length > L.headline)
+        return { ok: false, field: "Assamese headline" }
+      if (w.body.length > L.body)
+        return { ok: false, field: "Assamese message" }
+      if (w.cta.length > L.cta || (cta && w.cta.length < 1))
+        return { ok: false, field: "Assamese button" }
+      as = w
+    }
+  }
+
   if (input.kind === "reel") {
     if (reelIds.length < 1 || reelIds.length > L.reels)
       return { ok: false, field: "videos" }
@@ -135,6 +167,7 @@ export function checkCampaign(input: CampaignInput): Checked {
     ok: true,
     value: {
       name,
+      as,
       kind: input.kind,
       tag,
       headline,
@@ -245,4 +278,20 @@ export function isRested(
 ): boolean {
   if (closedAt === null) return true
   return now - closedAt >= restDays * 86_400_000
+}
+
+/** A promotion's words in the reader's language, English where none. */
+export function wordsIn<T extends CampaignWords & { as?: CampaignWords }>(
+  promo: T,
+  locale: string
+): T {
+  if (locale !== "as" || !promo.as) return promo
+  const { as } = promo
+  return {
+    ...promo,
+    tag: as.tag || promo.tag,
+    headline: as.headline,
+    body: as.body || promo.body,
+    cta: as.cta || promo.cta,
+  }
 }

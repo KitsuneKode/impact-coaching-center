@@ -890,3 +890,23 @@
     }
   }
 }
+
+/*
+ * Assamese headings. Many headings take the `font-display` utility (Unbounded,
+ * which has no Bengali-script glyphs); utilities outrank the base-layer
+ * :lang(as) rule, so Assamese headlines fell to a system font with negative
+ * tracking and broke their conjuncts (প্ৰ, স্ত). Inside Assamese content the
+ * display font becomes Anek Bangla, with Unbounded kept for Latin words, and
+ * tracking is reset: letter-spacing pulls Bengali-script clusters apart.
+ */
+html {
+  --font-display-latin: var(--font-display);
+}
+body :lang(as) {
+  --font-display: var(--font-as), var(--font-display-latin), sans-serif;
+}
+@layer utilities {
+  :lang(as) :is(.font-display, h1, h2, h3, [class*="tracking-"]) {
+    letter-spacing: 0;
+  }
+}

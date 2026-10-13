@@ -32,15 +32,17 @@ import "./lib/env.server"
  *               checkout.razorpay.com and pays in an api.razorpay.com frame;
  *               Razorpay's own guidance is to allow its domain.
  */
+/*
+ * A production build pointed at a local Convex (testing `next start` on a
+ * laptop) gets dev's localhost allowances for its CSP and images. A deployed
+ * build's Convex URL is never local, so this never loosens production.
+ */
+const localConvex = /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(
+  process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
+)
+
 function contentSecurityPolicy(): string {
-  // A production build pointed at a local Convex (testing `next start` on a
-  // laptop) gets the same localhost allowances as dev; a deployed build's
-  // Convex URL is never local, so this never loosens production.
-  const dev =
-    process.env.NODE_ENV === "development" ||
-    /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(
-      process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
-    )
+  const dev = process.env.NODE_ENV === "development" || localConvex
   return [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://*.razorpay.com${dev ? " 'unsafe-eval'" : ""}`,
@@ -73,8 +75,8 @@ const nextConfig: NextConfig = {
         hostname: "*.convex.cloud",
         pathname: "/api/storage/**",
       },
-      // A local Convex backend serves storage from loopback, in development only.
-      ...(isDev
+      // A local Convex backend serves storage from loopback.
+      ...(isDev || localConvex
         ? [
             {
               protocol: "http" as const,
@@ -85,7 +87,7 @@ const nextConfig: NextConfig = {
           ]
         : []),
     ],
-    dangerouslyAllowLocalIP: isDev,
+    dangerouslyAllowLocalIP: isDev || localConvex,
   },
   /**
    * /login and /register are the real routes, because those are the words

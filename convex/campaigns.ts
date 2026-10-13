@@ -21,7 +21,7 @@ import {
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
 import { PICTURE, pictureOf } from "./images"
-import { CAMPAIGN_KIND, CAMPAIGN_STATUS } from "./schema"
+import { CAMPAIGN_KIND, CAMPAIGN_STATUS, CAMPAIGN_WORDS } from "./schema"
 
 /**
  * Promotions on the site, for the owner and staff with the promotions grant.
@@ -31,6 +31,7 @@ import { CAMPAIGN_KIND, CAMPAIGN_STATUS } from "./schema"
 
 const FIELDS = {
   name: v.string(),
+  as: v.optional(CAMPAIGN_WORDS),
   kind: CAMPAIGN_KIND,
   tag: v.string(),
   headline: v.string(),
@@ -67,6 +68,7 @@ const PUBLIC_ROW = v.object({
   headline: v.string(),
   body: v.string(),
   cta: v.string(),
+  as: v.optional(CAMPAIGN_WORDS),
   href: v.string(),
   image: v.union(PICTURE, v.null()),
   coupon: v.string(),
@@ -83,6 +85,7 @@ const LIVE_MAX = 6
 
 const fieldsOf = (c: Doc<"campaigns">) => ({
   name: c.name,
+  as: c.as,
   kind: c.kind,
   tag: c.tag,
   headline: c.headline,
@@ -156,6 +159,7 @@ export const liveCampaigns = query({
         headline: c.headline,
         body: c.body,
         cta: c.cta,
+        as: c.as,
         href: c.href,
         image: await pictureOf(ctx, c.image),
         coupon: c.coupon,
