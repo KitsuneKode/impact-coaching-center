@@ -36,6 +36,7 @@ export function VideoDialog({
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
+        data-press
         className={cn("group block cursor-pointer text-left", className)}
         aria-label={`Play: ${title}`}
         {...trigger}

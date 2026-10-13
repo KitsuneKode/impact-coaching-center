@@ -31,7 +31,8 @@ export function LocaleSwitch({ className }: { className?: string }) {
           aria-pressed={locale === current}
           aria-label={t(`name.${locale}`)}
           onClick={() => choose(locale)}
-          className="h-8 min-w-9 rounded-[0.3rem] px-2 font-bold text-muted-foreground transition-colors duration-150 aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-frame"
+          data-press
+          className="h-8 min-w-9 rounded-[0.3rem] px-2 font-bold text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-frame"
         >
           {short[locale]}
         </button>

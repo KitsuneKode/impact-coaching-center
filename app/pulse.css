@@ -1884,3 +1884,40 @@
     }
   }
 }
+
+/*
+ * Press feedback for what had none. Text links dim while held, the way a
+ * native list does; cards and buttons keep their own scale (data-press and
+ * friends are excluded, so nothing both dims and shrinks).
+ */
+@layer components {
+  :where(
+    a[href]:not(
+        [data-press],
+        [data-cta],
+        [data-panel],
+        [data-hero-ticket],
+        [data-channel],
+        [data-workshop],
+        [data-site-phone]
+      ),
+    summary
+  ):active {
+    opacity: 0.66;
+  }
+  [data-workshop]:active,
+  [data-site-phone]:active {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :where(a[href], summary) {
+      transition: opacity 0.12s ease-out;
+    }
+    [data-workshop],
+    [data-site-phone] {
+      transition:
+        opacity 0.12s ease-out,
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+}
