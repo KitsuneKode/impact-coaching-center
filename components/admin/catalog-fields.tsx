@@ -8,7 +8,6 @@ import {
   IconPhoto,
   IconPhotoPlus,
   IconTrash,
-  IconUpload,
 } from "@tabler/icons-react"
 import { useUploadFile } from "@convex-dev/r2/react"
 import { useMutation, useQuery } from "convex/react"
@@ -19,6 +18,7 @@ import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { Dropzone, DropToReplace } from "@/components/admin/dropzone"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { IMAGE_MAX_BYTES } from "@/lib/catalog"
@@ -196,30 +196,36 @@ export function ImageField({
       <span id={id} className="text-sm font-medium">
         {label}
       </span>
-      <div className="flex items-start gap-4">
-        <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-border">
-          <Thumb src={value?.url ?? null} alt={value ? label : ""} />
-          {busy ? (
-            <span className="absolute inset-0 grid place-items-center bg-background/70">
-              <Spinner />
-            </span>
-          ) : null}
-        </div>
-        <div className="grid gap-2">
-          <p className="text-xs text-muted-foreground">{hint}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              aria-describedby={id}
-              onClick={() => input.current?.click()}
-            >
-              <IconPhotoPlus stroke={1.75} aria-hidden />
-              {value ? "Replace" : "Upload"}
-            </Button>
-            {value ? (
+      {value ? (
+        <DropToReplace
+          onFiles={(files) => void pick(files[0])}
+          disabled={busy}
+          className="flex items-start gap-4"
+        >
+          <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-border">
+            <Thumb src={value.url} alt={label} />
+            {busy ? (
+              <span className="absolute inset-0 grid place-items-center bg-background/70">
+                <Spinner />
+              </span>
+            ) : null}
+          </div>
+          <div className="grid gap-2">
+            <p className="text-xs text-muted-foreground">
+              {hint} Drop a new image here to replace it.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                aria-describedby={id}
+                onClick={() => input.current?.click()}
+              >
+                <IconPhotoPlus stroke={1.75} aria-hidden />
+                Replace
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -232,10 +238,23 @@ export function ImageField({
               >
                 Remove
               </Button>
-            ) : null}
+            </div>
           </div>
-        </div>
-      </div>
+        </DropToReplace>
+      ) : (
+        <Dropzone
+          accept="image/*"
+          disabled={busy}
+          icon={IconPhotoPlus}
+          title={busy ? "Uploading…" : "Drop the image here, or choose one"}
+          hint={hint}
+          describedBy={id}
+          className="max-w-md"
+          onFiles={(files) => void pick(files[0])}
+        >
+          {busy ? <Spinner className="mbs-1" /> : null}
+        </Dropzone>
+      )}
       <input
         ref={input}
         type="file"
@@ -270,7 +289,6 @@ export function PageImagesField({
   const upload = useImageUpload()
   const release = useReleaseUpload()
   const input = useRef<HTMLInputElement>(null)
-  const pdfInput = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState(0)
   const [rendering, setRendering] = useState(false)
   const id = useId()
@@ -289,7 +307,7 @@ export function PageImagesField({
     onChange([...value, ...added])
   }
 
-  async function pick(list: FileList | null) {
+  async function pick(list: FileList | File[] | null) {
     const files = [...(list ?? [])].sort(byName)
     if (!files.length) return
     if (files.length > room)
@@ -406,33 +424,31 @@ export function PageImagesField({
           ))}
         </ol>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={pending > 0 || rendering || room <= 0}
-          aria-describedby={id}
-          onClick={() => input.current?.click()}
+      {room > 0 ? (
+        <Dropzone
+          accept="image/*,application/pdf"
+          multiple
+          disabled={pending > 0 || rendering}
+          icon={IconFileImport}
+          title={
+            rendering
+              ? "Reading the PDF…"
+              : pending > 0
+                ? `Uploading ${pending} page${pending === 1 ? "" : "s"}…`
+                : "Drop page images or a PDF, or choose them"
+          }
+          hint={`Room for ${room} more. Images go in file-name order; a PDF becomes its pages.`}
+          describedBy={id}
+          onFiles={(files) => {
+            const pdf = files.find((file) => file.type === "application/pdf")
+            if (pdf) void pickPdf(pdf)
+            else
+              void pick(files.filter((file) => file.type.startsWith("image/")))
+          }}
         >
-          <IconPhotoPlus stroke={1.75} aria-hidden />
-          Add pages
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={pending > 0 || rendering || room <= 0}
-          onClick={() => pdfInput.current?.click()}
-        >
-          {rendering ? (
-            <Spinner />
-          ) : (
-            <IconFileImport stroke={1.75} aria-hidden />
-          )}
-          {rendering ? "Reading PDF…" : "Import PDF"}
-        </Button>
-      </div>
+          {pending > 0 || rendering ? <Spinner className="mbs-1" /> : null}
+        </Dropzone>
+      ) : null}
       <input
         ref={input}
         type="file"
@@ -442,17 +458,6 @@ export function PageImagesField({
         aria-labelledby={id}
         onChange={(event) => {
           void pick(event.target.files)
-          event.target.value = ""
-        }}
-      />
-      <input
-        ref={pdfInput}
-        type="file"
-        accept="application/pdf"
-        hidden
-        aria-label="Import pages from a PDF"
-        onChange={(event) => {
-          void pickPdf(event.target.files?.[0])
           event.target.value = ""
         }}
       />
@@ -563,7 +568,11 @@ export function PdfField({
         PDF
       </span>
       {value ? (
-        <div className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-card p-3">
+        <DropToReplace
+          onFiles={(files) => void pick(files[0])}
+          disabled={progress !== null}
+          className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-card p-3"
+        >
           <IconFileTypePdf
             stroke={1.5}
             className="size-8 text-destructive"
@@ -594,20 +603,21 @@ export function PdfField({
           >
             Remove
           </Button>
-        </div>
+        </DropToReplace>
       ) : (
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          className="justify-self-start"
+        <Dropzone
+          accept="application/pdf"
           disabled={progress !== null || ready === undefined}
-          aria-describedby={id}
-          onClick={() => input.current?.click()}
-        >
-          <IconUpload stroke={1.75} aria-hidden />
-          Upload PDF
-        </Button>
+          icon={IconFileTypePdf}
+          title={
+            progress !== null
+              ? "Uploading the PDF…"
+              : "Drop the PDF here, or choose it"
+          }
+          describedBy={id}
+          className="max-w-md"
+          onFiles={(files) => void pick(files[0])}
+        />
       )}
       {progress !== null ? (
         <div className="grid gap-1" aria-live="polite">
