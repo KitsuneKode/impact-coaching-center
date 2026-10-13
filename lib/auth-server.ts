@@ -1,5 +1,7 @@
 import { convexBetterAuthNextJs } from "@convex-dev/better-auth/nextjs"
 
+import { api } from "@/convex/_generated/api"
+
 import { requireEnv } from "./env"
 import { clientEnv } from "./env.client"
 
@@ -27,4 +29,9 @@ export const handler = {
     authServer().handler.GET(...args),
   POST: (...args: Parameters<AuthServer["handler"]["POST"]>) =>
     authServer().handler.POST(...args),
+}
+
+/** Whether this request's signed-in person may refresh the public pages. */
+export async function viewerCanRefreshSite(): Promise<boolean> {
+  return authServer().fetchAuthQuery(api.catalogAdmin.canRefreshSite)
 }

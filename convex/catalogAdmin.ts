@@ -196,6 +196,13 @@ export const canEditCatalog = query({
   handler: async (ctx) => (await requireGrant(ctx, "catalog")).ok,
 })
 
+/** Anyone whose edits show on the public pages, so may refresh them. */
+export const canRefreshSite = query({
+  args: {},
+  returns: v.boolean(),
+  handler: async (ctx) => (await requireGrant(ctx, ["catalog", "content"])).ok,
+})
+
 /** A signed URL the browser posts one file to. */
 /** Anyone who edits something with pictures: the shop, promotions, the blog. */
 const UPLOAD_GRANTS = ["catalog", "promotions", "content"] as const
@@ -695,6 +702,7 @@ export const adminResources = query({
         kind: RESOURCE_KIND,
         language: v.optional(LOCALE),
         pages: v.number(),
+        pdf: v.boolean(),
         published: v.boolean(),
         sample: v.boolean(),
         revision: v.number(),
@@ -719,7 +727,8 @@ export const adminResources = query({
         exam: r.exam,
         kind: r.kind,
         language: r.language,
-        pages: r.pageImages.length,
+        pages: r.pdf?.pages ?? r.pageImages.length,
+        pdf: Boolean(r.pdf),
         published: r.published,
         sample: r.sample ?? false,
         revision: r.revision,

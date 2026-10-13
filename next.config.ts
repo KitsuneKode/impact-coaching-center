@@ -33,7 +33,14 @@ import "./lib/env.server"
  *               Razorpay's own guidance is to allow its domain.
  */
 function contentSecurityPolicy(): string {
-  const dev = process.env.NODE_ENV === "development"
+  // A production build pointed at a local Convex (testing `next start` on a
+  // laptop) gets the same localhost allowances as dev; a deployed build's
+  // Convex URL is never local, so this never loosens production.
+  const dev =
+    process.env.NODE_ENV === "development" ||
+    /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(
+      process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
+    )
   return [
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://*.razorpay.com${dev ? " 'unsafe-eval'" : ""}`,

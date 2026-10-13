@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { refreshSite } from "@/app/admin/refresh-site"
 import { CatalogOnly, LANGUAGE_NAMES } from "@/components/admin/book-editor"
 import {
   CATALOG_REFUSALS,
@@ -249,6 +250,7 @@ function BundleForm({
       setRevision(result.revision)
       setSaved(snapshot(draft))
       toast.success("Saved")
+      void refreshSite("catalog")
       if (!id) router.replace(`/admin/bundles/${result.id}`)
     } catch {
       setError({
@@ -280,6 +282,7 @@ function BundleForm({
       }
       setRevision(result.revision)
       toast.success(published ? "Unpublished" : "Published on /books")
+      void refreshSite("catalog")
     } catch {
       setError({ message: "Could not reach the server. Try again." })
     } finally {

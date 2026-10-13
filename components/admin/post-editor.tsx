@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
+import { refreshSite } from "@/app/admin/refresh-site"
 import { PublishState } from "@/components/admin/catalog-fields"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
 import { Button, ButtonLink } from "@/components/ui/button"
@@ -180,6 +181,7 @@ function PostForm({
         toast.success("Saved as a draft")
         router.replace(`/admin/blog/${result.id}`)
       } else toast.success("Saved")
+      if (published) void refreshSite("blog")
     } catch {
       setFormError("Could not reach the server. Your changes are still here.")
     } finally {
@@ -202,6 +204,7 @@ function PostForm({
       }
       setRevision(result.revision)
       toast.success(published ? "Unpublished" : "Published on /blog")
+      void refreshSite("blog")
     } catch {
       setFormError("Could not reach the server. Try again.")
     } finally {

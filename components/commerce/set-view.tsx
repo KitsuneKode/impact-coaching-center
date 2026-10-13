@@ -16,7 +16,8 @@ import {
 } from "react"
 
 import { AddToCart } from "@/components/commerce/add-to-cart"
-import { PageViewer, type ViewerPage } from "@/components/commerce/page-viewer"
+import { PageViewer } from "@/components/commerce/lazy-page-viewer"
+import type { ViewerPage } from "@/components/commerce/page-viewer"
 import { ShopCartButton, useOpenCart } from "@/components/commerce/shop-shell"
 import { Book3D, type BookTone } from "@/components/home/book-3d"
 import { Link } from "@/i18n/navigation"
@@ -209,19 +210,22 @@ export function SetView({
         />
       </section>
 
-      <PageViewer
-        open={reading !== null}
-        onOpenChange={(open) => !open && setReading(null)}
-        title={reading?.editions[language]?.title ?? ""}
-        note={
-          reading?.editions[language]?.samplePages.length
-            ? t("samplePages", {
-                count: reading.editions[language]!.samplePages.length,
-              })
-            : t("placeholderBookPages")
-        }
-        pages={reading ? pagesOf(reading, language, bundle.sample) : []}
-      />
+      {/* Mounted only while reading, so the reader's code loads on demand. */}
+      {reading ? (
+        <PageViewer
+          open
+          onOpenChange={(open) => !open && setReading(null)}
+          title={reading.editions[language]?.title ?? ""}
+          note={
+            reading.editions[language]?.samplePages.length
+              ? t("samplePages", {
+                  count: reading.editions[language]!.samplePages.length,
+                })
+              : t("placeholderBookPages")
+          }
+          pages={pagesOf(reading, language, bundle.sample)}
+        />
+      ) : null}
     </>
   )
 }

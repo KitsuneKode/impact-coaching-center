@@ -10,6 +10,10 @@ import { ownLanguageFirst } from "@/lib/blog"
 import { publishedPosts } from "@/lib/catalog-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 
+/* Catalogue data is cached for five minutes (lib/catalog-server.ts); the
+   page is static and rebuilt in the background on the same beat. */
+export const revalidate = 300
+
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/blog">): Promise<Metadata> {

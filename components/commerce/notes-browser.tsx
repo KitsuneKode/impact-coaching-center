@@ -11,7 +11,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useDeferredValue, useEffect, useRef, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
-import { PageViewer } from "@/components/commerce/page-viewer"
+import { PageViewer } from "@/components/commerce/lazy-page-viewer"
 import { useExamFilter } from "@/components/commerce/use-exam-filter"
 import { useOpenResource } from "@/components/commerce/use-open-resource"
 import { Folder } from "@/components/home/folder"

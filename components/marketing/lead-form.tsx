@@ -18,7 +18,7 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, timings } from "@/lib/brand"
 import { track } from "@/lib/analytics"
 import { visitAttribution } from "@/lib/attribution"
-import { clientEnv } from "@/lib/env.client"
+import { publicEnv } from "@/lib/public-env"
 import { contactHref } from "@/lib/contact"
 import {
   enquiryTracks,
@@ -367,10 +367,10 @@ export function LeadForm({
                 </label>
               </div>
 
-              {clientEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
+              {publicEnv.turnstileSiteKey ? (
                 <div className="mt-6">
                   <Turnstile
-                    siteKey={clientEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    siteKey={publicEnv.turnstileSiteKey}
                     resetKey={turnstileEpoch}
                   />
                 </div>

@@ -15,21 +15,56 @@ export type PublicCourse = FunctionReturnType<typeof api.courses.list>[number]
 /** Published catalogue for server-rendered pages; empty when Convex is absent. */
 const configured = () => Boolean(clientEnv.NEXT_PUBLIC_CONVEX_URL)
 
-/* `cache` so a page and its metadata share one request. */
+/*
+ * Catalogue reads are cached across requests for five minutes (and tagged,
+ * so a publish can refresh them at once), which lets the home, books, set,
+ * notes and blog pages be static and rebuilt in the background instead of
+ * rendering on every visit. `cache` on top so a page and its metadata share
+ * one read.
+ */
+const CATALOG_SECONDS = 300
+
+const cachedBundles = unstable_cache(
+  (): Promise<PublicBundle[]> => fetchQuery(api.catalog.bundles),
+  ["bundles"],
+  { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
+)
+const cachedBundle = unstable_cache(
+  (slug: string): Promise<PublicBundle | null> =>
+    fetchQuery(api.catalog.bundle, { slug }),
+  ["bundle"],
+  { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
+)
+const cachedResources = unstable_cache(
+  (): Promise<Resource[]> => fetchQuery(api.catalog.resources),
+  ["resources"],
+  { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
+)
+const cachedPosts = unstable_cache(
+  (): Promise<PostCard[]> => fetchQuery(api.blog.posts),
+  ["posts"],
+  { revalidate: CATALOG_SECONDS, tags: ["blog"] }
+)
+const cachedPost = unstable_cache(
+  (slug: string): Promise<Post | null> => fetchQuery(api.blog.post, { slug }),
+  ["post"],
+  { revalidate: CATALOG_SECONDS, tags: ["blog"] }
+)
+
 export const publishedBundles = cache(async (): Promise<PublicBundle[]> =>
-  configured() ? fetchQuery(api.catalog.bundles) : []
+  configured() ? cachedBundles() : []
 )
 
 export const publishedBundle = cache(
   async (slug: string): Promise<PublicBundle | null> =>
-    configured() ? fetchQuery(api.catalog.bundle, { slug }) : null
+    configured() ? cachedBundle(slug) : null
 )
 
 /* Courses follow ClassPlus every six hours; pages need not be fresher. */
 const cachedCourses = unstable_cache(
   (): Promise<PublicCourse[]> => fetchQuery(api.courses.list),
   ["courses"],
-  { revalidate: 900 }
+  { revalidate: 900, tags: ["courses"] }
 )
 
 /** Courses from the ClassPlus mirror; empty when Convex is unreachable. */
@@ -44,16 +79,16 @@ export const publishedCourses = cache(async (): Promise<PublicCourse[]> => {
 })
 
 export const publishedResources = cache(async (): Promise<Resource[]> =>
-  configured() ? fetchQuery(api.catalog.resources) : []
+  configured() ? cachedResources() : []
 )
 
 export const publishedPosts = cache(async (): Promise<PostCard[]> =>
-  configured() ? fetchQuery(api.blog.posts) : []
+  configured() ? cachedPosts() : []
 )
 
 export const publishedPost = cache(
   async (slug: string): Promise<Post | null> =>
-    configured() ? fetchQuery(api.blog.post, { slug }) : null
+    configured() ? cachedPost(slug) : null
 )
 
 /* Dates change a few times a month; an hour's staleness keeps the exam
@@ -62,7 +97,7 @@ const cachedDates = unstable_cache(
   (since: string): Promise<ExamDate[]> =>
     fetchQuery(api.calendar.dates, { since }),
   ["exam-dates"],
-  { revalidate: 3600 }
+  { revalidate: 3600, tags: ["calendar"] }
 )
 
 /**

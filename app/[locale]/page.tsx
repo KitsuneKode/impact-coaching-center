@@ -16,6 +16,10 @@ import { publishedBundles, publishedResources } from "@/lib/catalog-server"
 import { newestBatch } from "@/lib/courses"
 import { liveCourses, todayInIndia } from "@/lib/courses-server"
 
+/* Catalogue data is cached for five minutes (lib/catalog-server.ts); the
+   page is static and rebuilt in the background on the same beat. */
+export const revalidate = 300
+
 /** The home page, Pulse: the pitch, the three exams, proof, free, books, help. */
 export default async function Page({ params }: PageProps<"/[locale]">) {
   const { locale } = await params

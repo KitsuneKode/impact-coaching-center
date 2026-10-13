@@ -11,6 +11,15 @@ import { inLanguage, LANGUAGES, type Language } from "@/lib/catalog"
 import { publishedBundle, publishedBundles } from "@/lib/catalog-server"
 import { alternatesFor, localePath, openGraphFor, siteUrl } from "@/lib/site"
 
+/* Catalogue data is cached for five minutes (lib/catalog-server.ts); the
+   page is static and rebuilt in the background on the same beat. */
+export const revalidate = 300
+
+/* Known slugs are built ahead; a new one renders on first visit and is kept. */
+export async function generateStaticParams() {
+  return (await publishedBundles()).map((bundle) => ({ slug: bundle.slug }))
+}
+
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/books/[slug]">): Promise<Metadata> {

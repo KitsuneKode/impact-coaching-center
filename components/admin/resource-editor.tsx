@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { refreshSite } from "@/app/admin/refresh-site"
 import { CatalogOnly } from "@/components/admin/book-editor"
 import {
   CATALOG_REFUSALS,
@@ -197,6 +198,7 @@ function ResourceForm({
         toast.success("Saved as a draft")
         router.replace(`/admin/resources/${result.id}`)
       } else toast.success("Saved")
+      if (published) void refreshSite("catalog")
     } catch {
       setFormError("Could not reach the server. Your changes are still here.")
     } finally {
@@ -219,6 +221,7 @@ function ResourceForm({
       }
       setRevision(result.revision)
       toast.success(published ? "Unpublished" : "Published on /resources")
+      void refreshSite("catalog")
     } catch {
       setFormError("Could not reach the server. Try again.")
     } finally {

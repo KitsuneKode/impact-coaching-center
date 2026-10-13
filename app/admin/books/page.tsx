@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { refreshSite } from "@/app/admin/refresh-site"
 import { convexConfigured } from "@/app/providers"
 import {
   CATALOG_REFUSALS,
@@ -161,8 +162,10 @@ function SetsTable({ rows }: { rows: SetRow[] }) {
     setPending(key)
     try {
       const result = await action()
-      if (result.ok) toast.success(done)
-      else toast.error(CATALOG_REFUSALS[result.reason] ?? "Not changed.")
+      if (result.ok) {
+        toast.success(done)
+        void refreshSite("catalog")
+      } else toast.error(CATALOG_REFUSALS[result.reason] ?? "Not changed.")
     } catch {
       toast.error("Could not reach the server. Try again.")
     } finally {

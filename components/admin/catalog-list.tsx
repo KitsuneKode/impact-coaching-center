@@ -9,6 +9,7 @@ import {
   CATALOG_REFUSALS,
   PublishState,
 } from "@/components/admin/catalog-fields"
+import { refreshSite } from "@/app/admin/refresh-site"
 import { Button, ButtonLink } from "@/components/ui/button"
 import { PageShell } from "@/components/ui/page-shell"
 import {
@@ -74,7 +75,10 @@ export function CatalogList({
       const result = await onTogglePublished(row)
       if (!result.ok)
         toast.error(CATALOG_REFUSALS[result.reason] ?? "Not changed.")
-      else toast.success(row.published ? "Unpublished" : "Published")
+      else {
+        toast.success(row.published ? "Unpublished" : "Published")
+        void refreshSite("catalog")
+      }
     } catch {
       toast.error("Could not reach the server. Try again.")
     } finally {

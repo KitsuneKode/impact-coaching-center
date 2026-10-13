@@ -34,9 +34,12 @@ function PageShell({
     </>
   )
 
-  /* A working screen fills its inset; an editorial one keeps the measure. */
+  /* A working screen fills its inset; an editorial one keeps the measure.
+     Working screens live in the admin, whose sidebar inset is already the
+     page's <main>, so they must not open a second one. */
+  const Root = working ? "div" : "main"
   return (
-    <main>
+    <Root>
       <Section
         size="sm"
         bleed={working}
@@ -45,7 +48,7 @@ function PageShell({
       >
         {working ? <div className="w-full px-5 md:px-8">{body}</div> : body}
       </Section>
-    </main>
+    </Root>
   )
 }
 

@@ -15,7 +15,9 @@
   }
   [data-hero-glow] {
     position: absolute;
-    inset-block-start: -50%;
+    /* A fixed offset, not a share of the hero's height: the hero settles a
+       little as fonts arrive, and a percentage moved the glow with it. */
+    inset-block-start: -420px;
     inset-inline-end: -25%;
     inline-size: 900px;
     aspect-ratio: 1;
@@ -155,9 +157,14 @@
   }
 
   /* The headline and buttons rise in on first paint, CSS only. */
+  /* Never from fully transparent: Chrome does not count text first painted
+     at opacity 0 as the page's largest paint, so a hero title rising from
+     nothing delayed LCP by seconds. A little opacity and a blur that clears
+     read the same, and the title counts from its first frame. */
   @keyframes rise {
     from {
-      opacity: 0;
+      opacity: 0.2;
+      filter: blur(6px);
       translate: 0 18px;
     }
   }
@@ -1178,9 +1185,10 @@
 
   /* The poster unveils top to bottom once, as the card rises. */
   @media (prefers-reduced-motion: no-preference) {
+    /* Starts part-open so the poster counts as painted at once (LCP). */
     @keyframes poster-reveal {
       from {
-        clip-path: inset(0 0 100% 0 round 20px);
+        clip-path: inset(0 0 45% 0 round 20px);
       }
       to {
         clip-path: inset(0 0 0 0 round 20px);
@@ -1192,10 +1200,10 @@
       }
     }
     [data-poster] {
-      animation: poster-reveal 0.9s var(--ease-out-strong) 0.25s both;
+      animation: poster-reveal 0.8s var(--ease-out-strong) both;
     }
     [data-poster] img {
-      animation: poster-settle 1.4s var(--ease-out-strong) 0.25s both;
+      animation: poster-settle 1.2s var(--ease-out-strong) both;
     }
   }
 

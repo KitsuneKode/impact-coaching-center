@@ -13,6 +13,7 @@ import {
   toStored,
   type StoredImage,
 } from "@/components/admin/catalog-fields"
+import { refreshSite } from "@/app/admin/refresh-site"
 import { Button, ButtonLink } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -242,6 +243,7 @@ function BookForm({
       setRevision(result.revision)
       setSaved(snapshot(draft))
       toast.success("Saved")
+      void refreshSite("catalog")
       if (!id) router.replace(`/admin/books/${result.id}`)
     } catch {
       setError({

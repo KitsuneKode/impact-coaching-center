@@ -50,13 +50,13 @@ function Resources() {
         href: `/admin/resources/${r.id}`,
         thumb: <PaperPage running="" lines={6} compact className="h-full" />,
         meta: `${r.kind} · ${r.exam}`,
-        detail: r.pages ? `${r.pages}` : "None yet",
+        detail: r.pages ? `${r.pages}${r.pdf ? " (PDF)" : ""}` : "None yet",
         published: r.published,
         sample: r.sample,
         updatedAt: r.updatedAt,
         publishBlocked: r.pages
           ? undefined
-          : "Add page images before publishing.",
+          : "Add a PDF or the page images before publishing.",
       }))}
       onTogglePublished={(row) => {
         const resource = resources.rows.find((r) => r.id === row.id)!

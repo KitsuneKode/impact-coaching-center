@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "convex/react"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { refreshSite } from "@/app/admin/refresh-site"
 import { convexConfigured } from "@/app/providers"
 import { CatalogOnly } from "@/components/admin/book-editor"
 import { CATALOG_REFUSALS } from "@/components/admin/catalog-fields"
@@ -195,6 +196,7 @@ function CourseRow({ course }: { course: Row }) {
       if (result.ok) {
         setRevision(result.revision)
         toast.success("Saved")
+        void refreshSite("courses")
       } else
         toast.error(
           result.reason === "invalid-input"

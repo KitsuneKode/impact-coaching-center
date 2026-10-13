@@ -7,7 +7,17 @@ import { notFound } from "next/navigation"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
 import { brand } from "@/lib/brand"
 import { publishedPost } from "@/lib/catalog-server"
+import { publishedPosts } from "@/lib/catalog-server"
 import { alternatesFor, openGraphFor, siteUrl } from "@/lib/site"
+
+/* Catalogue data is cached for five minutes (lib/catalog-server.ts); the
+   page is static and rebuilt in the background on the same beat. */
+export const revalidate = 300
+
+/* Known slugs are built ahead; a new one renders on first visit and is kept. */
+export async function generateStaticParams() {
+  return (await publishedPosts()).map((post) => ({ slug: post.slug }))
+}
 
 export async function generateMetadata({
   params,
