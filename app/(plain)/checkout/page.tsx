@@ -28,6 +28,7 @@ import { inLanguage } from "@/lib/catalog"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
 import { PayOrder } from "@/components/commerce/pay-order"
+import { place } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 /*
@@ -355,13 +356,29 @@ function CheckoutForm() {
                       <span className="block text-sm text-muted-foreground">
                         {value === "delivery"
                           ? `${formatPaise(shippingPaise)} delivery`
-                          : "From the centre, when it's ready - free"}
+                          : `Free. From the centre on ${place.spoken}, when it's ready`}
                       </span>
                     </span>
                   </label>
                 ))}
               </div>
             </fieldset>
+
+            {fulfilment === "collection" ? (
+              <p className="text-sm text-muted-foreground">
+                Collect at Impact Career Tutorials, {place.street}, {place.city}
+                , {place.region} <span className="tnum">{place.pin}</span>. Your
+                account shows when it&rsquo;s ready to collect.{" "}
+                <a
+                  href={place.maps}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="link"
+                >
+                  Open in Maps
+                </a>
+              </p>
+            ) : null}
 
             {fulfilment === "delivery" && (
               <FieldGroup>

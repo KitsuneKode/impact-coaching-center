@@ -7,6 +7,7 @@ import {
   mutationResult,
   requireOwner,
 } from "./authz"
+import { brand, place } from "../lib/brand"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query, type QueryCtx } from "./_generated/server"
 
@@ -15,7 +16,8 @@ type Settings = Omit<Doc<"siteSettings">, "_id" | "_creationTime">
 /** Used until the owner saves real values; the shop says so where it shows them. */
 export const DEFAULT_SETTINGS: Settings = {
   shippingPaise: 60_00,
-  pickupAddress: "Impact Career Tutorials, North Lakhimpur, Assam",
+  // The main centre is where books are collected.
+  pickupAddress: `${brand.legalName}, ${place.street}, ${place.city}, ${place.region} ${place.pin}`,
   legalName: "Impact Career Tutorials",
   receiptPrefix: "ICT",
   revision: -1,
