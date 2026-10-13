@@ -27,6 +27,7 @@ import { useCart, useCartHydrated, useCartSync } from "@/lib/cart-store"
 import { inLanguage } from "@/lib/catalog"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
+import { PayOrder } from "@/components/commerce/pay-order"
 import { cn } from "@/lib/utils"
 
 /*
@@ -132,6 +133,7 @@ function CheckoutForm() {
   const [error, setError] = useState<string | null>(null)
   const [placing, setPlacing] = useState(false)
   const [placed, setPlaced] = useState<Placed | null>(null)
+  const [paid, setPaid] = useState(false)
   /* One key per attempt-set: a double-click or a retried submission comes
      back with the same order rather than minting a second. */
   const idempotencyKey = useRef(crypto.randomUUID())
@@ -220,29 +222,35 @@ function CheckoutForm() {
         title={
           <>
             <span className="text-foreground">Order {placed.reference}.</span>{" "}
-            <span className="text-muted-foreground">Placed.</span>
+            <span className="text-muted-foreground">
+              {paid ? "Paid. Thank you." : "One step left."}
+            </span>
           </>
         }
       >
         <div className="max-w-160 space-y-6">
           <p className="text-lg text-pretty">
-            That's {formatPaise(placed.totalPaise)} including delivery. No
-            payment has been taken - ICT will call your number to confirm the
-            order and arrange it.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            The order is on{" "}
+            Pay <span className="tnum">{formatPaise(placed.totalPaise)}</span>{" "}
+            to confirm it. The order is saved: if you close this, you can pay
+            later from{" "}
             <Link
               href="/account"
               className="underline underline-offset-4 hover:text-foreground"
             >
-              your account page
-            </Link>{" "}
-            with its reference and status.
+              your account
+            </Link>
+            .
           </p>
-          <div className="flex gap-3">
-            <ButtonLink href="/account">See your orders</ButtonLink>
-            <ButtonLink variant="secondary" href="/books">
+          <PayOrder
+            reference={placed.reference}
+            amountPaise={placed.totalPaise}
+            onPaid={() => setPaid(true)}
+          />
+          <div className="flex gap-3 pbs-2">
+            <ButtonLink variant="secondary" href="/account">
+              See your orders
+            </ButtonLink>
+            <ButtonLink variant="ghost" href="/books">
               Keep browsing
             </ButtonLink>
           </div>

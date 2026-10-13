@@ -39,6 +39,23 @@ dashboard/env UI — never in `.env.local`, never committed.
 | `LEAD_INGEST_SECRET`                    | Yes                 | Must equal the host-side value.                                                                                                                                                                                                                              |
 | `DEV_DEPLOYMENT_NAME`                   | **Never, anywhere** | Retired: no code reads it (a test enforces that). The one development deployment is the reviewed constant in `lib/dev-deployment.ts`, which a production URL cannot match, so setting this changes nothing. Remove it from dev (step 8) and never create it. |
 
+## Payments (Convex deployment settings)
+
+| Variable                  | Required           | Purpose                                                                                                                                                                                                                        |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PAYMENT_PROVIDER`        | Yes, to take money | `razorpay` on production. `simulated` walks the whole flow with an in-site test gateway and is refused anywhere but local or the dev deployment (`lib/payments.ts`). Unset: checkout places the order and says payment is off. |
+| `RAZORPAY_KEY_ID`         | With `razorpay`    | Test (`rzp_test_…`) or live key id from the Razorpay dashboard. Sent to the browser for Checkout; not a secret.                                                                                                                |
+| `RAZORPAY_KEY_SECRET`     | With `razorpay`    | Creates orders, verifies Checkout signatures and reads payments. Never in the Next.js env.                                                                                                                                     |
+| `RAZORPAY_WEBHOOK_SECRET` | With `razorpay`    | The secret typed when adding the webhook in the Razorpay dashboard; verifies `X-Razorpay-Signature`.                                                                                                                           |
+
+Razorpay dashboard steps: turn on **auto-capture**; add a webhook to
+`https://<deployment>.convex.site/razorpay/webhook` with the events
+`order.paid` and `payment.captured` and the secret above; add the site's
+domain under the account's website details. Test mode first: card
+4100 2800 0000 1007 (any future expiry, any CVV, any OTP of 4+ digits) or UPI
+`success@razorpay`. Receipts number per financial year from the prefix in
+Settings, e.g. ICT/26-27/0001.
+
 Convex sets `CONVEX_URL`, `CONVEX_SITE_URL` itself — do not set them.
 
 ## Regions

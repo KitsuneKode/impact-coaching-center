@@ -84,7 +84,8 @@ export const AUDIT_ACTION = v.union(
   v.literal("publish"),
   v.literal("unpublish"),
   v.literal("course_sync"),
-  v.literal("settings_change")
+  v.literal("settings_change"),
+  v.literal("payment")
 )
 
 export const AUDIT_ENTITY = v.union(
@@ -96,7 +97,8 @@ export const AUDIT_ENTITY = v.union(
   v.literal("examDate"),
   v.literal("course"),
   v.literal("campaign"),
-  v.literal("settings")
+  v.literal("settings"),
+  v.literal("order")
 )
 
 /** One language edition of a book. */

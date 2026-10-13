@@ -644,3 +644,23 @@ export const seedPeople = internalMutation({
     return results
   },
 })
+
+/**
+ * Make one sample set buyable, so checkout and payment can be walked through
+ * locally (sample sets are refused at checkout on purpose). Development only;
+ * `sample: true` again puts it back.
+ */
+export const setSampleSellable = internalMutation({
+  args: { slug: v.string(), sellable: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+    const bundle = await ctx.db
+      .query("bundles")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first()
+    if (!bundle) throw new Error(`No set with slug ${args.slug}`)
+    await ctx.db.patch(bundle._id, { sample: !args.sellable })
+    return null
+  },
+})

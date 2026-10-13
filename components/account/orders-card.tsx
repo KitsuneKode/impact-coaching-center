@@ -1,8 +1,11 @@
 "use client"
 
+import { IconReceipt } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
+import Link from "next/link"
 
 import { OrderStatusBadge } from "@/components/admin/order-status"
+import { PayOrder } from "@/components/commerce/pay-order"
 import { ButtonLink } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
@@ -80,6 +83,23 @@ export function OrdersCard() {
               {" · "}
               <span className="tnum">{formatPaise(order.totalPaise)}</span>
             </p>
+            {order.status === "awaiting_payment" ? (
+              <div className="pbs-1">
+                <PayOrder
+                  reference={order.reference}
+                  amountPaise={order.totalPaise}
+                  size="md"
+                />
+              </div>
+            ) : order.receiptNumber ? (
+              <Link
+                href={`/account/receipt/${order.reference}`}
+                className="inline-flex min-h-11 items-center gap-2 self-start text-sm font-semibold underline decoration-foreground/30 underline-offset-4"
+              >
+                <IconReceipt aria-hidden size={16} stroke={1.75} />
+                Receipt <span className="tnum">{order.receiptNumber}</span>
+              </Link>
+            ) : null}
             {order.courier ? (
               <p className="text-sm">
                 Sent via {order.courier.name}

@@ -29,6 +29,7 @@ import type * as images from "../images.js";
 import type * as leads from "../leads.js";
 import type * as orders from "../orders.js";
 import type * as otp from "../otp.js";
+import type * as payments from "../payments.js";
 import type * as people from "../people.js";
 import type * as persons from "../persons.js";
 import type * as profile from "../profile.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   leads: typeof leads;
   orders: typeof orders;
   otp: typeof otp;
+  payments: typeof payments;
   people: typeof people;
   persons: typeof persons;
   profile: typeof profile;

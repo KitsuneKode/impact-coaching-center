@@ -25,17 +25,20 @@ import "./lib/env.server"
  *               *.convex.site auth/enquiry endpoints; ws: only in dev for
  *               the dev server's HMR socket.
  *   frame-src   youtube-nocookie embeds, Google Maps, Turnstile challenges.
+ *   *.razorpay.com in script, frame, connect and img: Checkout.js loads from
+ *               checkout.razorpay.com and pays in an api.razorpay.com frame;
+ *               Razorpay's own guidance is to allow its domain.
  */
 function contentSecurityPolicy(): string {
   const dev = process.env.NODE_ENV === "development"
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://*.razorpay.com${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud",
+    "img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud https://*.razorpay.com",
     "font-src 'self'",
-    `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site${dev ? " ws://localhost:* http://localhost:*" : ""}`,
-    "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com",
+    `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.razorpay.com${dev ? " ws://localhost:* http://localhost:*" : ""}`,
+    "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com https://*.razorpay.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

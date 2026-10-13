@@ -23,6 +23,7 @@ import {
 } from "./_generated/server"
 import { ADDRESS, ORDER_LINE, ORDER_STATUS } from "./schema"
 import { newOrderReference } from "../lib/order-reference"
+import { readSettings } from "./settings"
 
 /** Who carries the parcel. Shared by schema, args and projections. */
 const COURIER = v.object({
@@ -364,6 +365,8 @@ const MY_ORDER = v.object({
   totalPaise: v.number(),
   placedAt: v.number(),
   courier: v.optional(COURIER),
+  receiptNumber: v.optional(v.string()),
+  paidAt: v.optional(v.number()),
 })
 
 export const myOrders = query({
@@ -389,7 +392,71 @@ export const myOrders = query({
       totalPaise: order.totalPaise,
       placedAt: order.placedAt,
       courier: order.courier,
+      receiptNumber: order.receiptNumber,
+      paidAt: order.payment?.paidAt,
     }))
+  },
+})
+
+/**
+ * One paid order as a receipt: what was bought, for how much, when and how,
+ * and who sold it (legal name and GSTIN from the shop settings). Only the
+ * buyer, or staff who can see orders, may read it.
+ */
+export const myReceipt = query({
+  args: { reference: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      reference: v.string(),
+      receiptNumber: v.string(),
+      paidAt: v.number(),
+      method: v.optional(v.string()),
+      paymentId: v.optional(v.string()),
+      buyer: v.object({ name: v.string(), phone: v.string() }),
+      fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+      address: v.optional(ADDRESS),
+      lines: v.array(ORDER_LINE),
+      itemsPaise: v.number(),
+      deliveryPaise: v.number(),
+      totalPaise: v.number(),
+      seller: v.object({
+        legalName: v.string(),
+        gstin: v.optional(v.string()),
+        address: v.string(),
+      }),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const viewer = await viewerPerson(ctx)
+    if (!viewer.ok) return null
+    const order = await ctx.db
+      .query("orders")
+      .withIndex("by_reference", (q) => q.eq("reference", args.reference))
+      .first()
+    if (!order?.receiptNumber || !order.payment?.paidAt) return null
+    const staff = viewer.value.role === "owner" || viewer.value.role === "staff"
+    if (order.personId !== viewer.value.id && !staff) return null
+    const settings = await readSettings(ctx)
+    return {
+      reference: order.reference,
+      receiptNumber: order.receiptNumber,
+      paidAt: order.payment.paidAt,
+      method: order.payment.method,
+      paymentId: order.payment.razorpayPaymentId,
+      buyer: order.contact,
+      fulfilment: order.fulfilment,
+      address: order.address,
+      lines: order.lines,
+      itemsPaise: order.itemsPaise,
+      deliveryPaise: order.deliveryPaise,
+      totalPaise: order.totalPaise,
+      seller: {
+        legalName: settings.legalName,
+        gstin: settings.gstin,
+        address: settings.pickupAddress,
+      },
+    }
   },
 })
 

@@ -15,6 +15,8 @@ export type AnalyticsEvent =
   | { name: "add_to_cart"; slug: string }
   | { name: "checkout_started"; lines: number }
   | { name: "order_placed"; fulfilment: "delivery" | "collection" }
+  | { name: "payment_started"; reference: string }
+  | { name: "order_paid"; reference: string }
   | { name: "resource_opened"; slug: string }
 
 export function track(event: AnalyticsEvent): void {

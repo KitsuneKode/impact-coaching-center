@@ -1797,3 +1797,32 @@
     }
   }
 }
+
+/* A receipt prints as the document alone: no header, footer, promotions or
+   buttons, black on white. */
+@media print {
+  body:has([data-receipt-page]) {
+    background: white;
+  }
+  body:has([data-receipt-page])
+    :is(
+      [data-site-header],
+      [data-promo-strip],
+      footer,
+      [data-no-print],
+      aside,
+      [data-promo-backdrop],
+      [data-promo-popup]
+    ) {
+    display: none !important;
+  }
+  [data-receipt-page] {
+    padding: 0;
+  }
+  [data-receipt] {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    color: black;
+  }
+}
