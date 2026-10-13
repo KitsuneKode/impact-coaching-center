@@ -1927,3 +1927,173 @@
     }
   }
 }
+
+/*
+ * The course finder (components/marketing/course-finder.tsx): one white
+ * card, lettered answer rows that turn ICT blue when chosen, a progress ring,
+ * and a body that glides to each question's height.
+ */
+@layer components {
+  [data-finder-card] {
+    border-radius: 28px;
+    padding: clamp(1.25rem, 0.9rem + 1.6vw, 2rem);
+    background-color: var(--card);
+    box-shadow: var(--shadow-lift);
+  }
+  [data-finder-badge] {
+    background-color: color-mix(in oklch, var(--primary) 12%, transparent);
+    color: var(--primary);
+  }
+  [data-finder-ring] circle:first-child {
+    stroke: var(--secondary);
+  }
+  [data-finder-ring] circle:last-child {
+    stroke: var(--primary);
+  }
+
+  [data-finder-option] {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-block-size: 3.5rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 18px;
+    background-color: var(--secondary);
+    box-shadow: inset 0 0 0 1.5px transparent;
+    cursor: pointer;
+    text-wrap: pretty;
+  }
+  [data-finder-option]:has(:checked) {
+    background-color: var(--card);
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  [data-finder-option]:has(:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-finder-option]:active {
+    scale: 0.985;
+  }
+  [data-finder-key] {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    border-radius: 9px;
+    background-color: var(--card);
+    box-shadow: 0 0 0 1px var(--border);
+    color: var(--muted-foreground);
+    font: 600 0.75rem/1 var(--font-sans);
+  }
+  [data-finder-option]:has(:checked) [data-finder-key] {
+    background-color: var(--primary);
+    box-shadow: none;
+    color: var(--primary-foreground);
+  }
+
+  [data-finder-chip] {
+    min-block-size: 2rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  [data-finder-chip][aria-current] {
+    background-color: color-mix(in oklch, var(--primary) 14%, transparent);
+    color: var(--primary);
+  }
+  [data-finder-chip]:focus-visible,
+  [data-finder-next]:focus-visible,
+  [data-finder-ghost]:focus-visible,
+  [data-finder-alt]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  [data-finder-next],
+  [data-finder-ghost] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-block-size: 3rem;
+    padding-inline: 1.25rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  /* Clipped while it glides, with room for the ticket's tilt and shadow. */
+  [data-finder-body] {
+    overflow: clip;
+    overflow-clip-margin: 2rem;
+  }
+  [data-finder-next] {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+  [data-finder-next]:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  [data-finder-next] kbd {
+    display: grid;
+    place-items: center;
+    min-inline-size: 1.375rem;
+    block-size: 1.375rem;
+    border-radius: 6px;
+    background-color: color-mix(in oklch, white 22%, transparent);
+    font: 600 0.75rem/1 var(--font-sans);
+  }
+  @media (pointer: coarse) {
+    [data-finder-next] kbd {
+      display: none;
+    }
+  }
+  [data-finder-ghost] {
+    background-color: var(--secondary);
+    color: var(--foreground);
+  }
+
+  [data-finder-alt] {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    border-radius: 18px;
+    background-color: var(--secondary);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    [data-finder-body] {
+      transition: height 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    [data-finder-ring] circle:last-child {
+      transition: stroke-dashoffset 0.32s var(--ease-out-strong);
+    }
+    [data-finder-option],
+    [data-finder-key],
+    [data-finder-chip],
+    [data-finder-alt] {
+      transition:
+        background-color 0.15s ease-out,
+        box-shadow 0.15s ease-out,
+        color 0.15s ease-out,
+        scale 0.15s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-finder-option]:not(:has(:checked)):hover,
+    [data-finder-ghost]:hover,
+    [data-finder-alt]:hover,
+    [data-finder-chip]:hover {
+      background-color: color-mix(
+        in oklch,
+        var(--secondary),
+        var(--foreground) 5%
+      );
+    }
+    [data-finder-next]:not(:disabled):hover {
+      background-color: color-mix(in oklch, var(--primary), black 8%);
+    }
+  }
+}

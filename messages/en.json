@@ -658,5 +658,71 @@
     "notNow": "Not now",
     "close": "Close",
     "label": "Offer"
+  },
+  "Finder": {
+    "kicker": "Not sure which course?",
+    "title": "Four questions, then the course that fits.",
+    "label": "Course finder",
+    "progress": "{n} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Show my course",
+    "again": "Start again",
+    "change": "Change: {answer}",
+    "q": {
+      "exam": {
+        "title": "Which exam are you preparing for?",
+        "note": "Pick the one you will sit first."
+      },
+      "stage": {
+        "title": "Where are you with it?",
+        "note": "Be honest; it changes what fits."
+      },
+      "time": {
+        "title": "When can you study?",
+        "note": "Classes run at the centre and live on the ICT app."
+      },
+      "mode": {
+        "title": "How would you like to attend?",
+        "note": "Either way, the recordings stay on the app."
+      }
+    },
+    "a": {
+      "exam": {
+        "apsc": "APSC, Assam Civil Services",
+        "adre": "ADRE and Assam Police",
+        "banking": "Bank, SSC, Railway",
+        "unsure": "Not sure yet"
+      },
+      "stage": {
+        "starting": "Just starting",
+        "some": "I have studied some already",
+        "tests": "I want practice tests"
+      },
+      "time": {
+        "morning": "Mornings",
+        "day": "Afternoons",
+        "evening": "Evenings, after work or college",
+        "any": "Any time"
+      },
+      "mode": {
+        "centre": "At the centre in North Lakhimpur",
+        "app": "On the ICT app, from home"
+      }
+    },
+    "best": "Your best fit",
+    "also": "Also worth a look",
+    "why": {
+      "exam": "For {exam}",
+      "free": "Free to try first",
+      "tests": "Mock tests to practise",
+      "time": "Classes in your time",
+      "working": "Built for working people",
+      "newest": "The newest batch"
+    },
+    "see": "See the course",
+    "ask": "Ask about it on WhatsApp",
+    "appNote": "Every course is also live and recorded on the ICT app.",
+    "none": "We could not match a course this time. Ask ICT on WhatsApp and they will suggest one."
   }
 }

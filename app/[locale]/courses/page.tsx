@@ -4,6 +4,7 @@ import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Ask } from "@/components/home/ask"
+import { CourseFinder } from "@/components/marketing/course-finder"
 import { Reveal } from "@/components/motion/reveal"
 import { JumpChips } from "@/components/site/jump-chips"
 import { PageHead } from "@/components/site/page-head"
@@ -11,7 +12,7 @@ import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { facultyBySlug, schedules, tracks } from "@/lib/brand"
 import { inr, lineup } from "@/lib/courses"
-import { liveCourses } from "@/lib/courses-server"
+import { liveCourses, todayInIndia } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 
 export async function generateMetadata({
@@ -62,6 +63,21 @@ export default async function CoursesPage({
           }))}
         />
       </PageHead>
+
+      <CourseFinder
+        courses={courses.map((course) => ({
+          ...course,
+          subtitle: course.subtitle ? content.phrase(course.subtitle) : "",
+          timing: course.timing ?? schedules[course.id]?.when,
+        }))}
+        exams={Object.fromEntries(
+          tracks.map((track) => [
+            track.slug,
+            { exam: track.exam, label: content.track(track.slug).exam },
+          ])
+        )}
+        today={await todayInIndia()}
+      />
 
       {groups.map(({ track, items }) => {
         const names = content.track(track.slug)

@@ -14,6 +14,8 @@ export type EnquiryIntent =
       timing: string
       phone: string
     }
+  /** After the course finder: the answers and the course it suggested. */
+  | { kind: "finder"; answers: string[]; courseName?: string }
   /** Asking to hear when the next ASSIST scholarship test is announced. */
   | { kind: "assist" }
   /** Asking to hear when new exam dates are notified. */
@@ -30,6 +32,8 @@ function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
       return `Hello ICT, I would like to try the free ${intent.exam} workshop on the app.`
     case "course":
       return `Hello ICT, I want to enrol in ${intent.courseName}. Please share the next steps.`
+    case "finder":
+      return `Hello ICT, I used the course finder on your website (${intent.answers.join(", ")}).${intent.courseName ? ` It suggested ${intent.courseName}.` : ""} Could you tell me more?`
     case "assist":
       return "Hello ICT, please tell me when the next ASSIST scholarship test is announced."
     case "dates":
