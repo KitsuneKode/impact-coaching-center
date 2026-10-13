@@ -8,6 +8,7 @@ import {
   viewerPerson,
   type Viewer,
 } from "./authz"
+import { r2 } from "./files"
 import type { Doc, Id } from "./_generated/dataModel"
 import {
   mutation,
@@ -173,6 +174,8 @@ export const openResource = mutation({
     title: v.string(),
     pages: v.array(PICTURE),
     pageCount: v.number(),
+    /** A short-lived signed link to the PDF in R2, when it has one. */
+    pdfUrl: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
@@ -196,6 +199,15 @@ export async function openResourceAs(
 
   await recordFirstOpen(ctx, viewer.id, resource)
 
+  // The PDF wins when there is one; the link lasts long enough to read, not to share.
+  if (resource.pdf)
+    return {
+      ok: true as const,
+      title: resource.title,
+      pages: [],
+      pageCount: resource.pdf.pages,
+      pdfUrl: await r2.getUrl(resource.pdf.key, { expiresIn: 60 * 60 }),
+    }
   const pages = await picturesOf(ctx, resource.pageImages)
   return {
     ok: true as const,

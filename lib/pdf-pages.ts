@@ -45,3 +45,18 @@ export async function renderPdfPages(
     await loadingTask.destroy()
   }
 }
+
+/** How many pages a PDF has, read in the browser before it is uploaded. */
+export async function pdfPageCount(file: File): Promise<number> {
+  const pdfjs = await import("pdfjs-dist")
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString()
+  const loadingTask = pdfjs.getDocument({ data: await file.arrayBuffer() })
+  try {
+    return (await loadingTask.promise).numPages
+  } finally {
+    await loadingTask.destroy()
+  }
+}

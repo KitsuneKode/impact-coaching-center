@@ -24,6 +24,7 @@ import type * as checkout from "../checkout.js";
 import type * as courses from "../courses.js";
 import type * as crons from "../crons.js";
 import type * as devSeed from "../devSeed.js";
+import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as images from "../images.js";
 import type * as leads from "../leads.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   courses: typeof courses;
   crons: typeof crons;
   devSeed: typeof devSeed;
+  files: typeof files;
   http: typeof http;
   images: typeof images;
   leads: typeof leads;
@@ -98,4 +100,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
 };

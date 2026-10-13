@@ -4,11 +4,14 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconFileImport,
+  IconFileTypePdf,
   IconPhoto,
   IconPhotoPlus,
   IconTrash,
+  IconUpload,
 } from "@tabler/icons-react"
-import { useMutation } from "convex/react"
+import { useUploadFile } from "@convex-dev/r2/react"
+import { useMutation, useQuery } from "convex/react"
 import Image from "next/image"
 import { useId, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -481,3 +484,162 @@ export function PublishState({
     </span>
   )
 }
+
+/** A PDF in R2, as the editors hold it. */
+export type StoredPdf = {
+  key: string
+  pages: number
+  bytes: number
+  name: string
+}
+
+const megabytes = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
+/**
+ * The document itself, kept whole in R2 and read in the page-curl reader a
+ * few pages at a time. Shown only when R2 is configured; otherwise the page
+ * images field below does the job by rasterising the PDF in the browser.
+ */
+export function PdfField({
+  value,
+  onChange,
+  onBusyChange,
+}: {
+  value: StoredPdf | null
+  onChange: (next: StoredPdf | null) => void
+  onBusyChange: (busy: boolean) => void
+}) {
+  const ready = useQuery(api.files.r2Ready)
+  const upload = useUploadFile(api.files)
+  const input = useRef<HTMLInputElement>(null)
+  const [progress, setProgress] = useState<number | null>(null)
+  const id = useId()
+
+  if (ready === false)
+    return (
+      <p className="rounded-control bg-secondary px-4 py-3 text-sm text-muted-foreground">
+        Document storage (R2) is not set up here, so PDFs are turned into page
+        images below instead.
+      </p>
+    )
+
+  async function pick(file: File | undefined) {
+    if (!file) return
+    if (file.type !== "application/pdf") {
+      toast.error(`${file.name} is not a PDF.`)
+      return
+    }
+    if (file.size > PDF_UPLOAD_MAX_BYTES) {
+      toast.error(`${file.name} is over 60 MB. Compress it and try again.`)
+      return
+    }
+    onBusyChange(true)
+    setProgress(0)
+    try {
+      const { pdfPageCount } = await import("@/lib/pdf-pages")
+      const pages = await pdfPageCount(file)
+      const key = await upload(file, {
+        onProgress: ({ loaded, total }) =>
+          setProgress(total ? Math.round((loaded / total) * 100) : null),
+      })
+      onChange({ key, pages, bytes: file.size, name: file.name })
+      toast.success(`${file.name} uploaded`)
+    } catch {
+      toast.error(
+        `${file.name} did not upload. Check the connection and retry.`
+      )
+    } finally {
+      setProgress(null)
+      onBusyChange(false)
+    }
+  }
+
+  return (
+    <div className="grid gap-2">
+      <span id={id} className="text-sm font-medium">
+        PDF
+      </span>
+      {value ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-card p-3">
+          <IconFileTypePdf
+            stroke={1.5}
+            className="size-8 text-destructive"
+            aria-hidden
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{value.name}</p>
+            <p className="tnum text-xs text-muted-foreground">
+              {value.pages} pages · {megabytes(value.bytes)}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={progress !== null}
+            aria-describedby={id}
+            onClick={() => input.current?.click()}
+          >
+            Replace
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={progress !== null}
+            onClick={() => onChange(null)}
+          >
+            Remove
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          className="justify-self-start"
+          disabled={progress !== null || ready === undefined}
+          aria-describedby={id}
+          onClick={() => input.current?.click()}
+        >
+          <IconUpload stroke={1.75} aria-hidden />
+          Upload PDF
+        </Button>
+      )}
+      {progress !== null ? (
+        <div className="grid gap-1" aria-live="polite">
+          <div className="h-1.5 overflow-clip rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="tnum text-xs text-muted-foreground">
+            Uploading… {progress}%
+          </span>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Up to 60 MB. Students read it in the page-turning reader, a few pages
+          at a time, so long books open fast.
+        </p>
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept="application/pdf"
+        hidden
+        onChange={(event) => {
+          void pick(event.target.files?.[0])
+          event.target.value = ""
+        }}
+      />
+    </div>
+  )
+}
+
+/** The same cap the server checks (convex/files.ts). */
+const PDF_UPLOAD_MAX_BYTES = 60 * 1024 * 1024

@@ -38,6 +38,14 @@ export const LEAD_STATUS = v.union(
   v.literal("lost")
 )
 
+/** A PDF in R2: its object key, page count, size and the name it was uploaded as. */
+export const PDF_DOCUMENT = v.object({
+  key: v.string(),
+  pages: v.number(),
+  bytes: v.number(),
+  name: v.string(),
+})
+
 export const ORDER_STATUS = v.union(
   v.literal("awaiting_payment"),
   v.literal("paid"),
@@ -336,6 +344,8 @@ export default defineSchema({
     language: v.optional(LOCALE),
     description: v.string(),
     pageImages: v.array(v.id("_storage")),
+    /** The original PDF in R2 (convex/files.ts), read page by page in the browser. */
+    pdf: v.optional(PDF_DOCUMENT),
     published: v.boolean(),
     sample: v.optional(v.boolean()),
     revision: v.number(),

@@ -15,6 +15,9 @@ const noop = () => () => {}
 export type OpenedResource = {
   title: string
   pages: ViewerPage[]
+  /** A signed link to the whole PDF, read page by page in the reader. */
+  pdfUrl?: string
+  pageCount: number
   placeholder: boolean
 }
 
@@ -53,9 +56,11 @@ export function useOpenResource() {
       const result = await openResource({ slug })
       if (result.ok) {
         track({ name: "resource_opened", slug })
-        const placeholder = result.pages.length === 0
+        const placeholder = result.pages.length === 0 && !result.pdfUrl
         setOpened({
           title: result.title,
+          pdfUrl: result.pdfUrl,
+          pageCount: result.pageCount,
           placeholder,
           pages: placeholder
             ? Array.from({ length: result.pageCount }, (_, i) => ({

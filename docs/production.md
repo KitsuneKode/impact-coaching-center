@@ -56,6 +56,46 @@ domain under the account's website details. Test mode first: card
 `success@razorpay`. Receipts number per financial year from the prefix in
 Settings, e.g. ICT/26-27/0001.
 
+## Documents in R2 (Convex deployment settings)
+
+Free notes are stored as whole PDFs in a Cloudflare R2 bucket through
+Convex's R2 component (`convex/files.ts`), and read in the page-curl reader a
+few pages at a time on a one-hour signed link. Images (covers, sample pages)
+stay in Convex storage.
+
+| Variable               | Purpose                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| `R2_ENDPOINT`          | `https://<account-id>.r2.cloudflarestorage.com`                   |
+| `R2_BUCKET`            | The bucket name, e.g. `ict-documents`                             |
+| `R2_ACCESS_KEY_ID`     | From an R2 API token with Object Read & Write on that bucket only |
+| `R2_SECRET_ACCESS_KEY` | Same token                                                        |
+| `R2_TOKEN`             | Same token's value                                                |
+
+Bucket CORS (R2 dashboard → bucket → Settings → CORS), so the browser can
+upload and the reader can fetch:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://<site domain>"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": [
+      "ETag",
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Without these variables the admin hides the PDF upload and turns PDFs into
+page images instead, so nothing breaks. Locally any S3-compatible server
+works; a SeaweedFS container on `http://localhost:8333` with
+`-s3.domainName=localhost` was used in development.
+
 Convex sets `CONVEX_URL`, `CONVEX_SITE_URL` itself — do not set them.
 
 ## Regions

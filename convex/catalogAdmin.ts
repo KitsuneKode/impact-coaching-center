@@ -27,7 +27,14 @@ import {
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
 import { PICTURE, pictureOf, picturesOf } from "./images"
-import { LOCALE, LOCALISED, RESOURCE_KIND, VARIANT } from "./schema"
+import { PDF_MAX_BYTES, r2 } from "./files"
+import {
+  LOCALE,
+  LOCALISED,
+  PDF_DOCUMENT,
+  RESOURCE_KIND,
+  VARIANT,
+} from "./schema"
 
 /**
  * Catalogue editing for the owner and staff with the catalogue grant. Every
@@ -83,6 +90,18 @@ const RESOURCE_FIELDS = v.object({
   language: v.optional(LOCALE),
   description: v.string(),
 })
+
+/**
+ * A PDF the uploader says is in R2: the component's synced metadata must
+ * agree it exists, is a PDF and is within the cap.
+ */
+async function pdfUploaded(ctx: MutationCtx, pdf: Infer<typeof PDF_DOCUMENT>) {
+  if (pdf.pages < 1 || pdf.pages > 2000 || !pdf.name.trim()) return false
+  const meta = await r2.getMetadata(ctx, pdf.key)
+  if (!meta) return false
+  if (meta.contentType && meta.contentType !== "application/pdf") return false
+  return (meta.size ?? 0) > 0 && (meta.size ?? 0) <= PDF_MAX_BYTES
+}
 
 /** Every id is an uploaded image of a sensible size, and none repeats. */
 async function allImages(ctx: MutationCtx, ids: readonly StorageId[]) {
@@ -724,6 +743,7 @@ export const adminResource = query({
       published: v.boolean(),
       revision: v.number(),
       pageImages: v.array(v.object({ id: v.id("_storage"), picture: PICTURE })),
+      pdf: v.optional(PDF_DOCUMENT),
     }),
     v.null()
   ),
@@ -748,6 +768,7 @@ export const adminResource = query({
         pictures.length === r.pageImages.length
           ? r.pageImages.map((id, i) => ({ id, picture: pictures[i]! }))
           : [],
+      pdf: r.pdf,
     }
   },
 })
@@ -758,6 +779,8 @@ export const saveResource = mutation({
     expectedRevision: v.optional(v.number()),
     fields: RESOURCE_FIELDS,
     pageImages: v.optional(v.array(v.id("_storage"))),
+    /** A PDF uploaded to R2, or null to remove the current one. */
+    pdf: v.optional(v.union(PDF_DOCUMENT, v.null())),
   },
   returns: mutationResult({ id: v.id("resources"), revision: v.number() }),
   handler: async (ctx, args) => {
@@ -775,6 +798,7 @@ export async function applySaveResource(
     expectedRevision?: number
     fields: ResourceInput
     pageImages?: StorageId[]
+    pdf?: Infer<typeof PDF_DOCUMENT> | null
   }
 ) {
   if (!canEdit(viewer)) return forbidden
@@ -786,6 +810,8 @@ export async function applySaveResource(
       !(await allImages(ctx, args.pageImages)))
   )
     return invalidInput("pages")
+  if (args.pdf && !(await pdfUploaded(ctx, args.pdf)))
+    return invalidInput("pdf")
   if (await slugTaken(ctx, "resources", checked.value.slug, args.id))
     return invalidInput("slug-taken")
 
@@ -794,6 +820,7 @@ export async function applySaveResource(
     const id = await ctx.db.insert("resources", {
       ...checked.value,
       pageImages: args.pageImages ?? [],
+      ...(args.pdf ? { pdf: args.pdf } : {}),
       published: false,
       revision: 0,
       updatedAt: now,
@@ -813,7 +840,16 @@ export async function applySaveResource(
   if (conflict) return conflict
   // Refused before old pages are dropped, so the live copy stays intact.
   const nextPages = args.pageImages ?? current.pageImages
-  if (current.published && nextPages.length === 0) return invalidInput("pages")
+  const nextPdf = args.pdf === undefined ? current.pdf : args.pdf
+  if (current.published && nextPages.length === 0 && !nextPdf)
+    return invalidInput("pages")
+  // A replaced or removed PDF is deleted from R2 once nothing points at it.
+  if (
+    args.pdf !== undefined &&
+    current.pdf &&
+    current.pdf.key !== args.pdf?.key
+  )
+    await r2.deleteObject(ctx, current.pdf.key)
   if (args.pageImages)
     await dropReplaced(ctx, current.pageImages, args.pageImages, {
       table: "resources",
@@ -824,6 +860,7 @@ export async function applySaveResource(
   await ctx.db.patch(args.id, {
     ...checked.value,
     ...(args.pageImages ? { pageImages: args.pageImages } : {}),
+    ...(args.pdf !== undefined ? { pdf: args.pdf ?? undefined } : {}),
     sample: false,
     revision,
     updatedAt: now,
@@ -863,7 +900,11 @@ export async function applyPublish(
   if (args.published) {
     if ("bookIds" in current && current.bookIds.length === 0)
       return invalidInput("books")
-    if ("pageImages" in current && current.pageImages.length === 0)
+    if (
+      "pageImages" in current &&
+      current.pageImages.length === 0 &&
+      !current.pdf
+    )
       return invalidInput("pages")
   }
 

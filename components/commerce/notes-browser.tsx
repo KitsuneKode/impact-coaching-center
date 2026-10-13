@@ -316,9 +316,10 @@ function Shelf({
           note={
             reader.opened.placeholder
               ? t("placeholderPages")
-              : t("pageCount", { count: reader.opened.pages.length })
+              : t("pageCount", { count: reader.opened.pageCount })
           }
           pages={reader.opened.pages}
+          pdfUrl={reader.opened.pdfUrl}
         />
       ) : null}
     </div>

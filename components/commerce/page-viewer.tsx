@@ -2,7 +2,7 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { IconX } from "@tabler/icons-react"
-import { useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 
 import {
   BookPreview,
@@ -44,6 +44,24 @@ export function PageViewer({
   startAt?: number
 }) {
   const popup = useRef<HTMLDivElement>(null)
+
+  // The PDF engine mounts a beat after the dialog, so the initial focus may
+  // find no book yet. Hand focus to it once it exists, unless the reader has
+  // already put focus somewhere else inside the dialog.
+  useEffect(() => {
+    if (!open) return
+    let tries = 0
+    const timer = window.setInterval(() => {
+      const book = popup.current?.querySelector<HTMLElement>(".book-preview")
+      const active = document.activeElement
+      const settled = book && (active === book || book.contains(active))
+      if (book && !settled && !popup.current?.querySelector("input:focus")) {
+        book.focus({ preventScroll: true })
+      }
+      if (settled || ++tries > 20) window.clearInterval(timer)
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [open, pdfUrl])
   const source = useMemo<BookPreviewSource>(() => {
     if (pdfUrl) return { title, pdfUrl, revision: pdfUrl }
     return {

@@ -14,7 +14,9 @@ import {
   PageImagesField,
   PublishState,
   toStored,
+  PdfField,
   type StoredImage,
+  type StoredPdf,
 } from "@/components/admin/catalog-fields"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
@@ -54,6 +56,7 @@ type Draft = {
   kind: ResourceKind
   description: string
   pageImages: StoredImage[]
+  pdf: StoredPdf | null
 }
 
 const EMPTY: Draft = {
@@ -63,6 +66,7 @@ const EMPTY: Draft = {
   kind: "Notes",
   description: "",
   pageImages: [],
+  pdf: null,
 }
 
 const snapshot = (draft: Draft) =>
@@ -113,6 +117,7 @@ export function ResourceEditor({ id }: { id?: string }) {
         kind: resource.kind,
         description: resource.description,
         pageImages: resource.pageImages.map(toStored),
+        pdf: resource.pdf ?? null,
       }}
     />
   )
@@ -174,6 +179,7 @@ function ResourceForm({
         ...(id ? { id, expectedRevision: revision } : {}),
         fields: checked.value,
         pageImages: draft.pageImages.map((p) => p.id),
+        pdf: draft.pdf,
       })
       if (!result.ok) {
         if (result.reason === "invalid-input" && result.field)
@@ -313,9 +319,19 @@ function ResourceForm({
               </FieldDescription>
             )}
           </Field>
+          <div data-invalid={invalid("pdf")} className="grid gap-2">
+            <PdfField
+              value={draft.pdf}
+              onChange={(next) => set("pdf", next)}
+              onBusyChange={(on) => setUploading((n) => n + (on ? 1 : -1))}
+            />
+            <FieldError>{errors.pdf}</FieldError>
+          </div>
           <div data-invalid={invalid("pages")} className="grid gap-2">
             <PageImagesField
-              label="Pages"
+              label={
+                draft.pdf ? "Page images (not needed with a PDF)" : "Pages"
+              }
               hint="Every page as an image, in reading order. Export the PDF as images (one per page) and add them all at once; they are sorted by file name."
               max={RESOURCE_PAGES_MAX}
               value={draft.pageImages}
@@ -384,7 +400,9 @@ function messageFor(field: string) {
     case "exam":
       return "Name the exam it is for."
     case "pages":
-      return "Every page must be an image under 8 MB."
+      return "Add a PDF or the page images before publishing; images must be under 8 MB."
+    case "pdf":
+      return "That PDF did not finish uploading, or is not a PDF under 60 MB. Upload it again."
     default:
       return `Check the ${FIELD_LABELS[field] ?? field}.`
   }
