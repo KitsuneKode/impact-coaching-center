@@ -130,7 +130,9 @@ export function createPhoneAuthFlow(client: {
         const result = await client.send(phone)
         if (attempt !== generation) return
         if (result.error) {
-          update({ pending: null, error: errorMessage(result.error) })
+          // Cleared, so the next six digits are typed fresh rather than
+          // appended to (or deleted from) the code that was refused.
+          update({ pending: null, code: "", error: errorMessage(result.error) })
           return
         }
         update({
@@ -158,7 +160,9 @@ export function createPhoneAuthFlow(client: {
         const result = await client.verify(input)
         if (attempt !== generation) return
         if (result.error) {
-          update({ pending: null, error: errorMessage(result.error) })
+          // Cleared, so the next six digits are typed fresh rather than
+          // appended to (or deleted from) the code that was refused.
+          update({ pending: null, code: "", error: errorMessage(result.error) })
           return
         }
       } catch {

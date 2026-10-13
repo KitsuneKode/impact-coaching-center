@@ -66,6 +66,12 @@ export function SignInForm({ next }: { next: string }) {
     if (step === "code") codeRef.current?.focus()
   }, [step])
 
+  // A refused code clears itself (see the flow); put the cursor back in the
+  // first box so the right one can simply be typed.
+  useEffect(() => {
+    if (step === "code" && error && code === "") codeRef.current?.focus()
+  }, [step, error, code])
+
   /**
    * Validated on blur, never on keystroke: a ten-digit number is wrong for nine
    * of the ten characters it takes to type it, and saying so each time is

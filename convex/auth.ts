@@ -100,13 +100,16 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     },
     // Memory storage resets on every function call here; the component has a
     // rateLimit table, so counts persist. The per-phone lease in otp.ts stays
-    // the main guard; this caps a single client hammering the endpoints.
+    // the main guard; this caps a single address hammering the endpoints.
+    // Per address, and Indian mobile carriers put many people behind one
+    // (carrier-grade NAT), so the ceiling is loose enough for a crowded
+    // classroom on the same network signing in at once.
     rateLimit: {
       enabled: true,
       storage: "database",
       customRules: {
-        "/phone-number/send-otp": { window: 60, max: 5 },
-        "/phone-number/verify": { window: 60, max: 10 },
+        "/phone-number/send-otp": { window: 60, max: 10 },
+        "/phone-number/verify": { window: 60, max: 20 },
       },
     },
     ...phone,
