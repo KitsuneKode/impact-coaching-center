@@ -2229,3 +2229,19 @@
   :is(.iso-fill, .iso-shade, .iso-top) {
   fill: color-mix(in oklch, var(--highlight) 45%, white);
 }
+
+/* The batches under a chosen part of the day fade up when the part changes
+   (components/marketing/batch-day.tsx). */
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-batch-swap] > li {
+      transition:
+        opacity 0.24s var(--ease-out-strong),
+        translate 0.24s var(--ease-out-strong);
+      @starting-style {
+        opacity: 0;
+        translate: 0 6px;
+      }
+    }
+  }
+}

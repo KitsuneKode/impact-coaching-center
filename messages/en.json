@@ -785,5 +785,16 @@
       "tulika": "ADRE and Assam Police English.",
       "rituraj": "B.Tech, former Bank PO."
     }
+  },
+  "Timings": {
+    "heading": "Which hour can you keep?",
+    "lede": "Every batch, by the time it runs. Pick a part of the day.",
+    "see": "See the batch",
+    "parts": {
+      "morning": "Morning",
+      "noon": "Noon",
+      "afternoon": "Afternoon",
+      "evening": "Evening"
+    }
   }
 }

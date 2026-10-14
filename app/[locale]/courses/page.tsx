@@ -4,6 +4,7 @@ import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Ask } from "@/components/home/ask"
+import { BatchDay, type DayBatch } from "@/components/marketing/batch-day"
 import { CourseFinder } from "@/components/marketing/course-finder"
 import { Reveal } from "@/components/motion/reveal"
 import { JumpChips } from "@/components/site/jump-chips"
@@ -11,6 +12,7 @@ import { PageHead } from "@/components/site/page-head"
 import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { facultyBySlug, schedules, tracks } from "@/lib/brand"
+import { parseTiming } from "@/lib/batch-time"
 import { inr, lineup } from "@/lib/courses"
 import { liveCourses, todayInIndia } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
@@ -48,6 +50,27 @@ export default async function CoursesPage({
     return items.length ? [{ track, items }] : []
   })
 
+  // Batches with a readable time, for the day timeline.
+  const day: DayBatch[] = courses.flatMap((course) => {
+    const poster = schedules[course.id]
+    const when = course.timing ?? poster?.when
+    const span = parseTiming(when)
+    const track = tracks.find((tr) => tr.exam === course.track)
+    if (!span || !when || !track) return []
+    return [
+      {
+        ...span,
+        slug: course.slug,
+        name: course.short,
+        exam: content.track(track.slug).exam,
+        when,
+        days: poster?.days ? content.phrase(poster.days) : undefined,
+        note: poster?.note ? content.phrase(poster.note) : undefined,
+        price: course.free ? t("free") : inr(course.price),
+      },
+    ]
+  })
+
   return (
     <main>
       <PageHead
@@ -63,6 +86,12 @@ export default async function CoursesPage({
           }))}
         />
       </PageHead>
+
+      {day.length > 1 ? (
+        <section id="timings" className="container-page scroll-mt-28 pbe-16">
+          <BatchDay batches={day} />
+        </section>
+      ) : null}
 
       <CourseFinder
         courses={courses.map((course) => ({
