@@ -178,6 +178,10 @@ export default defineSchema({
     grants: v.optional(v.array(GRANT)),
     locale: v.optional(LOCALE),
     verifiedAt: v.optional(v.number()),
+    /** When they ticked "I agree" to the Terms and Privacy Policy, and which
+        version (lib/terms.ts) they agreed to. */
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
     /** First way we heard of them, e.g. "website" or "staff_walk_in". */
     source: v.string(),
     /** Absent until they show intent: a reader is not a lead. */

@@ -44,6 +44,32 @@ export const setOwnName = mutation({
   },
 })
 
+/** Record that this Person agreed to the Terms and Privacy Policy. */
+export const acceptTerms = mutation({
+  args: { version: v.string() },
+  returns: mutationResult({ acceptedAt: v.number() }),
+  handler: async (ctx, args) => {
+    const viewer = await viewerPerson(ctx)
+    if (!viewer.ok) return viewer
+    const version = args.version.trim()
+    if (!version || version.length > 32) return invalidInput("version")
+
+    const person = await ctx.db.get(viewer.value.id)
+    if (!person) return invalidInput("person")
+    // The first acceptance of a version is the one that counts.
+    if (person.termsVersion === version && person.termsAcceptedAt)
+      return { ok: true as const, acceptedAt: person.termsAcceptedAt }
+
+    const acceptedAt = Date.now()
+    await ctx.db.patch(person._id, {
+      termsAcceptedAt: acceptedAt,
+      termsVersion: version,
+      updatedAt: acceptedAt,
+    })
+    return { ok: true as const, acceptedAt }
+  },
+})
+
 const QUESTIONNAIRE = v.object({
   targetExam: v.optional(v.string()),
   attempt: v.optional(v.union(v.literal("first"), v.literal("repeat"))),

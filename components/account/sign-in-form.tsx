@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 
 import { NameStep } from "@/components/account/name-step"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -24,6 +25,7 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp"
 import { authClient } from "@/lib/auth-client"
+import { TERMS_VERSION } from "@/lib/terms"
 import { nationalMobileDraft, toE164 } from "@/lib/leads"
 import {
   CODE_LENGTH,
@@ -54,6 +56,13 @@ export function SignInForm({ next }: { next: string }) {
   const [verified, setVerified] = useState(false)
   const [accepted, setAccepted] = useState(false)
   const [phoneError, setPhoneError] = useState<string | null>(null)
+  // Ticked already for someone who agreed to this version on this device,
+  // until they untick it.
+  const remembered = useSyncExternalStore(noSubscribe, agreedHere, () => false)
+  const [choice, setAgreed] = useState<boolean | null>(null)
+  const agreed = choice ?? remembered
+  const [termsError, setTermsError] = useState(false)
+  const termsId = useId()
   const cooldown = useSecondsUntil(resendAt)
   const codeRef = useRef<HTMLInputElement>(null)
 
@@ -91,6 +100,13 @@ export function SignInForm({ next }: { next: string }) {
     // cleared on failure: whatever went wrong, the visitor should not have to
     // type their number again to find out what.
     if (step === "phone" && !checkPhone(phone)) return
+    if (step === "phone" && !agreed) {
+      setTermsError(true)
+      return
+    }
+    try {
+      localStorage.setItem(TERMS_KEY, TERMS_VERSION)
+    } catch {}
     void flow.send()
   }
 
@@ -252,6 +268,54 @@ export function SignInForm({ next }: { next: string }) {
           )}
         </Field>
 
+        <Field
+          orientation="horizontal"
+          data-invalid={termsError || undefined}
+          className="items-start"
+        >
+          <Checkbox
+            id={termsId}
+            checked={agreed}
+            onCheckedChange={(checked) => {
+              setAgreed(checked)
+              if (checked) setTermsError(false)
+            }}
+            aria-invalid={termsError || undefined}
+            aria-describedby={termsError ? `${termsId}-error` : undefined}
+            className="mt-0.5"
+          />
+          <div className="grid gap-1">
+            <FieldLabel htmlFor={termsId} className="font-normal">
+              <span>
+                I agree to the{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Terms
+                </a>{" "}
+                and the{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </span>
+            </FieldLabel>
+            {termsError ? (
+              <FieldError id={`${termsId}-error`}>
+                Tick the box to continue.
+              </FieldError>
+            ) : null}
+          </div>
+        </Field>
+
         <Field>
           <Button type="submit" size="md" disabled={busy && !accepted}>
             {busy ? (
@@ -270,6 +334,17 @@ export function SignInForm({ next }: { next: string }) {
       </FieldGroup>
     </form>
   )
+}
+
+/** This device's record of the terms version its visitor agreed to. */
+const TERMS_KEY = "ict-terms"
+const noSubscribe = () => () => {}
+function agreedHere() {
+  try {
+    return localStorage.getItem(TERMS_KEY) === TERMS_VERSION
+  } catch {
+    return false
+  }
 }
 
 /** "+919876543210" as the visitor typed it: "+91 98765 43210". */

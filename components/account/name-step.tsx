@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
+import { TERMS_VERSION } from "@/lib/terms"
 
 /** What the form needs, which is less than the whole Person. */
 type Viewer = { name: string; revision: number; role?: string }
@@ -28,6 +29,18 @@ export function NameStep({ next }: { next: string }) {
   const viewer = useQuery(api.auth.getCurrentPerson)
   const questionnaire = useQuery(api.profile.ownQuestionnaire)
   const [done, setDone] = useState(false)
+  const acceptTerms = useMutation(api.profile.acceptTerms)
+  const recorded = useRef(false)
+
+  // They ticked "I agree" to get here; record it on the account once the
+  // session is live (a returning Person keeps the first acceptance).
+  useEffect(() => {
+    if (!viewer || recorded.current) return
+    recorded.current = true
+    void acceptTerms({ version: TERMS_VERSION }).catch((error) =>
+      console.error("[terms] not recorded", error)
+    )
+  }, [viewer, acceptTerms])
 
   /*
    * `null` here does NOT mean "signed out", and treating it as if it did was a
