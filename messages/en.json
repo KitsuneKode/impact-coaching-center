@@ -796,5 +796,14 @@
       "afternoon": "Afternoon",
       "evening": "Evening"
     }
+  },
+  "ErrorPage": {
+    "claim": "This page did not load.",
+    "rest": "Nothing you did caused it. Trying again usually works.",
+    "retry": "Try again",
+    "home": "Home",
+    "talk": "Talk to ICT",
+    "reference": "Reference {digest}",
+    "figHint": "Or go straight to a section"
   }
 }
