@@ -58,7 +58,7 @@ We may also disclose personal data where the law requires it, for example to a c
 
 When you sign in we set one cookie that keeps you signed in. It is needed for the account to work and is not used for tracking. When online ordering opens, your cart is kept in your browser until you sign in.
 
-This site does not currently run analytics or advertising scripts. If that changes, this section will say which, and what they record, before they run.
+{{proposed: We use PostHog, a product analytics service, to learn which pages and buttons help students find a course. It records the pages you visit, the buttons you press (such as "Enquire" or a search result), the kind of device and browser, and a random ID kept in your browser. It does not record your name, phone number, what you type into forms, or your screen. If you sign in, these events are linked to your account's internal ID, never your phone number. If your browser sends "Do Not Track", nothing is recorded. The site runs no advertising scripts.}}
 
 ## Your rights
 

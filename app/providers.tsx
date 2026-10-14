@@ -15,6 +15,7 @@ import { visitAttribution } from "@/lib/attribution"
 import { authClient } from "@/lib/auth-client"
 import { publicEnv } from "@/lib/public-env"
 import { defaultTheme, themes } from "@/lib/theme"
+import { track } from "@/lib/analytics"
 
 /**
  * Built once at module scope, not per render: a new ConvexReactClient means a
@@ -79,6 +80,7 @@ function VisitSource() {
       // Staff calling leads from the admin are not visitors reaching ICT.
       const page = window.location.pathname
       if (!kind || /^\/(admin|account|checkout)(\/|$)/.test(page)) return
+      track({ name: "contact_tapped", kind, page })
       void client
         .mutation(api.contactTaps.record, {
           kind,

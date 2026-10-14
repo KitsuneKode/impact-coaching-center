@@ -28,6 +28,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
+import { resetAnalytics } from "@/lib/analytics"
 import { initials } from "@/lib/person"
 
 /** Who you are, and the way out. */
@@ -119,6 +120,7 @@ function Menu({ className }: { className?: string }) {
             onClick={async () => {
               setLeaving(true)
               try {
+                resetAnalytics()
                 await authClient.signOut()
               } catch {
                 setLeaving(false)

@@ -24,6 +24,7 @@ import {
   recommend,
   type FinderAnswers,
 } from "@/lib/course-finder"
+import { track } from "@/lib/analytics"
 import { inr, type Course } from "@/lib/courses"
 
 const STEPS = [
@@ -126,6 +127,16 @@ export function CourseFinder({
   )
   const picks = done ? recommend(courses, answers, examOf) : []
   const [best, ...others] = picks
+  useEffect(() => {
+    if (done)
+      track({
+        name: "finder_completed",
+        exam: answers.exam ?? "unsure",
+        matched: Boolean(best),
+      })
+    // Once per finish, not on every answer change after it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done])
   const examLabel =
     answers.exam && answers.exam !== "unsure"
       ? exams[answers.exam]?.label

@@ -99,6 +99,25 @@ const nextConfig: NextConfig = {
    * /sign-in was live and may already be linked from somewhere we do not
    * control. Permanent, because this is the last time these move.
    */
+  // PostHog through our own domain (lib/analytics.ts). The path avoids the
+  // words blockers look for.
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    return [
+      {
+        source: "/relay-ph/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/relay-ph/array/:path*",
+        destination: "https://us-assets.i.posthog.com/array/:path*",
+      },
+      {
+        source: "/relay-ph/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+    ]
+  },
   async redirects() {
     return [
       { source: "/sign-in", destination: "/login", permanent: true },

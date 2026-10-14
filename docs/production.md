@@ -23,6 +23,7 @@ to WhatsApp, the shop and log-in are off).
 | `NEXT_PUBLIC_CONVEX_SITE_URL`    | Yes                     | The `*.convex.site` endpoints: Better Auth routes and `/enquiries` ingest.                                                                                           |
 | `LEAD_INGEST_SECRET`             | Yes                     | Bearer secret the enquiry sink sends to the Convex `/enquiries` route. `openssl rand -hex 32`; the same value is set on Convex below. Never `NEXT_PUBLIC_`-prefixed. |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes before launch       | Renders the Turnstile widget on the enquiry form.                                                                                                                    |
+| `NEXT_PUBLIC_POSTHOG_KEY`        | Optional                | PostHog project token (US cloud). Unset means no analytics. Approve the analytics paragraph in the privacy policy first.                                             |
 | `TURNSTILE_SECRET_KEY`           | Yes before launch       | Server-side siteverify in `app/actions/lead.ts`. Unset = check skipped (development only).                                                                           |
 | `CONVEX_DEPLOY_KEY`              | Yes                     | Production deploy key from the Convex dashboard. Lets the build run `npx convex deploy` so functions and site ship together. Production environment only.            |
 

@@ -21,12 +21,15 @@ export const clientEnv = createEnv({
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: launchBuild
       ? z.string().min(1)
       : z.string().min(1).optional(),
+    /* PostHog product analytics; off when unset (dev, previews). */
+    NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   },
   runtimeEnv: {
     NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
     NEXT_PUBLIC_CONVEX_SITE_URL: process.env.NEXT_PUBLIC_CONVEX_SITE_URL,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
   },
   skipValidation: skipEnvValidation,
   emptyStringAsUndefined: true,

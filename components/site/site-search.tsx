@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/command"
 import { useRouter } from "@/i18n/navigation"
 import type { SearchItem } from "@/lib/search-index"
+import { track } from "@/lib/analytics"
 import { searchScore } from "@/lib/search-match"
 
 const GROUPS: {
@@ -139,7 +140,8 @@ export function SiteSearch({
       .sort((a, b) => (browsing ? 0 : b.best - a.best))
   }, [items, browsing, query])
 
-  const go = (href: string) => {
+  const go = (href: string, kind: string) => {
+    track({ name: "search_result_opened", kind, query_length: query.length })
     setOpen(false)
     router.push(href)
   }
@@ -194,7 +196,7 @@ export function SiteSearch({
                       <CommandItem
                         key={`${kind}:${item.href}`}
                         value={`${kind}:${item.href}`}
-                        onSelect={() => go(item.href)}
+                        onSelect={() => go(item.href, kind)}
                         className="min-h-11 gap-3"
                       >
                         <Icon

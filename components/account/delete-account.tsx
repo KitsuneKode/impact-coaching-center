@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { api } from "@/convex/_generated/api"
+import { resetAnalytics } from "@/lib/analytics"
 import { authClient } from "@/lib/auth-client"
 
 const REFUSALS: Record<string, string> = {
@@ -70,6 +71,7 @@ export function DeleteAccount({ role }: { role: string }) {
       // The sessions are already gone server-side; this clears the cookie.
       // The confirmation lives on the signed-out account screen, because this
       // dialog unmounts the moment the Person query sees no session.
+      resetAnalytics()
       await authClient.signOut().catch(() => undefined)
       router.replace("/account?deleted=1")
     } catch {
