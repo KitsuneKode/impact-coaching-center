@@ -303,6 +303,7 @@ function Shelf({
       {reader?.opened ? (
         <PageViewer
           open
+          marks
           onOpenChange={(next) => {
             if (next) return
             reader.close()

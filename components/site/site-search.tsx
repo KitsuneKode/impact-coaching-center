@@ -182,7 +182,10 @@ export function SiteSearch({
             value={query}
             onValueChange={setQuery}
           />
-          <CommandList className="max-h-[min(28rem,calc(100dvh-clamp(1rem,12dvh,7rem)-7rem))]">
+          <CommandList
+            data-edge-fade
+            className="max-h-[min(28rem,calc(100dvh-clamp(1rem,12dvh,7rem)-7rem))]"
+          >
             {items === null ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                 {failed ? t("searchFailed") : t("searchLoading")}

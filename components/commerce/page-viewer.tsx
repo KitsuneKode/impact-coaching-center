@@ -2,14 +2,16 @@
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { IconX } from "@tabler/icons-react"
-import { useEffect, useMemo, useRef } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import {
   BookPreview,
   pageEngine,
+  type BookPreviewMode,
   type BookPreviewPage,
   type BookPreviewSource,
 } from "@/components/book-preview"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { curlEngine } from "@/components/book-preview/engines/curl-engine.meta"
 import { pdfEngine } from "@/components/book-preview/engines/pdf-engine.meta"
 import { PaperPage } from "@/components/commerce/paper-page"
@@ -34,6 +36,7 @@ export function PageViewer({
   pages,
   pdfUrl,
   startAt = 0,
+  marks = false,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -42,8 +45,24 @@ export function PageViewer({
   pages?: readonly ViewerPage[]
   pdfUrl?: string
   startAt?: number
+  /** Bookmarks and the pen: for notes a student keeps, not for a sample. */
+  marks?: boolean
 }) {
   const popup = useRef<HTMLDivElement>(null)
+  // Two ways to read, named for what they do: turn pages like a book, or
+  // flip flat pages (scroll, for a PDF).
+  const views = (
+    pdfUrl
+      ? [
+          ["curl", "Book"],
+          ["pdf", "Scroll"],
+        ]
+      : [
+          ["curl", "Book"],
+          ["page", "Pages"],
+        ]
+  ) as [BookPreviewMode, string][]
+  const [mode, setMode] = useState<BookPreviewMode>("curl")
 
   // The PDF engine mounts a beat after the dialog, so the initial focus may
   // find no book yet. Hand focus to it once it exists, unless the reader has
@@ -105,8 +124,8 @@ export function PageViewer({
             popup.current?.querySelector<HTMLElement>(".book-preview") ?? true
           }
         >
-          <header className="flex items-center justify-between gap-4 ps-4 pe-2 pbs-2 pbe-2 sm:ps-6">
-            <div className="min-w-0">
+          <header className="flex items-center gap-3 ps-4 pe-2 pbs-2 pbe-2 sm:gap-4 sm:ps-6">
+            <div className="min-w-0 flex-1">
               <DialogPrimitive.Title className="truncate font-display text-lg font-semibold">
                 {title}
               </DialogPrimitive.Title>
@@ -114,6 +133,26 @@ export function PageViewer({
                 {note}
               </DialogPrimitive.Description>
             </div>
+            <ToggleGroup
+              aria-label="How to read"
+              value={[mode]}
+              onValueChange={(value) => {
+                const next = value[0] as BookPreviewMode | undefined
+                if (next) setMode(next)
+              }}
+              spacing={1}
+              className="flex-none rounded-full bg-secondary p-1"
+            >
+              {views.map(([value, label]) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={value}
+                  className="h-9 rounded-full px-3.5 text-sm font-medium text-muted-foreground aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-[0_1px_3px_color-mix(in_oklch,var(--foreground)_14%,transparent)]"
+                >
+                  {label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
             <DialogPrimitive.Close
               data-press
               aria-label="Close the reader"
@@ -126,8 +165,10 @@ export function PageViewer({
             <BookPreview
               source={source}
               engines={ENGINES}
-              enabledModes={pdfUrl ? ["curl", "pdf"] : ["curl", "page"]}
-              defaultMode="curl"
+              enabledModes={views.map(([value]) => value)}
+              mode={mode}
+              onModeChange={setMode}
+              annotate={marks}
               defaultPageIndex={startAt}
               layout="fill"
               persistPreferences

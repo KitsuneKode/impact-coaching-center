@@ -1901,6 +1901,93 @@
 }
 
 /*
+ * The reader's skin (components/commerce/page-viewer.tsx over the vendored
+ * BookPreview): one surface in the page colour, our header carries the view
+ * switch, the engine's own picker and card frames go, numbers use the site's
+ * type, and long lists fade at their scrolling edges.
+ */
+/* Unlayered: these restyle the reader's Tailwind utilities, which sit in a
+   later layer than components and would otherwise win. */
+[data-reader-popup] [data-book-preview-mode-picker] {
+  display: none;
+}
+[data-reader-popup] [data-book-preview-surface] {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+}
+[data-reader-popup] [data-book-preview-chrome="top"] {
+  justify-content: flex-end;
+  padding-block: 0;
+  & > :last-child {
+    margin-inline-start: auto;
+  }
+}
+/* The reading-progress line along the top of the page: ICT blue on a
+   clear track. */
+[data-reader-popup] [data-book-preview-progress] {
+  background-color: color-mix(in oklch, var(--foreground) 6%, transparent);
+  & > * {
+    background-color: var(--primary);
+  }
+}
+[data-reader-popup] [data-book-preview-chrome="bottom"] .font-mono {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+/* Phones turn pages by swiping; the side arrows only crowd the page. */
+@media (pointer: coarse) {
+  [data-reader-popup] .book-preview [aria-label^="Previous page"],
+  [data-reader-popup] .book-preview [aria-label^="Next page"] {
+    &:not([data-book-preview-chrome="bottom"] *) {
+      display: none;
+    }
+  }
+}
+
+/* Scrolling lists fade only at an edge that has more behind it: nothing at
+   the top until you scroll, nothing at the bottom once you reach it. */
+@property --fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 24px;
+}
+@keyframes edge-fade {
+  0% {
+    --fade-start: 0px;
+  }
+  10%,
+  90% {
+    --fade-start: 24px;
+    --fade-end: 24px;
+  }
+  100% {
+    --fade-start: 24px;
+    --fade-end: 0px;
+  }
+}
+@supports (animation-timeline: scroll()) {
+  [data-edge-fade],
+  [data-reader-popup] .overflow-y-auto:has([data-thumb-page]) {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black var(--fade-start),
+      black calc(100% - var(--fade-end)),
+      transparent
+    );
+    animation: edge-fade linear both;
+    animation-timeline: scroll(self);
+  }
+}
+
+/*
  * Press feedback for what had none. Text links dim while held, the way a
  * native list does; cards and buttons keep their own scale (data-press and
  * friends are excluded, so nothing both dims and shrinks).
