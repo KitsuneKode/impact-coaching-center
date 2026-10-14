@@ -1,9 +1,10 @@
 import { getTranslations } from "next-intl/server"
-import type { ReactNode } from "react"
+import { Suspense, type ReactNode } from "react"
 
 import { LivePromos } from "@/components/site/live-promos"
 import { SiteFooter } from "@/components/site/site-footer"
 import { PromoStrip } from "@/components/site/promo-strip"
+import { RouteProgress } from "@/components/site/route-progress"
 import { SiteHeader } from "@/components/site/site-header"
 
 /**
@@ -23,6 +24,9 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       >
         {t("skip")}
       </a>
+      <Suspense>
+        <RouteProgress />
+      </Suspense>
       <PromoStrip />
       <SiteHeader />
       <div id="main" tabIndex={-1} className="outline-none">

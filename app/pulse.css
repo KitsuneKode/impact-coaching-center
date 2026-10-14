@@ -2245,3 +2245,91 @@
     }
   }
 }
+
+/* Page transitions (components/motion/page-transition.tsx). Old page leaves
+   fast, new page rises gently; the header and the strip stay put. */
+/* Named only while a transition runs: a view-transition-name isolates the
+   element, which would cut the header bar's backdrop blur off from the page. */
+@layer components {
+  :root:active-view-transition [data-site-header] {
+    view-transition-name: site-header;
+  }
+  :root:active-view-transition [data-promo-strip] {
+    view-transition-name: promo-strip;
+  }
+}
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-group(site-header),
+::view-transition-group(promo-strip) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header),
+::view-transition-old(promo-strip) {
+  display: none;
+}
+::view-transition-new(site-header),
+::view-transition-new(promo-strip) {
+  animation: none;
+}
+::view-transition-old(.page-exit) {
+  animation: 120ms cubic-bezier(0.23, 1, 0.32, 1) both page-fade reverse;
+}
+::view-transition-new(.page-enter) {
+  animation:
+    200ms cubic-bezier(0.23, 1, 0.32, 1) 90ms both page-fade,
+    320ms cubic-bezier(0.23, 1, 0.32, 1) both page-rise;
+}
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes page-rise {
+  from {
+    translate: 0 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(.page-enter) {
+    animation: 160ms ease-out both page-fade;
+  }
+}
+
+/* The slow-navigation bar (components/site/route-progress.tsx). */
+@layer components {
+  [data-route-progress] {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 60;
+    block-size: 3px;
+    background-color: var(--highlight);
+    transform-origin: 0 50%;
+    scale: 0 1;
+    opacity: 0;
+    pointer-events: none;
+  }
+  [data-route-progress="loading"] {
+    opacity: 1;
+    scale: 0.85 1;
+    transition:
+      scale 8s cubic-bezier(0.1, 0.8, 0.2, 1),
+      opacity 0.15s linear;
+  }
+  [data-route-progress="done"] {
+    opacity: 0;
+    scale: 1 1;
+    transition:
+      scale 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+      opacity 0.25s linear 0.15s;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-route-progress="loading"] {
+      scale: 1 1;
+      transition: opacity 0.15s linear;
+    }
+  }
+}
