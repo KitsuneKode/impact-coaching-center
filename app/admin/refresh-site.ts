@@ -1,6 +1,9 @@
 "use server"
 
 import { updateTag } from "next/cache"
+import { after } from "next/server"
+
+import { pingIndexNow } from "@/lib/indexnow"
 
 import { viewerCanRefreshSite } from "@/lib/auth-server"
 
@@ -14,5 +17,16 @@ export type SiteArea = "catalog" | "blog" | "courses" | "calendar"
  */
 export async function refreshSite(area: SiteArea) {
   const allowed = await viewerCanRefreshSite().catch(() => false)
-  if (allowed) updateTag(area)
+  if (!allowed) return
+  updateTag(area)
+  // Tell search engines too, after the response, so the admin never waits.
+  after(() => pingIndexNow(CHANGED[area]))
+}
+
+/** The listing pages an area's change shows up on. */
+const CHANGED: Record<SiteArea, string[]> = {
+  catalog: ["/books", "/resources", "/"],
+  blog: ["/blog"],
+  courses: ["/courses", "/"],
+  calendar: ["/exams/calendar"],
 }

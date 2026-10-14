@@ -29,7 +29,13 @@ const pages = [
 ]
 /* English only by design: sign-in, checkout and the account sit outside the languages. */
 const englishOnly = ["/login", "/checkout", "/account"]
-const files = ["/sitemap.xml", "/robots.txt", "/humans.txt", "/api/search/en"]
+const files = [
+  "/sitemap.xml",
+  "/robots.txt",
+  "/humans.txt",
+  "/llms.txt",
+  "/api/search/en",
+]
 
 const targets: [string, number][] = [
   ...pages.flatMap((path): [string, number][] => [
