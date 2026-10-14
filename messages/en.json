@@ -39,7 +39,9 @@
     "callNumber": "Call {phone}",
     "menu": "Menu",
     "teachersPage": "Teachers",
-    "callPrefix": "Call"
+    "callPrefix": "Call",
+    "moreMenu": "More",
+    "calendar": "Exam calendar"
   },
   "Offer": {
     "cta": "Join a free workshop",

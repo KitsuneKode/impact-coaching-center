@@ -39,7 +39,9 @@
     "callNumber": "{phone} ত ফোন কৰক",
     "menu": "মেনু",
     "teachersPage": "শিক্ষকসকল",
-    "callPrefix": "ফোন কৰক"
+    "callPrefix": "ফোন কৰক",
+    "moreMenu": "অধিক",
+    "calendar": "পৰীক্ষাৰ কেলেণ্ডাৰ"
   },
   "Offer": {
     "cta": "বিনামূলীয়া কৰ্মশালাত যোগ দিয়ক",

@@ -1,6 +1,6 @@
 "use client"
 
-import { IconPhone } from "@tabler/icons-react"
+import { IconChevronDown, IconPhone } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 
@@ -10,8 +10,15 @@ import { LocaleSwitch } from "@/components/i18n/locale-switch"
 import { Link, usePathname } from "@/i18n/navigation"
 import { brand, contact, formatPhone } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
-import { NAV_LINKS } from "./nav-links"
+import { MORE_LINKS, NAV_LINKS } from "./nav-links"
 import { SiteSearch } from "@/components/site/site-search"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { SiteMenu } from "./site-menu"
 
 /**
@@ -67,6 +74,36 @@ export function SiteHeader() {
                 {t(link.key)}
               </Link>
             ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                data-site-more
+                aria-current={
+                  MORE_LINKS.some(
+                    (link) =>
+                      path === link.href || path.startsWith(`${link.href}/`)
+                  )
+                    ? "page"
+                    : undefined
+                }
+                className="inline-flex items-center gap-1 whitespace-nowrap"
+              >
+                {t("moreMenu")}
+                <IconChevronDown aria-hidden size={14} stroke={2} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-48">
+                <DropdownMenuGroup>
+                  {MORE_LINKS.map((link) => (
+                    <DropdownMenuItem
+                      key={link.href}
+                      render={<Link href={link.href} />}
+                      className="min-h-9 text-sm"
+                    >
+                      {t(link.key)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           <SiteSearch />

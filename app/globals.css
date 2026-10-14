@@ -594,7 +594,7 @@
     white-space: nowrap;
     transition: color 0.15s var(--ease-out-strong);
   }
-  [data-site-nav] a[aria-current="page"] {
+  [data-site-nav] :is(a, [data-site-more])[aria-current="page"] {
     color: var(--foreground);
   }
   [data-site-tools] {
@@ -615,7 +615,7 @@
     }
   }
   @media (hover: hover) and (pointer: fine) {
-    [data-site-nav] a:hover {
+    [data-site-nav] :is(a, [data-site-more]):hover {
       color: var(--foreground);
     }
   }
@@ -651,7 +651,7 @@
     & [data-site-nav] {
       color: var(--on-primary);
     }
-    & [data-site-nav] a[aria-current="page"] {
+    & [data-site-nav] :is(a, [data-site-more])[aria-current="page"] {
       color: oklch(100% 0 none);
       text-decoration: underline 1.5px;
       text-underline-offset: 6px;
@@ -670,7 +670,7 @@
     :root:has([data-hero="blue"])
       [data-site-header]:not([data-stuck])
       [data-site-nav]
-      a:hover {
+      :is(a, [data-site-more]):hover {
       color: oklch(100% 0 none);
     }
   }
