@@ -2,6 +2,7 @@
 
 import { IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
@@ -53,7 +54,15 @@ function Inbox() {
   // fetching a page of enquiries and discarding it, so a student who opens
   // this URL costs one boolean rather than a read of the follow-up queue.
   const allowed = useQuery(api.leads.canSeeInbox)
-  const [openId, setOpenId] = useState<Id<"persons"> | null>(null)
+  // ?lead=<id> opens that person's sheet: links from the overview land here.
+  const linked = useSearchParams().get("lead") as Id<"persons"> | null
+  const [chosen, setChosen] = useState<Id<"persons"> | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+  const openId = chosen ?? (dismissed ? null : linked)
+  const setOpenId = (id: Id<"persons"> | null) => {
+    setChosen(id)
+    if (!id) setDismissed(true)
+  }
   /*
    * Read here rather than inside the table: export is owner-only, and the
    * table should be told what the viewer may do rather than work it out. The
