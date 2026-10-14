@@ -91,7 +91,7 @@ export default async function CoursesPage({
           >
             <div className="grid gap-8 lg:grid-cols-12">
               <Reveal className="lg:col-span-4">
-                <div className="lg:sticky lg:top-28">
+                <div className="lg:sticky lg:top-[calc(var(--header-height)+var(--strip-height)+1.5rem)]">
                   <h2 id={`${track.slug}-heading`} className="type-display">
                     {names.exam}
                   </h2>

@@ -446,7 +446,7 @@ function CheckoutForm() {
 
           <aside
             aria-label="Total"
-            className="h-fit space-y-4 rounded-[28px] bg-card p-6 shadow-lift lg:sticky lg:top-28"
+            className="h-fit space-y-4 rounded-[28px] bg-card p-6 shadow-lift lg:sticky lg:top-[calc(var(--header-height)+var(--strip-height)+1.5rem)]"
           >
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import localFont from "next/font/local"
 
 import "./globals.css"
+import { InlineScript } from "@/components/site/inline-script"
 import { Providers } from "@/app/providers"
 import { brand, contact, links, place } from "@/lib/brand"
 import { indexable, openGraphFor, siteUrl } from "@/lib/site"
@@ -134,7 +135,7 @@ export default function RootLayout({
           here, in the server layout: the same script inside ThemeProvider is
           a client render, and React 19 will not execute it.
         */}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
+        <InlineScript code={themeInitScript()} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

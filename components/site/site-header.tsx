@@ -2,8 +2,8 @@
 
 import { useTranslations } from "next-intl"
 import Image from "next/image"
-import { useEffect, useRef, useState } from "react"
 
+import { useHeadroom } from "@/hooks/use-headroom"
 import { AccountMenu } from "@/components/account/account-menu"
 import { LocaleSwitch } from "@/components/i18n/locale-switch"
 import { Link, usePathname } from "@/i18n/navigation"
@@ -15,31 +15,22 @@ import { SiteMenu } from "./site-menu"
 
 /**
  * Pulse's header, on every page. At the top it floats over the page, in white
- * over a blue hero; once a 1px sentinel scrolls away it turns into a frosted
- * paper bar. Its negative margin lets each hero start underneath it, so
+ * over a blue hero. Scrolled, it becomes a floating paper bar that slides
+ * away (with the promo strip) while you read down and comes back as soon as
+ * you scroll up. Its negative margin lets each hero start underneath it, so
  * nothing reflows. The states live in globals.css under "Site header".
  */
 export function SiteHeader() {
   const t = useTranslations("Nav")
-  const [stuck, setStuck] = useState(false)
-  const sentinel = useRef<HTMLDivElement>(null)
+  const headroom = useHeadroom({
+    keep: "[data-site-header],[data-promo-strip]",
+  })
   const phone = formatPhone(contact.phones[0])
   const path = usePathname()
 
-  useEffect(() => {
-    const el = sentinel.current
-    if (!el) return
-    const observer = new IntersectionObserver(([entry]) =>
-      setStuck(!entry!.isIntersecting)
-    )
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
   return (
     <>
-      <div ref={sentinel} aria-hidden className="h-px" />
-      <header data-site-header data-stuck={stuck || undefined}>
+      <header data-site-header data-stuck={headroom !== "top" || undefined}>
         <div data-site-header-row className="container-page">
           <Link
             href="/"

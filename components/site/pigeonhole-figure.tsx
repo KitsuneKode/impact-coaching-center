@@ -2,15 +2,18 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef } from "react"
+import { type CSSProperties, useEffect, useRef } from "react"
 
 import {
+  BEAM_FOOT,
   EMPTY_HOLE,
   HOLE_X,
   HOLES,
   LAMP_REST,
   LAMP_UNIT,
+  LENS_RIM,
   PIGEONHOLES_SVG,
+  PULL,
 } from "@/components/site/pigeonholes-art"
 
 const TOUR_STEP = 1.6 // seconds the lamp rests over each pigeonhole
@@ -19,7 +22,9 @@ const TOUR_STEP = 1.6 // seconds the lamp rests over each pigeonhole
  * The 404 figure (scripts/figures/pigeonholes.mjs): a pigeonhole cabinet
  * whose empty pigeonhole is the address that was asked for. The lamp runs
  * along its rail to the pigeonhole under the pointer (or the arrow keys),
- * the readout names what is filed there, and a click or Enter goes to it.
+ * its beam falls on that pigeonhole, whose papers slide out a little and
+ * whose label lights; the readout names what is filed there, and a click or
+ * Enter goes to it.
  * When nobody touches it the lamp tours the cabinet and comes back to the
  * empty one. In `error` mode the lamp is out and stays over the empty slot.
  */
@@ -51,15 +56,21 @@ export function PigeonholeFigure({
     if (!root) return
     const svg = root.querySelector("svg")
     const lamp = svg?.querySelector<SVGGElement>('[data-part="lamp"]')
-    const openings = [
-      ...(svg?.querySelectorAll<SVGPathElement>("[data-opening]") ?? []),
-    ]
-    if (!svg || !lamp) return
+    const beam = svg?.querySelector<SVGPathElement>("[data-beam]")
+    // Everything that lights with a pigeonhole: its ring, its contents, its label.
+    const lit = HOLES.map((_, i) => [
+      ...(svg?.querySelectorAll(
+        `[data-ring="${i}"],[data-hole="${i}"],[data-holder="${i}"]`
+      ) ?? []),
+    ])
+    if (!svg || !lamp || !beam) return
     if (mode === "error") svg.dataset.lampOut = ""
 
     const still = matchMedia("(prefers-reduced-motion: reduce)")
     let x = LAMP_REST
     let target = LAMP_REST
+    // the beam's foot eases from one pigeonhole to the next with the lamp
+    let foot: number[] = BEAM_FOOT[EMPTY_HOLE]!.flat()
     let active = EMPTY_HOLE
     let touring = mode === "missing" && !still.matches
     let clock = 0
@@ -78,21 +89,29 @@ export function PigeonholeFigure({
     const show = (i: number) => {
       active = i
       target = HOLE_X[i]!
-      openings.forEach((path, n) => {
-        if (n === i) path.dataset.active = ""
-        else delete path.dataset.active
-      })
+      lit.forEach((els, n) =>
+        els.forEach((el) => el.toggleAttribute("data-active", n === i))
+      )
       const text = textFor(i)
       if (readout.current && readout.current.textContent !== text)
         readout.current.textContent = text
     }
 
     // The lamp is drawn over x = 0; one world unit is LAMP_UNIT on screen.
-    const place = () =>
+    const place = () => {
+      const dx = LAMP_UNIT[0] * x
+      const dy = LAMP_UNIT[1] * x
       lamp.setAttribute(
         "transform",
-        `translate(${(LAMP_UNIT[0] * x).toFixed(2)} ${(LAMP_UNIT[1] * x).toFixed(2)})`
+        `translate(${dx.toFixed(2)} ${dy.toFixed(2)})`
       )
+      const [[ax, ay], [bx, by]] = LENS_RIM
+      const [fx, fy, gx, gy] = foot.map((n) => n.toFixed(1))
+      beam.setAttribute(
+        "d",
+        `M${(ax + dx).toFixed(1)} ${(ay + dy).toFixed(1)}L${(bx + dx).toFixed(1)} ${(by + dy).toFixed(1)}L${gx} ${gy}L${fx} ${fy}Z`
+      )
+    }
 
     // Tour: every filled pigeonhole in turn, then back to the empty one.
     const order = [...HOLES.keys()].filter((i) => i !== EMPTY_HOLE)
@@ -109,10 +128,17 @@ export function PigeonholeFigure({
         const next = tourAt(clock)
         if (next !== active) show(next)
       }
-      x = still.matches ? target : x + (target - x) * (1 - Math.exp(-dt / 0.3))
+      const ease = still.matches ? 1 : 1 - Math.exp(-dt / 0.3)
+      x += (target - x) * ease
       if (Math.abs(target - x) < 0.02) x = target
+      const goal: number[] = BEAM_FOOT[active]!.flat()
+      foot = foot.map((n, k) => {
+        const next = n + (goal[k]! - n) * ease
+        return Math.abs(goal[k]! - next) < 0.05 ? goal[k]! : next
+      })
       place()
-      const settled = !touring && x === target
+      const settled =
+        !touring && x === target && foot.every((n, k) => n === goal[k])
       frame = visible && !settled ? requestAnimationFrame(tick) : 0
     }
     const run = () => {
@@ -151,6 +177,14 @@ export function PigeonholeFigure({
       const i = holeOf(event)
       if (i !== null) go(i)
     }
+    // A press pulls the papers out a little further, like taking hold of them.
+    const onDown = (event: PointerEvent) => {
+      const i = holeOf(event)
+      if (i === null) return
+      steer(i)
+      root.dataset.pressed = ""
+    }
+    const onUp = () => delete root.dataset.pressed
     // The links under the drawing steer the lamp too, for keyboards.
     const chips = root.parentElement?.querySelector("[data-pigeon-links]")
     const onChip = (event: Event) => {
@@ -168,6 +202,9 @@ export function PigeonholeFigure({
     seen.observe(root)
     root.addEventListener("pointermove", onMove)
     root.addEventListener("click", onClick)
+    root.addEventListener("pointerdown", onDown)
+    window.addEventListener("pointerup", onUp)
+    window.addEventListener("pointercancel", onUp)
     chips?.addEventListener("focusin", onChip)
     chips?.addEventListener("pointerover", onChip)
     show(EMPTY_HOLE)
@@ -179,6 +216,9 @@ export function PigeonholeFigure({
       window.clearTimeout(idle)
       root.removeEventListener("pointermove", onMove)
       root.removeEventListener("click", onClick)
+      root.removeEventListener("pointerdown", onDown)
+      window.removeEventListener("pointerup", onUp)
+      window.removeEventListener("pointercancel", onUp)
       chips?.removeEventListener("focusin", onChip)
       chips?.removeEventListener("pointerover", onChip)
     }
@@ -195,6 +235,12 @@ export function PigeonholeFigure({
         ref={stage}
         data-pigeon-stage
         className="mbs-2"
+        style={
+          {
+            "--pull-x": `${PULL[0]}px`,
+            "--pull-y": `${PULL[1]}px`,
+          } as CSSProperties
+        }
         dangerouslySetInnerHTML={{ __html: PIGEONHOLES_SVG }}
       />
       <div className="mbs-2 flex items-end justify-between gap-4 text-xs text-muted-foreground">

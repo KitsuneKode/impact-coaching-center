@@ -300,7 +300,9 @@
      stacks them without the shrink. */
   [data-stack-item] {
     position: sticky;
-    inset-block-start: calc(96px + var(--i) * 18px);
+    inset-block-start: calc(
+      var(--header-height) + var(--strip-height) + 20px + var(--i) * 18px
+    );
     transform-origin: 50% 0%;
   }
   [data-stack-item]:not(:last-child) {
@@ -1438,7 +1440,9 @@
     [data-notes-preview] {
       display: block;
       position: sticky;
-      inset-block-start: calc(var(--header-height) + 1.5rem);
+      inset-block-start: calc(
+        var(--header-height) + var(--strip-height) + 1.5rem
+      );
     }
     [data-notes-split] [data-notes-inline] {
       display: none;
@@ -2142,7 +2146,7 @@
 }
 
 /* The 404 figure's card (components/site/pigeonhole-figure.tsx). The lamp's
-   light is an amber wash on the pigeonhole under it. */
+   beam falls on the pigeonhole under it. */
 @layer components {
   [data-pigeon-card] {
     border-radius: 28px;
@@ -2162,21 +2166,61 @@
   [data-pigeon-stage] [data-opening] {
     cursor: pointer;
   }
-  [data-pigeon-stage] [data-opening][data-active] {
-    fill: color-mix(in oklch, var(--highlight) 18%, transparent);
-    stroke: var(--anatomy-lit);
-    stroke-width: 1.2;
+  /* The ring inside the lit opening, the amber of the lamp's light. */
+  [data-pigeon-stage] [data-ring] {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 1;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  [data-pigeon-stage] [data-ring][data-active] {
+    fill: color-mix(in oklch, var(--highlight) 16%, transparent);
+    stroke: color-mix(in oklch, var(--highlight) 55%, black);
+  }
+  /* The beam from the lens to the lit pigeonhole. */
+  [data-pigeon-stage] [data-beam] {
+    fill: color-mix(in oklch, var(--highlight) 22%, transparent);
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+  /* The lit pigeonhole's papers slide out toward you, further while pressed;
+     its label holder takes the lamp's colour. */
+  [data-pigeon-stage] [data-hole][data-active] {
+    translate: var(--pull-x) var(--pull-y);
+  }
+  [data-pigeon-stage][data-pressed] [data-hole][data-active] {
+    translate: calc(var(--pull-x) * 1.6) calc(var(--pull-y) * 1.6);
   }
   [data-pigeon-stage] [data-lamp-out] [data-part="lens"] {
     opacity: 0.4;
   }
-  [data-pigeon-stage] [data-lamp-out] [data-opening][data-active] {
+  [data-pigeon-stage] [data-lamp-out] [data-beam] {
+    display: none;
+  }
+  [data-pigeon-stage] [data-lamp-out] [data-ring][data-active] {
     fill: transparent;
     stroke: var(--anatomy-lo);
   }
   @media (prefers-reduced-motion: no-preference) {
-    [data-pigeon-stage] [data-opening] {
-      transition: fill 0.25s ease-out;
+    [data-pigeon-stage] [data-ring] {
+      transition:
+        fill 0.25s var(--ease-out-strong),
+        stroke 0.25s var(--ease-out-strong);
+    }
+    [data-pigeon-stage] [data-hole] {
+      transition: translate 0.35s var(--ease-out-strong);
+    }
+    [data-pigeon-stage] [data-holder] path {
+      transition: fill 0.25s var(--ease-out-strong);
     }
   }
+}
+
+/* Unlayered: the drawing's own <style> is unlayered and would win. The lit
+   pigeonhole's label holder takes the lamp's colour. */
+[data-pigeon-stage]
+  [data-holder][data-active]
+  :is(.iso-fill, .iso-shade, .iso-top) {
+  fill: color-mix(in oklch, var(--highlight) 45%, white);
 }

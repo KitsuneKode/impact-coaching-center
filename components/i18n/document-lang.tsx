@@ -2,6 +2,8 @@
 
 import { useEffect } from "react"
 
+import { InlineScript } from "@/components/site/inline-script"
+
 /**
  * The root layout serves both languages and cannot know which one a page is
  * in, so the page's language is set on <html> here, as early as possible:
@@ -17,13 +19,8 @@ export function DocumentLang({ lang }: { lang: string }) {
     document.documentElement.lang = lang
   }, [lang])
   return (
-    <script
-      // Runs during parsing on the first load; a client render ignores it
-      // and the effect above takes over.
-      dangerouslySetInnerHTML={{
-        __html: `document.documentElement.lang=${JSON.stringify(lang)}`,
-      }}
-      suppressHydrationWarning
+    <InlineScript
+      code={`document.documentElement.lang=${JSON.stringify(lang)}`}
     />
   )
 }

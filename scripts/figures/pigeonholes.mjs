@@ -82,6 +82,8 @@ const CROWN = {
 }
 const RAIL_Y = FRONT - 9
 const LAMP = { y: RAIL_Y, reach: FRONT + 20 }
+const SHADE_Z = TOP + 5 // the shade's rim; the lens sits just under it
+const PULL = 8 // how far a pigeonhole's contents slide out when it is lit
 
 const P = k.fitProjection(
   [
@@ -385,7 +387,7 @@ function shelf(r) {
           k.faceTextSvg(
             k.sideMatrix(
               [holder.x + holder.w / 2, FRONT + 0.9],
-              z + S - 1.6,
+              z + 1.3,
               P,
               "left"
             ),
@@ -558,30 +560,32 @@ function lamp() {
   )
   const arm = { x: -2, y: RAIL_Y - 1, w: 4, d: LAMP.reach - RAIL_Y - 4, r: 1.6 }
   out.push(Sd(k.slabOf(arm, TOP + 27, 3, P, 2, 0.3), { tone: "mid" }))
-  // the shade hangs on a stem in front of the cabinet face, lens lit beneath
+  // the shade hangs on a short stem just above the crown's front edge, so it
+  // never covers a pigeonhole; the lens underneath is lit
   const hx = 0
   const hy = LAMP.reach
   out.push(Sd(k.cylinder(hx, hy, 2.4, TOP + 26, 3, P, 16), { tone: "mid" }))
   out.push(
-    Sd(k.cylinder(hx, hy, 1.2, TOP + 4, 22, P, 12), {
+    Sd(k.cylinder(hx, hy, 1.2, TOP + 17, 9, P, 12), {
       tone: "mid",
       crease: "none",
     })
   )
-  out.push(L(k.sideArc(hx, hy, 1.2, TOP + 14, P, 8), { tone: "faint" }))
-  out.push(Sd(k.cylinder(hx, hy, 3, TOP + 2, 2, P, 18), { tone: "mid" }))
+  out.push(Sd(k.cylinder(hx, hy, 3, TOP + 15, 2, P, 18), { tone: "mid" }))
   out.push(
-    Sd(k.cylinder(hx, hy, 9, TOP - 8, 10, P, 44, 0.6), {
+    Sd(k.cylinder(hx, hy, 9, SHADE_Z, 10, P, 44, 0.6), {
       tone: "hi",
       crease: "lo",
-      inner: L(k.sideArc(hx, hy, 9, TOP - 4, P, 30), { tone: "faint" }),
+      inner: L(k.sideArc(hx, hy, 9, SHADE_Z + 4, P, 30), { tone: "faint" }),
     })
   )
   out.push(
-    L(k.knurl(hx, hy, 9, TOP - 1.2, TOP + 2, 40, P, 0.3), { tone: "lo" })
+    L(k.knurl(hx, hy, 9, SHADE_Z + 6.8, SHADE_Z + 10, 40, P, 0.3), {
+      tone: "lo",
+    })
   )
   out.push(
-    `<g data-part="lens">${Sd(k.cylinder(hx, hy, 7, TOP - 9.4, 1.4, P, 40), { tone: "hi", lit: true })}</g>`
+    `<g data-part="lens">${Sd(k.cylinder(hx, hy, 7, SHADE_Z - 1.4, 1.4, P, 40), { tone: "hi", lit: true })}</g>`
   )
   return out.join("")
 }
@@ -590,16 +594,31 @@ function lamp() {
 
 /* Each pigeonhole's opening on the front plane: where the pointer finds it,
    and the outline that lights when it is the one under the lamp. */
-function openingOf(i) {
+function openingOf(i, inset = 0) {
   const { x, z } = holeAt(i)
   const pts = [
-    [x, FRONT, z],
-    [x + CW, FRONT, z],
-    [x + CW, FRONT, z + CH],
-    [x, FRONT, z + CH],
+    [x + inset, FRONT, z + inset],
+    [x + CW - inset, FRONT, z + inset],
+    [x + CW - inset, FRONT, z + CH - inset],
+    [x + inset, FRONT, z + CH - inset],
   ].map(at)
   return `M${pts.map((p) => p.map((n) => n.toFixed(1)).join(" ")).join("L")}Z`
 }
+
+/* Where the lamp's beam lands: the top edge of the opening, left then right. */
+const beamFoot = (i) => {
+  const { x, z } = holeAt(i)
+  return [at([x + 2, FRONT, z + CH - 2]), at([x + CW - 2, FRONT, z + CH - 2])]
+}
+
+/* The lens rim's leftmost and rightmost points on screen, lamp at x = 0. */
+const lensRim = (() => {
+  const ring = k
+    .circleRing(0, LAMP.reach, 7, 72)
+    .map(([x, y]) => at([x, y, SHADE_Z - 1.4]))
+  const byX = [...ring].sort((a, b) => a[0] - b[0])
+  return [byX[0], byX[byX.length - 1]]
+})()
 
 /* ------------------------------------------------------------- assemble --- */
 
@@ -620,13 +639,15 @@ for (let r = 0; r < ROWS; r++) {
 }
 body.push(crown())
 const restX = holeAt(EMPTY).x + CW / 2
+// the beam is drawn by the page, between the cabinet and the lamp
+body.push(`<path data-beam d=""/>`)
 body.push(
   `<g data-part="lamp" transform="${k.translateAlong(P, [restX, 0, 0])}">${lamp()}</g>`
 )
 body.push(
   `<g data-part="openings">${HOLES.map(
     (hole, i) =>
-      `<path data-opening="${i}" d="${openingOf(i)}" fill="transparent" stroke="none"/>`
+      `<path data-ring="${i}" d="${openingOf(i, 1.4)}"/><path data-opening="${i}" d="${openingOf(i)}" fill="transparent" stroke="none"/>`
   ).join("")}</g>`
 )
 
@@ -655,6 +676,14 @@ export const LAMP_UNIT: readonly [number, number] = ${JSON.stringify(unit.map((n
 /** The lamp's world x over each pigeonhole's centre, and where it rests. */
 export const HOLE_X: readonly number[] = ${JSON.stringify(centres.map((n) => Math.round(n * 100) / 100))}
 export const LAMP_REST = ${restX}
+
+/** Screen offset of a pigeonhole's contents when they slide out. */
+export const PULL: readonly [number, number] = ${JSON.stringify(k.axisVector(P, [0, PULL, 0]).map((n) => Math.round(n * 100) / 100))}
+
+/** The lens rim's outer points with the lamp at x = 0, and where the beam
+    lands on each pigeonhole (top edge, left then right). */
+export const LENS_RIM = ${JSON.stringify(lensRim.map((p) => p.map((n) => Math.round(n * 10) / 10)))} as const
+export const BEAM_FOOT = ${JSON.stringify(HOLES.map((_, i) => beamFoot(i).map((p) => p.map((n) => Math.round(n * 10) / 10))))} as const
 
 /** What each pigeonhole holds; the empty one is the missing page. */
 export const HOLES = ${JSON.stringify(HOLES.map(({ href, name }) => ({ href, name })))} as const
