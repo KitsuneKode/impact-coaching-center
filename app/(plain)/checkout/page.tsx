@@ -334,10 +334,10 @@ function CheckoutForm() {
                   <label
                     key={value}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-control border p-4",
+                      "flex cursor-pointer items-start gap-3 rounded-[20px] p-4 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
                       fulfilment === value
-                        ? "border-foreground"
-                        : "border-border hover:border-foreground/40"
+                        ? "bg-card shadow-[inset_0_0_0_2px_var(--primary)]"
+                        : "bg-secondary hover:bg-secondary/70"
                     )}
                   >
                     <input
@@ -346,7 +346,7 @@ function CheckoutForm() {
                       value={value}
                       checked={fulfilment === value}
                       onChange={() => setFulfilment(value)}
-                      className="mt-1 size-4 accent-foreground"
+                      className="mt-1 size-4 accent-primary"
                     />
                     <span>
                       <Icon stroke={1.75} className="mb-2 size-5" aria-hidden />
@@ -446,7 +446,7 @@ function CheckoutForm() {
 
           <aside
             aria-label="Total"
-            className="h-fit space-y-4 rounded-card border border-border bg-card p-6"
+            className="h-fit space-y-4 rounded-[28px] bg-card p-6 shadow-lift lg:sticky lg:top-28"
           >
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">

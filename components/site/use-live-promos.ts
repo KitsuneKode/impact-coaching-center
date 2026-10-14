@@ -28,9 +28,11 @@ export function useLivePromos() {
   const path = usePathname()
   const now = useMinute()
   const locale = useLocale()
+  // No promotions where someone is paying, signing in or in their account.
+  const quiet = /^\/(checkout|account|login|register)(\/|$)/.test(path)
   const live = useQuery(
     api.campaigns.liveCampaigns,
-    now === null ? "skip" : { path, now }
+    now === null || quiet ? "skip" : { path, now }
   )
   // Assamese pages read the Assamese wording where the editor wrote one.
   const rows = useMemo(
