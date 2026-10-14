@@ -72,7 +72,7 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <AdminSidebar />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <AdminHeader />
         {children}
       </SidebarInset>

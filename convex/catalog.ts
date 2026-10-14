@@ -126,7 +126,11 @@ export const bundles = query({
       .query("bundles")
       .withIndex("by_published_and_sortOrder", (q) => q.eq("published", true))
       .take(SHELF_MAX)
-    return Promise.all(rows.map((row) => toBundle(ctx, row, false)))
+    const shelf = await Promise.all(
+      rows.map((row) => toBundle(ctx, row, false))
+    )
+    // A set whose books are all gone has nothing to show or sell.
+    return shelf.filter((bundle) => bundle.books.length > 0)
   },
 })
 
@@ -138,7 +142,9 @@ export const bundle = query({
       .query("bundles")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first()
-    return row?.published ? toBundle(ctx, row, true) : null
+    if (!row?.published) return null
+    const bundle = await toBundle(ctx, row, true)
+    return bundle.books.length ? bundle : null
   },
 })
 
@@ -156,7 +162,8 @@ export const resources = query({
       exam: r.exam,
       kind: r.kind,
       language: r.language,
-      pages: r.pageImages.length || (r.sample ? 6 : 0),
+      // A PDF counts its own pages; page images otherwise.
+      pages: r.pdf?.pages || r.pageImages.length || (r.sample ? 6 : 0),
       description: r.description,
       sample: r.sample ?? false,
     }))

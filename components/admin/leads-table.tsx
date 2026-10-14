@@ -171,7 +171,9 @@ function OpenLead({ lead }: { lead: Lead }) {
     <button
       type="button"
       onClick={() => open(lead.id)}
-      className="rounded-control text-left font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      // Names wrap rather than widen the table: a full Assamese name with
+      // titles runs to eighty characters.
+      className="block max-w-64 min-w-36 rounded-control text-left font-medium text-pretty whitespace-normal underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {lead.name || (
         <span className="font-normal text-muted-foreground">Not given</span>
@@ -229,7 +231,10 @@ const columns = columnHelper.columns([
   columnHelper.accessor("interestTrack", {
     header: "Exam",
     cell: ({ row }) => (
-      <span className="text-muted-foreground">
+      <span
+        title={row.original.interestTrack}
+        className="line-clamp-2 max-w-56 whitespace-normal text-muted-foreground"
+      >
         {row.original.interestTrack ?? "—"}
       </span>
     ),

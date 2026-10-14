@@ -226,7 +226,11 @@ export function checkBundle(input: BundleInput): Result<BundleInput> {
   if (!fits(value.description, 3000)) return { ok: false, field: "description" }
   for (const language of LANGUAGES) {
     const variant = value.variants[language]
-    if (!isPaise(variant.pricePaise))
+    // A set on sale costs something: Razorpay cannot take a payment of ₹0.
+    if (
+      !isPaise(variant.pricePaise) ||
+      (variant.available && variant.pricePaise < 100)
+    )
       return { ok: false, field: `${language}.price` }
     if (
       variant.comparePaise !== undefined &&

@@ -688,7 +688,7 @@ function messageFor(field: string) {
     case "exam":
       return "Name the exam it is for."
     case "price":
-      return `${name} price in rupees, like 899.`
+      return `${name} price in rupees, like 899. A set on sale costs at least ₹1; switch it off to sell nothing.`
     case "comparePrice":
       return `${name} struck-out price must be higher than the price.`
     case "books":

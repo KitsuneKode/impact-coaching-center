@@ -1,4 +1,8 @@
-/** Load `scripts/dev-seed.json` into a development Convex deployment. */
+/**
+ * Load `scripts/dev-seed.json` into a development Convex deployment.
+ * --worst loads the worst-case file instead, --huge adds 1,200 enquiries,
+ * --keep skips clearing first, --clear only clears.
+ */
 const here = new URL(".", import.meta.url).pathname
 
 async function run(fn: string, args: unknown) {
@@ -38,8 +42,16 @@ if (!flags.has("--keep")) {
 }
 
 if (!flags.has("--clear")) {
-  const file = Bun.file(`${here}dev-seed.json`)
-  const fixture = (await file.json()) as Fixture
+  const name = flags.has("--worst") ? "dev-seed.worst.json" : "dev-seed.json"
+  const fixture = (await Bun.file(`${here}${name}`).json()) as Fixture
+  // --huge adds 1,200 more enquiries: the list's realistic upper bound.
+  if (flags.has("--huge")) {
+    const huge = (await Bun.file(`${here}dev-seed.huge.json`).json()) as Fixture
+    fixture.enquiries = [
+      ...(fixture.enquiries ?? []),
+      ...(huge.enquiries ?? []),
+    ]
+  }
 
   // Shapes are checked by each mutation's own argument validators rather than
   // here. Two validators for one shape is how they drift apart, and Convex's
@@ -49,10 +61,11 @@ if (!flags.has("--clear")) {
       await run("internal.devSeed.seedPeople", { people: fixture.people })
     )
   }
-  if (fixture.enquiries?.length) {
+  // In slices: one mutation has a write limit, and --huge is 1,200 people.
+  for (let i = 0; i < (fixture.enquiries?.length ?? 0); i += 200) {
     console.log(
       await run("internal.devSeed.seedEnquiries", {
-        enquiries: fixture.enquiries,
+        enquiries: fixture.enquiries!.slice(i, i + 200),
       })
     )
   }

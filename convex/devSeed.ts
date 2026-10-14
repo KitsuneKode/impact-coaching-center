@@ -8,6 +8,7 @@ import { allocateOrderReference } from "./orders"
 import {
   ADDRESS,
   CAMPAIGN_KIND,
+  ENQUIRY_CHANNEL,
   LEAD_STATUS,
   LOCALE,
   LOCALISED,
@@ -45,6 +46,22 @@ export const seedEnquiries = internalMutation({
         /** Goes on the activity, not the Person - staff notes never sit on an exportable row. */
         note: v.optional(v.string()),
         verified: v.optional(v.boolean()),
+        /** How they reached ICT; website when absent. */
+        channel: v.optional(ENQUIRY_CHANNEL),
+        /** The page the form was on, for website enquiries. */
+        page: v.optional(v.string()),
+        utm: v.optional(
+          v.object({
+            source: v.optional(v.string()),
+            medium: v.optional(v.string()),
+            campaign: v.optional(v.string()),
+          })
+        ),
+        referrer: v.optional(v.string()),
+        /** Morning, Day, Evening, Night or Online only. */
+        timing: v.optional(v.string()),
+        /** Days until the next follow-up; negative is overdue. */
+        followUpInDays: v.optional(v.number()),
       })
     ),
   },
@@ -73,6 +90,9 @@ export const seedEnquiries = internalMutation({
         interestTrack: enquiry.interestTrack,
         lastEnquiryAt: at,
         updatedAt: at,
+        ...(enquiry.followUpInDays === undefined
+          ? {}
+          : { nextFollowUpAt: now + enquiry.followUpInDays * day }),
         ...(enquiry.verified ? { verifiedAt: at } : {}),
       }
 
@@ -90,17 +110,22 @@ export const seedEnquiries = internalMutation({
             ...fields,
           })
 
+      const channel = enquiry.channel ?? "website"
       await ctx.db.insert("enquiries", {
         personId,
-        channel: "website",
+        channel,
         track: enquiry.interestTrack,
-        page: "/",
+        timing: enquiry.timing,
+        page: channel === "website" ? (enquiry.page ?? "/") : undefined,
+        utm: enquiry.utm,
+        referrer: enquiry.referrer,
       })
       await ctx.db.insert("activities", {
         personId,
         kind: "enquiry",
         body: enquiry.note,
         track: enquiry.interestTrack,
+        timing: enquiry.timing,
       })
       written += 1
     }
@@ -285,6 +310,7 @@ export const seedCatalog = internalMutation({
         exam: v.string(),
         kind: RESOURCE_KIND,
         description: v.string(),
+        language: v.optional(LOCALE),
       })
     ),
   },
@@ -502,8 +528,12 @@ export const clearSeed = internalMutation({
       await ctx.db.delete(bundle._id)
       catalog += 1
     }
+    // A sample book a real set still lists stays, or that set loses it.
+    const inRealSets = new Set<string>()
+    for await (const bundle of ctx.db.query("bundles"))
+      if (!bundle.sample) for (const id of bundle.bookIds) inRealSets.add(id)
     for await (const book of ctx.db.query("books")) {
-      if (!book.sample) continue
+      if (!book.sample || inRealSets.has(book._id)) continue
       await ctx.db.delete(book._id)
       catalog += 1
     }

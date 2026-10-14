@@ -93,6 +93,25 @@ describe("catalog rules", () => {
         },
       })
     ).toEqual({ ok: false, field: "en.comparePrice" })
+    // ₹0 on sale cannot be paid through Razorpay; ₹0 switched off is fine.
+    expect(
+      checkBundle({
+        ...bundle,
+        variants: {
+          ...bundle.variants,
+          en: { pricePaise: 0, available: true },
+        },
+      })
+    ).toEqual({ ok: false, field: "en.price" })
+    expect(
+      checkBundle({
+        ...bundle,
+        variants: {
+          ...bundle.variants,
+          en: { pricePaise: 0, available: false },
+        },
+      }).ok
+    ).toBe(true)
   })
 
   test("Assamese text falls back to English", () => {
