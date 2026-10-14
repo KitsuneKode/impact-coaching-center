@@ -51,6 +51,8 @@ function contentSecurityPolicy(): string {
     "font-src 'self'",
     `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.razorpay.com https://*.r2.cloudflarestorage.com${dev ? " ws://localhost:* http://localhost:* http://*.localhost:*" : ""}`,
     "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com https://*.razorpay.com",
+    // Inline event-handler attributes (onclick="..."); React never writes them.
+    "script-src-attr 'none'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -135,6 +137,21 @@ const nextConfig: NextConfig = {
             value: contentSecurityPolicy(),
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          // HTTPS only, for two years, subdomains too (not on a laptop).
+          ...(isDev || localConvex
+            ? []
+            : [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=63072000; includeSubDomains",
+                },
+              ]),
+          // Our window cannot be reached by pages we open, except the
+          // pop-ups a bank or UPI app opens from Razorpay Checkout.
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
           {
