@@ -889,7 +889,10 @@
     "searchPages": "পৃষ্ঠা",
     "searchCalendar": "পৰীক্ষাৰ কেলেণ্ডাৰ",
     "builtBy": "ৱেবছাইট নিৰ্মাণ: <agency>{name}</agency>",
-    "teachersAll": "কোনে কি পঢ়ায়"
+    "teachersAll": "কোনে কি পঢ়ায়",
+    "searchMove": "লৰচৰ কৰিবলৈ",
+    "searchGo": "খুলিবলৈ",
+    "searchClose": "বন্ধ কৰিবলৈ"
   },
   "Promos": {
     "code": "ক'ড",

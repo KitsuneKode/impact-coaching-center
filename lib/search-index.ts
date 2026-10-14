@@ -24,6 +24,23 @@ export type SearchItem = {
 }
 
 /**
+ * Other ways people type an exam: Assamese spellings, full names, the
+ * words students actually use. Added to anything filed under that exam.
+ */
+const EXAM_ALIASES: Record<string, string[]> = {
+  apsc: ["এপিএছচি", "এ পি এছ চি", "cce", "civil services", "অসম লোকসেৱা আয়োগ"],
+  adre: ["এডিআৰই", "এ ডি আৰ ই", "grade 3", "grade 4", "direct recruitment"],
+  police: ["আৰক্ষী", "পুলিচ", "si", "constable", "slprb"],
+  banking: ["বেংক", "ssc", "railway", "ৰেলৱে", "ibps", "sbi", "po", "clerk"],
+}
+function aliasesFor(...words: (string | undefined)[]) {
+  const text = words.join(" ").toLowerCase()
+  return Object.entries(EXAM_ALIASES).flatMap(([key, aliases]) =>
+    text.includes(key) ? aliases : []
+  )
+}
+
+/**
  * Everything worth finding, in one language, small enough to search in the
  * browser as the visitor types (a few dozen to a few hundred rows). Built on
  * the server from the same sources the pages read.
@@ -59,6 +76,7 @@ export async function buildSearchIndex(
         course.track,
         course.subtitle,
         ...course.tags,
+        ...aliasesFor(course.track, course.name),
       ].filter(Boolean),
     })
   }
@@ -76,6 +94,7 @@ export async function buildSearchIndex(
       keywords: [
         bundle.title.en,
         bundle.exam,
+        ...aliasesFor(bundle.exam),
         ...bundle.books.flatMap((book) =>
           [book.editions.en?.title, book.editions.as?.title].filter(
             (title): title is string => Boolean(title)
@@ -94,7 +113,12 @@ export async function buildSearchIndex(
         content.phrase(resource.exam),
       ].join(" · "),
       href: `/resources/${resource.slug}`,
-      keywords: [resource.kind, resource.exam, resource.description],
+      keywords: [
+        resource.kind,
+        resource.exam,
+        resource.description,
+        ...aliasesFor(resource.exam),
+      ],
     })
   }
 
@@ -104,7 +128,12 @@ export async function buildSearchIndex(
       title: pick(exam.name, locale),
       detail: pick(exam.body, locale),
       href: `/exams/${exam.slug}`,
-      keywords: [exam.name.en, exam.slug, pick(exam.summary, locale)],
+      keywords: [
+        exam.name.en,
+        exam.slug,
+        pick(exam.summary, locale),
+        ...aliasesFor(exam.slug, exam.name.en),
+      ],
     })
   }
 

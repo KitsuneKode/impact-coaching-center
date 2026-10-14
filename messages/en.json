@@ -689,7 +689,10 @@
     "searchPages": "Pages",
     "searchCalendar": "Exam calendar",
     "builtBy": "Website by <agency>{name}</agency>",
-    "teachersAll": "Who teaches what"
+    "teachersAll": "Who teaches what",
+    "searchMove": "to move",
+    "searchGo": "to open",
+    "searchClose": "to close"
   },
   "Promos": {
     "code": "Code",

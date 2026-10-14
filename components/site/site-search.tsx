@@ -10,7 +10,7 @@ import {
   IconSearch,
 } from "@tabler/icons-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import {
   Command,
@@ -37,6 +37,16 @@ const GROUPS: {
   { kind: "post", key: "searchPosts", icon: IconNews },
   { kind: "page", key: "searchPages", icon: IconFileText },
 ]
+
+/** How many of each kind the start list shows before anything is typed. */
+const START: Record<SearchItem["kind"], number> = {
+  course: 4,
+  set: 2,
+  notes: 2,
+  exam: 3,
+  post: 0,
+  page: 4,
+}
 
 /** One fetch per language per visit; the index is a few kilobytes. */
 const cache = new Map<string, Promise<SearchItem[]>>()
@@ -70,6 +80,9 @@ export function SiteSearch({
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<SearchItem[] | null>(null)
   const [failed, setFailed] = useState(false)
+  const [query, setQuery] = useState("")
+  // Before anything is typed, a short start list, not the whole index.
+  const browsing = query.trim() === ""
 
   useEffect(() => {
     if (variant !== "header") return
@@ -83,7 +96,10 @@ export function SiteSearch({
       ) {
         // Browsers bind Ctrl+K to the address bar, so this has to claim it.
         event.preventDefault()
-        setOpen((previous) => !previous)
+        setOpen((previous) => {
+          if (previous) setQuery("")
+          return !previous
+        })
       }
     }
     document.addEventListener("keydown", onKeyDown)
@@ -102,9 +118,34 @@ export function SiteSearch({
     }
   }, [open, items, locale])
 
+  // Ranked here rather than by the command list, so the best match leads
+  // whichever group it is in: groups follow their best item.
+  const groups = useMemo(() => {
+    if (!items) return []
+    return GROUPS.map((group) => {
+      const all = items.filter((item) => item.kind === group.kind)
+      const rows = browsing
+        ? all.slice(0, START[group.kind]).map((item) => ({ item, score: 1 }))
+        : all
+            .map((item) => ({
+              item,
+              score: searchScore(item.title, query, item.keywords),
+            }))
+            .filter((row) => row.score > 0)
+            .sort((a, b) => b.score - a.score)
+      return { ...group, rows, best: rows[0]?.score ?? 0 }
+    })
+      .filter((group) => group.rows.length)
+      .sort((a, b) => (browsing ? 0 : b.best - a.best))
+  }, [items, browsing, query])
+
   const go = (href: string) => {
     setOpen(false)
     router.push(href)
+  }
+  const toggle = (next: boolean) => {
+    setOpen(next)
+    if (!next) setQuery("")
   }
 
   return (
@@ -113,7 +154,7 @@ export function SiteSearch({
         type="button"
         data-site-search={variant}
         data-press
-        onClick={() => setOpen(true)}
+        onClick={() => toggle(true)}
         // Start loading on intent, so results are there when the box opens.
         onPointerEnter={() => void loadIndex(locale).catch(() => {})}
         onFocus={() => void loadIndex(locale).catch(() => {})}
@@ -125,19 +166,21 @@ export function SiteSearch({
       </button>
       <CommandDialog
         open={open}
-        onOpenChange={setOpen}
+        onOpenChange={toggle}
         title={t("searchOpen")}
         description={t("searchPlaceholder")}
-        className="sm:max-w-xl data-open:animate-none data-closed:animate-none"
+        // High on the screen and never taller than it, so results grow down
+        // into view instead of off the bottom.
+        className="top-[clamp(1rem,12dvh,7rem)] sm:max-w-xl data-open:animate-none data-closed:animate-none"
       >
-        <Command
-          // Our own scoring: word and prefix matches, never scattered letters.
-          filter={(value, search, keywords) =>
-            searchScore(value.split("\u0000")[0] ?? value, search, keywords)
-          }
-        >
-          <CommandInput placeholder={t("searchPlaceholder")} />
-          <CommandList className="max-h-[min(28rem,60dvh)]">
+        {/* Our own scoring: word and prefix matches, never scattered letters. */}
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder={t("searchPlaceholder")}
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList className="max-h-[min(28rem,calc(100dvh-clamp(1rem,12dvh,7rem)-7rem))]">
             {items === null ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                 {failed ? t("searchFailed") : t("searchLoading")}
@@ -145,43 +188,52 @@ export function SiteSearch({
             ) : (
               <>
                 <CommandEmpty>{t("searchEmpty")}</CommandEmpty>
-                {GROUPS.map(({ kind, key, icon: Icon }) => {
-                  const group = items.filter((item) => item.kind === kind)
-                  if (!group.length) return null
-                  return (
-                    <CommandGroup key={kind} heading={t(key)}>
-                      {group.map((item) => (
-                        <CommandItem
-                          key={`${kind}:${item.href}`}
-                          value={`${item.title}\u0000${item.href}`}
-                          keywords={item.keywords}
-                          onSelect={() => go(item.href)}
-                          className="min-h-11 gap-3"
-                        >
-                          <Icon
-                            aria-hidden
-                            size={18}
-                            stroke={1.5}
-                            className="flex-none text-muted-foreground"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate font-medium">
-                              {item.title}
-                            </span>
-                            {item.detail ? (
-                              <span className="tnum block truncate text-xs text-muted-foreground">
-                                {item.detail}
-                              </span>
-                            ) : null}
+                {groups.map(({ kind, key, icon: Icon, rows }) => (
+                  <CommandGroup key={kind} heading={t(key)}>
+                    {rows.map(({ item }) => (
+                      <CommandItem
+                        key={`${kind}:${item.href}`}
+                        value={`${kind}:${item.href}`}
+                        onSelect={() => go(item.href)}
+                        className="min-h-11 gap-3"
+                      >
+                        <Icon
+                          aria-hidden
+                          size={18}
+                          stroke={1.5}
+                          className="flex-none text-muted-foreground"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">
+                            {item.title}
                           </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  )
-                })}
+                          {item.detail ? (
+                            <span className="tnum block truncate text-xs text-muted-foreground">
+                              {item.detail}
+                            </span>
+                          ) : null}
+                        </span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ))}
               </>
             )}
           </CommandList>
+          <div
+            aria-hidden
+            className="hidden items-center gap-4 border-t border-border px-3 py-2 text-xs text-muted-foreground sm:flex"
+          >
+            <span>
+              <kbd data-kbd>↑</kbd> <kbd data-kbd>↓</kbd> {t("searchMove")}
+            </span>
+            <span>
+              <kbd data-kbd>Enter</kbd> {t("searchGo")}
+            </span>
+            <span className="ms-auto">
+              <kbd data-kbd>Esc</kbd> {t("searchClose")}
+            </span>
+          </div>
         </Command>
       </CommandDialog>
     </>
