@@ -682,11 +682,6 @@
 @layer components {
   /* -------------------------------------------------------------- 3D book */
 
-  @property --book-rest {
-    syntax: "<angle>";
-    inherits: false;
-    initial-value: 28deg;
-  }
   [data-book] {
     --book-bg: var(--highlight);
     --book-ink: var(--foreground);
@@ -708,7 +703,10 @@
     position: relative;
     aspect-ratio: 3 / 4;
     transform-style: preserve-3d;
-    rotate: y var(--book-rest);
+    /* rotate itself, never a custom property feeding it: the compositor can
+       run a rotate (the coverflow turns it on every scroll frame), but not a
+       custom-property animation. */
+    rotate: y 28deg;
   }
   [data-book-cover],
   [data-book-back] {
@@ -848,13 +846,13 @@
     scale: 0.98;
   }
   [data-book-open]:focus-visible [data-book-inner] {
-    --book-rest: 8deg;
+    rotate: y 8deg;
     translate: 0 -8px;
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-book-inner] {
       transition:
-        --book-rest 0.6s var(--ease-out-strong),
+        rotate 0.6s var(--ease-out-strong),
         translate 0.6s var(--ease-out-strong);
     }
     [data-book-shadow] {
@@ -868,7 +866,7 @@
   }
   @media (hover: hover) and (pointer: fine) {
     [data-book-open]:hover [data-book-inner] {
-      --book-rest: 8deg;
+      rotate: y 8deg;
       translate: 0 -8px;
     }
     [data-book-open]:hover [data-book-shadow] {
@@ -982,6 +980,21 @@
       0 26px 44px -30px
         color-mix(in oklch, var(--primary-deep) 40%, transparent);
   }
+  /* The hover shadow lives on its own layer and fades in, so hovering a
+     large card never repaints it frame by frame. */
+  [data-row-card]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
+      0 30px 50px -28px
+        color-mix(in oklch, var(--primary-deep) 55%, transparent);
+    opacity: 0;
+    pointer-events: none;
+  }
   [data-row-card]:active {
     scale: 0.99;
   }
@@ -991,20 +1004,18 @@
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-row-card] {
-      transition:
-        box-shadow 0.3s var(--ease-out-strong),
-        scale 0.16s var(--ease-out-strong);
+      transition: scale 0.16s var(--ease-out-strong);
+    }
+    [data-row-card]::after {
+      transition: opacity 0.3s var(--ease-out-strong);
     }
     [data-row-go] {
       transition: translate 0.3s var(--ease-out-strong);
     }
   }
   @media (hover: hover) and (pointer: fine) {
-    [data-row-card]:hover {
-      box-shadow:
-        0 0 0 1px color-mix(in oklch, var(--foreground) 10%, transparent),
-        0 30px 50px -28px
-          color-mix(in oklch, var(--primary-deep) 55%, transparent);
+    [data-row-card]:hover::after {
+      opacity: 1;
     }
     [data-row-card]:hover [data-row-go] {
       translate: 4px 0;
@@ -1088,7 +1099,7 @@
   }
   /* Inside the flow a book rests nearly square on; the row does the turning. */
   [data-flow] [data-book-inner] {
-    --book-rest: 10deg;
+    rotate: y 10deg;
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-flow] {
@@ -1112,13 +1123,13 @@
      left show their spine, books to the right their page edges. */
   @keyframes flow-turn {
     0% {
-      --book-rest: -34deg;
+      rotate: y -34deg;
     }
     50% {
-      --book-rest: 0deg;
+      rotate: y 0deg;
     }
     100% {
-      --book-rest: 34deg;
+      rotate: y 34deg;
     }
   }
   @supports (animation-timeline: view()) {
