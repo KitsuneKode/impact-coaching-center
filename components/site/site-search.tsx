@@ -192,7 +192,9 @@ export function SiteSearch({
               </p>
             ) : (
               <>
-                <CommandEmpty>{t("searchEmpty")}</CommandEmpty>
+                <CommandEmpty>
+                  {t("searchEmpty", { query: query.trim() })}
+                </CommandEmpty>
                 {groups.map(({ kind, key, icon: Icon, rows }) => (
                   <CommandGroup key={kind} heading={t(key)}>
                     {rows.map(({ item }) => (

@@ -81,7 +81,7 @@ function NameEditor({
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setError("Please enter your name.")
+      setError("Enter your name.")
       return
     }
     setError(null)
@@ -106,8 +106,8 @@ function NameEditor({
         result.reason === "revision-conflict"
           ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Please log in again."
-            : "Couldn't save your name. Please try again."
+            ? "Your session expired. Log in again to save."
+            : "Couldn't save your name. Check your connection and try again."
       )
       // What they typed stays on screen. A conflict is precisely when
       // discarding it is least forgivable.

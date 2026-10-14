@@ -32,7 +32,7 @@ const REFUSALS: Record<string, string> = {
     "You have an order on its way. You can delete your account once it's delivered or cancelled.",
   confirmation: "Type DELETE to confirm.",
   forbidden: "Staff and owner accounts are removed by an owner from the admin.",
-  anonymous: "Your session expired. Please log in again.",
+  anonymous: "Your session expired. Log in again, then delete.",
 }
 
 /** Self-serve account deletion, as the privacy policy promises. */
@@ -64,7 +64,8 @@ export function DeleteAccount({ role }: { role: string }) {
         const key =
           result.reason === "invalid-input" ? result.field : result.reason
         setError(
-          REFUSALS[key ?? ""] ?? "Something went wrong. Please try again."
+          REFUSALS[key ?? ""] ??
+            "Couldn't delete your account. Check your connection and try again."
         )
         return
       }

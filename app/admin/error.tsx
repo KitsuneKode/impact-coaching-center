@@ -19,7 +19,7 @@ export default function AdminError({
   }, [error])
 
   return (
-    <PageShell density="working" title="Something went wrong.">
+    <PageShell density="working" title="Not loaded.">
       <StatePanel
         icon={<IconAlertTriangle stroke={1.75} />}
         title="This screen did not load"

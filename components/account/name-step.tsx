@@ -139,7 +139,7 @@ function NameForm({ viewer }: { viewer: Viewer }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setError("Please enter your name.")
+      setError("Enter your name.")
       return
     }
     setError(null)
@@ -169,8 +169,8 @@ function NameForm({ viewer }: { viewer: Viewer }) {
         result.reason === "revision-conflict"
           ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Please log in again."
-            : "Couldn't save your name. Please try again."
+            ? "Your session expired. Log in again to save."
+            : "Couldn't save your name. Check your connection and try again."
       )
       // Input is deliberately not cleared. The runbook makes preserving what
       // somebody typed an acceptance gate, and a conflict is exactly when

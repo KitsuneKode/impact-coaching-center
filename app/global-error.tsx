@@ -11,7 +11,7 @@ export default function GlobalError({
   return (
     <html lang="en-IN">
       <head>
-        <title>Something went wrong | Impact Career Tutorials</title>
+        <title>Not loaded | Impact Career Tutorials</title>
       </head>
       <body
         style={{
@@ -39,9 +39,9 @@ export default function GlobalError({
               margin: 0,
             }}
           >
-            Something went wrong.{" "}
+            The site did not load.{" "}
             <span style={{ color: "oklch(0.5 0.008 262)" }}>
-              The site could not start. Trying again often works.
+              Nothing you did caused it. Trying again usually works.
             </span>
           </h1>
           <div style={{ marginTop: "2.5rem", display: "flex", gap: "0.75rem" }}>

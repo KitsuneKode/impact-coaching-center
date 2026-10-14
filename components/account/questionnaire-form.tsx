@@ -103,8 +103,8 @@ export function QuestionnaireForm({
           result.reason === "revision-conflict"
             ? "This changed in another tab. Check your answers and save again."
             : result.reason === "anonymous"
-              ? "Your session expired. Please log in again."
-              : "Couldn't save your answers. Please try again."
+              ? "Your session expired. Log in again to save."
+              : "Couldn't save your answers. Check your connection and try again."
         )
         return
       }
