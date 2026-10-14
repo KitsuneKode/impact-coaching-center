@@ -217,7 +217,13 @@ export function PromoBanner({
 }
 
 /** Short videos in a row: the offer said by the people making it. */
-export function PromoReel({ promo }: { promo: Promo }) {
+export function PromoReel({
+  promo,
+  onAction,
+}: {
+  promo: Promo
+  onAction?: () => void
+}) {
   const t = useTranslations("Promos")
   return (
     <section
@@ -276,6 +282,7 @@ export function PromoReel({ promo }: { promo: Promo }) {
           <a
             href={promo.href || "#"}
             {...external(promo.href)}
+            onClick={onAction}
             data-press
             data-cta="amber"
             className="mbs-6 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"

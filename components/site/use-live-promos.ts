@@ -1,8 +1,8 @@
 "use client"
 
-import { useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { useLocale } from "next-intl"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { api } from "@/convex/_generated/api"
 import { usePathname } from "@/i18n/navigation"
@@ -71,3 +71,50 @@ export function rememberClosed(key: string) {
 /** Whether a closed promotion has rested long enough to show again. */
 export const isAvailable = (promo: LivePromo, now: number) =>
   isRested(closedAt(storeKey(promo)), promo.restDays, now)
+
+type PromoEvent = "view" | "click" | "close"
+
+/**
+ * Counts views, clicks and closes for the admin. A view counts once per
+ * visit; failures are dropped, the visitor never waits on them.
+ */
+export function usePromoTrack() {
+  const track = useMutation(api.campaigns.track)
+  return useCallback(
+    (promo: Pick<LivePromo, "id">, event: PromoEvent) => {
+      if (event === "view") {
+        const key = `ict-promo-seen:${promo.id}`
+        try {
+          if (sessionStorage.getItem(key)) return
+          sessionStorage.setItem(key, "1")
+        } catch {
+          /* blocked storage: count it anyway */
+        }
+      }
+      void track({ id: promo.id, event }).catch(() => {})
+    },
+    [track]
+  )
+}
+
+/** Calls `onSeen` once, when half of the element has been on screen. */
+export function useSeen<T extends Element>(onSeen: () => void) {
+  const ref = useRef<T>(null)
+  const done = useRef(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || done.current) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || done.current) return
+        done.current = true
+        observer.disconnect()
+        onSeen()
+      },
+      { threshold: 0.5 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [onSeen])
+  return ref
+}

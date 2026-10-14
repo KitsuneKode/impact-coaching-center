@@ -8,6 +8,7 @@ import {
 } from "../lib/campaigns"
 import { IMAGE_MAX_BYTES } from "../lib/catalog"
 import { recordAudit } from "./audit"
+import { indiaDay } from "./contactTaps"
 import {
   checkRevision,
   forbidden,
@@ -303,3 +304,80 @@ export async function applySetCampaignStatus(
   })
   return { ok: true as const, revision }
 }
+
+const EVENT = v.union(v.literal("view"), v.literal("click"), v.literal("close"))
+const COUNTER = { view: "views", click: "clicks", close: "closes" } as const
+
+/**
+ * Count one view, click or close of a live promotion. Anonymous, like the
+ * contact taps: it adds one to that day's total and nothing else. The
+ * browser sends each view once per visit.
+ */
+export const track = mutation({
+  args: { id: v.id("campaigns"), event: EVENT },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.id)
+    if (!campaign || campaign.status !== "live") return null
+    const day = indiaDay(Date.now())
+    const field = COUNTER[args.event]
+    const row = await ctx.db
+      .query("campaignStats")
+      .withIndex("by_campaignId_and_day", (q) =>
+        q.eq("campaignId", args.id).eq("day", day)
+      )
+      .unique()
+    if (row) await ctx.db.patch(row._id, { [field]: row[field] + 1 })
+    else
+      await ctx.db.insert("campaignStats", {
+        campaignId: args.id,
+        day,
+        views: 0,
+        clicks: 0,
+        closes: 0,
+        [field]: 1,
+      })
+    return null
+  },
+})
+
+const STATS_DAYS = 30
+
+/** Each promotion's last 30 days, for the admin list. The browser passes
+    the time (queries never read the clock). */
+export const adminCampaignStats = query({
+  args: { now: v.number() },
+  returns: v.array(
+    v.object({
+      id: v.id("campaigns"),
+      views: v.number(),
+      clicks: v.number(),
+      closes: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const viewer = await requireGrant(ctx, "promotions")
+    if (!viewer.ok) return []
+    const since = indiaDay(args.now - (STATS_DAYS - 1) * 86_400_000)
+    const campaigns = await ctx.db.query("campaigns").take(ADMIN_LIST_MAX)
+    return Promise.all(
+      campaigns.map(async (c) => {
+        const days = await ctx.db
+          .query("campaignStats")
+          .withIndex("by_campaignId_and_day", (q) =>
+            q.eq("campaignId", c._id).gte("day", since)
+          )
+          .take(STATS_DAYS)
+        return days.reduce(
+          (sum, d) => ({
+            id: c._id,
+            views: sum.views + d.views,
+            clicks: sum.clicks + d.clicks,
+            closes: sum.closes + d.closes,
+          }),
+          { id: c._id, views: 0, clicks: 0, closes: 0 }
+        )
+      })
+    )
+  },
+})

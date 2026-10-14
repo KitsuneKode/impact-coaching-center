@@ -7,7 +7,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { convexConfigured } from "@/app/providers"
-import { NoPromotions } from "@/components/admin/promotion-editor"
+import { NoPromotions, pagesLabel } from "@/components/admin/promotion-editor"
 import { Badge } from "@/components/ui/badge"
 import { Button, ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
@@ -54,6 +54,10 @@ function Promotions() {
   const setStatus = useMutation(api.campaigns.setCampaignStatus)
   const [now, setNow] = useState(() => Date.now())
   const [pending, setPending] = useState<string | null>(null)
+  // The hour, so the stats subscription is not renewed every minute.
+  const hour = Math.floor(now / 3_600_000) * 3_600_000
+  const stats = useQuery(api.campaigns.adminCampaignStats, { now: hour })
+  const statsOf = new Map(stats?.map((row) => [row.id, row]))
 
   // Scheduled and ended come from the dates, so the clock keeps the badges honest.
   useEffect(() => {
@@ -139,12 +143,10 @@ function Promotions() {
                       <Badge variant={phase.variant}>{phase.label}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {CAMPAIGN_KIND_LABEL[c.kind]} ·{" "}
-                      {c.routes.length === 0
-                        ? "Every page"
-                        : c.routes.join(", ")}{" "}
-                      · Priority {c.priority}
+                      {CAMPAIGN_KIND_LABEL[c.kind]} · {pagesLabel(c.routes)} ·
+                      Priority {c.priority}
                     </p>
+                    <Stats row={statsOf.get(c.id)} />
                     {from || until ? (
                       <p className="tnum mt-0.5 text-sm text-muted-foreground">
                         {from ? `From ${from}` : "From now"}
@@ -181,5 +183,36 @@ function Promotions() {
         ) : null}
       </div>
     </PageShell>
+  )
+}
+
+const count = new Intl.NumberFormat("en-IN")
+
+/** The last 30 days: seen, clicked (with the rate), closed. */
+function Stats({
+  row,
+}: {
+  row: { views: number; clicks: number; closes: number } | undefined
+}) {
+  if (!row) return null
+  if (row.views === 0)
+    return (
+      <p className="mt-0.5 text-sm text-muted-foreground">
+        Not seen in the last 30 days
+      </p>
+    )
+  const rate = ((row.clicks / row.views) * 100).toFixed(1)
+  return (
+    <p className="tnum mt-0.5 text-sm text-muted-foreground">
+      <span className="font-medium text-foreground">
+        {count.format(row.views)}
+      </span>{" "}
+      seen ·{" "}
+      <span className="font-medium text-foreground">
+        {count.format(row.clicks)}
+      </span>{" "}
+      {row.clicks === 1 ? "click" : "clicks"} ({rate}%) ·{" "}
+      {count.format(row.closes)} closed · 30 days
+    </p>
   )
 }

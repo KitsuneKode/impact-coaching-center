@@ -432,6 +432,16 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_status_and_priority", ["status", "priority"]),
 
+  /** Per promotion, per India day: how often it was seen, clicked, closed. */
+  campaignStats: defineTable({
+    campaignId: v.id("campaigns"),
+    /** India date, e.g. "2026-10-14". */
+    day: v.string(),
+    views: v.number(),
+    clicks: v.number(),
+    closes: v.number(),
+  }).index("by_campaignId_and_day", ["campaignId", "day"]),
+
   /** The signed-in shopper's cart; guests keep theirs in the browser. */
   carts: defineTable({
     personId: v.id("persons"),

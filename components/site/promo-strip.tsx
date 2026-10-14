@@ -2,7 +2,7 @@
 
 import { IconArrowRight, IconX } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import {
@@ -10,6 +10,7 @@ import {
   rememberClosed,
   storeKey,
   useLivePromos,
+  usePromoTrack,
 } from "@/components/site/use-live-promos"
 
 /** The announcement strip: Pulse's ink band above the header. */
@@ -27,8 +28,15 @@ function Strip() {
   const hidden =
     !bar || closed === key || (now !== null && !isAvailable(bar, now))
 
+  const track = usePromoTrack()
+  // The strip is at the top of the page: showing it is seeing it.
+  useEffect(() => {
+    if (bar && !hidden) track(bar, "view")
+  }, [bar, hidden, track])
+
   const dismiss = () => {
-    if (!key) return
+    if (!key || !bar) return
+    track(bar, "close")
     rememberClosed(key)
     setClosed(key)
   }
@@ -57,6 +65,7 @@ function Strip() {
             {bar.cta ? (
               <a
                 href={bar.href}
+                onClick={() => track(bar, "click")}
                 aria-label={bar.cta}
                 className="flex h-11 flex-none items-center gap-1.5 text-sm font-semibold whitespace-nowrap text-highlight"
               >

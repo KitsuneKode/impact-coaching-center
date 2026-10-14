@@ -13,6 +13,8 @@ import {
 import {
   isAvailable,
   rememberClosed,
+  usePromoTrack,
+  useSeen,
   storeKey,
   useLivePromos,
   type LivePromo,
@@ -69,6 +71,7 @@ export function LivePromos() {
 
 function Live() {
   const { rows, now } = useLivePromos()
+  const track = usePromoTrack()
   const [closed, setClosed] = useState<readonly string[]>([])
   if (!rows || now === null) return null
 
@@ -91,22 +94,53 @@ function Live() {
   return (
     <>
       {banner ? (
-        <PromoBanner
-          promo={toPromo(banner)}
-          onClose={() => close(banner)}
-          onAction={() => close(banner)}
-        />
+        <Seen key={storeKey(banner)} onSeen={() => track(banner, "view")}>
+          <PromoBanner
+            promo={toPromo(banner)}
+            onClose={() => {
+              track(banner, "close")
+              close(banner)
+            }}
+            onAction={() => {
+              track(banner, "click")
+              close(banner)
+            }}
+          />
+        </Seen>
       ) : null}
-      {reel ? <PromoReel promo={toPromo(reel)} /> : null}
+      {reel ? (
+        <Seen key={storeKey(reel)} onSeen={() => track(reel, "view")}>
+          <PromoReel
+            promo={toPromo(reel)}
+            onAction={() => track(reel, "click")}
+          />
+        </Seen>
+      ) : null}
       {modal ? (
         <TimedPopup
           key={storeKey(modal)}
           row={modal}
+          onShow={() => track(modal, "view")}
+          onAction={() => track(modal, "click")}
+          onDismiss={() => track(modal, "close")}
           onDone={() => close(modal)}
         />
       ) : null}
     </>
   )
+}
+
+/** Counts a view once the promotion is half on screen. */
+function Seen({
+  onSeen,
+  children,
+}: {
+  onSeen: () => void
+  children: React.ReactNode
+}) {
+  const [seen] = useState(() => onSeen)
+  const ref = useSeen<HTMLDivElement>(seen)
+  return <div ref={ref}>{children}</div>
 }
 
 /** Whether the visitor is busy: a field in focus, or a dialog (a video) open. */
@@ -123,9 +157,27 @@ function busy() {
  * campaign's own delay, never on a hidden tab or over a video or a form,
  * never after they have tapped WhatsApp or call, and once per visit.
  */
-function TimedPopup({ row, onDone }: { row: LivePromo; onDone: () => void }) {
+function TimedPopup({
+  row,
+  onShow,
+  onAction,
+  onDismiss,
+  onDone,
+}: {
+  row: LivePromo
+  onShow: () => void
+  onAction: () => void
+  onDismiss: () => void
+  onDone: () => void
+}) {
   const [open, setOpen] = useState(false)
   const shown = useRef(false)
+  const acted = useRef(false)
+  // The latest callback, read when the timer fires.
+  const onShowRef = useRef(onShow)
+  useEffect(() => {
+    onShowRef.current = onShow
+  })
   const popup = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -183,6 +235,7 @@ function TimedPopup({ row, onDone }: { row: LivePromo; onDone: () => void }) {
       shown.current = true
       session.set(SHOWN_THIS_VISIT)
       setOpen(true)
+      onShowRef.current()
     }, 500)
 
     return () => {
@@ -197,7 +250,9 @@ function TimedPopup({ row, onDone }: { row: LivePromo; onDone: () => void }) {
       open={open}
       onOpenChange={(next) => {
         setOpen(next)
-        if (!next) onDone()
+        if (next) return
+        if (!acted.current) onDismiss()
+        onDone()
       }}
     >
       <DialogPrimitive.Portal>
@@ -210,7 +265,11 @@ function TimedPopup({ row, onDone }: { row: LivePromo; onDone: () => void }) {
         >
           <PromoCard
             promo={toPromo(row)}
-            onAction={() => setOpen(false)}
+            onAction={() => {
+              acted.current = true
+              onAction()
+              setOpen(false)
+            }}
             title={(text) => (
               <DialogPrimitive.Title className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-balance">
                 {text}

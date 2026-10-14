@@ -20,7 +20,10 @@ import {
   FieldError,
   FieldGroup,
   FieldLabel,
+  FieldLegend,
+  FieldSet,
 } from "@/components/ui/field"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Textarea } from "@/components/ui/textarea"
@@ -597,26 +600,11 @@ function PromotionForm({
             )}
           </Field>
 
-          <Field {...bad("pages")}>
-            <FieldLabel htmlFor="p-routes">Pages</FieldLabel>
-            <Textarea
-              id="p-routes"
-              value={draft.routes}
-              onChange={(e) => set("routes", e.target.value)}
-              aria-invalid={!!errors.pages}
-              rows={3}
-              spellCheck={false}
-              placeholder={"/courses\n/exams"}
-            />
-            {errors.pages ? (
-              <FieldError>{errors.pages}</FieldError>
-            ) : (
-              <FieldDescription>
-                One per line. Leave empty to show everywhere. /courses also
-                covers every course page.
-              </FieldDescription>
-            )}
-          </Field>
+          <PagesPicker
+            value={draft.routes}
+            onChange={(routes) => set("routes", routes)}
+            error={errors.pages}
+          />
 
           <div className="grid gap-6 sm:grid-cols-2">
             <Field {...bad("start")}>
@@ -645,9 +633,7 @@ function PromotionForm({
 
           <div className="grid gap-6 sm:grid-cols-3">
             <Field {...bad("delay")}>
-              <FieldLabel htmlFor="p-delay">
-                Earliest after (seconds)
-              </FieldLabel>
+              <FieldLabel htmlFor="p-delay">Pop-up waits (seconds)</FieldLabel>
               <Input
                 id="p-delay"
                 inputMode="numeric"
@@ -658,11 +644,15 @@ function PromotionForm({
               {errors.delay ? (
                 <FieldError>{errors.delay}</FieldError>
               ) : (
-                <FieldDescription>Pop-ups only.</FieldDescription>
+                <FieldDescription>
+                  At least this long on the page first. Pop-ups only.
+                </FieldDescription>
               )}
             </Field>
             <Field {...bad("rest days")}>
-              <FieldLabel htmlFor="p-rest">Rests after close (days)</FieldLabel>
+              <FieldLabel htmlFor="p-rest">
+                Hidden after closing (days)
+              </FieldLabel>
               <Input
                 id="p-rest"
                 inputMode="numeric"
@@ -670,7 +660,13 @@ function PromotionForm({
                 onChange={(e) => set("restDays", e.target.value)}
                 aria-invalid={!!errors["rest days"]}
               />
-              <FieldError>{errors["rest days"]}</FieldError>
+              {errors["rest days"] ? (
+                <FieldError>{errors["rest days"]}</FieldError>
+              ) : (
+                <FieldDescription>
+                  Before the same visitor sees it again.
+                </FieldDescription>
+              )}
             </Field>
             <Field {...bad("priority")}>
               <FieldLabel htmlFor="p-priority">Priority</FieldLabel>
@@ -684,7 +680,9 @@ function PromotionForm({
               {errors.priority ? (
                 <FieldError>{errors.priority}</FieldError>
               ) : (
-                <FieldDescription>Higher shows first.</FieldDescription>
+                <FieldDescription>
+                  When two compete, the higher shows.
+                </FieldDescription>
               )}
             </Field>
           </div>
@@ -781,5 +779,108 @@ function PromotionForm({
         </aside>
       </form>
     </Shell>
+  )
+}
+
+/** The site's sections, as an editor thinks of them. Each covers its sub-pages. */
+const SECTIONS = [
+  ["/", "Home page"],
+  ["/courses", "Courses"],
+  ["/books", "Books"],
+  ["/resources", "Free notes"],
+  ["/exams", "Exam guides"],
+  ["/success-stories", "Results"],
+  ["/teachers", "Teachers"],
+  ["/library", "Library"],
+  ["/blog", "Blog"],
+  ["/contact", "Contact"],
+  ["/assist", "ASSIST"],
+] as const
+const SECTION_PATHS = new Set<string>(SECTIONS.map(([path]) => path))
+
+/** "Courses, Books" for the list; single pages stay as their address. */
+export function pagesLabel(routes: readonly string[]) {
+  if (routes.length === 0) return "Every page"
+  const names = new Map<string, string>(SECTIONS)
+  return routes.map((route) => names.get(route) ?? route).join(", ")
+}
+
+/**
+ * Where a promotion shows: tick sections, or none for every page. Single
+ * pages (a course, a post) go in "Other pages". Edits the same one-path-per-
+ * line text the form saves, so nothing about saving changes.
+ */
+function PagesPicker({
+  value,
+  onChange,
+  error,
+}: {
+  value: string
+  onChange: (routes: string) => void
+  error?: string
+}) {
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+  const ticked = new Set(lines.filter((line) => SECTION_PATHS.has(line)))
+  const others = lines.filter((line) => !SECTION_PATHS.has(line))
+  const write = (sections: Set<string>, extra: string[]) =>
+    onChange(
+      [
+        ...SECTIONS.map(([path]) => path).filter((p) => sections.has(p)),
+        ...extra,
+      ].join("\n")
+    )
+
+  return (
+    <FieldSet data-invalid={!!error || undefined}>
+      <FieldLegend variant="label">Where it shows</FieldLegend>
+      <FieldDescription>
+        {lines.length === 0
+          ? "Every page. Tick sections to narrow it down."
+          : "Only the ticked sections, and every page inside them."}
+      </FieldDescription>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+        {SECTIONS.map(([path, label]) => (
+          <Field key={path} orientation="horizontal">
+            <Checkbox
+              id={`p-route-${path}`}
+              checked={ticked.has(path)}
+              onCheckedChange={(checked) => {
+                const next = new Set(ticked)
+                if (checked) next.add(path)
+                else next.delete(path)
+                write(next, others)
+              }}
+            />
+            <FieldLabel htmlFor={`p-route-${path}`} className="font-normal">
+              {label}
+            </FieldLabel>
+          </Field>
+        ))}
+      </div>
+      <Field>
+        <FieldLabel htmlFor="p-routes-other">Other pages (optional)</FieldLabel>
+        <Input
+          id="p-routes-other"
+          value={others.join(" ")}
+          onChange={(event) =>
+            write(ticked, event.target.value.split(/[\s,]+/).filter(Boolean))
+          }
+          spellCheck={false}
+          placeholder="/courses/lakhya-2027"
+          aria-invalid={!!error}
+        />
+        {error ? (
+          <FieldError>{error}</FieldError>
+        ) : (
+          <FieldDescription>
+            Single pages, by their address after the domain. Separate with
+            spaces.
+          </FieldDescription>
+        )}
+      </Field>
+    </FieldSet>
   )
 }
