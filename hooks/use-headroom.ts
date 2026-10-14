@@ -5,8 +5,9 @@ import { useEffect, useState } from "react"
 export type Headroom = "top" | "pinned" | "hidden"
 
 /**
- * Where the site's top chrome should be: at the top of the page ("top"),
- * scrolled but showing ("pinned"), or slid away while reading ("hidden").
+ * Where the site's top chrome is: at the top of the page ("top"), scrolled
+ * with everything showing ("pinned"), or reading down ("hidden"), when the
+ * CSS folds away what can go (the promo strip; the header stays).
  * It hides after `hideAfter` px of page when scrolling down, and comes back
  * on any deliberate scroll up (`tolerance` px), when focus moves into
  * `keep`, or while the page is scroll-locked (a menu or dialog is open).

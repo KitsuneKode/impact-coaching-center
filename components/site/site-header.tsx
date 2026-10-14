@@ -15,9 +15,9 @@ import { SiteMenu } from "./site-menu"
 
 /**
  * Pulse's header, on every page. At the top it floats over the page, in white
- * over a blue hero. Scrolled, it becomes a floating paper bar that slides
- * away (with the promo strip) while you read down and comes back as soon as
- * you scroll up. Its negative margin lets each hero start underneath it, so
+ * over a blue hero. Scrolled, it shrinks into a floating paper bar that
+ * stays; the promo strip above it folds away while you read down and comes
+ * back when you scroll up. Its negative margin lets each hero start underneath it, so
  * nothing reflows. The states live in globals.css under "Site header".
  */
 export function SiteHeader() {

@@ -529,13 +529,14 @@
     gap: clamp(1rem, -1rem + 3vw, 2rem);
     block-size: 100%;
   }
-  /* Scrolled: a floating paper bar a little in from the edges, so the page
-     shows around it instead of tinting a full-width band. */
+  /* Scrolled: the header stays, shrunk into a floating paper bar a little in
+     from the edges, so the page shows around it instead of tinting a
+     full-width band. */
   [data-site-header-row]::before {
     content: "";
     position: absolute;
     z-index: -1;
-    inset-block: 10px;
+    inset-block: 12px;
     /* 12px outside the content, inside the page gutter (container-page's). */
     inset-inline: calc(clamp(1.25rem, 0.4rem + 2.6vw, 2rem) - 0.75rem);
     border-radius: 20px;
@@ -547,18 +548,25 @@
     opacity: 0;
     scale: 0.985;
   }
+  [data-site-header][data-stuck] {
+    translate: 0 -6px;
+  }
   [data-site-header][data-stuck] [data-site-header-row]::before {
     opacity: 1;
     scale: 1;
   }
+  [data-site-header][data-stuck] [data-site-header-row] > a:first-child {
+    scale: 0.9;
+  }
 
-  /* Reading down, the strip and header slide away together; any scroll up
-     brings them back (hooks/use-headroom.ts writes data-chrome). */
+  /* Reading down, the promo strip folds up and the header rises into its
+     place; any scroll up brings the strip back (hooks/use-headroom.ts
+     writes data-chrome). The header itself never leaves. */
   :root[data-chrome="hidden"] [data-promo-strip] {
     translate: 0 -100%;
   }
-  :root[data-chrome="hidden"] [data-site-header] {
-    translate: 0 calc(-100% - var(--strip-height));
+  :root[data-chrome="hidden"] [data-site-header][data-stuck] {
+    translate: 0 calc(-1 * var(--strip-height) - 6px);
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-site-header] {
@@ -566,7 +574,8 @@
         color 0.2s var(--ease-out-strong),
         translate 0.24s var(--ease-out-strong);
     }
-    [data-site-header-row]::before {
+    [data-site-header-row]::before,
+    [data-site-header-row] > a:first-child {
       transition:
         opacity 0.2s var(--ease-out-strong),
         scale 0.2s var(--ease-out-strong);
