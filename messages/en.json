@@ -98,7 +98,13 @@
     "label": "Student voices",
     "claim": "Students, in their own words.",
     "rest": "Every one of these is a review ICT published on their channel, with the student's name and batch.",
-    "subtitle": "Student review, {exam}"
+    "subtitle": "Student review, {exam}",
+    "filter": "Show students from",
+    "all": "All {count}",
+    "previous": "Previous student",
+    "next": "Next student",
+    "listLabel": "{count, plural, one {# student review} other {# student reviews}}",
+    "hearAll": "Hear from all {count} students"
   },
   "Courses": {
     "label": "Courses",

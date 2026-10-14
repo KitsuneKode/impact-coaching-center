@@ -1,15 +1,17 @@
-import { IconPlayerPlayFilled } from "@tabler/icons-react"
+import { IconArrowRight, IconPlayerPlayFilled } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 import type { CSSProperties } from "react"
 
 import { VideoDialog } from "@/components/marketing/video-dialog"
+import { Link } from "@/i18n/navigation"
 import { Reveal } from "@/components/motion/reveal"
 import { studentReviews, thumb } from "@/lib/stories"
 
 /** Five students fanned out like a hand of cards; each plays its Short in place. */
 export function StudentFan() {
   const t = useTranslations("Pulse")
+  const voices = useTranslations("Voices")
   const list = studentReviews.slice(0, 5)
   return (
     <section
@@ -76,6 +78,16 @@ export function StudentFan() {
             {review.name}, {review.exam}
           </span>
         ))}
+      </p>
+      <p className="container-page mbs-6 text-center">
+        <Link
+          href="/success-stories#voices"
+          data-press
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-secondary px-5 font-semibold"
+        >
+          {voices("hearAll", { count: studentReviews.length })}
+          <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
+        </Link>
       </p>
     </section>
   )

@@ -2420,3 +2420,58 @@
     }
   }
 }
+
+/* Voices carousel (components/marketing/voices-carousel.tsx): a row that
+   snaps each card to the centre; off-centre cards tilt back and dim, driven
+   by their own position in the row, never by script. */
+@layer components {
+  [data-voices-track] {
+    --voice: clamp(12rem, 8rem + 18vw, 16rem);
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-block: 1.5rem;
+    padding-inline: calc(50% - var(--voice) / 2);
+    perspective: 1200px;
+  }
+  [data-voices-track]::-webkit-scrollbar {
+    display: none;
+  }
+  [data-voices-track]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: -2px;
+  }
+  [data-voice] {
+    flex: none;
+    inline-size: var(--voice);
+    scroll-snap-align: center;
+  }
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      [data-voice] {
+        animation: voice-depth linear both;
+        animation-timeline: view(inline);
+      }
+    }
+  }
+}
+@keyframes voice-depth {
+  0% {
+    scale: 0.86;
+    rotate: y 22deg;
+    opacity: 0.55;
+  }
+  50% {
+    scale: 1;
+    rotate: y 0deg;
+    opacity: 1;
+  }
+  100% {
+    scale: 0.86;
+    rotate: y -22deg;
+    opacity: 0.55;
+  }
+}
