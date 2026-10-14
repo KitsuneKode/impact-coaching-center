@@ -17,11 +17,13 @@ import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { Dropzone, DropToReplace } from "@/components/admin/dropzone"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { IMAGE_MAX_BYTES } from "@/lib/catalog"
+import { tracks } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 /** An image held by a record: stored in Convex, plus something to show. */
@@ -653,3 +655,44 @@ export function PdfField({
 
 /** The same cap the server checks (convex/files.ts). */
 const PDF_UPLOAD_MAX_BYTES = 60 * 1024 * 1024
+
+/**
+ * The exam a book or note belongs to. It is the group the site files it
+ * under, so the known groups are offered as you type; a new one is still
+ * allowed when ICT starts teaching a new exam.
+ */
+export function ExamInput({
+  id,
+  value,
+  onChange,
+  invalid,
+  extra = [],
+}: {
+  id: string
+  value: string
+  onChange: (next: string) => void
+  invalid?: boolean
+  extra?: readonly string[]
+}) {
+  const options = [...new Set([...tracks.map((track) => track.exam), ...extra])]
+  return (
+    <>
+      <Input
+        id={id}
+        list={`${id}-groups`}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-invalid={invalid}
+        autoComplete="off"
+        placeholder={tracks[0]?.exam}
+      />
+      <datalist id={`${id}-groups`}>
+        {options.map((exam) => (
+          <option key={exam} value={exam}>
+            {exam}
+          </option>
+        ))}
+      </datalist>
+    </>
+  )
+}

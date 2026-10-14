@@ -8,6 +8,7 @@ import { toast } from "sonner"
 
 import {
   CATALOG_REFUSALS,
+  ExamInput,
   ImageField,
   PageImagesField,
   toStored,
@@ -266,12 +267,11 @@ function BookForm({
             <div className="grid gap-6 sm:grid-cols-2">
               <Field data-invalid={invalid("exam") || undefined}>
                 <FieldLabel htmlFor="book-exam">Exam</FieldLabel>
-                <Input
+                <ExamInput
                   id="book-exam"
                   value={draft.exam}
-                  onChange={(e) => setDraft({ ...draft, exam: e.target.value })}
-                  aria-invalid={invalid("exam")}
-                  autoComplete="off"
+                  onChange={(next) => setDraft({ ...draft, exam: next })}
+                  invalid={invalid("exam")}
                 />
                 <FieldError>
                   {invalid("exam") ? error?.message : null}

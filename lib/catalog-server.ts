@@ -24,28 +24,35 @@ const configured = () => Boolean(clientEnv.NEXT_PUBLIC_CONVEX_URL)
  */
 const CATALOG_SECONDS = 300
 
-const cachedBundles = unstable_cache(
+/*
+ * In development every read goes straight to Convex, so a seed or an edit
+ * in the dashboard shows on the next reload rather than five minutes on.
+ */
+const cachedRead: typeof unstable_cache =
+  process.env.NODE_ENV === "development" ? (read) => read : unstable_cache
+
+const cachedBundles = cachedRead(
   (): Promise<PublicBundle[]> => fetchQuery(api.catalog.bundles),
   ["bundles"],
   { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
 )
-const cachedBundle = unstable_cache(
+const cachedBundle = cachedRead(
   (slug: string): Promise<PublicBundle | null> =>
     fetchQuery(api.catalog.bundle, { slug }),
   ["bundle"],
   { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
 )
-const cachedResources = unstable_cache(
+const cachedResources = cachedRead(
   (): Promise<Resource[]> => fetchQuery(api.catalog.resources),
   ["resources"],
   { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
 )
-const cachedPosts = unstable_cache(
+const cachedPosts = cachedRead(
   (): Promise<PostCard[]> => fetchQuery(api.blog.posts),
   ["posts"],
   { revalidate: CATALOG_SECONDS, tags: ["blog"] }
 )
-const cachedPost = unstable_cache(
+const cachedPost = cachedRead(
   (slug: string): Promise<Post | null> => fetchQuery(api.blog.post, { slug }),
   ["post"],
   { revalidate: CATALOG_SECONDS, tags: ["blog"] }
@@ -61,7 +68,7 @@ export const publishedBundle = cache(
 )
 
 /* Courses follow ClassPlus every six hours; pages need not be fresher. */
-const cachedCourses = unstable_cache(
+const cachedCourses = cachedRead(
   (): Promise<PublicCourse[]> => fetchQuery(api.courses.list),
   ["courses"],
   { revalidate: 900, tags: ["courses"] }
@@ -82,6 +89,12 @@ export const publishedResources = cache(async (): Promise<Resource[]> =>
   configured() ? cachedResources() : []
 )
 
+/** One published resource, from the same cached list. */
+export const publishedResource = cache(
+  async (slug: string): Promise<Resource | null> =>
+    (await publishedResources()).find((r) => r.slug === slug) ?? null
+)
+
 export const publishedPosts = cache(async (): Promise<PostCard[]> =>
   configured() ? cachedPosts() : []
 )
@@ -93,7 +106,7 @@ export const publishedPost = cache(
 
 /* Dates change a few times a month; an hour's staleness keeps the exam
    pages static without a deploy per notice. */
-const cachedDates = unstable_cache(
+const cachedDates = cachedRead(
   (since: string): Promise<ExamDate[]> =>
     fetchQuery(api.calendar.dates, { since }),
   ["exam-dates"],

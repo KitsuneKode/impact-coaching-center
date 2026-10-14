@@ -86,6 +86,43 @@ export default async function ResourcesPage({
         )}
       </section>
 
+      {resources.length ? (
+        /*
+         * Every file as a plain link, rendered on the server: the folder
+         * browser above runs in the browser, so this is what search engines
+         * follow to each note's own page.
+         */
+        <section aria-labelledby="every-file" className="container-page pbe-20">
+          <h2 id="every-file" className="type-display-sm">
+            {t("everyFile")}
+          </h2>
+          <p className="mbs-2 text-muted-foreground">{t("everyFileNote")}</p>
+          <div className="mbs-8 grid gap-8 md:grid-cols-3">
+            {[...new Set(resources.map((r) => r.exam))].map((exam) => (
+              <div key={exam}>
+                <h3 className="font-semibold">{phrase(exam)}</h3>
+                <ul className="mbs-3 grid gap-1">
+                  {resources
+                    .filter((r) => r.exam === exam)
+                    .map((r) => (
+                      <li key={r.slug}>
+                        <Link
+                          href={`/resources/${r.slug}`}
+                          lang={r.language === "as" ? "as-IN" : undefined}
+                          className="block py-1.5 text-pretty text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                        >
+                          {r.title}
+                          <span className="text-xs"> · {phrase(r.kind)}</span>
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section
         aria-labelledby="also-free"
         className="container-page pbe-20 md:pbe-28"

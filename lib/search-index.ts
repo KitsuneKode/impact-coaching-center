@@ -93,7 +93,7 @@ export async function buildSearchIndex(
         content.phrase(resource.kind),
         content.phrase(resource.exam),
       ].join(" · "),
-      href: `/resources?open=${resource.slug}`,
+      href: `/resources/${resource.slug}`,
       keywords: [resource.kind, resource.exam, resource.description],
     })
   }

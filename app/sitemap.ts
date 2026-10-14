@@ -120,6 +120,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           },
         ]
       : []),
+    ...resources
+      .filter((resource) => !resource.sample)
+      .map((resource) => ({
+        url: `${siteUrl}/resources/${resource.slug}`,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
   ]
   return entries.flatMap(bothLanguages)
 }
