@@ -38,7 +38,8 @@
     "blog": "ব্লগ",
     "callNumber": "{phone} ত ফোন কৰক",
     "menu": "মেনু",
-    "teachersPage": "শিক্ষকসকল"
+    "teachersPage": "শিক্ষকসকল",
+    "callPrefix": "ফোন কৰক"
   },
   "Offer": {
     "cta": "বিনামূলীয়া কৰ্মশালাত যোগ দিয়ক",

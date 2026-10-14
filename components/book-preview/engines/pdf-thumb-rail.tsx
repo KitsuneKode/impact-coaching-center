@@ -225,7 +225,7 @@ function ThumbList({
             aria-label={`Page ${page}`}
             onClick={() => onSelect(index)}
             className={cn(
-              "flex flex-col items-center gap-1 rounded-md p-1 transition-colors outline-none",
+              "flex flex-col items-center gap-1 rounded-md p-1 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
               grid && "min-h-11",
               current
                 ? "bg-accent ring-1 ring-foreground/30"

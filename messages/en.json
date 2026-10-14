@@ -38,7 +38,8 @@
     "blog": "Blog",
     "callNumber": "Call {phone}",
     "menu": "Menu",
-    "teachersPage": "Teachers"
+    "teachersPage": "Teachers",
+    "callPrefix": "Call"
   },
   "Offer": {
     "cta": "Join a free workshop",

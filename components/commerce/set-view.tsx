@@ -254,6 +254,7 @@ function Coverflow({
   prevLabel: string
   nextLabel: string
 }) {
+  const t = useTranslations("Shop")
   const row = useRef<HTMLUListElement>(null)
   const [edges, setEdges] = useState({ start: true, end: false })
   const middle = (books.length - 1) / 2
@@ -288,7 +289,16 @@ function Coverflow({
 
   return (
     <div className="relative mbs-6">
-      <ul ref={row} data-flow onScroll={sync}>
+      {/* Focusable so the arrow keys scroll it without a mouse (WCAG 2.1.1). */}
+      <ul
+        ref={row}
+        data-flow
+        onScroll={sync}
+        // A scrolling region with no focusable items must take focus itself.
+        // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        aria-label={t("booksInSet", { count: books.length })}
+      >
         {books.map((book, i) => {
           const edition =
             book.editions[language] ?? book.editions.en ?? book.editions.as

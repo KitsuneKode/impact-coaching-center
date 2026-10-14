@@ -1,5 +1,6 @@
 "use client"
 
+import { IconPhone } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 
@@ -75,12 +76,23 @@ export function SiteHeader() {
             <AccountMenu />
           </div>
 
+          {/*
+            The number stays in the header on every width: for ICT's students a
+            call is the most common next step. The name starts with the
+            visible number (WCAG 2.5.3); "Call" is for screen readers.
+          */}
           <a
             href={contactHref({ kind: "call" })}
-            aria-label={t("call")}
             data-site-phone
-            className="tnum text-sm font-medium whitespace-nowrap"
+            className="tnum inline-flex min-h-11 items-center gap-1.5 text-sm font-medium whitespace-nowrap"
           >
+            <IconPhone
+              aria-hidden
+              size={16}
+              stroke={1.75}
+              className="hidden sm:block"
+            />
+            <span className="sr-only">{t("callPrefix")} </span>
             {phone}
           </a>
           <SiteMenu phone={phone} />
