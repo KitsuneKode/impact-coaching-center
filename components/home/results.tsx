@@ -22,7 +22,7 @@ export function Results() {
             target="_blank"
             rel="noreferrer noopener"
             data-quiet-link
-            className="mbs-6 inline-flex items-center gap-1 text-sm underline underline-offset-4"
+            className="mbs-6 inline-flex min-h-11 items-center gap-1 text-sm underline underline-offset-4"
           >
             {t("resultsLink")}
             <IconArrowUpRight aria-hidden size={15} stroke={1.75} />

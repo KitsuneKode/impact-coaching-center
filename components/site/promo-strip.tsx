@@ -67,7 +67,7 @@ function Strip() {
                 href={bar.href}
                 onClick={() => track(bar, "click")}
                 aria-label={bar.cta}
-                className="flex h-11 flex-none items-center gap-1.5 text-sm font-semibold whitespace-nowrap text-highlight"
+                className="flex h-11 min-w-11 flex-none items-center justify-center gap-1.5 text-sm font-semibold whitespace-nowrap text-highlight"
               >
                 <span className="hidden sm:inline">{bar.cta}</span>
                 <IconArrowRight aria-hidden size={16} stroke={2} />

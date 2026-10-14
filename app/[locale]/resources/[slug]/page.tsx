@@ -145,7 +145,7 @@ export default async function ResourcePage({
         className="container-page grid gap-10 pbe-20 lg:grid-cols-12 lg:items-start"
       >
         <div aria-hidden className="relative lg:col-span-5">
-          <div className="relative mx-auto aspect-[1/1.414] max-w-80">
+          <div className="relative mx-auto aspect-[1/1.414] max-w-[min(20rem,calc(100%-1.5rem))]">
             <PaperPage
               running={resource.title}
               lines={10}

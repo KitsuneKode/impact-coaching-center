@@ -199,7 +199,7 @@ export function SiteFooter() {
                         href={item.href}
                         {...external}
                         data-footer-link
-                        className="inline-flex min-h-10 items-center"
+                        className="inline-flex min-h-10 min-w-6 items-center"
                       >
                         {item.label}
                       </a>
@@ -207,7 +207,7 @@ export function SiteFooter() {
                       <Link
                         href={item.href}
                         data-footer-link
-                        className="inline-flex min-h-10 items-center"
+                        className="inline-flex min-h-10 min-w-6 items-center"
                       >
                         {item.label}
                       </Link>

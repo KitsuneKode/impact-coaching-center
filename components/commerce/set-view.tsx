@@ -82,7 +82,7 @@ export function SetView({
           <div className="lg:col-span-7">
             <Link
               href="/books"
-              className="inline-flex items-center gap-1.5 text-sm text-on-primary"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm text-on-primary"
             >
               <IconArrowLeft aria-hidden size={16} />
               {t("allSets")}
