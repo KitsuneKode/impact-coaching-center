@@ -520,3 +520,13 @@ export const toConfirm = [
   // The library page has its own list, kept beside the content it gates:
   // `libraryQuestions` in lib/library.ts.
 ] as const
+
+/**
+ * The agency that builds and looks after the site, credited once in the
+ * footer (a branded link, never keyword anchor text), in the admin sidebar
+ * and in /humans.txt.
+ */
+export const agency = {
+  name: "KitsuneKode",
+  url: "https://github.com/KitsuneKode",
+} as const

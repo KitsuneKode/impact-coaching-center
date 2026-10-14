@@ -19,7 +19,8 @@
     "start": "next start",
     "sync:courses": "bun run scripts/sync-courses.ts",
     "test": "bun test",
-    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json"
+    "typecheck": "next typegen && tsc --noEmit && tsc --noEmit -p tsconfig.scripts.json",
+    "smoke": "bun run scripts/smoke.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

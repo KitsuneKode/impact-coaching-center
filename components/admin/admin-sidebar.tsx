@@ -27,7 +27,7 @@ import {
 import { NavUser } from "@/components/admin/nav-user"
 import { SidebarMenuBadge } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
-import { brand } from "@/lib/brand"
+import { agency, brand } from "@/lib/brand"
 
 export function AdminSidebar() {
   const pathname = usePathname()
@@ -158,6 +158,14 @@ export function AdminSidebar() {
 
       <SidebarFooter>
         <NavUser />
+        <a
+          href={agency.url}
+          target="_blank"
+          rel="noopener"
+          className="px-2 pb-1 text-[0.6875rem] text-muted-foreground underline-offset-4 group-data-[collapsible=icon]:hidden hover:text-foreground hover:underline"
+        >
+          Built and looked after by {agency.name}
+        </a>
       </SidebarFooter>
 
       {/*

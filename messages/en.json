@@ -686,7 +686,8 @@
     "searchExams": "Exam guides",
     "searchPosts": "Blog",
     "searchPages": "Pages",
-    "searchCalendar": "Exam calendar"
+    "searchCalendar": "Exam calendar",
+    "builtBy": "Website by <agency>{name}</agency>"
   },
   "Promos": {
     "code": "Code",

@@ -11,7 +11,15 @@ import Image from "next/image"
 
 import { useContent } from "@/i18n/content"
 import { Link } from "@/i18n/navigation"
-import { brand, contact, formatPhone, links, place, tracks } from "@/lib/brand"
+import {
+  agency,
+  brand,
+  contact,
+  formatPhone,
+  links,
+  place,
+  tracks,
+} from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { WordSpot } from "./word-spot"
 
@@ -218,6 +226,22 @@ export function SiteFooter() {
 
       <div className="container-page flex flex-wrap items-center justify-between gap-3 pbs-4 pbe-28 text-xs text-muted-foreground md:pbe-10">
         <p>{t("copyright", { year, city: place.city })}</p>
+        <p>
+          {t.rich("builtBy", {
+            name: agency.name,
+            agency: (chunks) => (
+              <a
+                href={agency.url}
+                target="_blank"
+                rel="noopener"
+                data-agency
+                className="font-medium text-foreground/70 underline decoration-foreground/20 underline-offset-4 hover:text-foreground hover:decoration-foreground/60"
+              >
+                {chunks}
+              </a>
+            ),
+          })}
+        </p>
       </div>
     </footer>
   )

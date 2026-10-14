@@ -886,7 +886,8 @@
     "searchExams": "পৰীক্ষাৰ নিৰ্দেশিকা",
     "searchPosts": "ব্লগ",
     "searchPages": "পৃষ্ঠা",
-    "searchCalendar": "পৰীক্ষাৰ কেলেণ্ডাৰ"
+    "searchCalendar": "পৰীক্ষাৰ কেলেণ্ডাৰ",
+    "builtBy": "ৱেবছাইট নিৰ্মাণ: <agency>{name}</agency>"
   },
   "Promos": {
     "code": "ক'ড",
