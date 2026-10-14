@@ -424,7 +424,26 @@
     "rest": "The link may be mistyped, or it may have moved.",
     "home": "Home",
     "courses": "Courses and fees",
-    "talk": "Talk to ICT"
+    "talk": "Talk to ICT",
+    "figTitle": "Pigeonholes at the centre",
+    "figHint": "Point at a pigeonhole, or tap a name",
+    "figEmpty": "404 · nothing filed here",
+    "figOpen": "tap to open",
+    "figOut": "The lamp is out · try again",
+    "figNames": [
+      "Courses",
+      "Books",
+      "Free notes",
+      "Exam guides",
+      "Results",
+      "Library",
+      "Blog",
+      "Contact",
+      "ASSIST scholarship",
+      "Exam calendar",
+      "Home",
+      "This page"
+    ]
   },
   "Centres": {
     "label": "Centres",

@@ -2,6 +2,8 @@
 
 import { useEffect } from "react"
 
+import { PigeonholeFigure } from "@/components/site/pigeonhole-figure"
+import { HOLES } from "@/components/site/pigeonholes-art"
 import { Button, ButtonLink } from "@/components/ui/button"
 import { Section } from "@/components/ui/section"
 
@@ -23,29 +25,44 @@ export default function Error({
   return (
     <main>
       <Section size="sm" className="pt-26 md:pt-30">
-        <div className="max-w-160">
-          <h1 className="type-display">
-            <span className="text-foreground">This page did not load.</span>{" "}
-            <span className="text-muted-foreground">
-              Nothing you did caused it. Trying again often works.
-            </span>
-          </h1>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Button onClick={() => retry()}>Try again</Button>
-            <ButtonLink href="/" variant="secondary">
-              Home
-            </ButtonLink>
-            <ButtonLink href="/contact" variant="ghost">
-              Talk to ICT
-            </ButtonLink>
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
+          <div className="max-w-160 lg:col-span-5">
+            <h1 className="type-display">
+              <span className="text-foreground">This page did not load.</span>{" "}
+              <span className="text-muted-foreground">
+                Nothing you did caused it. Trying again often works.
+              </span>
+            </h1>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <Button onClick={() => retry()}>Try again</Button>
+              <ButtonLink href="/" variant="secondary">
+                Home
+              </ButtonLink>
+              <ButtonLink href="/contact" variant="ghost">
+                Talk to ICT
+              </ButtonLink>
+            </div>
+            {error.digest ? (
+              // Shown, not hidden: it is meaningless to the visitor and the only
+              // thing that lets staff find this exact failure in the logs.
+              <p className="tnum mt-8 text-sm text-muted-foreground">
+                Reference {error.digest}
+              </p>
+            ) : null}
           </div>
-          {error.digest ? (
-            // Shown, not hidden: it is meaningless to the visitor and the only
-            // thing that lets staff find this exact failure in the logs.
-            <p className="tnum mt-8 text-sm text-muted-foreground">
-              Reference {error.digest}
-            </p>
-          ) : null}
+          <div className="lg:col-span-7">
+            <PigeonholeFigure
+              mode="error"
+              names={HOLES.map((hole) => hole.name)}
+              labels={{
+                title: "Pigeonholes at the centre",
+                hint: "Or go straight to a section",
+                empty: "404 · nothing filed here",
+                open: "tap to open",
+                out: "The lamp is out · try again",
+              }}
+            />
+          </div>
         </div>
       </Section>
     </main>

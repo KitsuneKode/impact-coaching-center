@@ -2140,3 +2140,43 @@
     }
   }
 }
+
+/* The 404 figure's card (components/site/pigeonhole-figure.tsx). The lamp's
+   light is an amber wash on the pigeonhole under it. */
+@layer components {
+  [data-pigeon-card] {
+    border-radius: 28px;
+    padding: clamp(0.875rem, 0.6rem + 1.2vw, 1.375rem);
+    background-color: var(--card);
+    color: var(--foreground);
+    box-shadow: var(--shadow-lift);
+  }
+  [data-pigeon-stage] {
+    border-radius: 16px;
+    touch-action: pan-y;
+  }
+  [data-pigeon-stage]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+  [data-pigeon-stage] [data-opening] {
+    cursor: pointer;
+  }
+  [data-pigeon-stage] [data-opening][data-active] {
+    fill: color-mix(in oklch, var(--highlight) 18%, transparent);
+    stroke: var(--anatomy-lit);
+    stroke-width: 1.2;
+  }
+  [data-pigeon-stage] [data-lamp-out] [data-part="lens"] {
+    opacity: 0.4;
+  }
+  [data-pigeon-stage] [data-lamp-out] [data-opening][data-active] {
+    fill: transparent;
+    stroke: var(--anatomy-lo);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-pigeon-stage] [data-opening] {
+      transition: fill 0.25s ease-out;
+    }
+  }
+}
