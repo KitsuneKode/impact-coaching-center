@@ -163,7 +163,7 @@ function Inbox() {
       /* No count in the heading. */
       title={<span className="text-foreground">Enquiries.</span>}
     >
-      <div className="mb-4 flex justify-end">
+      <div className="mbe-4 flex justify-end">
         <AddEnquiry onCreated={(id) => setOpenId(id)} />
       </div>
       <LeadsTable

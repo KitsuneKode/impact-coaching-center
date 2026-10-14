@@ -178,8 +178,8 @@ export function AddEnquiry({
               <Field data-invalid={errors.phone ? true : undefined}>
                 <FieldLabel htmlFor="enquiry-phone">Mobile</FieldLabel>
                 <InputGroup>
-                  <InputGroupAddon className="pl-3.5">
-                    <InputGroupText className="tnum border-r border-border pr-3 text-[0.9375rem] text-foreground">
+                  <InputGroupAddon className="ps-3.5">
+                    <InputGroupText className="tnum border-r border-border pe-3 text-[0.9375rem] text-foreground">
                       +91
                     </InputGroupText>
                   </InputGroupAddon>

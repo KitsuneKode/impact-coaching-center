@@ -233,11 +233,11 @@ function NeedTile({
           <span className="tnum block font-display text-4xl leading-none font-semibold tracking-[-0.03em]">
             {value === undefined ? "–" : `${count(n)}${n > 0 ? suffix : ""}`}
           </span>
-          <span className="mt-2 block text-sm font-medium text-pretty">
+          <span className="mbs-2 block text-sm font-medium text-pretty">
             {label(n)}
           </span>
           {note ? (
-            <span className="mt-0.5 block text-xs opacity-75">{note}</span>
+            <span className="mbs-0.5 block text-xs opacity-75">{note}</span>
           ) : null}
         </span>
       </Link>
@@ -336,7 +336,7 @@ function Insights({ now }: { now: number }) {
     return (
       <div
         aria-busy="true"
-        className="mt-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+        className="mbs-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
       >
         {[0, 1, 2, 3].map((i) => (
           <div
@@ -360,7 +360,7 @@ function Insights({ now }: { now: number }) {
   const maxSource = Math.max(1, ...insights.sources.map((s) => s.people))
 
   return (
-    <div className="mt-8 grid gap-3">
+    <div className="mbs-8 grid gap-3">
       <h2 className="sr-only">This week and this month</h2>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Panel title="Enquiries · 7 days" href="/admin/leads">
@@ -518,10 +518,10 @@ function Insights({ now }: { now: number }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground">
-                  <th className="pb-2 font-medium">Source</th>
-                  <th className="pb-2 text-right font-medium">People</th>
-                  <th className="pb-2 text-right font-medium">Enrolled</th>
-                  <th className="hidden w-1/3 pb-2 pl-3 font-medium sm:table-cell">
+                  <th className="pbe-2 font-medium">Source</th>
+                  <th className="pbe-2 text-right font-medium">People</th>
+                  <th className="pbe-2 text-right font-medium">Enrolled</th>
+                  <th className="hidden w-1/3 ps-3 pbe-2 font-medium sm:table-cell">
                     Share
                   </th>
                 </tr>
@@ -529,7 +529,7 @@ function Insights({ now }: { now: number }) {
               <tbody>
                 {insights.sources.map((row) => (
                   <tr key={row.source} className="border-t border-border">
-                    <td className="py-2 pr-2">{sourceName(row.source)}</td>
+                    <td className="py-2 pe-2">{sourceName(row.source)}</td>
                     <td className="tnum py-2 text-right">
                       {count(row.people)}
                     </td>
@@ -540,7 +540,7 @@ function Insights({ now }: { now: number }) {
                         ({Math.round((row.enrolled / row.people) * 100)}%)
                       </span>
                     </td>
-                    <td className="hidden py-2 pl-3 sm:table-cell">
+                    <td className="hidden py-2 ps-3 sm:table-cell">
                       <span className="sr-only">
                         {Math.round((row.people / maxSource) * 100)}% of the
                         largest source

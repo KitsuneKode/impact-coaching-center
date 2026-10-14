@@ -20,7 +20,7 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       {/* WCAG 2.4.1: skip the navigation that precedes every page. */}
       <a
         href="#main"
-        className="sr-only rounded-control bg-primary px-4 py-2 text-primary-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-100"
+        className="sr-only rounded-control bg-primary px-4 py-2 text-primary-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:inset-s-4 focus-visible:inset-bs-4 focus-visible:z-100"
       >
         {t("skip")}
       </a>

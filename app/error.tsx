@@ -24,7 +24,7 @@ export default function Error({
 
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
+      <Section size="sm" className="pbs-26 md:pbs-30">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="max-w-160 lg:col-span-5">
             <h1 className="type-display">
@@ -33,7 +33,7 @@ export default function Error({
                 Nothing you did caused it. Trying again often works.
               </span>
             </h1>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mbs-10 flex flex-wrap gap-3">
               <Button onClick={() => retry()}>Try again</Button>
               <ButtonLink href="/" variant="secondary">
                 Home
@@ -45,7 +45,7 @@ export default function Error({
             {error.digest ? (
               // Shown, not hidden: it is meaningless to the visitor and the only
               // thing that lets staff find this exact failure in the logs.
-              <p className="tnum mt-8 text-sm text-muted-foreground">
+              <p className="tnum mbs-8 text-sm text-muted-foreground">
                 Reference {error.digest}
               </p>
             ) : null}

@@ -49,7 +49,7 @@ export function VideoDialog({
         <Dialog.Popup
           initialFocus={closeRef}
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
+            "fixed inset-bs-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
             "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
             "data-ending-style:scale-95 data-ending-style:opacity-0",
             "data-starting-style:scale-95 data-starting-style:opacity-0",
@@ -58,7 +58,7 @@ export function VideoDialog({
         >
           <div
             className={cn(
-              "relative overflow-hidden rounded-card bg-black shadow-lift",
+              "relative overflow-clip rounded-card bg-black shadow-lift",
               vertical ? "aspect-[9/16]" : "aspect-video"
             )}
           >
@@ -73,7 +73,7 @@ export function VideoDialog({
             ) : null}
           </div>
 
-          <div className="mt-3 flex items-start justify-between gap-4">
+          <div className="mbs-3 flex items-start justify-between gap-4">
             <div className="min-w-0">
               <Dialog.Title className="text-[0.9375rem] font-medium text-white">
                 {title}
@@ -85,7 +85,7 @@ export function VideoDialog({
                 href={youtubeWatch(id)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
+                className="mbs-1.5 inline-flex items-center gap-1.5 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
               >
                 <IconBrandYoutube size={15} stroke={1.75} />
                 Watch on YouTube

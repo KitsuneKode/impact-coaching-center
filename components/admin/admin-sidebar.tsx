@@ -162,7 +162,7 @@ export function AdminSidebar() {
           href={agency.url}
           target="_blank"
           rel="noopener"
-          className="px-2 pb-1 text-[0.6875rem] text-muted-foreground underline-offset-4 group-data-[collapsible=icon]:hidden hover:text-foreground hover:underline"
+          className="px-2 pbe-1 text-[0.6875rem] text-muted-foreground underline-offset-4 group-data-[collapsible=icon]:hidden hover:text-foreground hover:underline"
         >
           Built and looked after by {agency.name}
         </a>

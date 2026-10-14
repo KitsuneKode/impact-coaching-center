@@ -602,7 +602,7 @@ function BundleForm({
           </fieldset>
         </FieldGroup>
 
-        <aside className="grid content-start gap-6 lg:sticky lg:top-6">
+        <aside className="grid content-start gap-6 lg:sticky lg:inset-bs-6">
           <div className="grid gap-4 rounded-card border border-border p-5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">Status</span>

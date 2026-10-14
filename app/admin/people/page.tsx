@@ -141,8 +141,8 @@ function People() {
           <Field data-invalid={error ? true : undefined}>
             <FieldLabel htmlFor="grant-phone">Give staff access</FieldLabel>
             <InputGroup>
-              <InputGroupAddon className="pl-3.5">
-                <InputGroupText className="tnum border-r border-border pr-3 text-[0.9375rem] text-foreground">
+              <InputGroupAddon className="ps-3.5">
+                <InputGroupText className="tnum border-r border-border pe-3 text-[0.9375rem] text-foreground">
                   +91
                 </InputGroupText>
               </InputGroupAddon>
@@ -179,7 +179,7 @@ function People() {
         </FieldGroup>
       </form>
 
-      <div className="mt-12 overflow-x-auto">
+      <div className="mbs-12 overflow-x-auto">
         <Table className="min-w-200">
           <TableHeader>
             <TableRow>
@@ -285,7 +285,7 @@ function People() {
       </div>
 
       {status === "CanLoadMore" || status === "LoadingMore" ? (
-        <div className="mt-6">
+        <div className="mbs-6">
           <Button
             variant="secondary"
             size="md"

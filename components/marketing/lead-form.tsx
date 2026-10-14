@@ -53,7 +53,7 @@ function ChoiceGroup({
   return (
     <fieldset aria-describedby={error ? `${id}-error` : undefined}>
       <legend className="text-sm font-medium">{legend}</legend>
-      <div className="mt-2.5 flex flex-wrap gap-2">
+      <div className="mbs-2.5 flex flex-wrap gap-2">
         {options.map((option) => (
           <label key={option} className="relative">
             <input
@@ -74,7 +74,7 @@ function ChoiceGroup({
         ))}
       </div>
       {error ? (
-        <p id={`${id}-error`} className="mt-2 text-sm text-destructive">
+        <p id={`${id}-error`} className="mbs-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}
@@ -169,7 +169,7 @@ export function LeadForm({
                 aria-hidden
               />
             )}
-            <p className="type-lede mt-4">
+            <p className="type-lede mbs-4">
               {t("thanks", { name: state.name.split(" ")[0] ?? "" })}
               <span className="text-muted-foreground">
                 {" "}
@@ -189,10 +189,10 @@ export function LeadForm({
                 })}
               </span>
             </p>
-            <p className="mt-6 text-sm text-muted-foreground">
+            <p className="mbs-6 text-sm text-muted-foreground">
               {state.status === "handoff" ? t("handoff") : t("direct")}
             </p>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mbs-3 flex flex-wrap gap-3">
               <ButtonAnchor
                 href={contactHref({
                   kind: "whatsapp-handoff",
@@ -219,7 +219,7 @@ export function LeadForm({
             <button
               type="button"
               onClick={() => setAgain(true)}
-              className="mt-4 inline-flex min-h-11 items-center rounded-control text-sm font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="mbs-4 inline-flex min-h-11 items-center rounded-control text-sm font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {t("again")}
             </button>
@@ -246,7 +246,7 @@ export function LeadForm({
                 <div
                   id={summaryId}
                   role="alert"
-                  className="mb-6 rounded-control border border-destructive/40 bg-destructive/5 p-4"
+                  className="mbe-6 rounded-control border border-destructive/40 bg-destructive/5 p-4"
                 >
                   <p className="text-sm font-medium text-destructive">
                     {state.status === "error" && state.formError
@@ -255,7 +255,7 @@ export function LeadForm({
                         ? t("oneField")
                         : t("manyFields", { count: invalid.length })}
                   </p>
-                  <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  <ul className="mbs-2 flex flex-wrap gap-x-4 gap-y-1">
                     {invalid.map((name) => (
                       <li key={name}>
                         <button
@@ -333,7 +333,7 @@ export function LeadForm({
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div className="mbs-6">
                 <ChoiceGroup
                   name="track"
                   legend={t("fields.track")}
@@ -342,7 +342,7 @@ export function LeadForm({
                   error={errors.track ? t("errors.track") : undefined}
                 />
               </div>
-              <div className="mt-6">
+              <div className="mbs-6">
                 <ChoiceGroup
                   name="timing"
                   legend={t("fields.timing")}
@@ -355,7 +355,7 @@ export function LeadForm({
               {/* honeypot, hidden from people and assistive tech */}
               <div
                 aria-hidden
-                className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
+                className="absolute -inset-s-[9999px] h-0 w-0 overflow-clip"
               >
                 <label>
                   {t("honeypot")}
@@ -368,7 +368,7 @@ export function LeadForm({
               </div>
 
               {publicEnv.turnstileSiteKey ? (
-                <div className="mt-6">
+                <div className="mbs-6">
                   <Turnstile
                     siteKey={publicEnv.turnstileSiteKey}
                     resetKey={turnstileEpoch}
@@ -376,7 +376,7 @@ export function LeadForm({
                 </div>
               ) : null}
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mbs-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">{t("privacy")}</p>
                 <button
                   type="submit"

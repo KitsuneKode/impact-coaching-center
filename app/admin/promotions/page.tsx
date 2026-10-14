@@ -142,13 +142,13 @@ function Promotions() {
                       </Link>
                       <Badge variant={phase.variant}>{phase.label}</Badge>
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mbs-1 text-sm text-muted-foreground">
                       {CAMPAIGN_KIND_LABEL[c.kind]} · {pagesLabel(c.routes)} ·
                       Priority {c.priority}
                     </p>
                     <Stats row={statsOf.get(c.id)} />
                     {from || until ? (
-                      <p className="tnum mt-0.5 text-sm text-muted-foreground">
+                      <p className="tnum mbs-0.5 text-sm text-muted-foreground">
                         {from ? `From ${from}` : "From now"}
                         {until ? ` to ${until}` : ", no end"}
                       </p>
@@ -197,13 +197,13 @@ function Stats({
   if (!row) return null
   if (row.views === 0)
     return (
-      <p className="mt-0.5 text-sm text-muted-foreground">
+      <p className="mbs-0.5 text-sm text-muted-foreground">
         Not seen in the last 30 days
       </p>
     )
   const rate = ((row.clicks / row.views) * 100).toFixed(1)
   return (
-    <p className="tnum mt-0.5 text-sm text-muted-foreground">
+    <p className="tnum mbs-0.5 text-sm text-muted-foreground">
       <span className="font-medium text-foreground">
         {count.format(row.views)}
       </span>{" "}

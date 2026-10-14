@@ -24,7 +24,7 @@ export function Campus() {
         />
       </Reveal>
 
-      <div className="mt-10 grid gap-3 md:grid-cols-3 md:gap-4">
+      <div className="mbs-10 grid gap-3 md:grid-cols-3 md:gap-4">
         <Reveal className="md:col-span-2">
           <Figure item={lead} className="aspect-[16/10]" priority />
         </Reveal>
@@ -62,7 +62,7 @@ function Figure({
         className="flex h-full w-full flex-col text-left"
       >
         <div
-          className={`relative overflow-hidden rounded-card bg-surface ring-1 ring-border ${className ?? ""}`}
+          className={`relative overflow-clip rounded-card bg-surface ring-1 ring-border ${className ?? ""}`}
         >
           <Image
             src={item.src}
@@ -72,11 +72,11 @@ function Figure({
             sizes="(max-width: 768px) 92vw, 33vw"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
-          <span className="absolute right-3 bottom-3 grid size-9 place-items-center rounded-full bg-white/90 text-foreground opacity-0 shadow-frame transition-opacity duration-300 group-hover:opacity-100">
+          <span className="absolute inset-e-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-foreground opacity-0 shadow-frame transition-opacity duration-300 group-hover:opacity-100">
             <IconPlayerPlayFilled size={14} />
           </span>
         </div>
-        <figcaption className="mt-2.5 text-sm text-muted-foreground">
+        <figcaption className="mbs-2.5 text-sm text-muted-foreground">
           {item.caption}
         </figcaption>
       </VideoDialog>

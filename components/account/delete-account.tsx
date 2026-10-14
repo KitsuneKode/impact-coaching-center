@@ -49,7 +49,7 @@ export function DeleteAccount({ role }: { role: string }) {
     return (
       <section className="max-w-160 rounded-card border border-border p-6">
         <h2 className="font-medium">Delete account</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mbs-1 text-sm text-muted-foreground">
           {REFUSALS.forbidden}
         </p>
       </section>
@@ -92,7 +92,7 @@ export function DeleteAccount({ role }: { role: string }) {
       <h2 id="delete-account" className="font-medium">
         Delete account
       </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="mbs-1 text-sm text-muted-foreground">
         Permanently removes your details. Paid orders are kept, without your
         name or number, as the law requires.
       </p>
@@ -110,7 +110,7 @@ export function DeleteAccount({ role }: { role: string }) {
       >
         <DialogTrigger
           render={
-            <Button variant="secondary" size="md" className="mt-4">
+            <Button variant="secondary" size="md" className="mbs-4">
               <IconTrash stroke={1.75} />
               Delete my account
             </Button>
@@ -131,7 +131,7 @@ export function DeleteAccount({ role }: { role: string }) {
               </DialogDescription>
             </DialogHeader>
 
-            <Field className="mt-5" data-invalid={error ? true : undefined}>
+            <Field className="mbs-5" data-invalid={error ? true : undefined}>
               <FieldLabel htmlFor={inputId}>Type DELETE to confirm</FieldLabel>
               <Input
                 id={inputId}
@@ -154,7 +154,7 @@ export function DeleteAccount({ role }: { role: string }) {
               )}
             </Field>
 
-            <DialogFooter className="mt-6">
+            <DialogFooter className="mbs-6">
               <DialogClose
                 render={
                   <Button

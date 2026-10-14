@@ -80,7 +80,7 @@ export function NavUser() {
                 </span>
               ) : null}
             </div>
-            <IconSelector stroke={1.75} className="ml-auto size-4" />
+            <IconSelector stroke={1.75} className="ms-auto size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="min-w-56"

@@ -113,7 +113,7 @@ export default async function CalendarPage({
               >
                 <h2
                   id={`month-${month}`}
-                  className="font-display text-2xl font-semibold tracking-[-0.02em] lg:sticky lg:top-[calc(var(--header-height)+var(--strip-height)+1.5rem)] lg:self-start"
+                  className="font-display text-2xl font-semibold tracking-[-0.02em] lg:sticky lg:inset-bs-[calc(var(--header-height)+var(--strip-height)+1.5rem)] lg:self-start"
                 >
                   {dayInWords(`${month}-01`, locale, {
                     month: "long",

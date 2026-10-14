@@ -84,7 +84,7 @@ export function CentreFinder() {
         </p>
       </div>
 
-      <ul className="mt-6 grid gap-4 md:grid-cols-2">
+      <ul className="mbs-6 grid gap-4 md:grid-cols-2">
         {rows.map(({ centre, km }, index) => {
           const nearest = state.kind === "found" && index === 0 && km !== null
           return (
@@ -116,18 +116,18 @@ export function CentreFinder() {
 
               {centre.at ? (
                 <>
-                  <address className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground not-italic">
+                  <address className="mbs-3 text-[0.9375rem] leading-relaxed text-muted-foreground not-italic">
                     {centre.at.street}, {phrase(centre.town)}, {place.region}{" "}
                     {centre.at.pin}
                   </address>
                   {km !== null ? (
-                    <p className="tnum mt-2 text-sm font-bold">
+                    <p className="tnum mbs-2 text-sm font-bold">
                       {t("away", {
                         km: km < 10 ? km.toFixed(1) : Math.round(km),
                       })}
                     </p>
                   ) : null}
-                  <div className="mt-auto flex flex-wrap gap-2 pt-5">
+                  <div className="mbs-auto flex flex-wrap gap-2 pbs-5">
                     <ButtonAnchor
                       href={directionsUrl(centre.at)}
                       target="_blank"
@@ -148,10 +148,10 @@ export function CentreFinder() {
                 </>
               ) : (
                 <>
-                  <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+                  <p className="mbs-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
                     {t("pendingNote")}
                   </p>
-                  <div className="mt-auto pt-5">
+                  <div className="mbs-auto pbs-5">
                     <ButtonAnchor
                       href={contactHref({ kind: "call" })}
                       variant="secondary"
@@ -171,7 +171,7 @@ export function CentreFinder() {
       </ul>
 
       {mapCentre ? (
-        <div className="mt-4 overflow-hidden rounded-card border border-border bg-card shadow-frame">
+        <div className="mbs-4 overflow-clip rounded-card border border-border bg-card shadow-frame">
           <div className="relative aspect-[16/7] bg-surface">
             <iframe
               key={`${mapCentre.lat},${mapCentre.lng}`}

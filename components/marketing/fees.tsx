@@ -25,19 +25,19 @@ export function Fees() {
               </span>
             </h2>
 
-            <p className="mt-6 max-w-[26rem] text-sm leading-relaxed text-muted-foreground">
+            <p className="mbs-6 max-w-[26rem] text-sm leading-relaxed text-muted-foreground">
               {offer("promise")}
             </p>
             <Link
               href="/assist"
-              className="link mt-4 mr-5 inline-flex items-center gap-1 text-sm font-medium"
+              className="link me-5 mbs-4 inline-flex items-center gap-1 text-sm font-medium"
             >
               {ta("learnMore")}
               <IconArrowRight size={14} stroke={1.75} aria-hidden />
             </Link>
             <Link
               href="/courses"
-              className="link mt-4 inline-flex items-center gap-1 text-sm font-medium"
+              className="link mbs-4 inline-flex items-center gap-1 text-sm font-medium"
             >
               {t("compare")}
               <IconArrowRight size={14} stroke={1.75} aria-hidden />
@@ -51,7 +51,7 @@ export function Fees() {
                   size={15}
                   stroke={1.75}
                   aria-hidden
-                  className="mt-0.5 shrink-0 text-muted-foreground"
+                  className="mbs-0.5 shrink-0 text-muted-foreground"
                 />
                 {item}
               </li>

@@ -173,7 +173,7 @@ export function SiteSearch({
         description={t("searchPlaceholder")}
         // High on the screen and never taller than it, so results grow down
         // into view instead of off the bottom.
-        className="top-[clamp(1rem,12dvh,7rem)] sm:max-w-xl data-open:animate-none data-closed:animate-none"
+        className="inset-bs-[clamp(1rem,12dvh,7rem)] sm:max-w-xl data-open:animate-none data-closed:animate-none"
       >
         {/* Our own scoring: word and prefix matches, never scattered letters. */}
         <Command shouldFilter={false}>

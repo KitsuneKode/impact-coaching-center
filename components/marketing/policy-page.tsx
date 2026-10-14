@@ -33,14 +33,14 @@ function Marker({
 }) {
   return kind === "proposed" ? (
     <mark className="rounded-sm bg-highlight/35 [box-decoration-break:clone] px-1 text-foreground">
-      <span className="mr-1 text-[0.6875rem] font-semibold tracking-wide text-foreground/70 uppercase">
+      <span className="me-1 text-[0.6875rem] font-semibold tracking-wide text-foreground/70 uppercase">
         Proposed
       </span>
       {children}
     </mark>
   ) : (
     <mark className="rounded-sm border border-dashed border-foreground/40 bg-transparent [box-decoration-break:clone] px-1 text-foreground">
-      <span className="mr-1 text-[0.6875rem] font-semibold tracking-wide text-foreground/70 uppercase">
+      <span className="me-1 text-[0.6875rem] font-semibold tracking-wide text-foreground/70 uppercase">
         ICT to fill
       </span>
       <span className="italic">{children}</span>

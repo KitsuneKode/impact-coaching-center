@@ -490,11 +490,11 @@ function PromotionForm({
             <summary className="cursor-pointer text-sm font-medium">
               Assamese wording (optional)
             </summary>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mbs-2 text-sm text-muted-foreground">
               Shown on the Assamese pages. Leave it empty and they show the
               English.
             </p>
-            <div lang="as-IN" className="mt-4 grid gap-6">
+            <div lang="as-IN" className="mbs-4 grid gap-6">
               <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_12rem]">
                 <Field {...bad("Assamese headline")}>
                   <FieldLabel htmlFor="p-as-headline">Headline</FieldLabel>
@@ -733,7 +733,7 @@ function PromotionForm({
 
         <aside
           aria-label="Preview"
-          className="xl:sticky xl:top-20 xl:self-start"
+          className="xl:sticky xl:inset-bs-20 xl:self-start"
         >
           <p className="mbe-3 text-sm font-medium">Preview</p>
           <div

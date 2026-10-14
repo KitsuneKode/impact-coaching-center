@@ -19,12 +19,15 @@ export function Posters() {
         />
       </Reveal>
 
-      <Reveal delay={0.08} className="mt-10 rounded-card bg-surface p-4 md:p-6">
+      <Reveal
+        delay={0.08}
+        className="mbs-10 rounded-card bg-surface p-4 md:p-6"
+      >
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {posters.map((poster) => (
             <li key={poster.src}>
               <figure>
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[0.75rem] bg-card ring-1 ring-border">
+                <div className="relative aspect-[4/5] overflow-clip rounded-[0.75rem] bg-card ring-1 ring-border">
                   <Image
                     src={`/posters/${poster.src}`}
                     alt={poster.alt}
@@ -33,12 +36,12 @@ export function Posters() {
                     className="object-cover"
                   />
                 </div>
-                <figcaption className="mt-3 flex items-start gap-1.5 text-sm text-muted-foreground">
+                <figcaption className="mbs-3 flex items-start gap-1.5 text-sm text-muted-foreground">
                   {poster.verified ? (
                     <IconCircleCheckFilled
                       size={15}
                       aria-hidden
-                      className="mt-0.5 shrink-0 text-verified"
+                      className="mbs-0.5 shrink-0 text-verified"
                     />
                   ) : null}
                   {poster.caption}

@@ -50,7 +50,7 @@ export function Hero() {
   const startLabel = dateIn(locale, "long")
   const startShort = dateIn(locale, "short")
   return (
-    <section className="relative pt-26 pb-16 md:pt-30 md:pb-24">
+    <section className="relative pbs-26 pbe-16 md:pbs-30 md:pbe-24">
       <div className="container-page">
         {/* the one eyebrow on the page: a real, dated batch, until it starts */}
         {startedAtBuild ? null : (
@@ -59,7 +59,7 @@ export function Hero() {
               href={contactHref({ kind: "workshop" })}
               target="_blank"
               rel="noreferrer noopener"
-              className="enter group inline-flex max-w-full items-center gap-2.5 rounded-control border border-border bg-card py-1.5 pr-2.5 pl-3 text-sm shadow-frame transition-colors hover:bg-secondary"
+              className="enter group inline-flex max-w-full items-center gap-2.5 rounded-control border border-border bg-card py-1.5 ps-3 pe-2.5 text-sm shadow-frame transition-colors hover:bg-secondary"
               style={delay(0)}
             >
               <span className="min-w-0 truncate">
@@ -90,7 +90,7 @@ export function Hero() {
           the explanation becomes a lede beneath it.
         */}
         <h1
-          className="enter type-hero mt-7 max-w-5xl first:mt-0"
+          className="enter type-hero mbs-7 max-w-5xl first:mbs-0"
           style={delay(80)}
         >
           {t.rich("title", {
@@ -98,14 +98,14 @@ export function Hero() {
           })}
         </h1>
         <p
-          className="enter type-lede mt-5 max-w-3xl text-muted-foreground"
+          className="enter type-lede mbs-5 max-w-3xl text-muted-foreground"
           style={delay(140)}
         >
           {t("lede")}
         </p>
 
         <div
-          className="enter mt-8 flex flex-wrap items-center gap-3"
+          className="enter mbs-8 flex flex-wrap items-center gap-3"
           style={delay(180)}
         >
           <ButtonAnchor
@@ -128,7 +128,7 @@ export function Hero() {
       </div>
 
       {/* ---- the people ---- */}
-      <div className="container-page mt-14 md:mt-16">
+      <div className="container-page mbs-14 md:mbs-16">
         <div
           className="enter flex items-baseline justify-between gap-4"
           style={delay(300)}
@@ -145,7 +145,7 @@ export function Hero() {
           </a>
         </div>
 
-        <ul className="-mx-5 mt-5 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-5 pb-2 md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 md:pb-0">
+        <ul className="-mx-5 mbs-5 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-5 pbe-2 md:mx-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:px-0 md:pbe-0">
           {faculty.map((person, index) => (
             <li
               key={person.slug}
@@ -161,7 +161,7 @@ export function Hero() {
                 subtitle={t("videoSubtitle")}
                 className="w-full"
               >
-                <div className="relative aspect-[4/5] overflow-hidden rounded-card bg-surface ring-1 ring-border md:aspect-[6/7]">
+                <div className="relative aspect-[4/5] overflow-clip rounded-card bg-surface ring-1 ring-border md:aspect-[6/7]">
                   <Image
                     src={person.portrait}
                     alt={t("portraitAlt", {
@@ -174,11 +174,11 @@ export function Hero() {
                     sizes="(max-width: 768px) 44vw, 18vw"
                     className="object-cover object-top contrast-[1.04] transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                   />
-                  <span className="absolute right-2.5 bottom-2.5 inline-flex size-8 translate-y-1 items-center justify-center rounded-md bg-white/90 text-foreground opacity-0 shadow-frame transition-[opacity,translate] duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  <span className="absolute inset-e-2.5 inset-be-2.5 inline-flex size-8 translate-y-1 items-center justify-center rounded-md bg-white/90 text-foreground opacity-0 shadow-frame transition-[opacity,translate] duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     <IconArrowUpRight size={16} stroke={1.75} />
                   </span>
                 </div>
-                <p className="mt-3 text-[0.9375rem] font-medium tracking-tight">
+                <p className="mbs-3 text-[0.9375rem] font-medium tracking-tight">
                   {person.called}
                 </p>
                 <p className="text-sm text-muted-foreground">

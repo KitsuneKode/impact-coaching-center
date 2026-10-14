@@ -25,7 +25,7 @@ export function SelectionCard({
           <p className="tnum text-[3rem] leading-none font-medium tracking-[-0.04em]">
             {person.serial}
           </p>
-          <p className="mt-2 text-sm text-muted-foreground">{t("serial")}</p>
+          <p className="mbs-2 text-sm text-muted-foreground">{t("serial")}</p>
         </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 rounded-control border border-verified/25 bg-verified/8 px-2.5 py-1 text-xs font-medium text-verified">
           <IconCircleCheckFilled size={14} aria-hidden />
@@ -34,14 +34,14 @@ export function SelectionCard({
       </div>
 
       {person.quote ? (
-        <blockquote className="mt-6 font-display text-[1.375rem] leading-snug text-pretty text-foreground">
+        <blockquote className="mbs-6 font-display text-[1.375rem] leading-snug text-pretty text-foreground">
           &ldquo;{person.quote}&rdquo;
         </blockquote>
       ) : null}
 
-      <div className="mt-auto border-t border-border pt-5 [blockquote+&]:mt-6">
+      <div className="mbs-auto border-t border-border pbs-5 [blockquote+&]:mbs-6">
         <p className="text-[1.0625rem] font-medium">{person.name}</p>
-        <p className="mt-0.5 text-sm text-muted-foreground">{person.post}</p>
+        <p className="mbs-0.5 text-sm text-muted-foreground">{person.post}</p>
       </div>
     </article>
   )
@@ -66,7 +66,7 @@ export function Results() {
           />
         </Reveal>
 
-        <Reveal delay={0.08} className="mt-10 grid gap-5 md:grid-cols-2">
+        <Reveal delay={0.08} className="mbs-10 grid gap-5 md:grid-cols-2">
           {selections.map((person) => (
             <SelectionCard key={person.serial} person={person} />
           ))}
@@ -77,7 +77,7 @@ export function Results() {
         <Reveal delay={0.16}>
           <Link
             href="/success-stories"
-            className="link mt-10 inline-flex items-center gap-1 text-sm"
+            className="link mbs-10 inline-flex items-center gap-1 text-sm"
           >
             {t("more")}
             <IconArrowUpRight size={14} stroke={1.75} />

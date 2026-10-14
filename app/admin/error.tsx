@@ -29,7 +29,7 @@ export default function AdminError({
             : "Try again. If it keeps happening, tell KitsuneKode what you clicked."
         }
       />
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mbs-6 flex flex-wrap gap-3">
         <Button onClick={() => retry()}>Try again</Button>
         <ButtonLink href="/admin" variant="secondary">
           Overview

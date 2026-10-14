@@ -31,7 +31,7 @@ export function Enquire() {
           <p className="text-sm font-medium text-muted-foreground">
             {t("label")}
           </p>
-          <h2 className="type-lede mt-4 max-w-[30rem]">
+          <h2 className="type-lede mbs-4 max-w-[30rem]">
             <span className="text-foreground">{t("claim")}</span>
             <span className="text-muted-foreground">
               {" "}
@@ -42,7 +42,7 @@ export function Enquire() {
 
         <Reveal
           delay={0.08}
-          className="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
+          className="lg:sticky lg:inset-bs-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start"
         >
           <LeadForm />
         </Reveal>
@@ -56,14 +56,14 @@ export function Enquire() {
                     {index + 1}
                   </span>
                   {index < content.joining.length - 1 ? (
-                    <span aria-hidden className="mt-1 w-px flex-1 bg-border" />
+                    <span aria-hidden className="mbs-1 w-px flex-1 bg-border" />
                   ) : null}
                 </span>
-                <span className="pb-1">
+                <span className="pbe-1">
                   <span className="block text-[0.9875rem] font-medium">
                     {step.verb}
                   </span>
-                  <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                  <span className="mbs-0.5 block text-sm leading-relaxed text-muted-foreground">
                     {step.body}
                   </span>
                 </span>
@@ -71,16 +71,16 @@ export function Enquire() {
             ))}
           </ol>
 
-          <dl className="mt-10 grid gap-4 border-t border-border pt-8 text-sm sm:grid-cols-2">
+          <dl className="mbs-10 grid gap-4 border-t border-border pbs-8 text-sm sm:grid-cols-2">
             <div className="flex gap-3">
               <IconPhone
                 size={18}
                 stroke={1.6}
-                className="mt-0.5 shrink-0 text-muted-foreground"
+                className="mbs-0.5 shrink-0 text-muted-foreground"
               />
               <div>
                 <dt className="text-muted-foreground">{t("call")}</dt>
-                <dd className="tnum mt-0.5 flex flex-col font-medium">
+                <dd className="tnum mbs-0.5 flex flex-col font-medium">
                   <a
                     href={contactHref({ kind: "call" })}
                     className="hover:underline"
@@ -100,11 +100,11 @@ export function Enquire() {
               <IconBrandWhatsapp
                 size={18}
                 stroke={1.6}
-                className="mt-0.5 shrink-0 text-muted-foreground"
+                className="mbs-0.5 shrink-0 text-muted-foreground"
               />
               <div>
                 <dt className="text-muted-foreground">{t("whatsapp")}</dt>
-                <dd className="mt-0.5 font-medium">
+                <dd className="mbs-0.5 font-medium">
                   <a
                     href={contactHref({ kind: "workshop" })}
                     target="_blank"
@@ -120,14 +120,14 @@ export function Enquire() {
               <IconMapPin
                 size={18}
                 stroke={1.6}
-                className="mt-0.5 shrink-0 text-muted-foreground"
+                className="mbs-0.5 shrink-0 text-muted-foreground"
               />
               <div>
                 <dt className="text-muted-foreground">{t("walkIn")}</dt>
-                <dd className="mt-0.5 font-medium">
+                <dd className="mbs-0.5 font-medium">
                   {place.street}, {place.city}, {place.region} {place.pin}
                 </dd>
-                <dd className="mt-1">
+                <dd className="mbs-1">
                   <a
                     href={place.maps}
                     target="_blank"
@@ -142,7 +142,7 @@ export function Enquire() {
             </div>
           </dl>
 
-          <div className="mt-8 overflow-hidden rounded-card border border-border bg-card shadow-frame">
+          <div className="mbs-8 overflow-clip rounded-card border border-border bg-card shadow-frame">
             <div className="relative aspect-[16/9] bg-surface">
               <iframe
                 title={t("mapTitle")}

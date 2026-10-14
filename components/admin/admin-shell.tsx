@@ -31,9 +31,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
 function Unreachable() {
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
+      <Section size="sm" className="pbs-26 md:pbs-30">
         <h1 className="type-display">Not responding.</h1>
-        <div className="mt-10">
+        <div className="mbs-10">
           <Empty className="max-w-160 items-start rounded-card border border-border text-left">
             <EmptyHeader className="max-w-none items-start">
               <EmptyMedia variant="icon">

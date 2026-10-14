@@ -228,8 +228,8 @@ export function SignInForm({ next }: { next: string }) {
               choice: ADR-0001 keys a Person by an Indian mobile number, so a
               country field would offer a freedom the system does not have.
             */}
-            <InputGroupAddon className="pl-3.5">
-              <InputGroupText className="tnum border-r border-border pr-3 text-[0.9375rem] text-foreground">
+            <InputGroupAddon className="ps-3.5">
+              <InputGroupText className="tnum border-r border-border pe-3 text-[0.9375rem] text-foreground">
                 +91
               </InputGroupText>
             </InputGroupAddon>
@@ -282,7 +282,7 @@ export function SignInForm({ next }: { next: string }) {
             }}
             aria-invalid={termsError || undefined}
             aria-describedby={termsError ? `${termsId}-error` : undefined}
-            className="mt-0.5"
+            className="mbs-0.5"
           />
           <div className="grid gap-1">
             <FieldLabel htmlFor={termsId} className="font-normal">

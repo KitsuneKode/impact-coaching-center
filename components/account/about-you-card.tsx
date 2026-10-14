@@ -33,7 +33,7 @@ export function AboutYouCard() {
           <h2 id="about-you" className="font-medium">
             Your preparation
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mbs-1 text-sm text-muted-foreground">
             Optional. Helps us suggest the right batch.
           </p>
         </div>
@@ -49,7 +49,7 @@ export function AboutYouCard() {
         ) : null}
       </div>
 
-      <div className="mt-5">
+      <div className="mbs-5">
         {editing ? (
           <QuestionnaireForm
             initial={answers}
@@ -61,11 +61,11 @@ export function AboutYouCard() {
           <dl className="grid gap-4 sm:grid-cols-3">
             <div>
               <dt className="text-sm text-muted-foreground">Preparing for</dt>
-              <dd className="mt-1">{answers?.targetExam ?? "Not answered"}</dd>
+              <dd className="mbs-1">{answers?.targetExam ?? "Not answered"}</dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Attempt</dt>
-              <dd className="mt-1">
+              <dd className="mbs-1">
                 {answers?.attempt
                   ? attemptLabel(answers.attempt)
                   : "Not answered"}
@@ -73,7 +73,7 @@ export function AboutYouCard() {
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Batch</dt>
-              <dd className="mt-1">
+              <dd className="mbs-1">
                 {answers?.preferredBatch ?? "Not answered"}
               </dd>
             </div>

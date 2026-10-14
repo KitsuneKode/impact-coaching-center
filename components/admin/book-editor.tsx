@@ -344,7 +344,7 @@ function BookForm({
             </Field>
           </FieldGroup>
 
-          <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:top-6">
+          <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:inset-bs-6">
             <p className="text-sm text-muted-foreground">
               Books are sold inside sets. Add this book to a set to put it on
               the site.

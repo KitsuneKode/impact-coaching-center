@@ -119,7 +119,7 @@ export function CatalogList({
                   <TableRow key={row.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded-[2px] ring-1 ring-border">
+                        <div className="relative h-12 w-9 shrink-0 overflow-clip rounded-[2px] ring-1 ring-border">
                           {row.thumb}
                         </div>
                         <div className="grid min-w-0">

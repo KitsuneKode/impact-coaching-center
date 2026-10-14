@@ -273,7 +273,7 @@ export function OrdersTable({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <InputGroup className="w-full max-w-xs">
-          <InputGroupAddon className="pl-3">
+          <InputGroupAddon className="ps-3">
             <IconSearch
               stroke={1.75}
               className="size-4 text-muted-foreground"
@@ -289,7 +289,7 @@ export function OrdersTable({
             }}
           />
         </InputGroup>
-        <p aria-live="polite" className="ml-auto text-sm text-muted-foreground">
+        <p aria-live="polite" className="ms-auto text-sm text-muted-foreground">
           {matching.length} of {orders.length} loaded
         </p>
       </div>
@@ -448,7 +448,7 @@ export function OrdersTable({
           Page {safePage + 1} of {pageCount}
           {canLoadMore ? <span aria-hidden="true">+</span> : null}
           {loadingMore ? (
-            <Spinner className="ml-2 inline align-[-2px]" />
+            <Spinner className="ms-2 inline align-[-2px]" />
           ) : null}
         </p>
 
@@ -631,7 +631,7 @@ function OrderRows({
             already looking.
           */}
           {order.seen ? null : (
-            <span className="ml-2 align-middle text-xs text-muted-foreground">
+            <span className="ms-2 align-middle text-xs text-muted-foreground">
               new
             </span>
           )}
@@ -640,7 +640,7 @@ function OrderRows({
               href={`/account/receipt/${order.reference}`}
               target="_blank"
               rel="noopener"
-              className="tnum mt-0.5 block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              className="tnum mbs-0.5 block text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
               Receipt {order.receiptNumber}
             </a>
@@ -763,7 +763,7 @@ function OrderDetail({
     <div className="grid gap-8 py-2 md:grid-cols-2">
       <div>
         <h3 className="text-sm font-medium">Items</h3>
-        <ul className="mt-3 flex flex-col gap-2">
+        <ul className="mbs-3 flex flex-col gap-2">
           {order.lines.map((line) => (
             <li key={`${line.slug}:${line.language}`} className="grid gap-1">
               <span className="flex items-baseline justify-between gap-4">
@@ -789,7 +789,7 @@ function OrderDetail({
             </li>
           ))}
         </ul>
-        <dl className="mt-4 flex flex-col gap-1 border-t border-border pt-3 text-sm">
+        <dl className="mbs-4 flex flex-col gap-1 border-t border-border pbs-3 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Items</dt>
             <dd className="tnum">{formatPaise(order.itemsPaise)}</dd>
@@ -816,7 +816,7 @@ function OrderDetail({
           {order.fulfilment === "delivery" ? "Deliver to" : "Collection"}
         </h3>
         {order.address ? (
-          <address className="mt-3 not-italic">
+          <address className="mbs-3 not-italic">
             {order.address.line1}
             <br />
             {order.address.line2 ? (
@@ -831,7 +831,7 @@ function OrderDetail({
             <span className="tnum">{order.address.pin}</span>
           </address>
         ) : (
-          <p className="mt-3 text-muted-foreground">
+          <p className="mbs-3 text-muted-foreground">
             {/*
               A collection order has no address, and that is a fact
               rather than missing data. Saying so is better than an
@@ -842,9 +842,9 @@ function OrderDetail({
         )}
 
         {order.courier ? (
-          <div className="mt-6">
+          <div className="mbs-6">
             <h3 className="text-sm font-medium">Courier</h3>
-            <p className="mt-3 text-muted-foreground">
+            <p className="mbs-3 text-muted-foreground">
               {order.courier.name}
               {" · "}
               <span className="tnum">{order.courier.trackingNumber}</span>
@@ -853,7 +853,7 @@ function OrderDetail({
               <Button
                 variant="secondary"
                 size="sm"
-                className="mt-3"
+                className="mbs-3"
                 onClick={onCourier}
                 disabled={busy}
               >
@@ -919,7 +919,7 @@ function OrderCard({
         </a>
       ) : null}
 
-      <div className="mt-1 text-sm">
+      <div className="mbs-1 text-sm">
         {order.buyerDeleted ? (
           <span className="text-muted-foreground">Account deleted</span>
         ) : (
@@ -937,7 +937,7 @@ function OrderCard({
         ) : null}
       </div>
 
-      <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+      <dl className="mbs-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <dt className="sr-only">Fulfilment</dt>
           <dd className="inline-flex items-center gap-1.5">
@@ -968,7 +968,7 @@ function OrderCard({
         </div>
       </dl>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mbs-3 flex items-center justify-between gap-3">
         <Button
           variant="secondary"
           size="sm"
@@ -981,7 +981,7 @@ function OrderCard({
       </div>
 
       {expanded ? (
-        <div className="mt-4 border-t border-border pt-4">
+        <div className="mbs-4 border-t border-border pbs-4">
           <OrderDetail order={order} busy={busy} onCourier={onCourier} />
         </div>
       ) : null}

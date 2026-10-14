@@ -9,27 +9,27 @@ import { cn } from "@/lib/utils"
  */
 export const proseComponents: Components = {
   h2: ({ children }) => (
-    <h2 className="mt-12 text-lg font-medium text-foreground first:mt-0">
+    <h2 className="mbs-12 text-lg font-medium text-foreground first:mbs-0">
       {children}
     </h2>
   ),
   h3: ({ children }) => (
-    <h3 className="mt-8 text-base font-medium text-foreground first:mt-0">
+    <h3 className="mbs-8 text-base font-medium text-foreground first:mbs-0">
       {children}
     </h3>
   ),
   p: ({ children }) => (
-    <p className="mt-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
+    <p className="mbs-3 text-[0.9375rem] leading-relaxed text-muted-foreground">
       {children}
     </p>
   ),
   ul: ({ children }) => (
-    <ul className="mt-3 list-disc space-y-2 pl-5 text-[0.9375rem] leading-relaxed text-muted-foreground marker:text-foreground/40">
+    <ul className="mbs-3 list-disc space-y-2 ps-5 text-[0.9375rem] leading-relaxed text-muted-foreground marker:text-foreground/40">
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="mt-3 list-decimal space-y-2 pl-5 text-[0.9375rem] leading-relaxed text-muted-foreground marker:text-foreground/40">
+    <ol className="mbs-3 list-decimal space-y-2 ps-5 text-[0.9375rem] leading-relaxed text-muted-foreground marker:text-foreground/40">
       {children}
     </ol>
   ),
@@ -37,12 +37,12 @@ export const proseComponents: Components = {
     <strong className="font-medium text-foreground">{children}</strong>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="mt-4 border-l-2 border-foreground/20 pl-4">
+    <blockquote className="mbs-4 border-l-2 border-foreground/20 ps-4">
       {children}
     </blockquote>
   ),
   table: ({ children }) => (
-    <div className="mt-4 overflow-x-auto rounded-card border border-border">
+    <div className="mbs-4 overflow-x-auto rounded-card border border-border">
       <table className="w-full min-w-120 text-left text-sm">{children}</table>
     </div>
   ),

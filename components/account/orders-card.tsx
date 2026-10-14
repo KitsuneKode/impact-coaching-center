@@ -29,7 +29,7 @@ export function OrdersCard() {
         className="max-w-160 rounded-card border border-border p-6"
       >
         <h2 className="text-lg font-medium">Your orders</h2>
-        <div className="mt-4 flex flex-col gap-4" aria-hidden>
+        <div className="mbs-4 flex flex-col gap-4" aria-hidden>
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
         </div>
@@ -42,7 +42,7 @@ export function OrdersCard() {
     return (
       <section className="max-w-160 rounded-card border border-border p-6">
         <h2 className="text-lg font-medium">Your orders</h2>
-        <p className="mt-4 text-sm text-muted-foreground">
+        <p className="mbs-4 text-sm text-muted-foreground">
           No orders yet. When you place one, its status and delivery details
           will appear here.
         </p>
@@ -50,7 +50,7 @@ export function OrdersCard() {
           href="/books"
           variant="secondary"
           size="md"
-          className="mt-4"
+          className="mbs-4"
         >
           Browse books
         </ButtonLink>
@@ -60,9 +60,9 @@ export function OrdersCard() {
   return (
     <section className="max-w-160 rounded-card border border-border p-6">
       <h2 className="text-lg font-medium">Your orders</h2>
-      <ul className="mt-4 flex flex-col divide-y divide-border">
+      <ul className="mbs-4 flex flex-col divide-y divide-border">
         {orders.map((order) => (
-          <li key={order.id} className="flex flex-col gap-2 py-4 first:pt-0">
+          <li key={order.id} className="flex flex-col gap-2 py-4 first:pbs-0">
             <div className="flex items-center justify-between gap-4">
               <span className="tnum font-medium">{order.reference}</span>
               <OrderStatusBadge status={order.status} />

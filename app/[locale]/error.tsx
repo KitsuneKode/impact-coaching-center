@@ -29,14 +29,14 @@ export default function LocaleError({
 
   return (
     <main>
-      <Section size="sm" className="pt-26 md:pt-30">
+      <Section size="sm" className="pbs-26 md:pbs-30">
         <div className="grid gap-10 lg:grid-cols-12 lg:items-center">
           <div className="max-w-160 lg:col-span-5">
             <h1 className="type-display">
               <span className="text-foreground">{t("claim")}</span>{" "}
               <span className="text-muted-foreground">{t("rest")}</span>
             </h1>
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mbs-10 flex flex-wrap gap-3">
               <Button onClick={() => retry()}>{t("retry")}</Button>
               <ButtonLink
                 href={locale === "as" ? "/as" : "/"}
@@ -52,7 +52,7 @@ export default function LocaleError({
               </ButtonLink>
             </div>
             {error.digest ? (
-              <p className="tnum mt-8 text-sm text-muted-foreground">
+              <p className="tnum mbs-8 text-sm text-muted-foreground">
                 {t("reference", { digest: error.digest })}
               </p>
             ) : null}

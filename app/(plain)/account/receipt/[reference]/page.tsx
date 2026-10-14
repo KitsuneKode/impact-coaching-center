@@ -44,7 +44,7 @@ function Receipt({ reference }: { reference: string }) {
           title="This order has no receipt yet"
           description="A receipt is issued once the payment goes through. If you paid just now, give it a minute."
           action={
-            <ButtonLink href="/account" className="mt-6">
+            <ButtonLink href="/account" className="mbs-6">
               Your orders
             </ButtonLink>
           }

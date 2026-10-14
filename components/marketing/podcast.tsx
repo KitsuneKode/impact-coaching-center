@@ -31,13 +31,13 @@ export function Podcast() {
 
       {/* grid-cols-1 is minmax(0,1fr): without it the single mobile column
           grows to fit the longest truncated title and widens the whole page */}
-      <div className="mt-10 grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_1fr]">
+      <div className="mbs-10 grid grid-cols-1 gap-4 lg:grid-cols-[1.25fr_1fr]">
         <Reveal className="min-w-0">
           <VideoDialog
             id={lead.id}
             title={lead.title}
             subtitle={lead.guest}
-            className="w-full overflow-hidden rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
+            className="w-full overflow-clip rounded-card border border-border bg-card shadow-frame transition-shadow hover:shadow-lift"
           >
             <span className="relative block aspect-video bg-surface">
               <Image
@@ -75,15 +75,15 @@ export function Podcast() {
               <IconMicrophone size={16} stroke={1.75} />
               {t("across")}
             </p>
-            <p className="mt-2 text-[2.25rem] leading-none font-medium tracking-[-0.03em]">
+            <p className="mbs-2 text-[2.25rem] leading-none font-medium tracking-[-0.03em]">
               <AnimatedNumber value={podcast.seriesViews} />
             </p>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mbs-2 text-sm text-muted-foreground">
               {t("seriesNote")}
             </p>
           </div>
 
-          <ul className="flex flex-col gap-px overflow-hidden rounded-card border border-border bg-border">
+          <ul className="flex flex-col gap-px overflow-clip rounded-card border border-border bg-border">
             {rest.slice(0, 4).map((episode) => (
               <li key={episode.id} className="bg-card">
                 <VideoDialog
@@ -92,7 +92,7 @@ export function Podcast() {
                   subtitle={episode.guest}
                   className="flex w-full items-center gap-3 p-3 transition-colors hover:bg-secondary"
                 >
-                  <span className="relative aspect-video w-20 shrink-0 overflow-hidden rounded-md bg-surface">
+                  <span className="relative aspect-video w-20 shrink-0 overflow-clip rounded-md bg-surface">
                     <Image
                       src={thumb(episode.id)}
                       alt=""

@@ -309,7 +309,7 @@ function PostForm({
                 <TabsTrigger value="write">Write</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
               </TabsList>
-              <TabsContent value="write" className="mt-2">
+              <TabsContent value="write" className="mbs-2">
                 <Textarea
                   aria-label="Post body, Markdown"
                   lang={draft.language}
@@ -321,7 +321,7 @@ function PostForm({
                   spellCheck={false}
                 />
               </TabsContent>
-              <TabsContent value="preview" className="mt-2">
+              <TabsContent value="preview" className="mbs-2">
                 <div
                   lang={draft.language}
                   className="min-h-40 rounded-control border border-border bg-card px-5 py-4"
@@ -347,7 +347,7 @@ function PostForm({
           </Field>
         </FieldGroup>
 
-        <aside className="grid content-start gap-6 lg:sticky lg:top-6">
+        <aside className="grid content-start gap-6 lg:sticky lg:inset-bs-6">
           <div className="grid gap-4 rounded-card border border-border p-5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium">Status</span>

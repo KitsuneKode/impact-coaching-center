@@ -124,7 +124,7 @@ export function SiteMenu({ phone }: { phone: string }) {
             <m.div
               aria-hidden
               onClick={close}
-              className="absolute inset-x-0 top-full z-40 h-dvh bg-foreground/40"
+              className="absolute inset-x-0 inset-bs-full z-40 h-dvh bg-foreground/40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, transition: { duration: 0.2, ease } }}
               exit={{ opacity: 0, transition: { duration: 0.14 } }}
@@ -133,7 +133,7 @@ export function SiteMenu({ phone }: { phone: string }) {
               ref={panel}
               id="site-menu"
               aria-label={t("menu")}
-              className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-76px-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-background text-foreground"
+              className="absolute inset-x-0 inset-bs-full z-50 max-h-[calc(100dvh-76px-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-background text-foreground"
               initial={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
               animate={{
                 opacity: 1,
@@ -155,7 +155,7 @@ export function SiteMenu({ phone }: { phone: string }) {
                   </li>
                 ))}
               </ul>
-              <div className="flex items-center gap-2 px-5 pt-5">
+              <div className="flex items-center gap-2 px-5 pbs-5">
                 <LocaleSwitch />
                 <AccountMenu />
               </div>

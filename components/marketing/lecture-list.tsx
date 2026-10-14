@@ -59,7 +59,7 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
               className="row-link flex w-full gap-4 py-4 md:py-5"
             >
               <span className="flex min-w-0 items-center gap-4">
-                <span className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-md bg-surface ring-1 ring-border md:hidden">
+                <span className="relative aspect-video w-24 shrink-0 overflow-clip rounded-md bg-surface ring-1 ring-border md:hidden">
                   <Image
                     src={lectureStill(lecture.id)}
                     alt=""
@@ -96,14 +96,14 @@ export function LectureList({ limit = 6 }: { limit?: number }) {
         {active && !reduce ? (
           <m.div
             aria-hidden
-            className="pointer-events-none absolute top-0 left-0 z-10 hidden w-72 md:block"
+            className="pointer-events-none absolute inset-s-0 inset-bs-0 z-10 hidden w-72 md:block"
             style={{ x: sx, y: sy }}
             initial={{ opacity: 0, scale: 0.92, filter: "blur(6px)" }}
             animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, scale: 0.92, filter: "blur(6px)" }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="relative aspect-video translate-x-6 -translate-y-1/2 overflow-hidden rounded-[0.75rem] bg-surface shadow-lift ring-1 ring-border">
+            <div className="relative aspect-video translate-x-6 -translate-y-1/2 overflow-clip rounded-[0.75rem] bg-surface shadow-lift ring-1 ring-border">
               {items.map((lecture) => (
                 <Image
                   key={lecture.id}

@@ -89,7 +89,7 @@ function Checkout() {
           title="Sign in to place the order"
           description="Your cart stays on this device and carries over once you're in. New here? Signing in with your number creates the account."
           action={
-            <ButtonLink href="/login?next=/checkout" className="mt-6">
+            <ButtonLink href="/login?next=/checkout" className="mbs-6">
               Sign in with your number
             </ButtonLink>
           }
@@ -284,7 +284,7 @@ function CheckoutForm() {
           title={bundles === undefined ? "Loading…" : "Your cart is empty"}
           description="The sets you add wait here until you place the order."
           action={
-            <ButtonLink href="/books" className="mt-6">
+            <ButtonLink href="/books" className="mbs-6">
               Browse the books
             </ButtonLink>
           }
@@ -294,7 +294,7 @@ function CheckoutForm() {
           <div className="space-y-10">
             <section aria-label="Your order">
               <h2 className="type-label">Your order</h2>
-              <ul className="mt-4 divide-y divide-border">
+              <ul className="mbs-4 divide-y divide-border">
                 {rows.map((row) => (
                   <li
                     key={`${row.slug}:${row.language}`}
@@ -314,7 +314,7 @@ function CheckoutForm() {
                 ))}
               </ul>
               {missing.length > 0 && (
-                <output className="mt-3 block text-sm text-destructive">
+                <output className="mbs-3 block text-sm text-destructive">
                   {missing.length === 1 ? "One title is" : "Some titles are"} no
                   longer available and won't be ordered. Remove{" "}
                   {missing.length === 1 ? "it" : "them"} in the cart to go on.
@@ -324,7 +324,7 @@ function CheckoutForm() {
 
             <fieldset>
               <legend className="type-label">Getting it to you</legend>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mbs-4 grid gap-3 sm:grid-cols-2">
                 {(
                   [
                     ["delivery", IconTruckDelivery],
@@ -346,10 +346,14 @@ function CheckoutForm() {
                       value={value}
                       checked={fulfilment === value}
                       onChange={() => setFulfilment(value)}
-                      className="mt-1 size-4 accent-primary"
+                      className="mbs-1 size-4 accent-primary"
                     />
                     <span>
-                      <Icon stroke={1.75} className="mb-2 size-5" aria-hidden />
+                      <Icon
+                        stroke={1.75}
+                        className="mbe-2 size-5"
+                        aria-hidden
+                      />
                       <span className="block font-medium">
                         {FULFILMENT_LABELS[value]}
                       </span>
@@ -446,7 +450,7 @@ function CheckoutForm() {
 
           <aside
             aria-label="Total"
-            className="h-fit space-y-4 rounded-[28px] bg-card p-6 shadow-lift lg:sticky lg:top-[calc(var(--header-height)+var(--strip-height)+1.5rem)]"
+            className="h-fit space-y-4 rounded-[28px] bg-card p-6 shadow-lift lg:sticky lg:inset-bs-[calc(var(--header-height)+var(--strip-height)+1.5rem)]"
           >
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -461,7 +465,7 @@ function CheckoutForm() {
                     : "Free"}
                 </dd>
               </div>
-              <div className="flex justify-between border-t border-border pt-3 text-base font-medium">
+              <div className="flex justify-between border-t border-border pbs-3 text-base font-medium">
                 <dt>Total</dt>
                 <dd className="tnum">
                   {formatPaise(itemsPaise + deliveryPaise)}

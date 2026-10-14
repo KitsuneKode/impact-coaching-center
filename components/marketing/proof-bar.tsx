@@ -31,7 +31,7 @@ export function ProofBar() {
                 href={item.href}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="group flex h-full flex-col px-4 py-7 md:px-7 md:py-9 lg:first:pl-0"
+                className="group flex h-full flex-col px-4 py-7 md:px-7 md:py-9 lg:first:ps-0"
               >
                 <span className="text-[2rem] leading-none font-medium tracking-[-0.03em] md:text-[2.5rem]">
                   <AnimatedNumber
@@ -40,13 +40,13 @@ export function ProofBar() {
                     suffix={item.display.endsWith("+") ? "+" : ""}
                   />
                 </span>
-                <span className="mt-3 inline-flex items-start gap-1 text-sm leading-snug text-muted-foreground transition-colors group-hover:text-foreground">
+                <span className="mbs-3 inline-flex items-start gap-1 text-sm leading-snug text-muted-foreground transition-colors group-hover:text-foreground">
                   {content.proof[index] ?? item.label}
                   <IconArrowUpRight
                     size={14}
                     stroke={1.75}
                     aria-hidden
-                    className="mt-0.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="mbs-0.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
                   />
                 </span>
               </a>

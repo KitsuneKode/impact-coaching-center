@@ -60,7 +60,7 @@ export function LanguagePrompt() {
           <DialogPrimitive.Description className="sr-only">
             {t("note")}
           </DialogPrimitive.Description>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mbs-3 grid grid-cols-2 gap-2">
             {routing.locales.map((locale) => (
               <button
                 key={locale}

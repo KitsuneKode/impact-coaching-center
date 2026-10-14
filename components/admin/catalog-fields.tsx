@@ -204,7 +204,7 @@ export function ImageField({
           disabled={busy}
           className="flex items-start gap-4"
         >
-          <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-border">
+          <div className="relative aspect-[3/4] w-28 shrink-0 overflow-clip rounded-[3px] ring-1 ring-border">
             <Thumb src={value.url} alt={label} />
             {busy ? (
               <span className="absolute inset-0 grid place-items-center bg-background/70">
@@ -371,11 +371,11 @@ export function PageImagesField({
         <ol className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3">
           {value.map((image, i) => (
             <li key={image.id} className="grid gap-1.5">
-              <div className="relative aspect-[1/1.414] overflow-hidden rounded-[2px] ring-1 ring-border">
+              <div className="relative aspect-[1/1.414] overflow-clip rounded-[2px] ring-1 ring-border">
                 <Thumb src={image.url} alt={`Page ${i + 1}`} />
                 <Badge
                   variant="solid"
-                  className="absolute top-1.5 left-1.5 px-1.5 py-0.5"
+                  className="absolute inset-s-1.5 inset-bs-1.5 px-1.5 py-0.5"
                 >
                   {i + 1}
                 </Badge>

@@ -64,7 +64,7 @@ export async function ExamDateList({
           <li
             key={`${date.exam}-${date.kind}-${date.starts}-${date.title}`}
             className={cn(
-              "grid grid-cols-[4rem_minmax(0,1fr)] gap-x-5 gap-y-3 border-t border-border py-6 first:border-t-0 first:pt-0 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-start",
+              "grid grid-cols-[4rem_minmax(0,1fr)] gap-x-5 gap-y-3 border-t border-border py-6 first:border-t-0 first:pbs-0 md:grid-cols-[5rem_minmax(0,1fr)_auto] md:items-start",
               past && "text-muted-foreground"
             )}
           >
@@ -77,7 +77,7 @@ export async function ExamDateList({
               >
                 {Number(date.starts.slice(8))}
               </span>
-              <span className="mt-2 text-sm text-muted-foreground">
+              <span className="mbs-2 text-sm text-muted-foreground">
                 {dayInWords(date.starts, locale, {
                   month: "short",
                   weekday: "short",
@@ -97,20 +97,20 @@ export async function ExamDateList({
                 ) : null}
                 <span>{t(`kinds.${date.kind}`)}</span>
                 {date.tentative ? (
-                  <Badge className="ml-1 py-0.5">{t("tentative")}</Badge>
+                  <Badge className="ms-1 py-0.5">{t("tentative")}</Badge>
                 ) : null}
               </p>
               <p
                 lang={locale === "as" && date.titleAs ? "as" : "en"}
                 className={cn(
-                  "mt-1.5 text-lg leading-snug font-bold text-balance",
+                  "mbs-1.5 text-lg leading-snug font-bold text-balance",
                   past ? "text-muted-foreground" : "text-foreground"
                 )}
               >
                 {title}
               </p>
               {date.ends && date.ends !== date.starts ? (
-                <p className="tnum mt-1 text-sm text-muted-foreground">
+                <p className="tnum mbs-1 text-sm text-muted-foreground">
                   {t("until", {
                     date: dayInWords(date.ends, locale, {
                       day: "numeric",
@@ -121,7 +121,7 @@ export async function ExamDateList({
               ) : null}
             </div>
 
-            <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-2 md:col-start-3 md:justify-end md:pt-1">
+            <div className="col-start-2 flex flex-wrap items-center gap-x-4 gap-y-2 md:col-start-3 md:justify-end md:pbs-1">
               {when ? (
                 <span className="tnum inline-flex items-center gap-2 text-sm font-bold text-foreground">
                   {open ? (

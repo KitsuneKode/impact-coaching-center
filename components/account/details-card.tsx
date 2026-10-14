@@ -28,7 +28,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
         <dl className="grid gap-5">
           <div>
             <dt className="text-sm text-muted-foreground">Name</dt>
-            <dd className="mt-1">
+            <dd className="mbs-1">
               {viewer.name.trim() || (
                 <span className="text-muted-foreground">Not added</span>
               )}
@@ -36,8 +36,8 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
           </div>
           <div>
             <dt className="text-sm text-muted-foreground">Mobile number</dt>
-            <dd className="tnum mt-1">{formatPhone(viewer.phone)}</dd>
-            <dd className="mt-1 text-sm text-muted-foreground">
+            <dd className="tnum mbs-1">{formatPhone(viewer.phone)}</dd>
+            <dd className="mbs-1 text-sm text-muted-foreground">
               To change your number, call or WhatsApp ICT.
             </dd>
           </div>
@@ -45,7 +45,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
         <Button
           variant="secondary"
           size="md"
-          className="mt-6"
+          className="mbs-6"
           onClick={() => setEditing(true)}
         >
           <IconPencil stroke={1.75} />

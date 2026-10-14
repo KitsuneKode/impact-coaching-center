@@ -395,7 +395,7 @@ function ResourceForm({
           )}
         </FieldGroup>
 
-        <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:top-6">
+        <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:inset-bs-6">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">Status</span>
             <PublishState published={published} />

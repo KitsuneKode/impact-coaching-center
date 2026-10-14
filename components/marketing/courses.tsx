@@ -81,12 +81,12 @@ function TrackCard({
             {names.duration}
           </span>
         </div>
-        <p className={cn("mt-1.5 text-sm", muted)}>{names.covers}</p>
+        <p className={cn("mbs-1.5 text-sm", muted)}>{names.covers}</p>
       </header>
 
-      <div className={cn("mt-6 border-t pt-6", rule)}>
+      <div className={cn("mbs-6 border-t pbs-6", rule)}>
         <p className={cn("text-sm", muted)}>{course.short}</p>
-        <p className="mt-1.5 flex items-baseline gap-2">
+        <p className="mbs-1.5 flex items-baseline gap-2">
           <span className="tnum text-[2rem] leading-none font-medium tracking-[-0.03em]">
             {inr(course.price)}
           </span>
@@ -97,7 +97,7 @@ function TrackCard({
           ) : null}
           <span className={cn("text-sm", muted)}>{tf("unit")}</span>
         </p>
-        <p className={cn("mt-2 text-sm leading-relaxed", muted)}>
+        <p className={cn("mbs-2 text-sm leading-relaxed", muted)}>
           {tf("note")}
         </p>
       </div>
@@ -107,7 +107,7 @@ function TrackCard({
         target="_blank"
         variant={featured ? "secondary" : "primary"}
         size="lg"
-        className={cn("mt-5 w-full", featured && "border-transparent")}
+        className={cn("mbs-5 w-full", featured && "border-transparent")}
       >
         {t("enrol", { exam: names.exam })}
         <IconArrowRight data-nudge stroke={1.75} />
@@ -116,7 +116,7 @@ function TrackCard({
       <Link
         href={`/courses/${course.slug}`}
         className={cn(
-          "mt-3 inline-flex items-center justify-center gap-1 self-center text-sm font-medium underline-offset-4 hover:underline",
+          "mbs-3 inline-flex items-center justify-center gap-1 self-center text-sm font-medium underline-offset-4 hover:underline",
           featured ? "text-white" : "text-foreground"
         )}
       >
@@ -130,7 +130,7 @@ function TrackCard({
           target="_blank"
           rel="noreferrer noopener"
           className={cn(
-            "mt-1.5 inline-flex items-center justify-center gap-1 self-center text-sm underline underline-offset-4",
+            "mbs-1.5 inline-flex items-center justify-center gap-1 self-center text-sm underline underline-offset-4",
             featured
               ? "text-white/70 hover:text-white"
               : "text-muted-foreground hover:text-foreground"
@@ -142,7 +142,7 @@ function TrackCard({
       ) : null}
 
       {/* what the fee buys, in ICT's own words from the listing */}
-      <ul className={cn("mt-7 space-y-2.5 border-t pt-6", rule)}>
+      <ul className={cn("mbs-7 space-y-2.5 border-t pbs-6", rule)}>
         {course.features.slice(0, 5).map((point) => (
           <li key={point} className="flex gap-2.5 text-sm leading-snug">
             <IconCheck
@@ -150,7 +150,7 @@ function TrackCard({
               stroke={2}
               aria-hidden
               className={cn(
-                "mt-0.5 shrink-0",
+                "mbs-0.5 shrink-0",
                 featured ? "text-white/70" : "text-muted-foreground"
               )}
             />
@@ -160,7 +160,7 @@ function TrackCard({
       </ul>
 
       {also.length > 0 ? (
-        <dl className={cn("mt-6 space-y-1.5 border-t pt-5", rule)}>
+        <dl className={cn("mbs-6 space-y-1.5 border-t pbs-5", rule)}>
           <dt className={cn("text-sm", muted)}>Also in this track</dt>
           {also.map((other) => (
             <dd
@@ -185,7 +185,7 @@ function TrackCard({
         <UntilDate date={startsOn}>
           <p
             className={cn(
-              "mt-5 rounded-control px-3 py-2 text-sm",
+              "mbs-5 rounded-control px-3 py-2 text-sm",
               featured ? "bg-white/10" : "bg-highlight/25"
             )}
           >
@@ -194,14 +194,14 @@ function TrackCard({
         </UntilDate>
       ) : null}
 
-      <div className={cn("mt-auto border-t pt-5", rule)}>
+      <div className={cn("mbs-auto border-t pbs-5", rule)}>
         <div className="flex items-center gap-3">
           <div className="flex -space-x-2">
             {people.map((person) => (
               <span
                 key={person.slug}
                 className={cn(
-                  "relative size-7 overflow-hidden rounded-full ring-2",
+                  "relative size-7 overflow-clip rounded-full ring-2",
                   featured ? "bg-white/10 ring-primary" : "bg-surface ring-card"
                 )}
               >
@@ -224,11 +224,11 @@ function TrackCard({
           id={track.sample.id}
           title={t("sampleTitle", { exam: names.exam })}
           subtitle={t("sampleSubtitle")}
-          className="group/sample mt-4 flex w-full items-center gap-3"
+          className="group/sample mbs-4 flex w-full items-center gap-3"
         >
           <span
             className={cn(
-              "relative aspect-video w-16 shrink-0 overflow-hidden rounded-md ring-1",
+              "relative aspect-video w-16 shrink-0 overflow-clip rounded-md ring-1",
               featured ? "ring-white/20" : "ring-border"
             )}
           >
@@ -269,7 +269,7 @@ export function Courses({ courses }: { courses: readonly Course[] }) {
 
       <Reveal
         delay={0.08}
-        className="mt-12 grid items-stretch gap-4 lg:grid-cols-3"
+        className="mbs-12 grid items-stretch gap-4 lg:grid-cols-3"
       >
         {tracks.map((track) => (
           <TrackCard
