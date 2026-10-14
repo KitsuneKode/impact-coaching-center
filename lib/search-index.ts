@@ -126,6 +126,7 @@ export async function buildSearchIndex(
     ["/exams/calendar", t("searchCalendar"), ["dates", "calendar"]],
     ["/success-stories", nav("results"), ["selections", "toppers"]],
     ["/library", nav("library"), ["study room", "seat", "wifi"]],
+    ["/teachers", nav("teachersPage"), ["faculty", "sir", "ma'am", "teacher"]],
     ["/assist", nav("assist"), ["scholarship"]],
     ["/contact", nav("contact"), ["phone", "address", "whatsapp", "location"]],
     ["/blog", nav("blog"), ["articles", "updates"]],

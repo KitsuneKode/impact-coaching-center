@@ -37,7 +37,8 @@
     "library": "Library",
     "blog": "Blog",
     "callNumber": "Call {phone}",
-    "menu": "Menu"
+    "menu": "Menu",
+    "teachersPage": "Teachers"
   },
   "Offer": {
     "cta": "Join a free workshop",
@@ -687,7 +688,8 @@
     "searchPosts": "Blog",
     "searchPages": "Pages",
     "searchCalendar": "Exam calendar",
-    "builtBy": "Website by <agency>{name}</agency>"
+    "builtBy": "Website by <agency>{name}</agency>",
+    "teachersAll": "Who teaches what"
   },
   "Promos": {
     "code": "Code",
@@ -763,5 +765,21 @@
     "appNote": "Every course is also live and recorded on the ICT app.",
     "none": "We could not match a course this time. Ask ICT on WhatsApp and they will suggest one.",
     "homeLink": "Not sure which? Find your course in four questions"
+  },
+  "Teachers": {
+    "title": "Teachers",
+    "metaTitle": "ICT teachers and what they teach",
+    "description": "Meet the teachers at Impact Career Tutorials, North Lakhimpur: what each one teaches, for which exams, and a full class of theirs to watch before you join.",
+    "lede": "Who teaches what at ICT, and for which exam. Watch a full class by any of them before you join.",
+    "watch": "Watch {name} teach",
+    "for": "Teaches for",
+    "courses": "Courses",
+    "notes": {
+      "raheef": "Founder. Runs the Warrior mock discussions.",
+      "pallabi": "Leads the Brahmastra crash course.",
+      "harkaran": "Senior faculty.",
+      "tulika": "ADRE and Assam Police English.",
+      "rituraj": "B.Tech, former Bank PO."
+    }
   }
 }

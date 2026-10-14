@@ -20,6 +20,7 @@ const pages = [
   "/library",
   "/blog",
   "/success-stories",
+  "/teachers",
   "/assist",
   "/privacy",
   "/terms",

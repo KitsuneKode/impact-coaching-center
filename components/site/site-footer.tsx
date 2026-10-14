@@ -60,6 +60,7 @@ export function SiteFooter() {
         { label: nav("books"), href: "/books" },
         { label: t("examsExplained"), href: "/exams" },
         { label: nav("results"), href: "/success-stories" },
+        { label: nav("teachersPage"), href: "/teachers" },
         { label: nav("library"), href: "/library" },
         { label: nav("blog"), href: "/blog" },
       ],
