@@ -1,7 +1,9 @@
+import { IconArrowRight } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 
 import { VoicesCarousel } from "@/components/marketing/voices-carousel"
 import { Reveal } from "@/components/motion/reveal"
+import { Link } from "@/i18n/navigation"
 import { studentReviews } from "@/lib/stories"
 
 /**
@@ -39,6 +41,18 @@ export function StudentVoices({
       <div className="mbs-8">
         <VoicesCarousel reviews={list} />
       </div>
+      {limit && limit < studentReviews.length ? (
+        <p className="container-page mbs-6">
+          <Link
+            href="/success-stories#voices"
+            data-press
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-secondary px-5 font-semibold"
+          >
+            {t("hearAll", { count: studentReviews.length })}
+            <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
+          </Link>
+        </p>
+      ) : null}
     </section>
   )
 }

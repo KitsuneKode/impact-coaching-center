@@ -29,7 +29,9 @@ export function Teachers() {
             <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
           </Link>
         </Reveal>
-        <ul className="mbs-12 grid grid-cols-2 gap-4 md:grid-cols-5">
+        {/* Five in a row on wide screens; a swipeable row on phones, so
+            nobody is left alone on the last line. */}
+        <ul data-teacher-row className="mbs-12">
           {faculty.map((teacher) => (
             <TeacherCard key={teacher.slug} teacher={teacher} />
           ))}

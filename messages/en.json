@@ -708,7 +708,10 @@
     "teachersAll": "Who teaches what",
     "searchMove": "to move",
     "searchGo": "to open",
-    "searchClose": "to close"
+    "searchClose": "to close",
+    "stackTabs": "Choose an exam",
+    "stackPrevious": "Previous exam",
+    "stackNext": "Next exam"
   },
   "Promos": {
     "code": "Code",

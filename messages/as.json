@@ -908,7 +908,10 @@
     "teachersAll": "কোনে কি পঢ়ায়",
     "searchMove": "লৰচৰ কৰিবলৈ",
     "searchGo": "খুলিবলৈ",
-    "searchClose": "বন্ধ কৰিবলৈ"
+    "searchClose": "বন্ধ কৰিবলৈ",
+    "stackTabs": "এটা পৰীক্ষা বাছক",
+    "stackPrevious": "আগৰ পৰীক্ষা",
+    "stackNext": "পিছৰ পৰীক্ষা"
   },
   "Promos": {
     "code": "ক'ড",
