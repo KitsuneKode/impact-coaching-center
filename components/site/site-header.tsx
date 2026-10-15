@@ -1,30 +1,26 @@
 "use client"
 
-import { IconChevronDown, IconPhone } from "@tabler/icons-react"
+import { IconPhone } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
+import { useRef } from "react"
 
 import { useHeadroom } from "@/hooks/use-headroom"
 import { AccountMenu } from "@/components/account/account-menu"
 import { LocaleSwitch } from "@/components/i18n/locale-switch"
-import { Link, usePathname } from "@/i18n/navigation"
+import { Link } from "@/i18n/navigation"
 import { brand, contact, formatPhone } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
-import { MORE_LINKS, NAV_LINKS } from "./nav-links"
 import { SiteSearch } from "@/components/site/site-search"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { SiteMenu } from "./site-menu"
+import { SiteNav } from "./site-nav"
 
 /**
- * Pulse's header, on every page. At the top it floats over the page, in white
- * over a blue hero. Scrolled, it shrinks into a floating paper bar that
- * stays; the promo strip above it folds away while you read down and comes
+ * Pulse's header, on every page. At the top: the name on the left, the
+ * sections in a pill in the middle, search, language, account and phone on
+ * the right; in white over a blue hero. Scrolled, on wide screens, it draws
+ * in to one floating bar around the mark, the sections, search, account and
+ * a call button (name, language and the number fold away); it stays; the promo strip above it folds away while you read down and comes
  * back when you scroll up. Its negative margin lets each hero start underneath it, so
  * nothing reflows. The states live in globals.css under "Site header".
  */
@@ -34,12 +30,12 @@ export function SiteHeader() {
     keep: "[data-site-header],[data-promo-strip]",
   })
   const phone = formatPhone(contact.phones[0])
-  const path = usePathname()
+  const row = useRef<HTMLDivElement>(null)
 
   return (
     <>
       <header data-site-header data-stuck={headroom !== "top" || undefined}>
-        <div data-site-header-row className="container-page">
+        <div data-site-header-row ref={row} className="container-page">
           <Link
             href="/"
             aria-label={t("home", { name: brand.legalName })}
@@ -55,61 +51,23 @@ export function SiteHeader() {
                 priority
               />
             </span>
-            <span className="hidden font-display text-sm font-semibold xl:inline">
+            <span
+              data-fold
+              data-brand-name
+              className="font-display text-sm font-semibold"
+            >
               {brand.legalName}
             </span>
           </Link>
 
-          <nav aria-label={t("sections")} data-site-nav>
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={
-                  path === link.href || path.startsWith(`${link.href}/`)
-                    ? "page"
-                    : undefined
-                }
-              >
-                {t(link.key)}
-              </Link>
-            ))}
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                data-site-more
-                aria-current={
-                  MORE_LINKS.some(
-                    (link) =>
-                      path === link.href || path.startsWith(`${link.href}/`)
-                  )
-                    ? "page"
-                    : undefined
-                }
-                className="inline-flex items-center gap-1 whitespace-nowrap"
-              >
-                {t("moreMenu")}
-                <IconChevronDown aria-hidden size={14} stroke={2} />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-48">
-                <DropdownMenuGroup>
-                  {MORE_LINKS.map((link) => (
-                    <DropdownMenuItem
-                      key={link.href}
-                      render={<Link href={link.href} />}
-                      className="min-h-9 text-sm"
-                    >
-                      {t(link.key)}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </nav>
+          <SiteNav anchor={row} label={t("sections")} />
 
           <SiteSearch />
 
           <div data-site-tools>
-            <LocaleSwitch />
+            <span data-fold>
+              <LocaleSwitch />
+            </span>
             <AccountMenu />
           </div>
 
@@ -130,7 +88,7 @@ export function SiteHeader() {
               className="hidden sm:block"
             />
             <span className="sr-only">{t("callPrefix")} </span>
-            {phone}
+            <span data-fold-lg>{phone}</span>
           </a>
           <SiteMenu phone={phone} />
         </div>

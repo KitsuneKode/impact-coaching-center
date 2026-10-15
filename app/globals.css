@@ -582,28 +582,56 @@
     }
   }
 
+  /* The sections, in a pill of their own while the header is at the top. */
   [data-site-nav] {
     display: none;
-    align-items: center;
-    gap: clamp(1.25rem, 0.2rem + 1.4vw, 1.75rem);
-    margin-inline-start: auto;
-    font-size: 0.875rem;
+    margin-inline: auto;
+  }
+  [data-site-nav] [data-slot="navigation-menu-list"] {
+    padding: 4px;
+    border-radius: 999px;
+    background-color: color-mix(in oklch, var(--card) 72%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklch, var(--foreground) 8%, transparent);
+  }
+  [data-site-trigger] {
     color: var(--muted-foreground);
   }
-  [data-site-nav] a {
-    white-space: nowrap;
-    transition: color 0.15s var(--ease-out-strong);
-  }
-  [data-site-nav] :is(a, [data-site-more])[aria-current="page"] {
+  [data-site-trigger]:is([aria-current="page"], [data-popup-open]) {
     color: var(--foreground);
+  }
+  [data-site-trigger][data-popup-open] {
+    background-color: var(--secondary);
+  }
+  [data-site-trigger][data-popup-open] [data-slot="navigation-menu-chevron"] {
+    rotate: 180deg;
   }
   [data-site-tools] {
     display: none;
     align-items: center;
     gap: 0.5rem;
+    --fold-gap: 0.5rem;
   }
   [data-site-phone] {
     margin-inline-start: auto;
+    justify-content: center;
+    min-inline-size: 2.75rem;
+    --fold-gap: 0.375rem;
+  }
+  [data-site-header-row] > a:first-child {
+    --fold-gap: 0.75rem;
+  }
+
+  /* What folds away when the header draws in (wide screens only). */
+  [data-fold],
+  [data-fold-lg] {
+    display: inline-block;
+    max-inline-size: 18rem;
+    overflow: clip;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  [data-brand-name] {
+    display: none;
   }
   @media (width >= 64rem) {
     [data-site-nav],
@@ -613,10 +641,61 @@
     [data-site-phone] {
       margin-inline-start: 0;
     }
+    /* Drawn in: the row is only as wide as what it holds, so the bar wraps
+       the mark, the sections, search, account and a call button.
+       interpolate-size lets the width glide where browsers support it;
+       elsewhere it simply snaps. */
+    [data-site-header-row] {
+      interpolate-size: allow-keywords;
+    }
+    [data-site-header][data-stuck] :is([data-fold], [data-fold-lg]) {
+      max-inline-size: 0;
+      margin-inline-start: calc(-1 * var(--fold-gap, 0px));
+      opacity: 0;
+      visibility: hidden;
+    }
+    [data-site-header][data-stuck]
+      [data-site-nav]
+      [data-slot="navigation-menu-list"] {
+      background-color: transparent;
+      box-shadow: none;
+    }
+  }
+  @media (width >= 80rem) {
+    [data-brand-name] {
+      display: inline-block;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-site-header-row] {
+      transition: width 0.32s var(--ease-out-strong);
+    }
+    [data-fold],
+    [data-fold-lg] {
+      transition:
+        max-inline-size 0.32s var(--ease-out-strong),
+        margin-inline-start 0.32s var(--ease-out-strong),
+        opacity 0.18s var(--ease-out-strong),
+        visibility 0.32s;
+    }
+    [data-site-nav] [data-slot="navigation-menu-list"] {
+      transition:
+        background-color 0.2s var(--ease-out-strong),
+        box-shadow 0.2s var(--ease-out-strong);
+    }
+    [data-site-trigger] {
+      transition:
+        color 0.15s ease,
+        background-color 0.15s ease;
+    }
+    [data-slot="navigation-menu-chevron"] {
+      transition: rotate 0.2s var(--ease-out-strong);
+    }
   }
   @media (hover: hover) and (pointer: fine) {
-    [data-site-nav] :is(a, [data-site-more]):hover {
+    [data-site-trigger]:hover {
       color: var(--foreground);
+      background-color: var(--secondary);
     }
   }
 
@@ -648,13 +727,16 @@
   :root:has([data-hero="blue"]) [data-site-header]:not([data-stuck]) {
     color: oklch(100% 0 none);
 
-    & [data-site-nav] {
+    & [data-site-nav] [data-slot="navigation-menu-list"] {
+      background-color: color-mix(in oklch, white 12%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in oklch, white 22%, transparent);
+    }
+    & [data-site-trigger] {
       color: var(--on-primary);
     }
-    & [data-site-nav] :is(a, [data-site-more])[aria-current="page"] {
+    & [data-site-trigger]:is([aria-current="page"], [data-popup-open]) {
       color: oklch(100% 0 none);
-      text-decoration: underline 1.5px;
-      text-underline-offset: 6px;
+      background-color: color-mix(in oklch, white 16%, transparent);
     }
     & [data-site-header-row] > :not(:has([data-menu-button])) {
       text-shadow:
@@ -669,10 +751,19 @@
   @media (hover: hover) and (pointer: fine) {
     :root:has([data-hero="blue"])
       [data-site-header]:not([data-stuck])
-      [data-site-nav]
-      :is(a, [data-site-more]):hover {
+      [data-site-trigger]:hover {
       color: oklch(100% 0 none);
+      background-color: color-mix(in oklch, white 16%, transparent);
     }
+  }
+}
+
+/* Unlayered, to beat container-page's width: drawn in, the header row is
+   only as wide as what it holds (see "Site header" above). */
+@media (width >= 64rem) {
+  [data-site-header][data-stuck] [data-site-header-row] {
+    width: fit-content;
+    gap: 1rem;
   }
 }
 
@@ -1277,6 +1368,104 @@ body :lang(as) {
     [data-choice]:hover:not(:has(:checked)) {
       box-shadow: inset 0 0 0 1px
         color-mix(in oklch, var(--foreground) 18%, transparent);
+    }
+  }
+}
+
+/* The section panels under the header (components/site/site-nav.tsx). The
+   panel grows from the bar, and between sections it changes size and slides
+   the new list in from the side the pointer moved to. */
+@layer components {
+  [data-slot="navigation-menu-popup"] {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent),
+      0 28px 56px -28px
+        color-mix(in oklch, var(--primary-deep) 50%, transparent);
+  }
+  [data-slot="navigation-menu-popup"]:is(
+    [data-starting-style],
+    [data-ending-style]
+  ) {
+    opacity: 0;
+  }
+  [data-slot="navigation-menu-content"]:is(
+    [data-starting-style],
+    [data-ending-style]
+  ) {
+    opacity: 0;
+  }
+  [data-menu-tile] {
+    color: var(--foreground);
+  }
+  [data-menu-icon] {
+    background-color: var(--secondary);
+    color: var(--primary);
+  }
+  [data-menu-all] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-start: 0.25rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    background-color: var(--secondary);
+  }
+  [data-menu-tile]:active,
+  [data-menu-all]:active {
+    scale: 0.98;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-slot="navigation-menu-popup"] {
+      transition:
+        opacity 0.2s var(--ease-out-strong),
+        scale 0.2s var(--ease-out-strong),
+        width 0.28s var(--ease-out-strong),
+        height 0.28s var(--ease-out-strong);
+    }
+    [data-slot="navigation-menu-popup"]:is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+      scale: 0.97;
+    }
+    [data-slot="navigation-menu-popup"][data-ending-style] {
+      transition-duration: 0.14s;
+    }
+    [data-slot="navigation-menu-content"] {
+      transition:
+        opacity 0.2s var(--ease-out-strong),
+        translate 0.28s var(--ease-out-strong);
+    }
+    [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="right"],
+    [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="left"] {
+      translate: 1.5rem 0;
+    }
+    [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="left"],
+    [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="right"] {
+      translate: -1.5rem 0;
+    }
+    [data-menu-tile],
+    [data-menu-all],
+    [data-menu-icon] {
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        scale 0.12s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-menu-tile]:hover {
+      background-color: var(--secondary);
+    }
+    [data-menu-tile]:hover [data-menu-icon] {
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+    [data-menu-all]:hover {
+      background-color: var(--secondary);
     }
   }
 }

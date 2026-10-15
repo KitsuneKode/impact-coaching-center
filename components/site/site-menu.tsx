@@ -15,7 +15,7 @@ import { AccountMenu } from "@/components/account/account-menu"
 import { LocaleSwitch } from "@/components/i18n/locale-switch"
 import { Link, usePathname } from "@/i18n/navigation"
 import { contactHref } from "@/lib/contact"
-import { MENU_LINKS } from "./nav-links"
+import { NAV_MENUS } from "./nav-links"
 
 const ease = [0.23, 1, 0.32, 1] as const
 
@@ -27,6 +27,7 @@ const ease = [0.23, 1, 0.32, 1] as const
 export function SiteMenu({ phone }: { phone: string }) {
   const t = useTranslations("Nav")
   const offer = useTranslations("Offer")
+  const menus = useTranslations("NavMenu")
   const [open, setOpen] = useState(false)
   const path = usePathname()
   const reduce = useReducedMotion()
@@ -142,16 +143,41 @@ export function SiteMenu({ phone }: { phone: string }) {
               }}
               exit={{ opacity: 0, transition: { duration: 0.14 } }}
             >
+              {/* Each section, then its own pages as chips: "APSC books"
+                  is one tap, the same groups as the desktop panels. */}
               <ul>
-                {MENU_LINKS.map((link) => (
-                  <li key={link.href} className="border-b border-border px-5">
+                {NAV_MENUS.map((menu) => (
+                  <li
+                    key={menu.key}
+                    className="border-b border-border px-5 pbs-4 pbe-4"
+                  >
                     <Link
-                      href={link.href}
+                      href={menu.href}
                       onClick={() => setOpen(false)}
-                      className="flex h-14 items-center font-display text-xl font-semibold"
+                      className="flex min-h-11 items-center justify-between font-display text-xl font-semibold"
                     >
-                      {t(link.key)}
+                      {menu.key === "ict" ? menus("ict") : t(menu.key)}
+                      <IconArrowRight
+                        aria-hidden
+                        size={18}
+                        stroke={2}
+                        className="text-muted-foreground"
+                      />
                     </Link>
+                    <ul className="mbs-2 flex flex-wrap gap-2">
+                      {menu.items.map((item) => (
+                        <li key={item.key}>
+                          <Link
+                            href={item.href}
+                            onClick={() => setOpen(false)}
+                            data-press
+                            className="inline-flex min-h-10 items-center rounded-full bg-secondary px-3.5 text-sm font-medium"
+                          >
+                            {menus(`${item.key}.title`)}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ul>

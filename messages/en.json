@@ -827,5 +827,106 @@
     "seeAll": "See all {count} courses, best fit first",
     "students": "{count, plural, one {# student} other {#+ students}}",
     "studentsAll": "{count}+ students have joined ICT's courses on the app"
+  },
+  "NavMenu": {
+    "ict": "About ICT",
+    "apsc": {
+      "title": "APSC",
+      "note": "Prelims, mains and interview"
+    },
+    "adre": {
+      "title": "ADRE and Assam Police",
+      "note": "Grade 3 and 4, Assam Police SI"
+    },
+    "banking": {
+      "title": "Bank, SSC, Railway",
+      "note": "Banking, SSC and NTPC batches"
+    },
+    "finder": {
+      "title": "Course finder",
+      "note": "Four questions, the course that fits"
+    },
+    "assist": {
+      "title": "ASSIST scholarship",
+      "note": "A test that lowers your fee"
+    },
+    "apscBooks": {
+      "title": "APSC sets",
+      "note": "Books for prelims and mains"
+    },
+    "adreBooks": {
+      "title": "ADRE and Police sets",
+      "note": "Books for Grade 3, 4 and SI"
+    },
+    "bankingBooks": {
+      "title": "Bank and SSC sets",
+      "note": "Books for banking and SSC"
+    },
+    "delivery": {
+      "title": "Delivery and pickup",
+      "note": "Courier, or collect at the centre"
+    },
+    "papers": {
+      "title": "Question papers",
+      "note": "Past papers, solved"
+    },
+    "affairs": {
+      "title": "Current affairs",
+      "note": "Monthly Assam and India notes"
+    },
+    "notesKind": {
+      "title": "Notes",
+      "note": "Subject notes from the faculty"
+    },
+    "practice": {
+      "title": "Practice sets",
+      "note": "Questions to test yourself"
+    },
+    "library": {
+      "title": "Library",
+      "note": "A quiet seat to study at ICT"
+    },
+    "apscGuide": {
+      "title": "APSC CCE",
+      "note": "Pattern, syllabus, eligibility"
+    },
+    "adreGuide": {
+      "title": "ADRE",
+      "note": "Pattern, syllabus, eligibility"
+    },
+    "policeGuide": {
+      "title": "Assam Police SI",
+      "note": "Pattern, syllabus, physical test"
+    },
+    "bankingGuide": {
+      "title": "Bank and SSC",
+      "note": "Pattern, syllabus, eligibility"
+    },
+    "calendar": {
+      "title": "Exam calendar",
+      "note": "Forms, admit cards and exam dates"
+    },
+    "blog": {
+      "title": "Blog",
+      "note": "Strategy and exam news"
+    },
+    "results": {
+      "title": "Results",
+      "note": "Toppers and their stories"
+    },
+    "teachers": {
+      "title": "Teachers",
+      "note": "Who teaches what"
+    },
+    "contact": {
+      "title": "Visit or call",
+      "note": "DC Bungalow Road, North Lakhimpur"
+    },
+    "all": {
+      "courses": "All courses",
+      "books": "All book sets",
+      "notes": "All free notes",
+      "exams": "All exam guides"
+    }
   }
 }
