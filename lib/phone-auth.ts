@@ -2,6 +2,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
 import { SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
+import { secretsMatch } from "./env"
 import { parseClientAddress } from "./client-address"
 import { toE164 } from "./leads"
 
@@ -146,11 +147,20 @@ export function phoneAuthOptions(delivery: {
              one the client controls. parseClientAddress takes the last
              well-formed entry - the address the edge actually saw - and
              canonicalises it, so the ip bucket cannot be moved by spoofing. */
-          const forwarded =
+          const header = (name: string) =>
             ctx.request instanceof Request
-              ? ctx.request.headers.get("x-forwarded-for")
-              : (ctx.headers?.get("x-forwarded-for") ?? null)
-          const ip = parseClientAddress(forwarded)
+              ? ctx.request.headers.get(name)
+              : (ctx.headers?.get(name) ?? null)
+          /* Our own Next.js server vouches for the visitor's address with a
+             shared secret (lib/auth-server.ts); otherwise the forwarded
+             chain, which may only name that server. */
+          const proxySecret = process.env.AUTH_PROXY_SECRET
+          const vouched =
+            proxySecret &&
+            secretsMatch(header("x-ict-proxy-key") ?? "", proxySecret)
+              ? parseClientAddress(header("x-ict-client-ip"))
+              : null
+          const ip = vouched ?? parseClientAddress(header("x-forwarded-for"))
           const decision = await delivery.claim({ phone, ip })
           if (!decision.ok) {
             throw new APIError("TOO_MANY_REQUESTS", {

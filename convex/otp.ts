@@ -8,7 +8,7 @@ import { internalMutation } from "./_generated/server"
 import { consumeRateLimit } from "./persons"
 
 /** Which ceiling refused a send, or null when none did. */
-export type SendRefusal = "phone" | "address" | "deployment"
+export type SendRefusal = "phone" | "address" | "deployment" | "not_whatsapp"
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -20,6 +20,15 @@ export const SENDS_PER_PHONE_10_MIN = 3
 export const SENDS_PER_PHONE_DAY = 10
 /** One shared connection (a college or a cafe) may hold several Persons. */
 export const SENDS_PER_IP_HOUR = 15
+/** A day on one network; mobile carriers put many people behind one address. */
+export const SENDS_PER_IP_DAY = 40
+/** Different numbers one address may ask codes for in an hour: a family or a
+    classroom is a few, someone cycling random numbers is many. */
+export const NEW_NUMBERS_PER_IP_HOUR = 6
+/** A burst cannot spend the day's budget in minutes. */
+export const SENDS_PER_HOUR_GLOBAL = 150
+/** How long a number WhatsApp could not reach stays refused. */
+export const UNDELIVERABLE_FOR_MS = 30 * 24 * 60 * 60_000
 /** Global daily ceiling. Every send is a billed message once WhatsApp lands. */
 export const SENDS_PER_DAY_GLOBAL = 500
 
@@ -35,7 +44,8 @@ const sendRefusal = v.union(
   v.literal("inflight"),
   v.literal("phone"),
   v.literal("address"),
-  v.literal("deployment")
+  v.literal("deployment"),
+  v.literal("not_whatsapp")
 )
 
 /**
@@ -93,6 +103,43 @@ async function clearCode(
   })
 }
 
+/** Whether this rate-limit key was used within the last hour. */
+async function askedRecently(ctx: MutationCtx, key: string, now: number) {
+  const row = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first()
+  return row !== null && now - row.windowStart < HOUR
+}
+
+/**
+ * Meta reported these numbers could not get a WhatsApp message (they are not
+ * on WhatsApp). Later sends to them are refused for UNDELIVERABLE_FOR_MS.
+ */
+export const markUndeliverable = internalMutation({
+  args: { phones: v.array(v.string()), code: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    for (const raw of args.phones.slice(0, 50)) {
+      const phone = toE164(raw)
+      if (!phone) continue
+      const row = await ctx.db
+        .query("otpUndeliverable")
+        .withIndex("by_phone", (q) => q.eq("phone", phone))
+        .first()
+      if (row) await ctx.db.patch(row._id, { at: now, code: args.code })
+      else
+        await ctx.db.insert("otpUndeliverable", {
+          phone,
+          code: args.code,
+          at: now,
+        })
+    }
+    return null
+  },
+})
+
 /** Spend allowance and take the per-phone send lease in one mutation. */
 export const claimOtpSend = internalMutation({
   args: { phone: v.string(), ip: v.optional(v.string()) },
@@ -107,6 +154,14 @@ export const claimOtpSend = internalMutation({
     const existing = await leaseByPhone(ctx, phone)
     if (existing && existing.inflightUntil > now)
       return { ok: false as const, reason: "inflight" as const }
+    // WhatsApp already told us it cannot reach this number: refuse before
+    // spending anything, and say why.
+    const undeliverable = await ctx.db
+      .query("otpUndeliverable")
+      .withIndex("by_phone", (q) => q.eq("phone", phone))
+      .first()
+    if (undeliverable && now - undeliverable.at < UNDELIVERABLE_FOR_MS)
+      return { ok: false as const, reason: "not_whatsapp" as const }
     // Validated exactly as the enquiry path does. The address arrives from a
     // header the caller controls, so an unchecked value would both evade this
     // ceiling and mint a counter row per made-up spelling. ADR-0004.
@@ -137,8 +192,38 @@ export const claimOtpSend = internalMutation({
               windowMs: HOUR,
               refusal: "address" as SendRefusal,
             },
+            {
+              key: `otp:ip:day:${ip}`,
+              limit: SENDS_PER_IP_DAY,
+              windowMs: DAY,
+              refusal: "address" as SendRefusal,
+            },
+            // A number this address has not asked for in the last hour
+            // counts against its new-number allowance.
+            ...((await askedRecently(ctx, `otp:ipnum:${ip}:${phone}`, now))
+              ? []
+              : [
+                  {
+                    key: `otp:ip:newnum:${ip}`,
+                    limit: NEW_NUMBERS_PER_IP_HOUR,
+                    windowMs: HOUR,
+                    refusal: "address" as SendRefusal,
+                  },
+                ]),
+            {
+              key: `otp:ipnum:${ip}:${phone}`,
+              limit: Number.MAX_SAFE_INTEGER,
+              windowMs: HOUR,
+              refusal: "address" as SendRefusal,
+            },
           ]
         : []),
+      {
+        key: "otp:global:hour",
+        limit: SENDS_PER_HOUR_GLOBAL,
+        windowMs: HOUR,
+        refusal: "deployment",
+      },
       {
         key: "otp:global:day",
         limit: SENDS_PER_DAY_GLOBAL,

@@ -89,7 +89,7 @@ function greeting(now: number) {
 function Home() {
   const now = useMinute()
   const viewer = useQuery(api.auth.getCurrentPerson)
-  const leads = useQuery(api.leads.leadCounts)
+  const leads = useQuery(api.leads.leadCounts, { now })
   const orders = useQuery(api.orders.orderCounts)
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"
 

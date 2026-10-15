@@ -4,6 +4,7 @@ import { describe, expect, test } from "bun:test"
 import { internal } from "./_generated/api"
 import schema from "./schema"
 import {
+  NEW_NUMBERS_PER_IP_HOUR,
   OTP_ATTEMPTS,
   SENDS_PER_DAY_GLOBAL,
   SENDS_PER_IP_HOUR,
@@ -73,12 +74,10 @@ describe("claimOtpSend", () => {
     expect(await finishSend(t, PHONE)).toEqual({ ok: false, reason: "phone" })
   })
 
-  test("an address ceiling stops a flood across many numbers", async () => {
+  test("one address cycling different numbers is stopped early", async () => {
     const t = convexTest(schema, modules)
     const ip = "203.0.113.4"
-    // Distinct numbers, each well inside its own ceiling, so only the address
-    // bucket can refuse.
-    for (let n = 0; n < SENDS_PER_IP_HOUR; n++)
+    for (let n = 0; n < NEW_NUMBERS_PER_IP_HOUR; n++)
       expect(
         await finishSend(t, `98765${String(43210 + n).padStart(5, "0")}`, ip)
       ).toMatchObject({ ok: true })
@@ -90,6 +89,42 @@ describe("claimOtpSend", () => {
     expect(await finishSend(t, "9812345678", "203.0.113.9")).toMatchObject({
       ok: true,
     })
+  })
+
+  test("resends to numbers an address already used do not spend its new-number allowance", async () => {
+    const t = convexTest(schema, modules)
+    const ip = "203.0.113.5"
+    const phones = Array.from(
+      { length: 5 },
+      (_, n) => `98760${String(10000 + n).padStart(5, "0")}`
+    )
+    let sent = 0
+    // Three resends per number stay inside each number's own ten-minute cap.
+    for (let round = 0; round < 3; round++)
+      for (const phone of phones) {
+        if (sent === SENDS_PER_IP_HOUR) break
+        expect(await finishSend(t, phone, ip)).toMatchObject({ ok: true })
+        sent++
+      }
+    // Fifteen sends over five numbers: well past six, yet never refused as
+    // new numbers.
+    expect(sent).toBe(SENDS_PER_IP_HOUR)
+  })
+
+  test("a number WhatsApp could not reach is refused with the reason", async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.otp.markUndeliverable, {
+      phones: ["+919876543210"],
+      code: 131026,
+    })
+    expect(await finishSend(t, PHONE)).toEqual({
+      ok: false,
+      reason: "not_whatsapp",
+    })
+    // Refused before any allowance is spent.
+    expect(await t.run((ctx) => ctx.db.query("rateLimits").collect())).toEqual(
+      []
+    )
   })
 
   test("a short-window check does not wipe a day bucket at its ceiling", async () => {

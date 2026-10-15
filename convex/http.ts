@@ -7,6 +7,7 @@ import { httpAction } from "./_generated/server"
 import { parseClientAddress } from "../lib/client-address"
 import { parseLead } from "../lib/leads"
 import { webhookSignatureValid } from "../lib/payments"
+import { undeliverableFrom } from "../lib/whatsapp-status"
 import { ENQUIRY_RATE_LIMITED } from "./persons"
 
 const http = httpRouter()
@@ -81,6 +82,56 @@ http.route({
  * Acknowledged with 200 even when there is nothing to do, so Razorpay stops
  * retrying; only a bad signature is refused.
  */
+/*
+ * Meta's WhatsApp webhook. GET answers the subscription check with the verify
+ * token; POST carries message statuses, signed with the app secret. A code
+ * that failed because the number is not on WhatsApp marks that number, so
+ * the next sign-in attempt is refused with the reason instead of a silent
+ * wait (Meta does not bill undelivered messages).
+ */
+http.route({
+  path: "/whatsapp/webhook",
+  method: "GET",
+  handler: httpAction(async (_ctx, request) => {
+    const token = process.env.WHATSAPP_VERIFY_TOKEN
+    const url = new URL(request.url)
+    if (
+      !token ||
+      url.searchParams.get("hub.mode") !== "subscribe" ||
+      !secretsMatch(url.searchParams.get("hub.verify_token") ?? "", token)
+    )
+      return new Response(null, { status: 403 })
+    return new Response(url.searchParams.get("hub.challenge") ?? "", {
+      status: 200,
+    })
+  }),
+})
+
+http.route({
+  path: "/whatsapp/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.WHATSAPP_APP_SECRET
+    if (!secret) return new Response(null, { status: 503 })
+    const body = await request.text()
+    if (body.length > 256 * 1024) return new Response(null, { status: 413 })
+    const signature = (
+      request.headers.get("x-hub-signature-256") ?? ""
+    ).replace(/^sha256=/, "")
+    if (!(await webhookSignatureValid({ body, signature, secret })))
+      return new Response(null, { status: 401 })
+    let payload: unknown
+    try {
+      payload = JSON.parse(body)
+    } catch {
+      return new Response(null, { status: 400 })
+    }
+    for (const { phones, code } of undeliverableFrom(payload))
+      await ctx.runMutation(internal.otp.markUndeliverable, { phones, code })
+    return new Response(null, { status: 200 })
+  }),
+})
+
 http.route({
   path: "/razorpay/webhook",
   method: "POST",

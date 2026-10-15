@@ -53,6 +53,9 @@ const ADMIN_ROW = v.object({
 })
 
 /** Staff and owners, paginated. */
+/** Owners are a handful; the bound only keeps the read finite. */
+const OWNERS_MAX = 20
+
 export const listAdmins = query({
   args: { paginationOpts: paginationOptsValidator },
   returns: paginated(ADMIN_ROW),
@@ -81,7 +84,7 @@ export const listAdmins = query({
     const owners = await ctx.db
       .query("persons")
       .withIndex("by_role", (q) => q.eq("role", "owner"))
-      .collect()
+      .take(OWNERS_MAX)
 
     return {
       ...staff,

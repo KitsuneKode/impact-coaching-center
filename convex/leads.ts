@@ -730,16 +730,18 @@ export async function readLeadCounts(
 }
 
 export const leadCounts = query({
-  args: {},
+  // The browser passes the minute: a query that reads the clock is cached
+  // on the time it first ran, so "due today" would go stale.
+  args: { now: v.number() },
   returns: v.object({
     fresh: v.number(),
     due: v.number(),
     capped: v.boolean(),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { fresh: 0, due: 0, capped: false }
-    return readLeadCounts(ctx, staff.value, Date.now())
+    return readLeadCounts(ctx, staff.value, args.now)
   },
 })
 

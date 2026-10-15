@@ -6,6 +6,8 @@ export const SEND_REFUSALS = {
     "Too many codes requested from this network. Please try later, or call ICT.",
   deployment: "We can't send codes right now. Please call or WhatsApp ICT.",
   inflight: "A code is already on its way. Please wait a moment.",
+  not_whatsapp:
+    "This number isn't on WhatsApp, so the code can't reach it. Use the number you have WhatsApp on.",
 } as const
 
 export const WHATSAPP_ONLY =

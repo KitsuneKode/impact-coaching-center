@@ -550,6 +550,15 @@ export default defineSchema({
     .index("by_key", ["key"])
     .index("by_windowStart", ["windowStart"]),
 
+  /** Numbers WhatsApp could not deliver a code to (not on WhatsApp), from
+      Meta's status webhook; sends to them are refused for a while. */
+  otpUndeliverable: defineTable({
+    phone: v.string(),
+    /** Meta's error code, e.g. 131026 "message undeliverable". */
+    code: v.number(),
+    at: v.number(),
+  }).index("by_phone", ["phone"]),
+
   /** One in-flight send and one acceptable code per phone. */
   otpSendLeases: defineTable({
     phone: v.string(),

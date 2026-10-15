@@ -192,6 +192,12 @@ export function SignInForm({
                 >
                   Change number
                 </button>
+                {cooldown === 0 ? (
+                  <span className="mbs-1 block">
+                    No message? The code only reaches a number that has
+                    WhatsApp.
+                  </span>
+                ) : null}
               </FieldDescription>
             )}
           </Field>
