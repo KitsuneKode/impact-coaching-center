@@ -814,5 +814,18 @@
     "talk": "Talk to ICT",
     "reference": "Reference {digest}",
     "figHint": "Or go straight to a section"
+  },
+  "Board": {
+    "heading": "Every course",
+    "filter": "Show courses for",
+    "all": "All {count}",
+    "sorted": "Best fit first, for your answers",
+    "byExam": "Show by exam",
+    "best": "Best fit",
+    "good": "Good fit",
+    "other": "For {exam}",
+    "seeAll": "See all {count} courses, best fit first",
+    "students": "{count, plural, one {# student} other {#+ students}}",
+    "studentsAll": "{count}+ students have joined ICT's courses on the app"
   }
 }

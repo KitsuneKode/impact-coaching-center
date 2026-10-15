@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  IconArrowDown,
   IconArrowLeft,
   IconArrowRight,
   IconBrandWhatsapp,
@@ -25,7 +26,9 @@ import {
   type FinderAnswers,
 } from "@/lib/course-finder"
 import { track } from "@/lib/analytics"
-import { inr, type Course } from "@/lib/courses"
+import type { Course } from "@/lib/courses"
+import type { DayBatch } from "@/components/marketing/course-board"
+import { timeOfDay } from "@/lib/course-finder"
 
 const STEPS = [
   { key: "exam", options: FINDER_EXAMS },
@@ -47,14 +50,23 @@ export function CourseFinder({
   courses,
   exams,
   today,
+  day = [],
+  total,
+  onAnswers,
 }: {
   courses: Course[]
   /** Track slug to the exam's name in this language. */
   exams: Record<string, { exam: string; label: string }>
   today: string
+  /** Batches with readable hours, drawn on the time question. */
+  day?: DayBatch[]
+  /** How many courses the list below holds. */
+  total?: number
+  /** Every answer as it is given, so the list below can re-sort. */
+  onAnswers?: (answers: FinderAnswers) => void
 }) {
   const t = useTranslations("Finder")
-  const pulse = useTranslations("Pulse")
+  const board = useTranslations("Board")
   const id = useId()
   const reduce = useReducedMotion()
   const [step, setStep] = useState(0)
@@ -122,11 +134,19 @@ export function CourseFinder({
     return () => node?.removeEventListener("keydown", listener)
   }, [])
 
+  const report = useRef(onAnswers)
+  useEffect(() => {
+    report.current = onAnswers
+  })
+  useEffect(() => {
+    report.current?.(answers)
+  }, [answers])
+
   const examOf = Object.fromEntries(
     Object.entries(exams).map(([slug, value]) => [slug, value.exam])
   )
   const picks = done ? recommend(courses, answers, examOf) : []
-  const [best, ...others] = picks
+  const [best] = picks
   useEffect(() => {
     if (done)
       track({
@@ -307,42 +327,21 @@ export function CourseFinder({
                         </button>
                       </div>
 
-                      {others.length ? (
-                        <div className="mbs-8">
-                          <h4 className="type-label">{t("also")}</h4>
-                          <ul className="mbs-3 grid gap-2 sm:grid-cols-2">
-                            {others.map(({ course }) => (
-                              <li key={course.slug}>
-                                <Link
-                                  href={`/courses/${course.slug}`}
-                                  data-finder-alt
-                                  data-press
-                                >
-                                  <span className="min-w-0">
-                                    <span className="block truncate font-semibold">
-                                      {course.short}
-                                    </span>
-                                    {course.subtitle ? (
-                                      <span className="block truncate text-sm text-muted-foreground">
-                                        {course.subtitle}
-                                      </span>
-                                    ) : null}
-                                  </span>
-                                  <span className="tnum ms-auto font-semibold">
-                                    {course.free
-                                      ? pulse("free")
-                                      : inr(course.price)}
-                                  </span>
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
+                      {total ? (
+                        <a
+                          href="#all-courses"
+                          data-press
+                          className="mbs-6 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"
+                        >
+                          {board("seeAll", { count: total })}
+                          <IconArrowDown aria-hidden size={18} stroke={2} />
+                        </a>
                       ) : null}
                     </m.div>
                   ) : (
                     <Question
                       key={STEPS[step]!.key}
+                      day={STEPS[step]!.key === "time" ? day : undefined}
                       id={id}
                       stepKey={STEPS[step]!.key}
                       options={STEPS[step]!.options}
@@ -393,6 +392,7 @@ export function CourseFinder({
 
 function Question({
   id,
+  day,
   stepKey,
   options,
   value,
@@ -401,6 +401,7 @@ function Question({
   onAnswer,
 }: {
   id: string
+  day?: DayBatch[]
   stepKey: StepKey
   options: readonly string[]
   value: string | undefined
@@ -451,6 +452,7 @@ function Question({
           )
         })}
       </div>
+      {day && day.length > 1 ? <DayStrip day={day} value={value} /> : null}
     </m.fieldset>
   )
 }
@@ -478,5 +480,68 @@ function ProgressRing({ value }: { value: number }) {
         strokeDashoffset={length * (1 - value)}
       />
     </svg>
+  )
+}
+
+/* The day drawn 6 AM to 10 PM; ticks every three hours. */
+const FROM = 6
+const TO = 22
+const at = (h: number) => `${((h - FROM) / (TO - FROM)) * 100}%`
+const hourLabel = (h: number) => `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`
+
+/**
+ * Every batch on one day's line, under the time question: the bars in the
+ * part of the day picked light up, so the answer shows what it leaves.
+ * Decoration for sighted users; the options above carry the meaning.
+ */
+function DayStrip({ day, value }: { day: DayBatch[]; value?: string }) {
+  const lanes: number[] = []
+  const laneOf = new Map<string, number>()
+  for (const batch of [...day].sort((a, b) => a.start - b.start)) {
+    let lane = lanes.findIndex((end) => end <= batch.start)
+    if (lane === -1) lane = lanes.push(0) - 1
+    lanes[lane] = batch.end
+    laneOf.set(batch.slug, lane)
+  }
+  return (
+    <div aria-hidden className="mbs-6">
+      <div
+        className="relative rounded-2xl bg-secondary"
+        style={{ blockSize: `${lanes.length * 1.75 + 0.75}rem` }}
+      >
+        {day.map((batch) => {
+          const lit =
+            value === "any" ||
+            (value !== undefined && timeOfDay(batch.when) === value)
+          return (
+            <span
+              key={batch.slug}
+              data-day-bar
+              data-lit={lit || undefined}
+              title={`${batch.name}, ${batch.when}`}
+              className="absolute flex h-6 items-center overflow-clip rounded-lg ps-2 text-[0.6875rem] font-semibold whitespace-nowrap"
+              style={{
+                insetInlineStart: at(batch.start),
+                inlineSize: `calc(${at(batch.end)} - ${at(batch.start)})`,
+                insetBlockStart: `${(laneOf.get(batch.slug) ?? 0) * 1.75 + 0.375}rem`,
+              }}
+            >
+              {batch.name}
+            </span>
+          )
+        })}
+      </div>
+      <div className="tnum relative mbs-2 h-4 text-xs text-muted-foreground">
+        {[6, 9, 12, 15, 18, 21].map((h) => (
+          <span
+            key={h}
+            className="absolute -translate-x-1/2 whitespace-nowrap first:translate-x-0 max-sm:nth-[even]:hidden"
+            style={{ insetInlineStart: at(h) }}
+          >
+            {hourLabel(h)}
+          </span>
+        ))}
+      </div>
+    </div>
   )
 }

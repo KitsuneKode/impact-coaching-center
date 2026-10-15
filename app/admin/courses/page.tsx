@@ -11,7 +11,7 @@ import { CatalogOnly } from "@/components/admin/book-editor"
 import { CATALOG_REFUSALS } from "@/components/admin/catalog-fields"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import {
@@ -164,6 +164,7 @@ function CourseRow({ course }: { course: Row }) {
       course.local.offlineFeePaise === undefined
         ? ""
         : `${course.local.offlineFeePaise / 100}`,
+    offlineStudents: course.local.offlineStudents?.toString() ?? "",
   }
   const [draft, setDraft] = useState(initial)
   const [revision, setRevision] = useState(course.revision)
@@ -191,6 +192,9 @@ function CourseRow({ course }: { course: Row }) {
           batchStarts: draft.batchStarts || undefined,
           timing: draft.timing || undefined,
           offlineFeePaise,
+          offlineStudents: draft.offlineStudents
+            ? Number(draft.offlineStudents)
+            : undefined,
         },
       })
       if (result.ok) {
@@ -286,6 +290,25 @@ function CourseRow({ course }: { course: Row }) {
               setDraft({ ...draft, offlineFee: rupeeDraft(e.target.value) })
             }
           />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor={`${prefix}-students`}>
+            Students at the centre
+          </FieldLabel>
+          <Input
+            id={`${prefix}-students`}
+            inputMode="numeric"
+            value={draft.offlineStudents}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                offlineStudents: e.target.value.replace(/\D/g, "").slice(0, 5),
+              })
+            }
+          />
+          <FieldDescription>
+            The site shows these plus ClassPlus&rsquo;s {course.enrolled}.
+          </FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor={`${prefix}-order`}>Position</FieldLabel>

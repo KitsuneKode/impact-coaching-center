@@ -1,19 +1,16 @@
-import { IconArrowRight } from "@tabler/icons-react"
+import { IconArrowRight, IconClock, IconUsers } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import Image from "next/image"
-import { getTranslations, setRequestLocale } from "next-intl/server"
+import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Ask } from "@/components/home/ask"
-import { BatchDay, type DayBatch } from "@/components/marketing/batch-day"
-import { CourseFinder } from "@/components/marketing/course-finder"
-import { Reveal } from "@/components/motion/reveal"
-import { JumpChips } from "@/components/site/jump-chips"
+import { CourseBoard, type DayBatch } from "@/components/marketing/course-board"
 import { PageHead } from "@/components/site/page-head"
 import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { facultyBySlug, schedules, tracks } from "@/lib/brand"
 import { parseTiming } from "@/lib/batch-time"
-import { inr, lineup } from "@/lib/courses"
+import { type Course, inr, lineup } from "@/lib/courses"
 import { liveCourses, todayInIndia } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 
@@ -41,6 +38,7 @@ export default async function CoursesPage({
   const t = await getTranslations("Pulse")
   const fees = await getTranslations("Fees")
   const nav = await getTranslations("Nav")
+  const board = await getTranslations("Board")
   const content = await contentFor(locale)
   const courses = await liveCourses()
 
@@ -71,6 +69,19 @@ export default async function CoursesPage({
     ]
   })
 
+  const finderCourses = courses.map((course) => ({
+    ...course,
+    subtitle: course.subtitle ? content.phrase(course.subtitle) : "",
+    timing: course.timing ?? schedules[course.id]?.when,
+  }))
+  const exams = Object.fromEntries(
+    tracks.map((track) => [
+      track.slug,
+      { exam: track.exam, label: content.track(track.slug).exam },
+    ])
+  )
+  const students = courses.reduce((sum, course) => sum + course.learners, 0)
+
   return (
     <main>
       <PageHead
@@ -78,164 +89,162 @@ export default async function CoursesPage({
         title={t("coursesTitle")}
         lede={`${fees("note")} ${fees("scholarship")}`}
       >
-        <JumpChips
-          label={t("jumpExam")}
-          items={groups.map(({ track }) => ({
-            href: `#${track.slug}`,
-            label: content.track(track.slug).exam,
-          }))}
-        />
+        {students >= PROOF_FROM ? (
+          <p className="tnum mbs-5 flex items-center gap-2 text-sm font-medium">
+            <IconUsers
+              aria-hidden
+              size={18}
+              stroke={1.75}
+              className="text-primary"
+            />
+            {board("studentsAll", { count: roundDown(students) })}
+          </p>
+        ) : null}
       </PageHead>
 
-      {day.length > 1 ? (
-        <section id="timings" className="container-page scroll-mt-28 pbe-16">
-          <BatchDay batches={day} />
-        </section>
-      ) : null}
-
-      <CourseFinder
-        courses={courses.map((course) => ({
-          ...course,
-          subtitle: course.subtitle ? content.phrase(course.subtitle) : "",
-          timing: course.timing ?? schedules[course.id]?.when,
+      <CourseBoard
+        finder={finderCourses}
+        exams={exams}
+        today={await todayInIndia()}
+        day={day}
+        groups={groups.map(({ track, items }) => ({
+          slug: track.slug,
+          exam: track.exam,
+          label: content.track(track.slug).exam,
+          head: <TrackHead slug={track.slug} />,
+          slugs: items.map((course) => course.slug),
         }))}
-        exams={Object.fromEntries(
-          tracks.map((track) => [
-            track.slug,
-            { exam: track.exam, label: content.track(track.slug).exam },
+        cards={Object.fromEntries(
+          courses.map((course) => [
+            course.slug,
+            <CourseCard key={course.slug} course={course} />,
           ])
         )}
-        today={await todayInIndia()}
       />
-
-      {groups.map(({ track, items }) => {
-        const names = content.track(track.slug)
-        const teachers = track.faculty.map(facultyBySlug)
-        return (
-          <section
-            key={track.slug}
-            id={track.slug}
-            aria-labelledby={`${track.slug}-heading`}
-            className="container-page pbe-20"
-          >
-            <div className="grid gap-8 lg:grid-cols-12">
-              <Reveal className="lg:col-span-4">
-                <div className="lg:sticky lg:inset-bs-[calc(var(--header-height)+var(--strip-height)+1.5rem)]">
-                  <h2 id={`${track.slug}-heading`} className="type-display">
-                    {names.exam}
-                  </h2>
-                  <p className="mbs-3 text-muted-foreground">{names.full}</p>
-                  <p className="mbs-2 max-w-[34ch] text-muted-foreground">
-                    {names.covers}. {names.duration}.
-                  </p>
-                  <ul
-                    className="mbs-5 flex items-center"
-                    aria-label={t("faculty")}
-                  >
-                    {teachers.map((teacher, k) => (
-                      <li
-                        key={teacher.slug}
-                        className={k ? "-ms-2.5" : undefined}
-                      >
-                        <span
-                          data-avatar
-                          className="relative block size-11 overflow-clip rounded-full"
-                          title={`${teacher.name}, ${content.teaches(teacher.slug)}`}
-                        >
-                          <Image
-                            src={teacher.portrait}
-                            alt={`${teacher.name}, ${content.teaches(teacher.slug)}`}
-                            fill
-                            sizes="44px"
-                            className="object-cover object-top"
-                          />
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </Reveal>
-
-              <ul className="grid gap-4 lg:col-span-8">
-                {items.map((course, i) => {
-                  const legacy = schedules[course.id]
-                  const when = course.timing
-                    ? course.timing
-                    : legacy?.when
-                      ? `${content.phrase(legacy.when)}${legacy.days ? `, ${content.phrase(legacy.days)}` : ""}`
-                      : t("askTiming")
-                  return (
-                    <li key={course.id}>
-                      <Reveal delay={i * 0.05}>
-                        <Link
-                          href={`/courses/${course.slug}`}
-                          data-row-card
-                          className="flex flex-col gap-5 overflow-clip p-3 sm:flex-row sm:items-center"
-                        >
-                          {course.cover ? (
-                            <span
-                              data-frame
-                              className="relative block aspect-[4/3] w-full flex-none overflow-clip rounded-2xl sm:w-52"
-                            >
-                              <Image
-                                src={course.cover}
-                                alt={t("poster", { name: course.short })}
-                                fill
-                                sizes="(min-width: 640px) 208px, 100vw"
-                                className="object-cover"
-                              />
-                            </span>
-                          ) : null}
-                          <span className="min-w-0 flex-1 ps-2 pe-2 pbe-2 sm:ps-0 sm:pe-0 sm:pbe-0">
-                            <span className="block font-display text-xl font-semibold tracking-[-0.02em]">
-                              {course.short}
-                            </span>
-                            {course.subtitle ? (
-                              <span className="mbs-1 block text-muted-foreground">
-                                {content.phrase(course.subtitle)}
-                              </span>
-                            ) : null}
-                            <span className="tnum mbs-3 block text-sm text-muted-foreground">
-                              {when}
-                              {course.offlineFee
-                                ? ` · ${t("offline", { fee: inr(course.offlineFee) })}`
-                                : ""}
-                            </span>
-                          </span>
-                          <span className="flex items-center justify-between gap-4 ps-2 pe-2 pbe-2 sm:flex-col sm:items-end sm:ps-4 sm:pe-4 sm:pbe-0">
-                            <span className="tnum text-end">
-                              <span className="block font-display text-2xl font-semibold">
-                                {course.free ? t("free") : inr(course.price)}
-                              </span>
-                              {!course.free && course.mrp > course.price ? (
-                                <s className="text-sm text-muted-foreground">
-                                  {inr(course.mrp)}
-                                </s>
-                              ) : null}
-                            </span>
-                            <span
-                              data-row-go
-                              className="grid size-11 place-items-center rounded-full"
-                            >
-                              <IconArrowRight
-                                aria-hidden
-                                size={18}
-                                stroke={2}
-                              />
-                            </span>
-                          </span>
-                        </Link>
-                      </Reveal>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          </section>
-        )
-      })}
 
       <Ask />
     </main>
+  )
+}
+
+/** Counts below this read as "nobody joined"; the site says nothing then. */
+const PROOF_FROM = 25
+/** 1,284 reads as "1,200+": a count that is true however the day goes. */
+const roundDown = (n: number) =>
+  n >= 1000 ? Math.floor(n / 100) * 100 : n >= 100 ? Math.floor(n / 10) * 10 : n
+
+/** An exam's heading in the list: the name, what it covers, who teaches it. */
+async function TrackHead({ slug }: { slug: (typeof tracks)[number]["slug"] }) {
+  const t = await getTranslations("Pulse")
+  const content = await contentFor(await getLocale())
+  const track = tracks.find((tr) => tr.slug === slug)!
+  const names = content.track(slug)
+  const teachers = track.faculty.map(facultyBySlug)
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+      <div className="min-w-0">
+        <h2 id={`${slug}-heading`} className="type-display-sm">
+          {names.exam}
+        </h2>
+        <p className="mbs-2 max-w-[60ch] text-muted-foreground">
+          {names.full}. {names.covers}. {names.duration}.
+        </p>
+      </div>
+      <ul className="flex items-center" aria-label={t("faculty")}>
+        {teachers.map((teacher, k) => (
+          <li key={teacher.slug} className={k ? "-ms-2.5" : undefined}>
+            <span
+              data-avatar
+              className="relative block size-10 overflow-clip rounded-full"
+              title={`${teacher.name}, ${content.teaches(teacher.slug)}`}
+            >
+              <Image
+                src={teacher.portrait}
+                alt={`${teacher.name}, ${content.teaches(teacher.slug)}`}
+                fill
+                sizes="40px"
+                className="object-cover object-top"
+              />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** One course as a poster card: what it is, when it runs, who joined, the fee. */
+async function CourseCard({ course }: { course: Course }) {
+  const t = await getTranslations("Pulse")
+  const board = await getTranslations("Board")
+  const content = await contentFor(await getLocale())
+  const legacy = schedules[course.id]
+  const when = course.timing
+    ? course.timing
+    : legacy?.when
+      ? `${content.phrase(legacy.when)}${legacy.days ? `, ${content.phrase(legacy.days)}` : ""}`
+      : undefined
+  return (
+    <Link href={`/courses/${course.slug}`} data-course-card>
+      <span
+        data-course-poster
+        className="relative block aspect-[16/9] overflow-clip"
+      >
+        {course.cover ? (
+          <Image
+            src={course.cover}
+            alt={t("poster", { name: course.short })}
+            fill
+            sizes="(min-width: 1024px) 34rem, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        ) : null}
+      </span>
+      <span className="flex flex-1 flex-col p-5">
+        <span className="block font-display text-xl font-semibold tracking-[-0.02em] text-balance">
+          {course.short}
+        </span>
+        {course.subtitle ? (
+          <span className="mbs-1 line-clamp-2 block text-muted-foreground">
+            {content.phrase(course.subtitle)}
+          </span>
+        ) : null}
+        <span className="tnum mbs-4 flex flex-wrap gap-2 text-sm">
+          <span data-course-chip>
+            <IconClock aria-hidden size={15} stroke={1.75} />
+            {when ?? t("askTiming")}
+          </span>
+          {course.learners >= PROOF_FROM ? (
+            <span data-course-chip>
+              <IconUsers aria-hidden size={15} stroke={1.75} />
+              {board("students", { count: roundDown(course.learners) })}
+            </span>
+          ) : null}
+        </span>
+        <span className="mbs-auto flex items-end justify-between gap-4 pbs-5">
+          <span className="tnum">
+            <span className="font-display text-2xl font-semibold">
+              {course.free ? t("free") : inr(course.price)}
+            </span>
+            {!course.free && course.mrp > course.price ? (
+              <s className="ms-2 text-sm text-muted-foreground">
+                {inr(course.mrp)}
+              </s>
+            ) : null}
+            {course.offlineFee ? (
+              <span className="block text-sm text-muted-foreground">
+                {t("offline", { fee: inr(course.offlineFee) })}
+              </span>
+            ) : null}
+          </span>
+          <span
+            data-row-go
+            className="grid size-11 flex-none place-items-center rounded-full"
+          >
+            <IconArrowRight aria-hidden size={18} stroke={2} />
+          </span>
+        </span>
+      </span>
+    </Link>
   )
 }

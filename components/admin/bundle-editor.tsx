@@ -11,7 +11,7 @@ import {
 import { useMutation, useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 
 import { refreshSite } from "@/app/admin/refresh-site"
@@ -132,6 +132,7 @@ export function BundleEditor({ id }: { id?: string }) {
       revision={bundle.revision}
       published={bundle.published}
       soldCount={bundle.soldCount}
+      soldOffline={bundle.soldOffline}
       initial={{
         slug: bundle.slug,
         exam: bundle.exam,
@@ -156,12 +157,14 @@ function BundleForm({
   revision: loadedRevision = 0,
   published = false,
   soldCount = 0,
+  soldOffline,
 }: {
   id?: Id<"bundles">
   initial: Draft
   revision?: number
   published?: boolean
   soldCount?: number
+  soldOffline?: number
 }) {
   const router = useRouter()
   const books = useQuery(api.catalogAdmin.adminBooks)
@@ -609,9 +612,7 @@ function BundleForm({
               <PublishState published={published} />
             </div>
             {id ? (
-              <p className="tnum text-sm text-muted-foreground">
-                {soldCount} sold
-              </p>
+              <SoldCounts id={id} online={soldCount} offline={soldOffline} />
             ) : null}
             <Button
               type="submit"
@@ -698,4 +699,68 @@ function messageFor(field: string) {
     default:
       return `Check the ${part}.`
   }
+}
+
+/**
+ * Copies sold online (counted by paid orders) and at the centre (typed in
+ * here). The site shows the two added together.
+ */
+function SoldCounts({
+  id,
+  online,
+  offline = 0,
+}: {
+  id: Id<"bundles">
+  online: number
+  offline?: number
+}) {
+  const setOffline = useMutation(api.catalogAdmin.setBundleSoldOffline)
+  const [value, setValue] = useState(String(offline))
+  const [busy, setBusy] = useState(false)
+  const inputId = useId()
+  const changed = value !== String(offline)
+  return (
+    <div className="grid gap-2">
+      <p className="tnum text-sm text-muted-foreground">
+        {online} sold online · {online + offline} shown on the site
+      </p>
+      <label htmlFor={inputId} className="text-sm font-medium">
+        Sold at the centre
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id={inputId}
+          inputMode="numeric"
+          value={value}
+          onChange={(e) =>
+            setValue(e.target.value.replace(/\D/g, "").slice(0, 5))
+          }
+          className="tnum"
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          disabled={!changed || busy}
+          onClick={async () => {
+            setBusy(true)
+            try {
+              const result = await setOffline({
+                id,
+                soldOffline: Number(value || 0),
+              })
+              if (result.ok) {
+                toast.success("Saved")
+                void refreshSite("catalog")
+              } else toast.error("Couldn't save that number.")
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          Save
+        </Button>
+      </div>
+    </div>
+  )
 }

@@ -474,6 +474,7 @@ export const adminBundles = query({
         variants: v.object({ en: VARIANT, as: VARIANT }),
         books: v.number(),
         soldCount: v.number(),
+        soldOffline: v.optional(v.number()),
         sortOrder: v.number(),
         published: v.boolean(),
         sample: v.boolean(),
@@ -497,6 +498,7 @@ export const adminBundles = query({
         variants: b.variants,
         books: b.bookIds.length,
         soldCount: b.soldCount,
+        soldOffline: b.soldOffline,
         sortOrder: b.sortOrder,
         published: b.published,
         sample: b.sample ?? false,
@@ -528,6 +530,7 @@ export const adminBundle = query({
       bookIds: v.array(v.id("books")),
       published: v.boolean(),
       soldCount: v.number(),
+      soldOffline: v.optional(v.number()),
       revision: v.number(),
     }),
     v.null()
@@ -551,6 +554,7 @@ export const adminBundle = query({
       bookIds: b.bookIds,
       published: b.published,
       soldCount: b.soldCount,
+      soldOffline: b.soldOffline,
       revision: b.revision,
     }
   },
@@ -685,6 +689,35 @@ export const setVariantAvailable = mutation({
       summary: `${args.language === "as" ? "Assamese" : "English"} set of “${current.title.en}” ${args.available ? "available" : "unavailable"}.`,
     })
     return { ok: true as const, revision }
+  },
+})
+
+/**
+ * Copies sold at the centre, which no online order records. A counter like
+ * soldCount, so it does not bump the editor's revision.
+ */
+export const setBundleSoldOffline = mutation({
+  args: { id: v.id("bundles"), soldOffline: v.number() },
+  returns: mutationResult({}),
+  handler: async (ctx, args) => {
+    const editor = await requireGrant(ctx, "catalog")
+    if (!editor.ok) return editor
+    if (
+      !Number.isInteger(args.soldOffline) ||
+      args.soldOffline < 0 ||
+      args.soldOffline > 100_000
+    )
+      return invalidInput("soldOffline")
+    const current = await ctx.db.get(args.id)
+    if (!current) return missingRecord
+    await ctx.db.patch(args.id, { soldOffline: args.soldOffline })
+    await recordAudit(ctx, editor.value, {
+      action: "save",
+      entity: "bundle",
+      entityId: args.id,
+      summary: `Copies of “${current.title.en}” sold at the centre set to ${args.soldOffline}.`,
+    })
+    return { ok: true as const }
   },
 })
 

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  rankAll,
   recommend,
   startHour,
   timeOfDay,
@@ -136,5 +137,20 @@ describe("recommend", () => {
 
   test("returns nothing rather than guessing when there are no courses", () => {
     expect(recommend([], { exam: "apsc" }, examOf)).toEqual([])
+  })
+})
+
+describe("rankAll", () => {
+  test("keeps every course, the chosen exam's first", () => {
+    const all = rankAll(courses, { exam: "apsc" }, examOf)
+    expect(all.length).toBe(courses.filter((c) => c.track).length)
+    const firstOther = all.findIndex((p) => p.course.track !== "APSC")
+    const lastApsc = all.findLastIndex((p) => p.course.track === "APSC")
+    expect(lastApsc).toBeLessThan(firstOther)
+  })
+  test("with no answers it still lists everything", () => {
+    expect(rankAll(courses, {}, examOf).length).toBe(
+      courses.filter((c) => c.track).length
+    )
   })
 })

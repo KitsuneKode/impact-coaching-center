@@ -90,9 +90,24 @@ export function recommend(
 ): FinderPick[] {
   const exam =
     answers.exam && answers.exam !== "unsure" ? examOf[answers.exam] : undefined
-  const pool = exam
-    ? courses.filter((course) => course.track === exam)
-    : courses.filter((course) => course.track)
+  return rankAll(courses, answers, examOf)
+    .filter((pick) => !exam || pick.course.track === exam)
+    .slice(0, 3)
+}
+
+/**
+ * Every course, best fit first: what the courses page lists under the
+ * finder, so nobody is shown one course and left to guess about the rest.
+ * Courses for another exam stay, ranked below the chosen exam's.
+ */
+export function rankAll(
+  courses: readonly FinderCourse[],
+  answers: FinderAnswers,
+  examOf: Record<string, string>
+): FinderPick[] {
+  const exam =
+    answers.exam && answers.exam !== "unsure" ? examOf[answers.exam] : undefined
+  const pool = courses.filter((course) => course.track)
   if (!pool.length) return []
 
   // Newer batches of a track replace older ones still listed on ClassPlus.
@@ -111,8 +126,10 @@ export function recommend(
     const series = TEST_SERIES.test(course.name)
 
     if (exam) {
-      score += 10
-      reasons.push("exam")
+      if (course.track === exam) {
+        score += 10
+        reasons.push("exam")
+      } else score -= 20
     }
 
     if (answers.stage === "tests") {
@@ -157,13 +174,10 @@ export function recommend(
     return { course, score, reasons }
   })
 
-  return picks
-    .toSorted(
-      (a, b) =>
-        b.score - a.score ||
-        (b.course.createdAt ?? 0) - (a.course.createdAt ?? 0)
-    )
-    .slice(0, 3)
+  return picks.toSorted(
+    (a, b) =>
+      b.score - a.score || (b.course.createdAt ?? 0) - (a.course.createdAt ?? 0)
+  )
 }
 
 /** The answers in English, for the WhatsApp message ICT reads. */

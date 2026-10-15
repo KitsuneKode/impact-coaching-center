@@ -107,7 +107,7 @@ async function toBundle(
     description: bundle.description,
     cover: await pictureOf(ctx, bundle.cover),
     variants: bundle.variants,
-    soldCount: bundle.soldCount,
+    soldCount: bundle.soldCount + (bundle.soldOffline ?? 0),
     books: await Promise.all(
       books.flatMap((book) => (book ? [toBook(ctx, book, withSamples)] : []))
     ),

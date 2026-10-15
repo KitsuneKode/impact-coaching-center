@@ -293,6 +293,8 @@ export default defineSchema({
       batchStarts: v.optional(v.string()),
       timing: v.optional(v.string()),
       offlineFeePaise: v.optional(v.number()),
+      /** Students at the centre ClassPlus does not count; added on the site. */
+      offlineStudents: v.optional(v.number()),
     }),
     syncedAt: v.number(),
     /** Set when a sync no longer sees it; hidden from the site from then on. */
@@ -337,6 +339,8 @@ export default defineSchema({
     variants: v.object({ en: VARIANT, as: VARIANT }),
     /** Paid copies across both languages, bumped when an order is paid. */
     soldCount: v.number(),
+    /** Copies sold over the counter, entered by ICT; the site shows both. */
+    soldOffline: v.optional(v.number()),
     sortOrder: v.number(),
     published: v.boolean(),
     sample: v.optional(v.boolean()),

@@ -271,7 +271,7 @@ async function toPublic(ctx: QueryCtx, course: Doc<"courses">) {
     pricePaise: course.source.pricePaise,
     finalPricePaise: course.source.finalPricePaise,
     free: course.source.free,
-    enrolled: course.source.enrolled,
+    enrolled: course.source.enrolled + (course.local.offlineStudents ?? 0),
     category: course.source.category,
     tags: course.source.tags,
     cover: await pictureOf(ctx, course.cover),
@@ -329,6 +329,7 @@ const LOCAL = v.object({
   batchStarts: v.optional(v.string()),
   timing: v.optional(v.string()),
   offlineFeePaise: v.optional(v.number()),
+  offlineStudents: v.optional(v.number()),
 })
 
 export const adminCourses = query({
@@ -385,6 +386,8 @@ export const adminCourses = query({
 })
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
+/** A typo guard for counts ICT types in, not a business limit. */
+const COUNT_MAX = 100_000
 
 /** ICT's own details for a course. ClassPlus fields are not editable here. */
 export const saveLocal = mutation({
@@ -422,6 +425,13 @@ export const saveLocal = mutation({
       return invalidInput("offlineFee")
     if (local.sortOrder !== undefined && !Number.isInteger(local.sortOrder))
       return invalidInput("order")
+    if (
+      local.offlineStudents !== undefined &&
+      (!Number.isInteger(local.offlineStudents) ||
+        local.offlineStudents < 0 ||
+        local.offlineStudents > COUNT_MAX)
+    )
+      return invalidInput("offlineStudents")
 
     const revision = course.revision + 1
     await ctx.db.patch(args.id, { local, revision })

@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react"
 
 /** A navigation faster than this shows nothing at all. */
 const PATIENCE_MS = 250
+/** A page that has not arrived by now is not coming: the bar lets go. */
+const GIVE_UP_MS = 10_000
 
 /**
  * A thin bar at the top of the window, only while a navigation is slow:
@@ -31,6 +33,7 @@ export function RouteProgress() {
       const link = (event.target as Element | null)?.closest("a")
       if (!link || link.target === "_blank" || link.hasAttribute("download"))
         return
+      if (link.closest("[data-progress=off]")) return
       const url = new URL(link.href, window.location.href)
       if (url.origin !== window.location.origin) return
       // Same page (an anchor, or the page itself): nothing loads.
@@ -40,20 +43,46 @@ export function RouteProgress() {
       )
         return
       const start = latest.current
+      let opened = false
       window.clearTimeout(timer.current)
+      // Seen after every handler ran: a link a handler took over (the cart
+      // opening in place, a pop-up) and Next's own links both prevent the
+      // default, but only a takeover leaves a dialog open or the URL alone.
+      window.addEventListener(
+        "click",
+        () => {
+          opened = Boolean(document.querySelector("[role=dialog]"))
+        },
+        { once: true }
+      )
       timer.current = window.setTimeout(() => {
-        // Already there: a fast navigation shows nothing.
-        if (latest.current === start) setFrom(start)
+        // Already there, or nothing is loading: show nothing.
+        if (latest.current !== start || opened) return
+        if (document.querySelector("[role=dialog]")) return
+        setFrom(start)
       }, PATIENCE_MS)
     }
+    // Back and forward, or any move the bar did not start: it stands down.
+    const reset = () => {
+      window.clearTimeout(timer.current)
+      setFrom(null)
+    }
     document.addEventListener("click", onClick, { capture: true })
+    window.addEventListener("popstate", reset)
     return () => {
       document.removeEventListener("click", onClick, { capture: true })
+      window.removeEventListener("popstate", reset)
       window.clearTimeout(timer.current)
     }
   }, [])
 
   const state = from === null ? "idle" : from === key ? "loading" : "done"
+
+  useEffect(() => {
+    if (state !== "loading") return
+    const giveUp = window.setTimeout(() => setFrom(null), GIVE_UP_MS)
+    return () => window.clearTimeout(giveUp)
+  }, [state])
 
   useEffect(() => {
     if (state !== "done") return
