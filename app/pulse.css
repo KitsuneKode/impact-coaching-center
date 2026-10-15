@@ -845,7 +845,8 @@
   [data-book-open]:active {
     scale: 0.98;
   }
-  [data-book-open]:focus-visible [data-book-inner] {
+  [data-book-open]:is(:focus-visible, :has([data-stretched]:focus-visible))
+    [data-book-inner] {
     rotate: y 8deg;
     translate: 0 -8px;
   }
@@ -1062,6 +1063,35 @@
   }
   [data-set-price] {
     background-color: var(--secondary);
+  }
+  /* A set card is one link stretched over it; its buttons sit above. */
+  [data-stretched]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    /* Above the fanned books (z 1-3), under the price buttons (z 10). */
+    z-index: 5;
+    border-radius: inherit;
+  }
+  [data-row-card]:has([data-stretched]:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  [data-stretched]:focus-visible {
+    outline: none;
+  }
+  [data-set-add] {
+    background-color: var(--highlight);
+    color: var(--foreground);
+  }
+  button[data-set-price] {
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px transparent;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    button[data-set-price]:hover {
+      box-shadow: inset 0 0 0 1.5px var(--primary);
+    }
   }
   /* Off for now: an outline instead of a fill, the text kept readable. */
   [data-set-price][data-off] {

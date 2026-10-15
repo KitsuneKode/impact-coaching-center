@@ -617,7 +617,8 @@
     "setCount": "{count, plural, other {{count}টা সংকলন}}",
     "insideSet": "সংকলনত কি আছে",
     "placeholderSet": "এই সংকলন আৰু মূল্য নমুনা মাত্ৰ, পৃষ্ঠাটোৱে কেনেকৈ কাম কৰে দেখুৱাবলৈ।",
-    "setOf": "{set}, {language}"
+    "setOf": "{set}, {language}",
+    "addSetAria": "{title} ৰ {set} কাৰ্টত যোগ কৰক"
   },
   "Library": {
     "claim": "পঢ়াৰ বাবে এটা প্ৰকৃত ঠাই।",

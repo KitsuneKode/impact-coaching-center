@@ -8,10 +8,12 @@ import { convexConfigured } from "@/app/providers"
 import { CartButton, CartSheet } from "@/components/commerce/cart-sheet"
 import { useCartSync } from "@/lib/cart-store"
 
-const OpenCart = createContext<() => void>(() => {})
+const OpenCart = createContext<(() => void) | null>(null)
 
+/** Opens the cart sheet from anywhere inside the shop; outside it, null. */
+export const useOpenCartIfShop = () => useContext(OpenCart)
 /** Opens the cart sheet from anywhere inside the shop. */
-export const useOpenCart = () => useContext(OpenCart)
+export const useOpenCart = () => useContext(OpenCart) ?? (() => {})
 
 /* Sign-in merges the browser cart into the Person's server copy and keeps
    the local store mirroring it. Exists only to own the hook. */

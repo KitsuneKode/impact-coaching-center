@@ -417,7 +417,8 @@
     "setCount": "{count, plural, one {# set} other {# sets}}",
     "insideSet": "What's in the set",
     "placeholderSet": "A placeholder set and price, to show how a set page works.",
-    "setOf": "{set}, {language}"
+    "setOf": "{set}, {language}",
+    "addSetAria": "Add the {set} of {title} to your cart"
   },
   "Library": {
     "claim": "A place to actually study.",

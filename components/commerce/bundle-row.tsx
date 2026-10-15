@@ -4,13 +4,8 @@ import type { CSSProperties } from "react"
 
 import { Book3D, type BookTone } from "@/components/home/book-3d"
 import { Link } from "@/i18n/navigation"
-import {
-  inLanguage,
-  LANGUAGES,
-  type Language,
-  type PublicBundle,
-} from "@/lib/catalog"
-import { formatPaise } from "@/lib/money"
+import { SetBuy } from "@/components/commerce/set-buy"
+import { inLanguage, type Language, type PublicBundle } from "@/lib/catalog"
 
 const TONES: readonly BookTone[] = ["amber", "paper", "ink"]
 
@@ -25,12 +20,13 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
   const books = bundle.books.slice(0, 3)
   const title = inLanguage(bundle.title, language)
 
+  // The card is one target (a link stretched over it) with the price
+  // buttons above it, so a set can go in the cart from the list.
   return (
-    <Link
-      href={`/books/${bundle.slug}`}
+    <div
       data-row-card
       data-book-open
-      className="grid overflow-clip md:grid-cols-12"
+      className="relative grid overflow-clip md:grid-cols-12"
     >
       <span
         aria-hidden
@@ -76,9 +72,13 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
               .filter(Boolean)
               .join(" · ")}
           </span>
-          <span className="mbs-2 block font-display text-2xl font-semibold tracking-[-0.02em] text-balance md:text-3xl">
+          <Link
+            href={`/books/${bundle.slug}`}
+            data-stretched
+            className="mbs-2 block font-display text-2xl font-semibold tracking-[-0.02em] text-balance md:text-3xl"
+          >
             {title}
-          </span>
+          </Link>
           {bundle.tagline ? (
             <span className="mbs-2 block text-muted-foreground">
               {inLanguage(bundle.tagline, language)}
@@ -97,33 +97,11 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
           })}
         </span>
         <span className="mbs-auto flex flex-wrap items-end justify-between gap-4">
-          <span className="flex flex-wrap gap-2">
-            {LANGUAGES.map((l) => {
-              const variant = bundle.variants[l]
-              return (
-                <span
-                  key={l}
-                  data-set-price
-                  data-off={variant.available ? undefined : ""}
-                  className="tnum inline-flex flex-col rounded-2xl ps-4 pe-4 pbs-2 pbe-2"
-                >
-                  <span className="text-xs text-muted-foreground">
-                    {l === "as" ? shop("assameseSet") : shop("englishSet")}
-                  </span>
-                  {variant.available ? (
-                    <span className="font-display text-lg font-semibold">
-                      {formatPaise(variant.pricePaise)}
-                    </span>
-                  ) : (
-                    <span className="pbs-1 text-sm font-medium">
-                      {shop("notAvailable")}
-                    </span>
-                  )}
-                </span>
-              )
-            })}
-          </span>
-          <span className="inline-flex items-center gap-3 font-semibold">
+          <SetBuy slug={bundle.slug} title={title} variants={bundle.variants} />
+          <span
+            aria-hidden
+            className="inline-flex items-center gap-3 font-semibold"
+          >
             {t("seeSet")}
             <span
               data-row-go
@@ -134,6 +112,6 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
           </span>
         </span>
       </span>
-    </Link>
+    </div>
   )
 }
