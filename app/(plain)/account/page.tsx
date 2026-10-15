@@ -110,7 +110,7 @@ function Account() {
         <DetailsCard viewer={viewer} />
         <OrdersCard />
         <AboutYouCard />
-        <DeleteAccount role={viewer.role} />
+        <DeleteAccount role={viewer.role} phone={viewer.phone} />
       </div>
     </PageShell>
   )

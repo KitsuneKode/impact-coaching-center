@@ -6,6 +6,7 @@ import {
   forbidden,
   invalidInput,
   mutationResult,
+  signedInWithin,
   viewerPerson,
   type Viewer,
 } from "./authz"
@@ -24,8 +25,11 @@ const LIVE_ORDER: ReadonlySet<Doc<"orders">["status"]> = new Set([
   "ready_for_collection",
 ])
 
-/** Typed by the person, and checked here, so a stray tap cannot erase an account. */
+/** Sent by the deletion dialog, and checked here, so a stray call cannot erase an account. */
 const CONFIRMATION = "DELETE"
+
+/** Deleting needs a WhatsApp code entered just before: a session this young. */
+export const DELETE_CODE_MAX_AGE_MS = 10 * 60_000
 
 /**
  * Erase the signed-in Person's account, as the privacy policy promises.
@@ -117,6 +121,10 @@ export const deleteOwnAccount = mutation({
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
     if (!viewer.ok) return viewer
+    // A phone left unlocked must not be enough: the dialog asks for a fresh
+    // WhatsApp code first, which starts a new session.
+    if (!(await signedInWithin(ctx, DELETE_CODE_MAX_AGE_MS)))
+      return invalidInput("code")
 
     const erased = await eraseAccount(ctx, viewer.value, args.confirmation)
     if (!erased.ok) return erased

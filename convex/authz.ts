@@ -124,6 +124,19 @@ export function sessionStale(createdAt: number, now: number): boolean {
   return now - createdAt > STAFF_SESSION_MAX_MS
 }
 
+/** Whether the caller signed in (with a WhatsApp code) within `maxAgeMs`. */
+export async function signedInWithin(ctx: Ctx, maxAgeMs: number) {
+  const identity = await ctx.auth.getUserIdentity()
+  if (!identity?.sessionId) return false
+  const session = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+    model: "session",
+    where: [{ field: "_id", value: identity.sessionId as string }],
+  })) as { createdAt?: number } | null
+  return Boolean(
+    session?.createdAt && Date.now() - session.createdAt <= maxAgeMs
+  )
+}
+
 /** Whether the caller's session is young enough for staff work. */
 async function privilegedSessionFresh(ctx: Ctx): Promise<boolean> {
   const identity = await ctx.auth.getUserIdentity()

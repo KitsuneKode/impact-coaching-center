@@ -22,26 +22,46 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 import { api } from "@/convex/_generated/api"
 import { resetAnalytics } from "@/lib/analytics"
 import { authClient } from "@/lib/auth-client"
+import { formatPhone } from "@/lib/brand"
+import { CODE_LENGTH } from "@/lib/phone-auth-flow"
 
 const REFUSALS: Record<string, string> = {
   "orders-in-progress":
     "You have an order on its way. You can delete your account once it's delivered or cancelled.",
-  confirmation: "Type DELETE to confirm.",
+  code: "Enter the WhatsApp code we just sent, then delete.",
   forbidden: "Staff and owner accounts are removed by an owner from the admin.",
   anonymous: "Your session expired. Log in again, then delete.",
 }
 
-/** Self-serve account deletion, as the privacy policy promises. */
-export function DeleteAccount({ role }: { role: string }) {
+type Step = "confirm" | "code"
+
+/**
+ * Self-serve account deletion, as the privacy policy promises. A WhatsApp
+ * code to the account's own number confirms it (an unlocked phone is not
+ * enough); the server refuses unless that code was entered in the last ten
+ * minutes. What stays afterwards is an audit line: an erased account, when.
+ */
+export function DeleteAccount({
+  role,
+  phone,
+}: {
+  role: string
+  phone: string
+}) {
   const erase = useMutation(api.account.deleteOwnAccount)
-  const inputId = useId()
+  const codeId = useId()
   const [open, setOpen] = useState(false)
-  const [typed, setTyped] = useState("")
-  const [pending, setPending] = useState(false)
+  const [step, setStep] = useState<Step>("confirm")
+  const [code, setCode] = useState("")
+  const [pending, setPending] = useState<"send" | "delete" | null>(null)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -55,11 +75,43 @@ export function DeleteAccount({ role }: { role: string }) {
       </section>
     )
 
-  async function confirm() {
-    setPending(true)
+  async function sendCode() {
+    setPending("send")
     setError(null)
     try {
-      const result = await erase({ confirmation: typed })
+      const result = await authClient.phoneNumber.sendOtp({
+        phoneNumber: phone,
+      })
+      if (result.error) {
+        setError(result.error.message ?? "Couldn't send a code. Try again.")
+        return
+      }
+      setStep("code")
+    } catch {
+      setError(
+        "Couldn't reach the server. Check your connection and try again."
+      )
+    } finally {
+      setPending(null)
+    }
+  }
+
+  async function confirm(entered: string) {
+    setPending("delete")
+    setError(null)
+    try {
+      // The right code signs this device in afresh, which is what the server
+      // checks for before erasing.
+      const verified = await authClient.phoneNumber.verify({
+        phoneNumber: phone,
+        code: entered,
+      })
+      if (verified.error) {
+        setCode("")
+        setError("That code didn't match. Check WhatsApp and try again.")
+        return
+      }
+      const result = await erase({ confirmation: "DELETE" })
       if (!result.ok) {
         const key =
           result.reason === "invalid-input" ? result.field : result.reason
@@ -80,7 +132,7 @@ export function DeleteAccount({ role }: { role: string }) {
         "Couldn't reach the server. Check your connection and try again."
       )
     } finally {
-      setPending(false)
+      setPending(null)
     }
   }
 
@@ -103,7 +155,8 @@ export function DeleteAccount({ role }: { role: string }) {
           if (pending) return
           setOpen(next)
           if (!next) {
-            setTyped("")
+            setStep("confirm")
+            setCode("")
             setError(null)
           }
         }}
@@ -117,72 +170,81 @@ export function DeleteAccount({ role }: { role: string }) {
           }
         />
         <DialogContent>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              void confirm()
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>Delete your account?</DialogTitle>
-              <DialogDescription>
-                This can&rsquo;t be undone. Your name, number and answers are
-                erased and you&rsquo;re signed out on every device.
-              </DialogDescription>
-            </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Delete your account?</DialogTitle>
+            <DialogDescription>
+              This can&rsquo;t be undone. Your name, number and answers are
+              erased and you&rsquo;re signed out on every device.
+            </DialogDescription>
+          </DialogHeader>
 
-            <Field className="mbs-5" data-invalid={error ? true : undefined}>
-              <FieldLabel htmlFor={inputId}>Type DELETE to confirm</FieldLabel>
-              <Input
-                id={inputId}
-                value={typed}
-                onChange={(event) => setTyped(event.target.value)}
-                autoComplete="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={
-                  error ? `${inputId}-error` : `${inputId}-hint`
-                }
-              />
+          {step === "confirm" ? (
+            <>
+              <p className="mbs-5 text-sm">
+                To confirm it&rsquo;s you, we&rsquo;ll send a code on WhatsApp
+                to{" "}
+                <span className="tnum font-medium">{formatPhone(phone)}</span>.
+              </p>
               {error ? (
-                <FieldError id={`${inputId}-error`}>{error}</FieldError>
+                <FieldError className="mbs-3">{error}</FieldError>
+              ) : null}
+              <DialogFooter className="mbs-6">
+                <DialogClose
+                  render={
+                    <Button type="button" variant="ghost" size="md">
+                      Keep my account
+                    </Button>
+                  }
+                />
+                <Button
+                  type="button"
+                  size="md"
+                  disabled={pending !== null}
+                  onClick={() => void sendCode()}
+                >
+                  {pending === "send" ? (
+                    <>
+                      <IconLoader2 className="animate-spin" stroke={1.75} />
+                      Sending
+                    </>
+                  ) : (
+                    "Send the code"
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <Field className="mbs-5" data-invalid={error ? true : undefined}>
+              <FieldLabel htmlFor={codeId}>
+                Code sent to {formatPhone(phone)}
+              </FieldLabel>
+              <InputOTP
+                id={codeId}
+                maxLength={CODE_LENGTH}
+                value={code}
+                onChange={setCode}
+                onComplete={(value) => void confirm(value)}
+                disabled={pending === "delete"}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? `${codeId}-error` : `${codeId}-hint`}
+              >
+                <InputOTPGroup>
+                  {Array.from({ length: CODE_LENGTH }, (_, index) => (
+                    <InputOTPSlot key={index} index={index} />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
+              {error ? (
+                <FieldError id={`${codeId}-error`}>{error}</FieldError>
               ) : (
-                <FieldDescription id={`${inputId}-hint`}>
-                  In capital letters.
+                <FieldDescription id={`${codeId}-hint`}>
+                  {pending === "delete"
+                    ? "Deleting your account…"
+                    : "Entering the code deletes your account."}
                 </FieldDescription>
               )}
             </Field>
-
-            <DialogFooter className="mbs-6">
-              <DialogClose
-                render={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="md"
-                    disabled={pending}
-                  >
-                    Keep my account
-                  </Button>
-                }
-              />
-              <Button
-                type="submit"
-                size="md"
-                disabled={pending || typed.trim() !== "DELETE"}
-              >
-                {pending ? (
-                  <>
-                    <IconLoader2 className="animate-spin" stroke={1.75} />
-                    Deleting
-                  </>
-                ) : (
-                  "Delete permanently"
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
+          )}
         </DialogContent>
       </Dialog>
     </section>
