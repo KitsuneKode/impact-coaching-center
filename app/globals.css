@@ -1595,3 +1595,15 @@ body :lang(as) {
     }
   }
 }
+
+/* A button that does something that cannot simply be undone. Unlayered, to
+   beat the button's own colour utilities. */
+[data-danger] {
+  background-color: var(--destructive);
+  color: oklch(100% 0 none);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-danger]:not(:disabled):hover {
+    background-color: color-mix(in oklch, var(--destructive), black 10%);
+  }
+}

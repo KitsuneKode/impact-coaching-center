@@ -197,11 +197,11 @@ function InputOTP({
         )}
         spellCheck={false}
         className={cn("disabled:cursor-not-allowed", className)}
-        {...props}
-
-        dir="ltr"
+        // Digits by default; a caller can ask for letters (a typed word).
         inputMode="numeric"
         pattern={DIGITS}
+        {...props}
+        dir="ltr"
       >
         {children}
 

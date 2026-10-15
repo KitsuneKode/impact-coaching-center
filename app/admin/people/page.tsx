@@ -5,6 +5,7 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { ConfirmAction } from "@/components/admin/confirm-action"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button, ButtonLink } from "@/components/ui/button"
@@ -73,6 +74,7 @@ function People() {
   const [phone, setPhone] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [removing, setRemoving] = useState<(typeof admins)[number] | null>(null)
 
   if (allowed === undefined || status === "LoadingFirstPage")
     return (
@@ -257,23 +259,7 @@ function People() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={async () => {
-                      setError(null)
-                      try {
-                        const result = await setRole({
-                          personId: person.id as never,
-                          role: "student",
-                          // The revision the row was read at. If somebody else
-                          // changed this person meanwhile, the mutation refuses
-                          // rather than overwriting their change.
-                          expectedRevision: person.revision,
-                        })
-                        if (!result.ok)
-                          setError(REFUSALS[result.reason] ?? "Refused.")
-                      } catch {
-                        setError("Could not reach the server. Try again.")
-                      }
-                    }}
+                    onClick={() => setRemoving(person)}
                   >
                     Remove access
                   </Button>
@@ -297,6 +283,33 @@ function People() {
           </Button>
         </div>
       ) : null}
+      <ConfirmAction
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+        title={`Remove ${removing?.name || "this person"}'s staff access?`}
+        description="They are signed out of the admin straight away and keep a student account. You can give access again later."
+        confirmLabel="Remove access"
+        word="REMOVE"
+        onConfirm={async () => {
+          if (!removing) return false
+          setError(null)
+          try {
+            const result = await setRole({
+              personId: removing.id as never,
+              role: "student",
+              // The revision the row was read at. If somebody else changed
+              // this person meanwhile, the mutation refuses rather than
+              // overwriting their change.
+              expectedRevision: removing.revision,
+            })
+            if (!result.ok) setError(REFUSALS[result.reason] ?? "Refused.")
+            return result.ok
+          } catch {
+            setError("Could not reach the server. Try again.")
+            return false
+          }
+        }}
+      />
     </PageShell>
   )
 }

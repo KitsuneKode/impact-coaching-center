@@ -76,8 +76,19 @@ export function CatalogList({
       if (!result.ok)
         toast.error(CATALOG_REFUSALS[result.reason] ?? "Not changed.")
       else {
-        toast.success(row.published ? "Unpublished" : "Published")
         void refreshSite("catalog")
+        // Taking something off the site is one tap to reverse, so it gets
+        // Undo rather than a "are you sure" first.
+        // The page reads the live record, so Undo flips it back from
+        // whatever it is now.
+        if (row.published)
+          toast.success(`Unpublished ${row.title}`, {
+            action: {
+              label: "Undo",
+              onClick: () => void toggle({ ...row, published: false }),
+            },
+          })
+        else toast.success(row.published ? "Unpublished" : "Published")
       }
     } catch {
       toast.error("Could not reach the server. Try again.")

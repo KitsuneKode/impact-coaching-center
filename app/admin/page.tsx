@@ -1,5 +1,7 @@
 "use client"
 
+import { Skeleton } from "@/components/ui/skeleton"
+import { useMinute } from "@/hooks/use-minute"
 import {
   IconArrowRight,
   IconBrandWhatsapp,
@@ -11,7 +13,7 @@ import {
 } from "@tabler/icons-react"
 import Link from "next/link"
 import { useQuery } from "convex/react"
-import { useEffect, useState, type ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { Sparkline } from "@/components/admin/sparkline"
@@ -40,19 +42,6 @@ function Unavailable() {
       />
     </PageShell>
   )
-}
-
-/** The time to the minute, for queries that cannot read the clock. */
-function useMinute() {
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 60_000) * 60_000)
-  useEffect(() => {
-    const timer = setInterval(
-      () => setNow(Math.floor(Date.now() / 60_000) * 60_000),
-      60_000
-    )
-    return () => clearInterval(timer)
-  }, [])
-  return now
 }
 
 const rupees = (paise: number) =>
@@ -341,10 +330,7 @@ function Insights({ now }: { now: number }) {
         className="mbs-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
       >
         {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-36 animate-pulse rounded-[22px] bg-secondary motion-reduce:animate-none"
-          />
+          <Skeleton key={i} className="h-36 rounded-[22px] bg-secondary" />
         ))}
       </div>
     )

@@ -54,6 +54,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatPhone } from "@/lib/brand"
 import { formatPaise } from "@/lib/money"
+import { ConfirmAction } from "@/components/admin/confirm-action"
 import { nextStatuses, ORDER_STATUS_LABELS } from "@/lib/order-status"
 
 export type OrderRow = {
@@ -161,6 +162,11 @@ export function OrdersTable({
     order: OrderRow
     /** Shipping writes courier and status together; correcting only fixes the details. */
     mode: "ship" | "correct"
+  } | null>(null)
+  /* Cancelling and refunding tell the buyer and close the order: typed. */
+  const [confirmFor, setConfirmFor] = useState<{
+    order: OrderRow
+    status: "cancelled" | "refunded"
   } | null>(null)
 
   const matching = useMemo(() => {
@@ -353,6 +359,8 @@ export function OrdersTable({
               onToggle={() => toggle(order)}
               onMove={(status) => {
                 if (status === "shipped") setCourierFor({ order, mode: "ship" })
+                else if (status === "cancelled" || status === "refunded")
+                  setConfirmFor({ order, status })
                 else void move(order, status)
               }}
               onCourier={
@@ -420,6 +428,8 @@ export function OrdersTable({
                        the dialog rather than straight to the mutation. */
                     if (status === "shipped")
                       setCourierFor({ order, mode: "ship" })
+                    else if (status === "cancelled" || status === "refunded")
+                      setConfirmFor({ order, status })
                     else void move(order, status)
                   }}
                   onCourier={
@@ -496,6 +506,28 @@ export function OrdersTable({
           </Button>
         </div>
       </div>
+
+      <ConfirmAction
+        open={confirmFor !== null}
+        onOpenChange={(open) => !open && setConfirmFor(null)}
+        title={
+          confirmFor?.status === "refunded"
+            ? `Mark ${confirmFor.order.reference} refunded?`
+            : `Cancel ${confirmFor?.order.reference ?? "this order"}?`
+        }
+        description={
+          confirmFor?.status === "refunded"
+            ? "Only once the money is back with the buyer through Razorpay. The order closes and its copies come off the sold count."
+            : "The order closes and the buyer sees it cancelled. A paid order should be refunded instead."
+        }
+        confirmLabel={
+          confirmFor?.status === "refunded" ? "Mark refunded" : "Cancel order"
+        }
+        word={confirmFor?.status === "refunded" ? "REFUND" : "CANCEL"}
+        onConfirm={async () =>
+          confirmFor ? move(confirmFor.order, confirmFor.status) : false
+        }
+      />
 
       {courierFor ? (
         <CourierDialog
