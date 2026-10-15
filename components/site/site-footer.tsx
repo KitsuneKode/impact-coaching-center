@@ -221,8 +221,9 @@ export function SiteFooter() {
       </div>
 
       <WordSpot>
-        <span data-footer-word-base>Impact</span>
-        <span data-footer-word-lit>Impact</span>
+        {/* Drawn by CSS from data-word: decoration, not text to read. */}
+        <span data-footer-word-base data-word="Impact" />
+        <span data-footer-word-lit data-word="Impact" />
       </WordSpot>
 
       <div className="container-page flex flex-wrap items-center justify-between gap-3 pbs-4 pbe-28 text-xs text-muted-foreground md:pbe-10">

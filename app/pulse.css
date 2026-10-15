@@ -2549,7 +2549,7 @@
   0% {
     scale: 0.86;
     rotate: y 22deg;
-    opacity: 0.55;
+    opacity: 0.8;
   }
   50% {
     scale: 1;
@@ -2559,7 +2559,7 @@
   100% {
     scale: 0.86;
     rotate: y -22deg;
-    opacity: 0.55;
+    opacity: 0.8;
   }
 }
 

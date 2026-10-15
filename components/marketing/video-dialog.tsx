@@ -13,6 +13,7 @@ export function VideoDialog({
   title,
   subtitle,
   vertical = false,
+  label,
   className,
   children,
   ...trigger
@@ -22,6 +23,11 @@ export function VideoDialog({
   subtitle?: string
   /** shorts are filmed vertically and look wrong in a 16:9 frame */
   vertical?: boolean
+  /**
+   * The button's name when its visible text says more than the title; null
+   * lets the visible text name it (add a hidden verb to the children).
+   */
+  label?: string | null
   className?: string
   children: ReactNode
 } & Pick<ComponentProps<"button">, "onPointerEnter" | "onFocus">) {
@@ -38,7 +44,7 @@ export function VideoDialog({
       <Dialog.Trigger
         data-press
         className={cn("group block cursor-pointer text-left", className)}
-        aria-label={`Play: ${title}`}
+        aria-label={label === null ? undefined : (label ?? `Play: ${title}`)}
         {...trigger}
       >
         {children}

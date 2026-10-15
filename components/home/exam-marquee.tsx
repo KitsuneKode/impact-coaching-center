@@ -11,7 +11,7 @@ export function ExamMarquee() {
     >
       <ul
         data-marquee-track
-        className="flex w-max items-center gap-8 font-display text-lg font-semibold"
+        className="flex w-max items-center gap-8 bg-foreground font-display text-lg font-semibold"
       >
         {[...words, ...words].map((word, i) => (
           <li key={`${word}-${i}`} className="flex items-center gap-8">

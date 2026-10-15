@@ -93,12 +93,36 @@ export default async function PostPage({
     },
   }
 
+  const base = `${siteUrl}${locale === "en" ? "" : `/${locale}`}`
+  const breadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: brand.legalName,
+        item: `${base}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: t("blog"),
+        item: `${base}/blog`,
+      },
+      { "@type": "ListItem", position: 3, name: post.title },
+    ],
+  }
+
   return (
     <main>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          __html: JSON.stringify([jsonLd, breadcrumbs]).replace(
+            /</g,
+            "\\u003c"
+          ),
         }}
       />
       <article

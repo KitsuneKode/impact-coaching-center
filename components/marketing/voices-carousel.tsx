@@ -102,6 +102,7 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
               title={`${student.name}, ${student.batch}`}
               subtitle={t("subtitle", { exam: student.exam })}
               vertical
+              label={null}
               className="group block w-full text-start"
             >
               <span className="relative block aspect-[3/4] overflow-clip rounded-[22px] bg-secondary">
@@ -130,6 +131,7 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
               <span className="block text-sm text-muted-foreground">
                 {student.batch} · {student.exam}
               </span>
+              <span className="sr-only">, {t("play")}</span>
             </VideoDialog>
           </li>
         ))}

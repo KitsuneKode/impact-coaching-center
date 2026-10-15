@@ -67,7 +67,6 @@ export function LanguagePrompt() {
                 type="button"
                 lang={locale === "as" ? "as-IN" : "en-IN"}
                 onClick={() => pick(locale)}
-                aria-label={samples[locale]}
                 data-language-choice={locale === current ? "current" : ""}
                 className="flex min-h-12 flex-col items-start justify-center rounded-2xl px-4 py-2 text-left"
               >

@@ -103,6 +103,7 @@ export function TeacherCard({ teacher }: { teacher: Teacher }) {
               id={teacher.lecture}
               title={teacher.name}
               subtitle={teaches}
+              label={`${t("watchClass")}: ${teacher.name}`}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-highlight text-sm font-semibold text-foreground"
             >
               <IconPlayerPlayFilled aria-hidden size={14} />

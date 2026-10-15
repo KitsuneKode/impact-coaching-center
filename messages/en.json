@@ -106,7 +106,8 @@
     "previous": "Previous student",
     "next": "Next student",
     "listLabel": "{count, plural, one {# student review} other {# student reviews}}",
-    "hearAll": "Hear from all {count} students"
+    "hearAll": "Hear from all {count} students",
+    "play": "Play the video"
   },
   "Courses": {
     "label": "Courses",

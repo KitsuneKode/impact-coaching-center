@@ -953,6 +953,10 @@
   [data-footer-word-base] {
     color: color-mix(in oklch, var(--foreground) 7%, transparent);
   }
+  [data-footer-word-base]::before,
+  [data-footer-word-lit]::before {
+    content: attr(data-word);
+  }
   [data-footer-word-lit] {
     background: linear-gradient(90deg, var(--primary), var(--highlight));
     -webkit-background-clip: text;

@@ -29,7 +29,8 @@ export function LocaleSwitch({ className }: { className?: string }) {
           type="button"
           lang={locale === "as" ? "as-IN" : "en-IN"}
           aria-pressed={locale === current}
-          aria-label={t(`name.${locale}`)}
+          // Starts with what is printed on it (WCAG 2.5.3, label in name).
+          aria-label={`${short[locale]}, ${t(`name.${locale}`)}`}
           onClick={() => choose(locale)}
           data-press
           className="h-8 min-w-9 rounded-[0.3rem] px-2 font-bold text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground aria-pressed:shadow-frame"
