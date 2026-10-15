@@ -132,3 +132,27 @@ export const examDates = cache(async () => {
 /** Noindex while there is nothing real to rank: no titles, or only samples. */
 export const onlySamples = (items: readonly { sample?: boolean }[]) =>
   items.every((item) => item.sample)
+
+export type LiveBar = FunctionReturnType<typeof api.campaigns.liveBars>[number]
+
+const cachedBars = cachedRead(
+  (minute: number): Promise<LiveBar[]> =>
+    fetchQuery(api.campaigns.liveBars, { now: minute }),
+  ["live-bars"],
+  { revalidate: CATALOG_SECONDS, tags: ["campaigns"] }
+)
+
+/**
+ * The live announcement bars, for the strip's first paint. Saving or
+ * pausing a promotion refreshes them at once (tag "campaigns"); the strip
+ * then follows Convex live in the browser. A failed read shows no strip.
+ */
+export const liveBars = cache(async (): Promise<LiveBar[]> => {
+  if (!configured()) return []
+  try {
+    return await cachedBars(Math.floor(Date.now() / 60_000) * 60_000)
+  } catch (error) {
+    console.error("Live bars unavailable", error)
+    return []
+  }
+})

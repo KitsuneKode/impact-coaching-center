@@ -55,7 +55,8 @@ function Menu({ className }: { className?: string }) {
     return (
       <div
         aria-hidden="true"
-        className={`size-9 shrink-0 ${className ?? ""}`}
+        // As wide as the Log in link, so nothing shifts when it arrives.
+        className={`h-9 w-16 shrink-0 ${className ?? ""}`}
       />
     )
 

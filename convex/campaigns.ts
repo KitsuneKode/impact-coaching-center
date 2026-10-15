@@ -174,6 +174,44 @@ export const liveCampaigns = query({
   },
 })
 
+/**
+ * Every announcement bar live right now, whatever page, with the pages it
+ * targets: read on the server so the strip is in the first paint (the
+ * browser picks the one for its page), never dropped in a second later.
+ */
+export const liveBars = query({
+  args: { now: v.number() },
+  returns: v.array(PUBLIC_ROW.extend({ routes: v.array(v.string()) })),
+  handler: async (ctx, args) => {
+    const found = await ctx.db
+      .query("campaigns")
+      .withIndex("by_status_and_priority", (q) => q.eq("status", "live"))
+      .order("desc")
+      .take(30)
+    return found
+      .filter((c) => c.kind === "bar" && isLiveNow(c, args.now))
+      .slice(0, LIVE_MAX)
+      .map((c) => ({
+        id: c._id,
+        kind: c.kind,
+        tag: c.tag,
+        headline: c.headline,
+        body: c.body,
+        cta: c.cta,
+        as: c.as,
+        href: c.href,
+        image: null,
+        coupon: c.coupon,
+        reelIds: c.reelIds,
+        endsAt: c.endsAt,
+        delaySeconds: c.delaySeconds,
+        restDays: c.restDays,
+        revision: c.revision,
+        routes: c.routes,
+      }))
+  },
+})
+
 const canEdit = (viewer: Viewer) => hasGrant(viewer, "promotions")
 
 async function imageOk(ctx: MutationCtx, id: Id<"_storage"> | undefined) {

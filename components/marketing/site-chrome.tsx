@@ -1,9 +1,11 @@
 import { getTranslations } from "next-intl/server"
 import { Suspense, type ReactNode } from "react"
 
+import { InlineScript } from "@/components/site/inline-script"
 import { LivePromos } from "@/components/site/live-promos"
 import { SiteFooter } from "@/components/site/site-footer"
 import { PromoStrip } from "@/components/site/promo-strip"
+import { liveBars } from "@/lib/catalog-server"
 import { RouteProgress } from "@/components/site/route-progress"
 import { SiteHeader } from "@/components/site/site-header"
 
@@ -13,8 +15,16 @@ import { SiteHeader } from "@/components/site/site-header"
  * Rendered by the language layout and by the English-only (plain) group;
  * /admin sits outside both and gets none of it.
  */
-export async function SiteChrome({ children }: { children: ReactNode }) {
+export async function SiteChrome({
+  children,
+  entrance = false,
+}: {
+  children: ReactNode
+  /** The first-load reveal (app/pulse.css "Entrance"); off for cart and checkout. */
+  entrance?: boolean
+}) {
   const t = await getTranslations("Chrome")
+  const bars = await liveBars()
   return (
     <>
       {/* WCAG 2.4.1: skip the navigation that precedes every page. */}
@@ -27,9 +37,19 @@ export async function SiteChrome({ children }: { children: ReactNode }) {
       <Suspense>
         <RouteProgress />
       </Suspense>
-      <PromoStrip />
+      <PromoStrip initial={bars} />
       <SiteHeader />
-      <div id="main" tabIndex={-1} className="outline-none">
+      {entrance ? (
+        // Marks the first paint so the reveal runs once, never on later
+        // in-app navigations (those use the page transition).
+        <InlineScript code="(function(){var d=document.documentElement;d.setAttribute('data-first-paint','');setTimeout(function(){d.removeAttribute('data-first-paint')},1600)})()" />
+      ) : null}
+      <div
+        id="main"
+        tabIndex={-1}
+        data-entrance={entrance || undefined}
+        className="outline-none"
+      >
         {children}
         <LivePromos />
       </div>

@@ -40,7 +40,7 @@ export default async function LocaleLayout({
     <NextIntlClientProvider>
       <DocumentLang lang={locale === "as" ? "as-IN" : "en-IN"} />
       <div lang={locale === "as" ? "as-IN" : "en-IN"} className="contents">
-        <SiteChrome>{children}</SiteChrome>
+        <SiteChrome entrance>{children}</SiteChrome>
         <LanguagePrompt />
       </div>
     </NextIntlClientProvider>

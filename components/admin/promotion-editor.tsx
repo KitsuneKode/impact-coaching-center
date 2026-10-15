@@ -12,6 +12,7 @@ import {
   useReleaseUpload,
   type StoredImage,
 } from "@/components/admin/catalog-fields"
+import { refreshSite } from "@/app/admin/refresh-site"
 import { PromoBanner, PromoCard, PromoReel } from "@/components/site/promos"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
@@ -313,8 +314,12 @@ function PromotionForm({
       setSaved(snapshot(draft, image))
       if (!id) {
         toast.success("Saved as a draft")
+        void refreshSite("campaigns")
         router.replace(`/admin/promotions/${result.id}`)
-      } else toast.success("Saved")
+      } else {
+        toast.success("Saved")
+        void refreshSite("campaigns")
+      }
     } catch {
       setFormError("Could not reach the server. Your changes are still here.")
     } finally {
@@ -337,6 +342,7 @@ function PromotionForm({
       }
       setRevision(result.revision)
       toast.success(next === "live" ? "Live on the site" : "Paused")
+      void refreshSite("campaigns")
     } catch {
       setFormError("Could not reach the server. Try again.")
     } finally {

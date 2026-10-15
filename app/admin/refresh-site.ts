@@ -8,7 +8,7 @@ import { pingIndexNow } from "@/lib/indexnow"
 import { viewerCanRefreshSite } from "@/lib/auth-server"
 
 /** The cached reads behind the public pages (lib/catalog-server.ts). */
-export type SiteArea = "catalog" | "blog" | "courses" | "calendar"
+export type SiteArea = "catalog" | "blog" | "courses" | "calendar" | "campaigns"
 
 /**
  * Show an admin's change on the public pages at once instead of within five
@@ -29,4 +29,5 @@ const CHANGED: Record<SiteArea, string[]> = {
   blog: ["/blog"],
   courses: ["/courses", "/"],
   calendar: ["/exams/calendar"],
+  campaigns: [],
 }

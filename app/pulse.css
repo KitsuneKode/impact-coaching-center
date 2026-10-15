@@ -2486,3 +2486,31 @@
     opacity: 0.55;
   }
 }
+
+/* Entrance (components/marketing/site-chrome.tsx): on the first paint of a
+   public page, its sections rise into place from the top down. Once only;
+   later navigations use the page transition. */
+@keyframes entrance-rise {
+  from {
+    opacity: 0.01;
+    translate: 0 14px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-first-paint] [data-entrance] > main > * {
+    animation: entrance-rise 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+    animation-delay: 0.3s;
+  }
+  :root[data-first-paint] [data-entrance] > main > :nth-child(1) {
+    animation-delay: 0s;
+  }
+  :root[data-first-paint] [data-entrance] > main > :nth-child(2) {
+    animation-delay: 0.07s;
+  }
+  :root[data-first-paint] [data-entrance] > main > :nth-child(3) {
+    animation-delay: 0.14s;
+  }
+  :root[data-first-paint] [data-entrance] > main > :nth-child(4) {
+    animation-delay: 0.21s;
+  }
+}

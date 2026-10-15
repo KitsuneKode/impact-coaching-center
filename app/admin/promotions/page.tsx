@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+import { refreshSite } from "@/app/admin/refresh-site"
 import { convexConfigured } from "@/app/providers"
 import { NoPromotions, pagesLabel } from "@/components/admin/promotion-editor"
 import { Badge } from "@/components/ui/badge"
@@ -90,7 +91,10 @@ function Promotions() {
             ? "This was changed in another tab. Reload and try again."
             : "Not changed."
         )
-      else toast.success(status === "live" ? "Paused" : "Live on the site")
+      else {
+        toast.success(status === "live" ? "Paused" : "Live on the site")
+        void refreshSite("campaigns")
+      }
     } catch {
       toast.error("Could not reach the server. Try again.")
     } finally {
