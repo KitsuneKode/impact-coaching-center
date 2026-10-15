@@ -9,7 +9,7 @@ import { convexConfigured } from "@/app/providers"
 import { AddEnquiry } from "@/components/admin/add-enquiry"
 import { LeadSheet } from "@/components/admin/lead-sheet"
 import { LeadsTable } from "@/components/admin/leads-table"
-import { ButtonLink } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -129,10 +129,15 @@ function Inbox() {
           title="This page is for ICT staff"
           description="If you are staff and seeing this, log in with the number ICT has on file for you."
           action={
-            <ButtonLink href="/login?next=/admin/leads" size="md">
-              {" "}
-              Log in{" "}
-            </ButtonLink>
+            // A plain link: a full sign-in page, never the public site's
+            // pop-up over the admin with the admin loading behind it.
+            <ButtonAnchor
+              href="/login?next=/admin/leads"
+              target="_self"
+              size="md"
+            >
+              Log in
+            </ButtonAnchor>
           }
         />
       </PageShell>

@@ -23,6 +23,8 @@ export function AuthModal({
   next: string
 }) {
   const [open, setOpen] = useState(true)
+  // After the code, the dialog asks a name (once) rather than logging in.
+  const [verified, setVerified] = useState(false)
   const router = useRouter()
 
   return (
@@ -35,15 +37,19 @@ export function AuthModal({
     >
       <DialogContent className="max-w-112">
         <DialogHeader>
-          <DialogTitle className="type-display">{heading}</DialogTitle>
+          <DialogTitle className="type-display">
+            {verified ? "You're in." : heading}
+          </DialogTitle>
           {/*
             A real description, not an empty node hidden from view. The
             dialog is announced by its title and description, and an empty
             one tells a screen reader nothing about what it just opened.
           */}
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription>
+            {verified ? "One last thing before you continue." : description}
+          </DialogDescription>
         </DialogHeader>
-        <SignInForm next={next} />
+        <SignInForm next={next} onVerified={() => setVerified(true)} />
       </DialogContent>
     </Dialog>
   )

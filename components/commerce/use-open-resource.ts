@@ -7,6 +7,7 @@ import { useState, useSyncExternalStore } from "react"
 import { toast } from "sonner"
 
 import type { ViewerPage } from "@/components/commerce/page-viewer"
+import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 import { track } from "@/lib/analytics"
 
@@ -80,8 +81,17 @@ export function useOpenResource() {
     }
   }
 
+  // If the session check never answers (the backend unreachable), stop
+  // waiting and offer the log-in after a few seconds rather than a dead button.
+  const stalled = useStalled(hydrated && viewer === undefined, 3000)
   return {
-    signedIn: !hydrated || viewer === undefined ? undefined : !!viewer,
+    signedIn: !hydrated
+      ? undefined
+      : viewer === undefined
+        ? stalled
+          ? false
+          : undefined
+        : !!viewer,
     busy,
     open,
     opened,

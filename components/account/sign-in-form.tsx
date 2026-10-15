@@ -34,7 +34,14 @@ import {
 } from "@/lib/phone-auth-flow"
 
 /** One flow, not two. */
-export function SignInForm({ next }: { next: string }) {
+export function SignInForm({
+  next,
+  onVerified,
+}: {
+  next: string
+  /** The code was right; what follows is the name and questions, not a log-in. */
+  onVerified?: () => void
+}) {
   const phoneId = useId()
   const codeId = useId()
 
@@ -120,7 +127,13 @@ export function SignInForm({ next }: { next: string }) {
       const still = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
       ).matches
-      window.setTimeout(() => setVerified(true), still ? 0 : 650)
+      window.setTimeout(
+        () => {
+          setVerified(true)
+          onVerified?.()
+        },
+        still ? 0 : 650
+      )
     })
   }
 

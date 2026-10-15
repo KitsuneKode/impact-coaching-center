@@ -5,7 +5,7 @@ import { usePaginatedQuery, useQuery } from "convex/react"
 
 import { convexConfigured } from "@/app/providers"
 import { OrdersTable } from "@/components/admin/orders-table"
-import { ButtonLink } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 
@@ -71,9 +71,15 @@ function Orders() {
           title="This page is for ICT staff"
           description="If you are staff and seeing this, log in with the number ICT has on file for you."
           action={
-            <ButtonLink href="/login?next=/admin/orders" size="md">
+            // A plain link: a full sign-in page, never the public site's
+            // pop-up over the admin with the admin loading behind it.
+            <ButtonAnchor
+              href="/login?next=/admin/orders"
+              target="_self"
+              size="md"
+            >
               Log in
-            </ButtonLink>
+            </ButtonAnchor>
           }
         />
       </PageShell>

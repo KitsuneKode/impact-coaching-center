@@ -22,8 +22,9 @@ import "./lib/env.server"
  *   img-src     Convex storage (covers, reader pages), ytimg thumbnails,
  *               blob: for upload previews, data: for inlined placeholders.
  *   connect-src Convex cloud (client websocket + HTTP actions) and the
- *               *.convex.site auth/enquiry endpoints; ws: only in dev for
- *               the dev server's HMR socket.
+ *               *.convex.site auth/enquiry endpoints; in dev, localhost and
+ *               127.0.0.1 (`convex dev` rewrites .env.local to 127.0.0.1
+ *               on every start) plus the HMR socket.
  *   frame-src   youtube-nocookie embeds, Google Maps, Turnstile challenges.
  *   *.r2.cloudflarestorage.com in connect: PDFs upload straight to R2
  *               on a presigned URL and the reader fetches them back the
@@ -47,9 +48,9 @@ function contentSecurityPolicy(): string {
     "default-src 'self'",
     `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://*.razorpay.com${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud https://*.razorpay.com",
+    `img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud https://*.razorpay.com${dev ? " http://127.0.0.1:* http://localhost:*" : ""}`,
     "font-src 'self'",
-    `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.razorpay.com https://*.r2.cloudflarestorage.com${dev ? " ws://localhost:* http://localhost:* http://*.localhost:*" : ""}`,
+    `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.razorpay.com https://*.r2.cloudflarestorage.com${dev ? " ws://localhost:* http://localhost:* http://*.localhost:* ws://127.0.0.1:* http://127.0.0.1:*" : ""}`,
     "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com https://*.razorpay.com",
     // Inline event-handler attributes (onclick="..."); React never writes them.
     "script-src-attr 'none'",

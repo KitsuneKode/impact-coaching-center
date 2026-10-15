@@ -15,7 +15,7 @@ import { useEffect, useState, type ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { Sparkline } from "@/components/admin/sparkline"
-import { ButtonLink } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
@@ -106,9 +106,11 @@ function Home() {
           title="This area is for ICT staff"
           description="If you are staff and seeing this, log in with the number ICT has on file for you."
           action={
-            <ButtonLink href="/login?next=/admin" size="md">
+            // A plain link: a full sign-in page, never the public site's
+            // pop-up over the admin with the admin loading behind it.
+            <ButtonAnchor href="/login?next=/admin" target="_self" size="md">
               Log in
-            </ButtonLink>
+            </ButtonAnchor>
           }
         />
       </PageShell>

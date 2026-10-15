@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
+import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
@@ -42,13 +43,15 @@ function Menu({ className }: { className?: string }) {
   const viewer = useQuery(api.auth.getCurrentPerson)
   const router = useRouter()
   const [leaving, setLeaving] = useState(false)
+  // A session check that never answers must not hide the way in.
+  const stalled = useStalled(viewer === undefined, 3000)
 
   /*
    * `undefined` is "still asking", `null` is "asked, nobody is signed in".
    * Collapsing the two would flash a Log in link at someone who is already
    * signed in, on every page load.
    */
-  if (viewer === undefined)
+  if (viewer === undefined && !stalled)
     return (
       <div
         aria-hidden="true"
@@ -56,7 +59,7 @@ function Menu({ className }: { className?: string }) {
       />
     )
 
-  if (viewer === null)
+  if (!viewer)
     return (
       <Link
         href="/login"
