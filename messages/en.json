@@ -711,7 +711,12 @@
     "searchClose": "to close",
     "stackTabs": "Choose an exam",
     "stackPrevious": "Previous exam",
-    "stackNext": "Next exam"
+    "stackNext": "Next exam",
+    "searchAll": "All",
+    "searchFilter": "Show only",
+    "searchRecent": "Recent",
+    "searchForget": "Remove “{query}” from recent",
+    "searchAsk": "Ask ICT on WhatsApp"
   },
   "Promos": {
     "code": "Code",

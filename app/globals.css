@@ -1535,3 +1535,63 @@ body :lang(as) {
     }
   }
 }
+
+/* Command dialogs (site search, the admin's command menu) open high on the
+   screen and grow downward, so the input never moves as results change.
+   Unlayered: it has to beat the dialog's centring utilities. */
+[data-command-dialog] {
+  inset-block-start: clamp(1rem, 12dvh, 7rem);
+}
+
+/* Site search (components/site/site-search.tsx). */
+@layer components {
+  [data-search-kind] {
+    flex: none;
+    min-block-size: 2rem;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background-color: var(--secondary);
+  }
+  [data-search-kind][aria-pressed="true"] {
+    color: var(--primary-foreground);
+    background-color: var(--primary);
+  }
+  [data-search-kind]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-search-kind]:active {
+    scale: 0.96;
+  }
+  [data-search-icon] {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 10px;
+    background-color: var(--secondary);
+    color: var(--primary);
+  }
+  [data-hit] {
+    background-color: color-mix(in oklch, var(--highlight) 45%, transparent);
+    color: inherit;
+    border-radius: 3px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-search-kind] {
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        scale 0.12s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-search-kind]:not([aria-pressed="true"]):hover {
+      color: var(--foreground);
+    }
+  }
+}

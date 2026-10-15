@@ -20,6 +20,8 @@ export type EnquiryIntent =
   | { kind: "assist" }
   /** Asking to hear when new exam dates are notified. */
   | { kind: "dates" }
+  /** Site search found nothing for what they typed. */
+  | { kind: "search"; query: string }
   | { kind: "call" }
 
 function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
@@ -38,6 +40,8 @@ function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
       return "Hello ICT, please tell me when the next ASSIST scholarship test is announced."
     case "dates":
       return "Hello ICT, please message me when new exam dates are announced."
+    case "search":
+      return `Hello ICT, I looked on your website for “${intent.query.slice(0, 80)}” and could not find it. Can you help?`
     case "whatsapp-handoff":
       return `Hello ICT, I am ${intent.name}. I just enquired about ${intent.track}, ${intent.timing.toLowerCase()} batch. My number is ${intent.phone}.`
   }

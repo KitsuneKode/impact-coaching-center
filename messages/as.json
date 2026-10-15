@@ -911,7 +911,12 @@
     "searchClose": "বন্ধ কৰিবলৈ",
     "stackTabs": "এটা পৰীক্ষা বাছক",
     "stackPrevious": "আগৰ পৰীক্ষা",
-    "stackNext": "পিছৰ পৰীক্ষা"
+    "stackNext": "পিছৰ পৰীক্ষা",
+    "searchAll": "সকলো",
+    "searchFilter": "কেৱল দেখুৱাওক",
+    "searchRecent": "শেহতীয়া",
+    "searchForget": "শেহতীয়াৰ পৰা “{query}” আঁতৰাওক",
+    "searchAsk": "WhatsAppত ICTক সোধক"
   },
   "Promos": {
     "code": "ক'ড",

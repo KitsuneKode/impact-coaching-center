@@ -6,11 +6,14 @@ import {
   IconFileText,
   IconFolder,
   IconNews,
+  IconBrandWhatsapp,
+  IconClock,
   IconSchool,
   IconSearch,
+  IconX,
 } from "@tabler/icons-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useEffect, useMemo, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 
 import {
   Command,
@@ -25,6 +28,60 @@ import { useRouter } from "@/i18n/navigation"
 import type { SearchItem } from "@/lib/search-index"
 import { track } from "@/lib/analytics"
 import { searchScore } from "@/lib/search-match"
+import { contactHref } from "@/lib/contact"
+
+/** The last few things searched for, on this device only. */
+const RECENT_KEY = "ict-search-recent"
+const RECENT_MAX = 5
+function readRecent(): string[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]")
+    return Array.isArray(value)
+      ? value
+          .filter((q): q is string => typeof q === "string")
+          .slice(0, RECENT_MAX)
+      : []
+  } catch {
+    return []
+  }
+}
+function writeRecent(list: string[]) {
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)))
+  } catch {
+    // Private windows and blocked storage: recent searches are a nicety.
+  }
+}
+
+/** The title with each typed word marked where it matches. */
+function Highlight({ text, query }: { text: string; query: string }) {
+  const words = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+  if (!words.length) return <>{text}</>
+  const pattern = new RegExp(
+    `(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
+    "gi"
+  )
+  return (
+    <>
+      {text.split(pattern).map((part, i) =>
+        i % 2 ? (
+          <mark key={i} data-hit>
+            {part}
+          </mark>
+        ) : (
+          <Fragment key={i}>{part}</Fragment>
+        )
+      )}
+    </>
+  )
+}
+
+/** What to try when nothing matches. */
+const SUGGESTIONS = ["APSC", "ADRE", "Question paper", "Current affairs"]
 
 const GROUPS: {
   kind: SearchItem["kind"]
@@ -84,6 +141,13 @@ export function SiteSearch({
   const [query, setQuery] = useState("")
   // Before anything is typed, a short start list, not the whole index.
   const browsing = query.trim() === ""
+  const [kind, setKind] = useState<SearchItem["kind"] | "all">("all")
+  const [recent, setRecent] = useState<string[]>([])
+  const list = useRef<HTMLDivElement>(null)
+  // A new query starts at the top, so the best match is never hidden.
+  useEffect(() => {
+    list.current?.scrollTo({ top: 0 })
+  }, [query, kind])
 
   useEffect(() => {
     if (variant !== "header") return
@@ -137,17 +201,35 @@ export function SiteSearch({
       return { ...group, rows, best: rows[0]?.score ?? 0 }
     })
       .filter((group) => group.rows.length)
+      .filter((group) => kind === "all" || group.kind === kind)
       .sort((a, b) => (browsing ? 0 : b.best - a.best))
-  }, [items, browsing, query])
+  }, [items, browsing, query, kind])
+  const kinds = useMemo(
+    () =>
+      GROUPS.filter((group) => items?.some((item) => item.kind === group.kind)),
+    [items]
+  )
 
   const go = (href: string, kind: string) => {
     track({ name: "search_result_opened", kind, query_length: query.length })
+    const typed = query.trim()
+    if (typed) {
+      const next = [typed, ...recent.filter((q) => q !== typed)]
+      setRecent(next)
+      writeRecent(next)
+    }
     setOpen(false)
+    setQuery("")
+    setKind("all")
     router.push(href)
   }
   const toggle = (next: boolean) => {
     setOpen(next)
-    if (!next) setQuery("")
+    if (next) setRecent(readRecent())
+    else {
+      setQuery("")
+      setKind("all")
+    }
   }
 
   return (
@@ -173,7 +255,7 @@ export function SiteSearch({
         description={t("searchPlaceholder")}
         // High on the screen and never taller than it, so results grow down
         // into view instead of off the bottom.
-        className="inset-bs-[clamp(1rem,12dvh,7rem)] sm:max-w-xl data-open:animate-none data-closed:animate-none"
+        className="sm:max-w-xl data-open:animate-none data-closed:animate-none"
       >
         {/* Our own scoring: word and prefix matches, never scattered letters. */}
         <Command shouldFilter={false}>
@@ -182,9 +264,30 @@ export function SiteSearch({
             value={query}
             onValueChange={setQuery}
           />
+          {kinds.length > 1 ? (
+            <fieldset
+              data-search-kinds
+              className="flex [scrollbar-width:none] gap-1.5 overflow-x-auto px-3 pbs-2 pbe-1"
+            >
+              {[{ kind: "all" as const, key: "searchAll" }, ...kinds].map(
+                (option) => (
+                  <button
+                    key={option.kind}
+                    type="button"
+                    aria-pressed={kind === option.kind}
+                    onClick={() => setKind(option.kind)}
+                    data-search-kind
+                  >
+                    {t(option.key)}
+                  </button>
+                )
+              )}
+            </fieldset>
+          ) : null}
           <CommandList
+            ref={list}
             data-edge-fade
-            className="max-h-[min(28rem,calc(100dvh-clamp(1rem,12dvh,7rem)-7rem))]"
+            className="max-h-[min(28rem,calc(100dvh-clamp(1rem,12dvh,7rem)-9rem))]"
           >
             {items === null ? (
               <p className="px-4 py-6 text-center text-sm text-muted-foreground">
@@ -192,9 +295,70 @@ export function SiteSearch({
               </p>
             ) : (
               <>
-                <CommandEmpty>
-                  {t("searchEmpty", { query: query.trim() })}
+                <CommandEmpty className="px-4 py-6 text-sm">
+                  <p className="text-center text-muted-foreground">
+                    {t("searchEmpty", { query: query.trim() })}
+                  </p>
+                  <p className="mbs-4 flex flex-wrap justify-center gap-2">
+                    {SUGGESTIONS.map((word) => (
+                      <button
+                        key={word}
+                        type="button"
+                        data-search-kind
+                        onClick={() => {
+                          setKind("all")
+                          setQuery(word)
+                        }}
+                      >
+                        {word}
+                      </button>
+                    ))}
+                  </p>
+                  <p className="mbs-4 text-center">
+                    <a
+                      href={contactHref({
+                        kind: "search",
+                        query: query.trim(),
+                      })}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex min-h-11 items-center gap-2 font-semibold text-primary"
+                    >
+                      <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
+                      {t("searchAsk")}
+                    </a>
+                  </p>
                 </CommandEmpty>
+                {browsing && kind === "all" && recent.length ? (
+                  <CommandGroup heading={t("searchRecent")}>
+                    {recent.map((q) => (
+                      <CommandItem
+                        key={`recent:${q}`}
+                        value={`recent:${q}`}
+                        onSelect={() => setQuery(q)}
+                        className="min-h-11 gap-3"
+                      >
+                        <span data-search-icon aria-hidden>
+                          <IconClock size={16} stroke={1.75} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{q}</span>
+                        <button
+                          type="button"
+                          aria-label={t("searchForget", { query: q })}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            const next = recent.filter((item) => item !== q)
+                            setRecent(next)
+                            writeRecent(next)
+                          }}
+                          className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-secondary"
+                        >
+                          <IconX aria-hidden size={14} stroke={2} />
+                        </button>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                ) : null}
                 {groups.map(({ kind, key, icon: Icon, rows }) => (
                   <CommandGroup key={kind} heading={t(key)}>
                     {rows.map(({ item }) => (
@@ -204,15 +368,12 @@ export function SiteSearch({
                         onSelect={() => go(item.href, kind)}
                         className="min-h-11 gap-3"
                       >
-                        <Icon
-                          aria-hidden
-                          size={18}
-                          stroke={1.5}
-                          className="flex-none text-muted-foreground"
-                        />
+                        <span data-search-icon aria-hidden>
+                          <Icon size={16} stroke={1.75} />
+                        </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">
-                            {item.title}
+                            <Highlight text={item.title} query={query} />
                           </span>
                           {item.detail ? (
                             <span className="tnum block truncate text-xs text-muted-foreground">
