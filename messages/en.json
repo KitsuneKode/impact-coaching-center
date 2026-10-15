@@ -236,7 +236,13 @@
     "read": "Read",
     "inAssamese": "In Assamese",
     "inEnglish": "In English",
-    "published": "Published <time>{date}</time>."
+    "published": "Published <time>{date}</time>.",
+    "video": "Video",
+    "play": "Play the video: {title}",
+    "readTime": "{minutes} min read",
+    "onThisPage": "On this page",
+    "backToTop": "Back to the top",
+    "progress": "Reading progress"
   },
   "Policy": {
     "englishOnly": "This document is in English only for now."

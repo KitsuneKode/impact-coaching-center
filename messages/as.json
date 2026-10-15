@@ -436,7 +436,13 @@
     "read": "পঢ়ক",
     "inAssamese": "অসমীয়াত",
     "inEnglish": "ইংৰাজীত",
-    "published": "প্ৰকাশ: <time>{date}</time>।"
+    "published": "প্ৰকাশ: <time>{date}</time>।",
+    "video": "ভিডিঅ'",
+    "play": "ভিডিঅ'টো চলাওক: {title}",
+    "readTime": "{minutes} মিনিটৰ পঢ়া",
+    "onThisPage": "এই পৃষ্ঠাত",
+    "backToTop": "ওপৰলৈ উভতি যাওক",
+    "progress": "পঢ়াৰ অগ্ৰগতি"
   },
   "Policy": {
     "englishOnly": "এই নথিখন বৰ্তমান কেৱল ইংৰাজীতহে উপলব্ধ।"

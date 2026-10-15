@@ -1,14 +1,26 @@
 "use client"
 
-import { IconArrowUpRight, IconLock, IconSearch } from "@tabler/icons-react"
+import {
+  IconArrowUpRight,
+  IconBrandYoutube,
+  IconLock,
+  IconPhoto,
+  IconSearch,
+} from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useState, type ReactNode } from "react"
+import { useRef, useState, type ReactNode } from "react"
 import { toast } from "sonner"
 
 import { refreshSite } from "@/app/admin/refresh-site"
-import { PublishState } from "@/components/admin/catalog-fields"
+import {
+  PublishState,
+  type StoredImage,
+  useImageUpload,
+} from "@/components/admin/catalog-fields"
+import { Dropzone } from "@/components/admin/dropzone"
+import { youTubeId } from "@/lib/article"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
@@ -46,6 +58,7 @@ type Draft = {
   excerpt: string
   body: string
   language: PostLanguage
+  cover: StoredImage | null
 }
 
 const EMPTY: Draft = {
@@ -54,6 +67,7 @@ const EMPTY: Draft = {
   excerpt: "",
   body: "",
   language: "en",
+  cover: null,
 }
 
 const LANGUAGE_ITEMS: { value: PostLanguage; label: string }[] = [
@@ -62,7 +76,8 @@ const LANGUAGE_ITEMS: { value: PostLanguage; label: string }[] = [
 ]
 
 /** What a save compares against to know whether anything changed. */
-const snapshot = (draft: Draft) => JSON.stringify(draft)
+const snapshot = (draft: Draft) =>
+  JSON.stringify({ ...draft, cover: draft.cover?.id ?? null })
 
 const REFUSALS: Record<string, string> = {
   anonymous: "Your session has ended. Log in again; your changes are kept.",
@@ -113,6 +128,9 @@ export function PostEditor({ id }: { id?: string }) {
         excerpt: post.excerpt,
         body: post.body,
         language: post.language,
+        cover: post.cover
+          ? { id: post.cover, url: post.coverPicture?.url ?? null }
+          : null,
       }}
     />
   )
@@ -141,6 +159,60 @@ function PostForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const upload = useImageUpload()
+  const imageLink = useMutation(api.blogAdmin.imageLink)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const imageInput = useRef<HTMLInputElement>(null)
+  const coverInput = useRef<HTMLInputElement>(null)
+  const [videoOpen, setVideoOpen] = useState(false)
+  const [videoLink, setVideoLink] = useState("")
+
+  /** Puts a block (a picture, a video) at the cursor, on lines of its own. */
+  function insertBlock(text: string) {
+    const area = bodyRef.current
+    const at = area?.selectionStart ?? draft.body.length
+    const before = draft.body.slice(0, at).replace(/\s*$/, "")
+    const after = draft.body.slice(at).replace(/^\s*/, "")
+    const next = `${before}${before ? "\n\n" : ""}${text}\n\n${after}`
+    set("body", next)
+    setTab("write")
+    requestAnimationFrame(() => {
+      const caret = (before ? before.length + 2 : 0) + text.length + 2
+      area?.focus()
+      area?.setSelectionRange(caret, caret)
+    })
+  }
+
+  async function addImage(file: File | undefined) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const stored = await upload(file)
+      if (!stored) return
+      const link = await imageLink({ storageId: stored.id })
+      if (!link.ok) {
+        toast.error("That picture could not be added.")
+        return
+      }
+      insertBlock(
+        `![Describe the picture](${link.url} "Caption, or delete this")`
+      )
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function setCover(file: File | undefined) {
+    if (!file) return
+    setUploading(true)
+    try {
+      const stored = await upload(file)
+      if (stored) set("cover", stored)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const dirty = snapshot(draft) !== saved
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
@@ -168,6 +240,7 @@ function PostForm({
       const result = await save({
         ...(id ? { id, expectedRevision: revision } : {}),
         ...checked.value,
+        cover: draft.cover?.id,
       })
       if (!result.ok) {
         if (result.reason === "invalid-input" && result.field) {
@@ -302,8 +375,119 @@ function PostForm({
               </FieldDescription>
             )}
           </Field>
+          <Field>
+            <FieldLabel>Cover picture</FieldLabel>
+            {draft.cover?.url ? (
+              <div className="grid gap-3 sm:grid-cols-[16rem_auto] sm:items-end">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={draft.cover.url}
+                  alt=""
+                  className="aspect-video w-full rounded-control object-cover"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploading}
+                    onClick={() => coverInput.current?.click()}
+                  >
+                    Replace
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => set("cover", null)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Dropzone
+                accept="image/*"
+                disabled={uploading}
+                onFiles={(files) => void setCover(files[0])}
+                title={uploading ? "Uploading…" : "Add a cover picture"}
+                hint="Wide pictures work best (16:9). Shown on the post and in the blog list."
+              />
+            )}
+            <input
+              ref={coverInput}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(event) => {
+                void setCover(event.target.files?.[0])
+                event.target.value = ""
+              }}
+            />
+          </Field>
           <Field {...fieldProps("body")}>
             <FieldLabel id="post-body-label">Body</FieldLabel>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={uploading}
+                onClick={() => imageInput.current?.click()}
+              >
+                {uploading ? (
+                  <Spinner />
+                ) : (
+                  <IconPhoto data-icon="inline-start" />
+                )}
+                Add picture
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                aria-expanded={videoOpen}
+                onClick={() => setVideoOpen((open) => !open)}
+              >
+                <IconBrandYoutube data-icon="inline-start" />
+                Add video
+              </Button>
+              <input
+                ref={imageInput}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  void addImage(event.target.files?.[0])
+                  event.target.value = ""
+                }}
+              />
+            </div>
+            {videoOpen ? (
+              <div className="flex gap-2">
+                <Input
+                  aria-label="YouTube link"
+                  placeholder="https://youtu.be/…"
+                  value={videoLink}
+                  onChange={(e) => setVideoLink(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    if (!youTubeId(videoLink.trim())) {
+                      toast.error("That is not a YouTube link.")
+                      return
+                    }
+                    insertBlock(`[Video title](${videoLink.trim()})`)
+                    setVideoLink("")
+                    setVideoOpen(false)
+                  }}
+                >
+                  Add
+                </Button>
+              </div>
+            ) : null}
             <Tabs value={tab} onValueChange={setTab}>
               <TabsList aria-labelledby="post-body-label">
                 <TabsTrigger value="write">Write</TabsTrigger>
@@ -311,6 +495,7 @@ function PostForm({
               </TabsList>
               <TabsContent value="write" className="mbs-2">
                 <Textarea
+                  ref={bodyRef}
                   aria-label="Post body, Markdown"
                   lang={draft.language}
                   rows={16}
@@ -340,8 +525,10 @@ function PostForm({
               <FieldError>{errors.body}</FieldError>
             ) : (
               <FieldDescription>
-                Markdown - the same rendering the policy pages use.{" "}
-                {POST_BODY_MAX.toLocaleString("en-IN")} characters at most.
+                Markdown. ## and ### headings make the post&rsquo;s contents
+                list. A picture or a YouTube link on its own line shows as a
+                picture or a player. {POST_BODY_MAX.toLocaleString("en-IN")}{" "}
+                characters at most.
               </FieldDescription>
             )}
           </Field>

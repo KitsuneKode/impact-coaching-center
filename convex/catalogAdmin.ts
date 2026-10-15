@@ -145,7 +145,7 @@ async function referencedElsewhere(
   for await (const course of ctx.db.query("courses"))
     if (course.cover === id) return true
   for await (const post of ctx.db.query("posts"))
-    if (post.cover === id) return true
+    if (post.cover === id || post.body.includes(id)) return true
   for await (const campaign of ctx.db.query("campaigns"))
     if (campaign.image === id) return true
   return false

@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
 import { IconArrowRight, IconNews } from "@tabler/icons-react"
 import type { Metadata } from "next"
+import Image from "next/image"
 import { Link } from "@/i18n/navigation"
 
 import { StatePanel } from "@/components/ui/page-shell"
@@ -125,8 +126,23 @@ export default async function BlogPage({
                       <Link
                         href={`/blog/${post.slug}`}
                         data-row-card
-                        className="flex h-full min-h-56 flex-col gap-3 p-7"
+                        className="flex h-full min-h-56 flex-col gap-3 overflow-clip p-7"
                       >
+                        {post.cover ? (
+                          <span className="relative -mx-7 mbe-2 -mt-7 block aspect-[16/9] bg-secondary">
+                            <Image
+                              src={post.cover.url}
+                              alt=""
+                              fill
+                              sizes="(min-width: 1024px) 24rem, (min-width: 640px) 50vw, 100vw"
+                              placeholder={
+                                post.cover.blurDataUrl ? "blur" : "empty"
+                              }
+                              blurDataURL={post.cover.blurDataUrl}
+                              className="object-cover"
+                            />
+                          </span>
+                        ) : null}
                         <span className="text-xs text-muted-foreground">
                           {meta(post)}
                         </span>

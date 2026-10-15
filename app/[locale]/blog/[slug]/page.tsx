@@ -1,10 +1,13 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { IconChevronRight } from "@tabler/icons-react"
+import { IconChevronRight, IconClock } from "@tabler/icons-react"
+import Image from "next/image"
 import type { Metadata } from "next"
 import { Link } from "@/i18n/navigation"
 import { notFound } from "next/navigation"
 
+import { PostContents } from "@/components/blog/post-contents"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
+import { headingsOf, readingMinutes } from "@/lib/article"
 import { brand } from "@/lib/brand"
 import { publishedPost } from "@/lib/catalog-server"
 import { publishedPosts } from "@/lib/catalog-server"
@@ -63,6 +66,7 @@ export default async function PostPage({
   const post = await publishedPost(slug)
   if (!post) notFound()
   const lang = post.language === "as" ? "as" : "en"
+  const headings = headingsOf(post.body)
 
   /* Article schema: only claims the visible page makes. */
   const jsonLd = {
@@ -75,6 +79,8 @@ export default async function PostPage({
       ? { datePublished: new Date(post.publishedAt).toISOString() }
       : {}),
     dateModified: new Date(post.updatedAt).toISOString(),
+    ...(post.cover ? { image: [post.cover.url] } : {}),
+    wordCount: post.body.split(/\s+/).filter(Boolean).length,
     author: {
       "@type": "Organization",
       name: brand.legalName,
@@ -95,54 +101,103 @@ export default async function PostPage({
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
       />
-      <article className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-20 md:pbs-[calc(var(--header-height)+2.5rem)] md:pbe-28">
-        <div className="mx-auto max-w-[46rem]">
-          <nav aria-label={t("breadcrumb")}>
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-              <li>
-                <Link href="/blog" className="hover:text-foreground">
-                  {t("blog")}
-                </Link>
-              </li>
-              <li className="flex min-w-0 items-center gap-1">
-                <IconChevronRight aria-hidden size={14} stroke={1.75} />
-                <span aria-current="page" className="truncate text-foreground">
-                  {post.title}
-                </span>
-              </li>
-            </ol>
-          </nav>
+      <article
+        data-post
+        className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-20 md:pbs-[calc(var(--header-height)+2.5rem)] md:pbe-28"
+      >
+        {/* How far through the post: a scroll-driven bar, no JavaScript. */}
+        <div aria-hidden data-read-progress />
+        <div className="mx-auto grid max-w-[46rem] xl:max-w-none xl:grid-cols-[minmax(0,1fr)_46rem_minmax(0,1fr)] xl:gap-12">
+          <div className="min-w-0 xl:col-start-2">
+            <nav aria-label={t("breadcrumb")}>
+              <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/blog" className="hover:text-foreground">
+                    {t("blog")}
+                  </Link>
+                </li>
+                <li className="flex min-w-0 items-center gap-1">
+                  <IconChevronRight aria-hidden size={14} stroke={1.75} />
+                  <span
+                    aria-current="page"
+                    className="truncate text-foreground"
+                  >
+                    {post.title}
+                  </span>
+                </li>
+              </ol>
+            </nav>
 
-          <h1
-            lang={lang}
-            className="mbs-8 font-display text-[clamp(2rem,1.4rem+2.8vw,3.5rem)] leading-[1.06] font-semibold tracking-[-0.035em] text-balance"
-          >
-            {post.title}
-          </h1>
-          {post.publishedAt ? (
-            <p className="mbs-5 text-sm text-muted-foreground">
-              {tb.rich("published", {
-                date: readableDate(post.publishedAt, locale),
-                time: (chunks) => (
-                  <time dateTime={new Date(post.publishedAt!).toISOString()}>
-                    {chunks}
-                  </time>
-                ),
-              })}
-            </p>
-          ) : null}
-          {post.excerpt ? (
-            <p
+            <h1
               lang={lang}
-              className="mbs-6 border-s-4 border-primary ps-5 text-xl text-pretty text-muted-foreground"
+              className="mbs-8 font-display text-[clamp(2rem,1.4rem+2.8vw,3.5rem)] leading-[1.06] font-semibold tracking-[-0.035em] text-balance"
             >
-              {post.excerpt}
+              {post.title}
+            </h1>
+            <p className="mbs-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+              {post.publishedAt ? (
+                <span>
+                  {tb.rich("published", {
+                    date: readableDate(post.publishedAt, locale),
+                    time: (chunks) => (
+                      <time
+                        dateTime={new Date(post.publishedAt!).toISOString()}
+                      >
+                        {chunks}
+                      </time>
+                    ),
+                  })}
+                </span>
+              ) : null}
+              <span className="flex items-center gap-1.5">
+                <IconClock aria-hidden size={15} stroke={1.75} />
+                {tb("readTime", { minutes: readingMinutes(post.body) })}
+              </span>
             </p>
-          ) : null}
+            {post.excerpt ? (
+              <p
+                lang={lang}
+                className="mbs-6 border-s-4 border-primary ps-5 text-xl text-pretty text-muted-foreground"
+              >
+                {post.excerpt}
+              </p>
+            ) : null}
 
-          <div lang={lang} className="mbs-12">
-            <MarkdownBody>{post.body}</MarkdownBody>
+            {post.cover ? (
+              <div
+                data-frame
+                className="relative mbs-10 aspect-[16/9] overflow-clip rounded-[24px] bg-secondary"
+              >
+                <Image
+                  src={post.cover.url}
+                  alt=""
+                  fill
+                  priority
+                  sizes="(min-width: 768px) 46rem, 100vw"
+                  placeholder={post.cover.blurDataUrl ? "blur" : "empty"}
+                  blurDataURL={post.cover.blurDataUrl}
+                  className="object-cover"
+                />
+              </div>
+            ) : null}
+
+            {headings.length > 2 ? (
+              <div className="mbs-10 xl:hidden">
+                <PostContents headings={headings} variant="fold" />
+              </div>
+            ) : null}
+
+            <div lang={lang} className="mbs-12">
+              <MarkdownBody headings={headings}>{post.body}</MarkdownBody>
+            </div>
           </div>
+          {headings.length > 2 ? (
+            <aside className="hidden xl:col-start-3 xl:block">
+              <div className="sticky inset-bs-[calc(var(--header-height)+2rem)]">
+                <PostContents headings={headings} variant="rail" />
+              </div>
+            </aside>
+          ) : null}
         </div>
       </article>
     </main>

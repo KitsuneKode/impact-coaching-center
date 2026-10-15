@@ -1,4 +1,4 @@
-import { isSlug } from "./catalog"
+import { isSlug, type Picture } from "./catalog"
 
 /**
  * Post shapes shared by the public pages, the admin editor and the Convex
@@ -30,6 +30,7 @@ export type PostCard = {
   language: PostLanguage
   publishedAt?: number
   updatedAt: number
+  cover?: Picture | null
 }
 
 export type Post = PostCard & { body: string }

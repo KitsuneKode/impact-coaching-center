@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 
 import { query, type QueryCtx } from "./_generated/server"
+import { PICTURE, pictureOf } from "./images"
 
 /*
  * The public face of the blog: published posts only, in fields a visitor
@@ -18,6 +19,7 @@ const POST_CARD = v.object({
   language: POST_LANGUAGE,
   publishedAt: v.optional(v.number()),
   updatedAt: v.number(),
+  cover: v.union(PICTURE, v.null()),
 })
 
 const POST = POST_CARD.extend({ body: v.string() })
@@ -26,25 +28,30 @@ const POST = POST_CARD.extend({ body: v.string() })
 const PUBLIC_MAX = 50
 
 /** The published list, newest first. Split out so tests need no session. */
-export async function readPublishedPosts(ctx: Pick<QueryCtx, "db">) {
+export async function readPublishedPosts(
+  ctx: Pick<QueryCtx, "db" | "storage">
+) {
   const rows = await ctx.db
     .query("posts")
     .withIndex("by_published_and_publishedAt", (q) => q.eq("published", true))
     .order("desc")
     .take(PUBLIC_MAX)
-  return rows.map((row) => ({
-    slug: row.slug,
-    title: row.title,
-    excerpt: row.excerpt,
-    language: row.language ?? "en",
-    publishedAt: row.publishedAt,
-    updatedAt: row.updatedAt,
-  }))
+  return Promise.all(
+    rows.map(async (row) => ({
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      language: row.language ?? "en",
+      publishedAt: row.publishedAt,
+      updatedAt: row.updatedAt,
+      cover: await pictureOf(ctx, row.cover),
+    }))
+  )
 }
 
 /** One published post by slug, or null - drafts read as absent. */
 export async function readPublishedPost(
-  ctx: Pick<QueryCtx, "db">,
+  ctx: Pick<QueryCtx, "db" | "storage">,
   slug: string
 ) {
   const row = await ctx.db
@@ -60,6 +67,7 @@ export async function readPublishedPost(
     body: row.body,
     publishedAt: row.publishedAt,
     updatedAt: row.updatedAt,
+    cover: await pictureOf(ctx, row.cover),
   }
 }
 
