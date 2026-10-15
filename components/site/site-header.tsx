@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import Image from "next/image"
 import { useRef } from "react"
 
+import { useDrawIn } from "@/hooks/use-draw-in"
 import { useHeadroom } from "@/hooks/use-headroom"
 import { AccountMenu } from "@/components/account/account-menu"
 import { LocaleSwitch } from "@/components/i18n/locale-switch"
@@ -31,15 +32,22 @@ export function SiteHeader() {
   })
   const phone = formatPhone(contact.phones[0])
   const row = useRef<HTMLDivElement>(null)
+  const header = useRef<HTMLElement>(null)
+  useDrawIn({ header, row, stuck: headroom !== "top" })
 
   return (
     <>
-      <header data-site-header data-stuck={headroom !== "top" || undefined}>
+      {/* data-stuck is set by useDrawIn, after it has measured. */}
+      <header ref={header} data-site-header>
         <div data-site-header-row ref={row} className="container-page">
+          <span aria-hidden data-site-bar-wrap>
+            <span data-site-bar />
+          </span>
           <Link
             href="/"
             aria-label={t("home", { name: brand.legalName })}
-            className="flex flex-none items-center gap-3"
+            data-flip
+            className="relative flex flex-none items-center gap-3"
           >
             <span className="grid size-10 place-items-center rounded-xl bg-white">
               <Image
@@ -62,9 +70,11 @@ export function SiteHeader() {
 
           <SiteNav anchor={row} label={t("sections")} />
 
-          <SiteSearch />
+          <span data-flip className="flex">
+            <SiteSearch />
+          </span>
 
-          <div data-site-tools>
+          <div data-site-tools data-flip className="relative">
             <span data-fold>
               <LocaleSwitch />
             </span>
@@ -79,7 +89,8 @@ export function SiteHeader() {
           <a
             href={contactHref({ kind: "call" })}
             data-site-phone
-            className="tnum inline-flex min-h-11 items-center gap-1.5 text-sm font-medium whitespace-nowrap"
+            data-flip
+            className="tnum relative inline-flex min-h-11 items-center gap-1.5 text-sm font-medium whitespace-nowrap"
           >
             <IconPhone
               aria-hidden
@@ -87,10 +98,16 @@ export function SiteHeader() {
               stroke={1.75}
               className="hidden sm:block"
             />
-            <span className="sr-only">{t("callPrefix")} </span>
-            <span data-fold-lg>{phone}</span>
+            <span className="sr-only">
+              {t("callPrefix")} {phone}
+            </span>
+            <span aria-hidden data-fold-lg>
+              {phone}
+            </span>
           </a>
-          <SiteMenu phone={phone} />
+          <span data-flip className="flex lg:hidden">
+            <SiteMenu phone={phone} />
+          </span>
         </div>
       </header>
     </>

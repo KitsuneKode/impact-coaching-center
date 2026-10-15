@@ -75,6 +75,7 @@ export function SiteNav({
   return (
     <NavigationMenu
       data-site-nav
+      data-flip
       aria-label={label}
       // Phones and tablets get the full menu sheet instead (site-menu.tsx).
       className="max-lg:hidden"
