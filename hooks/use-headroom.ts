@@ -53,7 +53,9 @@ export function useHeadroom({
       const y = Math.max(0, window.scrollY)
       const delta = y - last
       last = y
-      if (y < 2) return set("top")
+      // Hysteresis: draws in after a real scroll, back only near the top,
+      // so a nudge never sets the header off.
+      if (y < 8 || (current === "top" && y < 40)) return set("top")
       if (locked() || focusInside()) return set("pinned")
       // Reset the run whenever the direction changes.
       travel = Math.sign(delta) === Math.sign(travel) ? travel + delta : delta
@@ -66,7 +68,7 @@ export function useHeadroom({
     const onFocus = (event: FocusEvent) => {
       const el = event.target as Element | null
       if (el?.closest?.(keep) && el.matches(":focus-visible"))
-        set(window.scrollY < 2 ? "top" : "pinned")
+        set(window.scrollY < 8 ? "top" : "pinned")
     }
 
     update()

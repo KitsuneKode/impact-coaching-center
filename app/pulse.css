@@ -2526,22 +2526,86 @@
     translate: 0 14px;
   }
 }
+/*
+ * Gradual reveal (first paint only; later navigations use the page
+ * transition). Top to bottom, the way a page should feel like it arrives:
+ * the header fades in, the title comes word by word out of a soft blur,
+ * then the lede and actions, the hero's pictures settle in, and the
+ * sections below follow. CSS only, so it starts with the first paint and
+ * never waits for JavaScript; everything is visible by 1.6 s.
+ */
+@keyframes word-in {
+  from {
+    opacity: 0;
+    translate: 0 0.3em;
+    filter: blur(6px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+[data-word] {
+  display: inline-block;
+}
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-first-paint] [data-entrance] > main > * {
-    animation: entrance-rise 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
-    animation-delay: 0.3s;
+  :root[data-first-paint] [data-site-header-row] > :not([data-site-bar-wrap]) {
+    animation: drop-in 0.5s var(--ease-out-strong) both;
   }
-  :root[data-first-paint] [data-entrance] > main > :nth-child(1) {
-    animation-delay: 0s;
-  }
-  :root[data-first-paint] [data-entrance] > main > :nth-child(2) {
-    animation-delay: 0.07s;
+  :root[data-first-paint] [data-entrance] > main > :not(:first-child) {
+    animation: entrance-rise 0.6s var(--ease-out-strong) both;
+    animation-delay: 0.4s;
   }
   :root[data-first-paint] [data-entrance] > main > :nth-child(3) {
-    animation-delay: 0.14s;
+    animation-delay: 0.46s;
   }
   :root[data-first-paint] [data-entrance] > main > :nth-child(4) {
-    animation-delay: 0.21s;
+    animation-delay: 0.52s;
+  }
+  /* An inner page's head: breadcrumb, the title's words, the lede, then
+     what the page adds (chips, a search box). */
+  :root[data-first-paint] [data-reveal-head] [data-word] {
+    animation: word-in 0.7s var(--ease-out-strong) both;
+    animation-delay: calc(0.14s + var(--w) * 0.055s);
+  }
+  :root[data-first-paint] [data-reveal-head] [data-reveal="0"] {
+    animation: fade-in 0.5s var(--ease-out-strong) both;
+    animation-delay: 0.05s;
+  }
+  :root[data-first-paint] [data-reveal-head] [data-reveal="after"] {
+    animation: entrance-rise 0.6s var(--ease-out-strong) both;
+    animation-delay: var(--after);
+  }
+  :root[data-first-paint] [data-reveal-head] [data-reveal="later"] {
+    animation: entrance-rise 0.6s var(--ease-out-strong) both;
+    animation-delay: calc(var(--after) + 0.1s);
+  }
+  /* The home hero runs it on every visit, with its lede and actions. */
+  [data-hero] [data-word] {
+    animation: word-in 0.7s var(--ease-out-strong) both;
+    animation-delay: calc(0.14s + var(--w) * 0.055s);
+  }
+  [data-hero] [data-pop] {
+    animation: pop-in 0.44s var(--ease-spring) both;
+    animation-delay: 0.35s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-first-paint] [data-entrance] > main > * {
+    animation: fade-in 0.3s ease both;
   }
 }
 
@@ -2666,13 +2730,10 @@
         color 0.2s var(--ease-out-strong);
     }
     [data-board-grid] > li {
-      animation: board-in 0.35s var(--ease-out-strong) both;
-    }
-  }
-  @keyframes board-in {
-    from {
-      opacity: 0;
-      translate: 0 8px;
+      transition: opacity 0.2s var(--ease-out-strong);
+      @starting-style {
+        opacity: 0;
+      }
     }
   }
   @media (hover: hover) and (pointer: fine) {

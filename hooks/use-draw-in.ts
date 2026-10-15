@@ -3,13 +3,13 @@
 import { type RefObject, useLayoutEffect } from "react"
 
 /**
- * A critically damped spring (response 0.4 s, no overshoot), sampled for
+ * A critically damped spring (response 0.32 s, no overshoot), sampled for
  * CSS and WAAPI. The header's bar and the items inside it share it, so they
  * arrive together. Mirrored in globals.css as --ease-spring.
  */
 export const SPRING =
-  "linear(0, 0.0528, 0.1674, 0.3008, 0.4308, 0.5468, 0.6452, 0.7259, 0.7905, 0.8412, 0.8806, 0.9107, 0.9336, 0.9509, 0.9638, 0.9734, 0.9805, 0.9858, 0.9896, 0.9925, 0.9945, 0.996, 0.9971, 0.9979, 1)"
-export const SPRING_MS = 560
+  "linear(0, 0.0596, 0.186, 0.3294, 0.4656, 0.584, 0.6819, 0.7601, 0.821, 0.8677, 0.9029, 0.9292, 0.9487, 0.963, 0.9734, 0.9809, 0.9864, 0.9903, 0.9931, 0.9951, 0.9966, 0.9976, 1)"
+export const SPRING_MS = 440
 
 /** Gap between the items and the bar's edge. */
 const PAD = 12

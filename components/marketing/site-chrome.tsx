@@ -42,7 +42,7 @@ export async function SiteChrome({
       {entrance ? (
         // Marks the first paint so the reveal runs once, never on later
         // in-app navigations (those use the page transition).
-        <InlineScript code="(function(){var d=document.documentElement;d.setAttribute('data-first-paint','');setTimeout(function(){d.removeAttribute('data-first-paint')},1600)})()" />
+        <InlineScript code="(function(){var d=document.documentElement;d.setAttribute('data-first-paint','');setTimeout(function(){d.removeAttribute('data-first-paint')},2200)})()" />
       ) : null}
       <div
         id="main"

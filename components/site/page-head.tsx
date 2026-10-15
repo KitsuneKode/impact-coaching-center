@@ -1,5 +1,8 @@
 import { IconChevronRight } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
+import type { CSSProperties } from "react"
+
+import { afterWords, splitWords } from "@/components/motion/words"
 import type { ReactNode } from "react"
 
 import { Link } from "@/i18n/navigation"
@@ -20,9 +23,15 @@ export function PageHead({
   children?: ReactNode
 }) {
   const t = useTranslations("Pulse")
+  const heading = splitWords(title)
+  const after = afterWords(heading.count)
   return (
-    <header className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-12 md:pbs-[calc(var(--header-height)+2.5rem)]">
-      <nav aria-label="Breadcrumb">
+    <header
+      data-reveal-head
+      style={{ "--after": `${after}s` } as CSSProperties}
+      className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-12 md:pbs-[calc(var(--header-height)+2.5rem)]"
+    >
+      <nav aria-label="Breadcrumb" data-reveal="0">
         <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
           <li>
             <Link href="/" className="hover:text-foreground">
@@ -45,13 +54,16 @@ export function PageHead({
           ))}
         </ol>
       </nav>
-      <h1 className="type-hero mbs-6 max-w-[22ch]">{title}</h1>
+      <h1 className="type-hero mbs-6 max-w-[22ch]">{heading.node}</h1>
       {lede ? (
-        <p className="mbs-5 max-w-[56ch] text-lg text-pretty text-muted-foreground">
+        <p
+          data-reveal="after"
+          className="mbs-5 max-w-[56ch] text-lg text-pretty text-muted-foreground"
+        >
           {lede}
         </p>
       ) : null}
-      {children}
+      {children ? <div data-reveal="later">{children}</div> : null}
     </header>
   )
 }
