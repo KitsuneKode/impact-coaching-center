@@ -67,7 +67,7 @@ export function DeleteAccount({
 
   if (role !== "student")
     return (
-      <section className="max-w-160 rounded-card border border-border p-6">
+      <section className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
         <h2 className="font-medium">Delete account</h2>
         <p className="mbs-1 text-sm text-muted-foreground">
           {REFUSALS.forbidden}
@@ -139,7 +139,7 @@ export function DeleteAccount({
   return (
     <section
       aria-labelledby="delete-account"
-      className="max-w-160 rounded-card border border-border p-6"
+      className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]"
     >
       <h2 id="delete-account" className="font-medium">
         Delete account

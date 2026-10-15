@@ -26,7 +26,7 @@ export function OrdersCard() {
       <section
         aria-busy="true"
         aria-label="Your orders, loading"
-        className="max-w-160 rounded-card border border-border p-6"
+        className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]"
       >
         <h2 className="text-lg font-medium">Your orders</h2>
         <div className="mbs-4 flex flex-col gap-4" aria-hidden>
@@ -40,7 +40,7 @@ export function OrdersCard() {
 
   if (orders.length === 0)
     return (
-      <section className="max-w-160 rounded-card border border-border p-6">
+      <section className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
         <h2 className="text-lg font-medium">Your orders</h2>
         <p className="mbs-4 text-sm text-muted-foreground">
           No orders yet. When you place one, its status and delivery details
@@ -58,7 +58,7 @@ export function OrdersCard() {
     )
 
   return (
-    <section className="max-w-160 rounded-card border border-border p-6">
+    <section className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
       <h2 className="text-lg font-medium">Your orders</h2>
       <ul className="mbs-4 flex flex-col divide-y divide-border">
         {orders.map((order) => (

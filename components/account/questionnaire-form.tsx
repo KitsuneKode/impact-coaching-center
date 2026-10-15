@@ -1,6 +1,6 @@
 "use client"
 
-import { IconArrowRight, IconLoader2 } from "@tabler/icons-react"
+import { IconArrowRight, IconCheck, IconLoader2 } from "@tabler/icons-react"
 import { useMutation } from "convex/react"
 import { useId, useState } from "react"
 
@@ -37,12 +37,14 @@ function Choice<T extends string>({
 }) {
   return (
     <FieldSet>
-      <FieldLegend>{legend}</FieldLegend>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <FieldLegend className="text-base font-semibold">{legend}</FieldLegend>
+      {/* Tiles that are radios underneath: arrow keys move, Space picks. */}
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <label
             key={option.value}
-            className="flex min-h-11 cursor-pointer items-center gap-3 rounded-control border border-border px-3.5 py-2.5 text-[0.9375rem] transition-[border-color,background-color] has-checked:border-foreground has-checked:bg-muted has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50"
+            data-choice
+            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full bg-secondary px-4 text-[0.9375rem] font-medium"
           >
             <input
               type="radio"
@@ -50,8 +52,9 @@ function Choice<T extends string>({
               value={option.value}
               checked={value === option.value}
               onChange={() => onChange(option.value)}
-              className="size-4 accent-foreground"
+              className="sr-only"
             />
+            <IconCheck aria-hidden data-choice-tick size={16} stroke={2.25} />
             {option.label}
           </label>
         ))}

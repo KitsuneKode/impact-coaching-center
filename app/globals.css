@@ -1239,3 +1239,44 @@ body :lang(as) {
     font-weight: 500;
   }
 }
+
+/* A choice tile over a hidden radio (components/account/questionnaire-form.tsx):
+   the tick slides in when picked. */
+@layer components {
+  [data-choice] {
+    box-shadow: inset 0 0 0 1px transparent;
+  }
+  [data-choice]:has(:checked) {
+    background-color: color-mix(in oklch, var(--primary) 10%, var(--card));
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+    color: var(--foreground);
+  }
+  [data-choice]:has(:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-choice-tick] {
+    display: none;
+    color: var(--primary);
+  }
+  [data-choice]:has(:checked) [data-choice-tick] {
+    display: block;
+  }
+  [data-choice]:active {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-choice] {
+      transition:
+        background-color 0.15s var(--ease-out-strong),
+        box-shadow 0.15s var(--ease-out-strong),
+        scale 0.12s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-choice]:hover:not(:has(:checked)) {
+      box-shadow: inset 0 0 0 1px
+        color-mix(in oklch, var(--foreground) 18%, transparent);
+    }
+  }
+}

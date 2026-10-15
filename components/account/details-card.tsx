@@ -24,7 +24,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
 
   if (!editing)
     return (
-      <div className="max-w-160 rounded-card border border-border p-6">
+      <div className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
         <dl className="grid gap-5">
           <div>
             <dt className="text-sm text-muted-foreground">Name</dt>
@@ -120,7 +120,7 @@ function NameEditor({
     <form
       onSubmit={submit}
       noValidate
-      className="max-w-160 rounded-card border border-border p-6"
+      className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]"
     >
       <FieldGroup>
         <Field data-invalid={error ? true : undefined}>

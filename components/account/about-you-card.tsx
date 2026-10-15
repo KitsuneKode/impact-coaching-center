@@ -15,8 +15,7 @@ export function AboutYouCard() {
   const data = useQuery(api.profile.ownQuestionnaire)
   const [editing, setEditing] = useState(false)
 
-  if (data === undefined)
-    return <Skeleton className="h-40 max-w-160 rounded-card" />
+  if (data === undefined) return <Skeleton className="h-40 rounded-[24px]" />
   if (data === null) return null
 
   const answers = data.answers
@@ -26,7 +25,7 @@ export function AboutYouCard() {
   return (
     <section
       aria-labelledby="about-you"
-      className="max-w-160 rounded-card border border-border p-6"
+      className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div>

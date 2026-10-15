@@ -153,9 +153,14 @@ export function PromoBanner({
   return (
     <aside
       aria-label={promo.tag || t("label")}
-      className="@container container-page pbe-16"
+      // Room above and below, and ICT's ink rather than its blue: a page that
+      // ends on a blue band would otherwise run straight into the banner.
+      className="@container container-page pbs-14 pbe-16 md:pbs-20"
     >
-      <div className="relative grid gap-6 overflow-clip rounded-[32px] bg-primary p-7 text-white @3xl:grid-cols-12 @3xl:items-center @3xl:p-10">
+      <div
+        data-promo-banner
+        className="relative grid gap-6 overflow-clip rounded-[32px] bg-foreground p-7 text-white @3xl:grid-cols-12 @3xl:items-center @3xl:p-10"
+      >
         {promo.image ? (
           <span className="relative block aspect-[16/9] overflow-clip rounded-[20px] bg-primary-deep @3xl:col-span-4">
             <Image
@@ -177,7 +182,7 @@ export function PromoBanner({
             {promo.headline}
           </p>
           {promo.body ? (
-            <p className="mbs-3 max-w-[56ch] text-on-primary">{promo.body}</p>
+            <p className="mbs-3 max-w-[56ch] text-white/75">{promo.body}</p>
           ) : null}
           <div className="mbs-6 flex flex-wrap items-center gap-3">
             {promo.cta ? (

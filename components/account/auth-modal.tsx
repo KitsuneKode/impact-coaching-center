@@ -35,7 +35,11 @@ export function AuthModal({
         if (!nextOpen) router.back()
       }}
     >
-      <DialogContent className="max-w-112">
+      {/* The base dialog is a small confirm box; signing in and the three
+          questions need room and body-size text. */}
+      <DialogContent
+        className={`gap-5 p-6 text-sm sm:p-7 ${verified ? "sm:max-w-xl" : "sm:max-w-md"}`}
+      >
         <DialogHeader>
           <DialogTitle className="type-display">
             {verified ? "You're in." : heading}
