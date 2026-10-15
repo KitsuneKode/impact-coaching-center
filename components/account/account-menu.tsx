@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
@@ -53,10 +54,10 @@ function Menu({ className }: { className?: string }) {
    */
   if (viewer === undefined && !stalled)
     return (
-      <div
+      // As wide as the Log in link, so nothing shifts when it arrives.
+      <Skeleton
         aria-hidden="true"
-        // As wide as the Log in link, so nothing shifts when it arrives.
-        className={`h-9 w-16 shrink-0 ${className ?? ""}`}
+        className={`h-9 w-16 shrink-0 rounded-full ${className ?? ""}`}
       />
     )
 

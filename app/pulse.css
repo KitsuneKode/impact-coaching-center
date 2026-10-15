@@ -1597,7 +1597,8 @@
     color: var(--foreground);
   }
   [data-notes-read][data-wait] {
-    opacity: 0.5;
+    opacity: 0.75;
+    cursor: progress;
   }
   [data-notes-read]:active {
     scale: 0.97;
