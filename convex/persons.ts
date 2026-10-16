@@ -150,6 +150,29 @@ export async function consumeRateLimit(
 }
 
 /** Raised when a caller exceeds a public submission ceiling. */
+/**
+ * Better Auth's per-address limiter (convex/auth.ts), on the same indexed
+ * counters. The key is Better Auth's "address|path".
+ */
+export const consumeAuthRateLimit = internalMutation({
+  args: { key: v.string(), max: v.number(), windowMs: v.number() },
+  returns: v.object({
+    allowed: v.boolean(),
+    retryAfter: v.union(v.number(), v.null()),
+  }),
+  handler: async (ctx, { key, max, windowMs }) => {
+    const bucket = `auth:${key.slice(0, 200)}`
+    if (await consumeRateLimit(ctx, bucket, max, windowMs))
+      return { allowed: true, retryAfter: null }
+    const row = await ctx.db
+      .query("rateLimits")
+      .withIndex("by_key", (q) => q.eq("key", bucket))
+      .first()
+    const left = row ? row.windowStart + windowMs - Date.now() : windowMs
+    return { allowed: false, retryAfter: Math.max(1, Math.ceil(left / 1000)) }
+  },
+})
+
 export const ENQUIRY_RATE_LIMITED = "Enquiry rate limit reached."
 
 const HOUR = 60 * 60 * 1000

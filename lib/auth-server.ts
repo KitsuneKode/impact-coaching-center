@@ -39,10 +39,10 @@ async function withClientAddress(request: Request): Promise<Request> {
   const ip =
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-  if (secret && ip) {
-    headers.set("x-ict-client-ip", ip)
-    headers.set("x-ict-proxy-key", secret)
-  }
+  // The address alone keys Better Auth's coarse per-address limiter; only
+  // the secret makes the OTP ceilings (lib/phone-auth.ts) trust it.
+  if (ip) headers.set("x-ict-client-ip", ip)
+  if (secret && ip) headers.set("x-ict-proxy-key", secret)
   const body =
     request.method === "GET" || request.method === "HEAD"
       ? undefined

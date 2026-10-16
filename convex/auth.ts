@@ -98,19 +98,41 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       expiresIn: 60 * 60 * 24 * 90,
       updateAge: 60 * 60 * 24,
     },
-    // Memory storage resets on every function call here; the component has a
-    // rateLimit table, so counts persist. The per-phone lease in otp.ts stays
-    // the main guard; this caps a single address hammering the endpoints.
-    // Per address, and Indian mobile carriers put many people behind one
-    // (carrier-grade NAT), so the ceiling is loose enough for a crowded
-    // classroom on the same network signing in at once.
+    // Memory storage resets on every function call here, and the component's
+    // own table prunes with an unindexed scan, so counts live in our indexed
+    // rateLimits table, checked and counted in one mutation. The per-phone
+    // lease in otp.ts stays the main guard; this caps a single address
+    // hammering the endpoints. Per address, and Indian mobile carriers put
+    // many people behind one (carrier-grade NAT), so the ceiling is loose
+    // enough for a crowded classroom on the same network signing in at once.
     rateLimit: {
       enabled: true,
-      storage: "database",
       customRules: {
         "/phone-number/send-otp": { window: 60, max: 10 },
         "/phone-number/verify": { window: 60, max: 20 },
       },
+      customStorage: {
+        // Unused while consume exists; Better Auth still asks for them.
+        get: async () => null,
+        set: async () => {},
+        consume: async (key, rule) => {
+          // Rate limiting only runs inside the HTTP actions.
+          if (!("runMutation" in ctx))
+            return { allowed: true, retryAfter: null }
+          return await ctx.runMutation(internal.persons.consumeAuthRateLimit, {
+            key,
+            max: rule.max,
+            windowMs: rule.window * 1000,
+          })
+        },
+      },
+    },
+    // The visitor's address as our Next.js server forwards it
+    // (lib/auth-server.ts), then the forwarded chain. Without one, every
+    // visitor shares a single bucket per path, and one noisy client would
+    // lock everyone out of codes.
+    advanced: {
+      ipAddress: { ipAddressHeaders: ["x-ict-client-ip", "x-forwarded-for"] },
     },
     ...phone,
     plugins: [...phone.plugins, convex({ authConfig })],

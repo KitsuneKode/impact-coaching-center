@@ -291,3 +291,31 @@ describe("domain identity and enquiries", () => {
     ).toHaveLength(0)
   })
 })
+
+describe("consumeAuthRateLimit", () => {
+  const consume = internal.persons.consumeAuthRateLimit
+  const rule = { max: 2, windowMs: 60_000 }
+
+  test("counts per address and path, then refuses with a wait", async () => {
+    const t = convexTest(schema, modules)
+    const key = "203.0.113.7|/phone-number/send-otp"
+    expect(await t.mutation(consume, { key, ...rule })).toEqual({
+      allowed: true,
+      retryAfter: null,
+    })
+    await t.mutation(consume, { key, ...rule })
+    const refused = await t.mutation(consume, { key, ...rule })
+    expect(refused.allowed).toBe(false)
+    expect(refused.retryAfter).toBeGreaterThan(0)
+    expect(refused.retryAfter).toBeLessThanOrEqual(60)
+    // Another address has its own count.
+    expect(
+      (
+        await t.mutation(consume, {
+          key: "198.51.100.4|/phone-number/send-otp",
+          ...rule,
+        })
+      ).allowed
+    ).toBe(true)
+  })
+})
