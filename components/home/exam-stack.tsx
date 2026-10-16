@@ -1,8 +1,8 @@
 import { IconArrowRight } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
+import type { CSSProperties } from "react"
 
-import { ExamCarousel } from "@/components/home/exam-carousel"
 import { Reveal } from "@/components/motion/reveal"
 import { useContent } from "@/i18n/content"
 import { Link } from "@/i18n/navigation"
@@ -10,9 +10,8 @@ import { schedules, tracks } from "@/lib/brand"
 import { inr, lineup, type Course } from "@/lib/courses"
 
 /**
- * The three exams, each on its own grainy colour field, in a row that snaps
- * one panel at a time with a tab per exam. Each panel is the exam's lead
- * course from ClassPlus.
+ * The three exams, each on its own grainy colour field, pinning one after
+ * another as you scroll. Each panel is the exam's lead course from ClassPlus.
  */
 export function ExamStack({ courses }: { courses: readonly Course[] }) {
   const t = useTranslations("Pulse")
@@ -48,22 +47,26 @@ export function ExamStack({ courses }: { courses: readonly Course[] }) {
             />
           </Link>
         </Reveal>
-      </div>
-      <div className="mbs-10">
-        <ExamCarousel
-          panels={panels.map(({ track, course }) => {
+        <div
+          data-stack
+          className="mbs-12"
+          style={{ "--n": panels.length } as CSSProperties}
+        >
+          {panels.map(({ track, course }, i) => {
             const names = content.track(track.slug)
             const legacy = schedules[course.id]
             const when = course.timing ?? legacy?.when
             const days = course.timing ? undefined : legacy?.days
-            return {
-              slug: track.slug,
-              label: names.exam,
-              node: (
+            return (
+              <div
+                key={track.slug}
+                data-stack-item
+                style={{ "--i": i } as CSSProperties}
+              >
                 <Link
                   href={`/courses/${course.slug}`}
                   data-panel={track.slug}
-                  className="grid items-center gap-8 p-7 sm:p-10 md:grid-cols-12 md:gap-10 md:[min-block-size:440px]"
+                  className="grid items-center gap-8 p-7 sm:p-10 md:grid-cols-12 md:gap-10 md:[min-block-size:480px]"
                 >
                   <div className="md:col-span-7">
                     <div className="flex flex-wrap gap-2">
@@ -108,10 +111,10 @@ export function ExamStack({ courses }: { courses: readonly Course[] }) {
                     </div>
                   ) : null}
                 </Link>
-              ),
-            }
+              </div>
+            )
           })}
-        />
+        </div>
       </div>
     </section>
   )

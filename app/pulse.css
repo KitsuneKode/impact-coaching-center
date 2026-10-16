@@ -295,83 +295,34 @@
 @layer components {
   /* ---------------------------------------------------------- exam stack */
 
-  /* The exams in a row that snaps one panel at a time (exam-carousel.tsx).
-     Wide screens: a panel the content's width, aligned with the page.
-     Phones: the next panel peeks in from the side, so the row reads as
-     swipeable. Panels leaving the centre dim a little (view timeline). */
-  [data-exam-track] {
-    --edge: max(
-      clamp(1.25rem, 0.4rem + 2.6vw, 2rem),
-      (100% - 77.5rem) / 2 + clamp(1.25rem, 0.4rem + 2.6vw, 2rem)
+  /* Each panel pins a little lower than the one before; the stack's own scroll
+     shrinks the covered ones. Firefox has no scroll timelines and simply
+     stacks them without the shrink. */
+  [data-stack-item] {
+    position: sticky;
+    inset-block-start: calc(
+      var(--header-height) + var(--strip-height) + 20px + var(--i) * 18px
     );
-    display: flex;
-    gap: 1rem;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    padding-inline: var(--edge);
-    scroll-padding-inline: var(--edge);
-    padding-block: 0.5rem 1.5rem;
+    transform-origin: 50% 0%;
   }
-  [data-exam-track]::-webkit-scrollbar {
-    display: none;
+  [data-stack-item]:not(:last-child) {
+    margin-block-end: 30vh;
   }
-  [data-exam-slide] {
-    flex: none;
-    inline-size: min(100%, 77.5rem - 2 * clamp(1.25rem, 0.4rem + 2.6vw, 2rem));
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-  @media (width < 48rem) {
-    [data-exam-slide] {
-      inline-size: 88%;
+  @keyframes stack-shrink {
+    to {
+      scale: calc(1 - (var(--n) - 1 - var(--i)) * 0.04);
     }
-  }
-  [data-exam-tab] {
-    color: var(--muted-foreground);
-  }
-  [data-exam-tab][aria-selected="true"] {
-    background-color: var(--card);
-    color: var(--foreground);
-    box-shadow: 0 1px 3px
-      color-mix(in oklch, var(--foreground) 14%, transparent);
-  }
-  [data-exam-tab]:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
   }
   @supports (animation-timeline: view()) {
+    [data-stack] {
+      view-timeline: --stack block;
+    }
     @media (prefers-reduced-motion: no-preference) {
-      [data-exam-slide] {
-        animation: slide-focus linear both;
-        animation-timeline: view(inline);
+      [data-stack-item] {
+        animation: stack-shrink linear both;
+        animation-timeline: --stack;
+        animation-range: contain calc(var(--i) / var(--n) * 100%) contain 100%;
       }
-    }
-  }
-  @keyframes slide-focus {
-    0%,
-    100% {
-      opacity: 0.45;
-      scale: 0.97;
-    }
-    35%,
-    65% {
-      opacity: 1;
-      scale: 1;
-    }
-  }
-  @media (prefers-reduced-motion: no-preference) {
-    [data-exam-tab] {
-      transition:
-        background-color 0.2s var(--ease-out-strong),
-        color 0.2s var(--ease-out-strong),
-        box-shadow 0.2s var(--ease-out-strong);
-    }
-  }
-  @media (hover: hover) and (pointer: fine) {
-    [data-exam-tab]:not([aria-selected="true"]):hover {
-      color: var(--foreground);
     }
   }
 
