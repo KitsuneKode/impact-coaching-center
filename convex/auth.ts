@@ -110,6 +110,9 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       customRules: {
         "/phone-number/send-otp": { window: 60, max: 10 },
         "/phone-number/verify": { window: 60, max: 20 },
+        // Convex's own backend fetching the token keys, server to server:
+        // no visitor behind it, and it must never be throttled.
+        "/convex/jwks": false,
       },
       customStorage: {
         // Unused while consume exists; Better Auth still asks for them.
@@ -119,12 +122,26 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
           // Rate limiting only runs inside the HTTP actions.
           if (!("runMutation" in ctx))
             return { allowed: true, retryAfter: null }
+          // Better Auth's own warning also fires for the server-to-server
+          // jwks fetch, so it is muted below and said here, where it means
+          // a visitor's request arrived without an address.
+          if (key.startsWith("no-trusted-ip|"))
+            console.warn(`[auth] no client address for ${key.slice(14)}`)
           return await ctx.runMutation(internal.persons.consumeAuthRateLimit, {
             key,
             max: rule.max,
             windowMs: rule.window * 1000,
           })
         },
+      },
+    },
+    logger: {
+      log: (level, message, ...args) => {
+        if (message.startsWith("Rate limiting could not determine")) return
+        console[level === "debug" ? "log" : level](
+          `[Better Auth] ${message}`,
+          ...args
+        )
       },
     },
     // The visitor's address as our Next.js server forwards it
