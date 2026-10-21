@@ -2,11 +2,16 @@ import { type Infer, v } from "convex/values"
 
 import {
   CLASSPLUS_HEADERS,
+  type ClassplusCourse,
   classplusFeedUrl,
+  classplusListUrl,
   courseFeatures,
   courseName,
-  parseClassplusFeed,
+  LIST_PAGE,
+  parseClassplusFrontPage,
+  parseClassplusList,
 } from "../lib/classplus"
+import { courseTrack } from "../lib/courses"
 import { enquiryTracks } from "../lib/leads"
 import { recordAudit } from "./audit"
 import {
@@ -28,6 +33,8 @@ import {
 } from "./_generated/server"
 import { PICTURE, pictureOf } from "./images"
 import { consumeRateLimit } from "./persons"
+import { COURSE_CHANGE } from "./schema"
+import { revalidateSite } from "./site"
 
 /**
  * Courses are ClassPlus's: name, price, description and cover are mirrored
@@ -50,24 +57,55 @@ const SOURCE = v.object({
   tags: v.array(v.string()),
   imageUrl: v.optional(v.string()),
   createdAt: v.optional(v.number()),
+  listed: v.optional(v.boolean()),
+  classplusFeatured: v.optional(v.boolean()),
 })
 
 /** Covers larger than this are not a course card. */
 const COVER_MAX_BYTES = 4 * 1024 * 1024
 
-/** Fetch the feed, copy any new covers, then apply it in one transaction. */
+/** Pages of the full list we will read; ICT has 27 courses in Oct 2026. */
+const LIST_PAGES_MAX = 10
+
+async function getJson(url: string) {
+  const response = await fetch(url, { headers: CLASSPLUS_HEADERS })
+  if (!response.ok) throw new Error(`ClassPlus returned ${response.status}.`)
+  return (await response.json()) as unknown
+}
+
+/**
+ * Every course ICT has on ClassPlus, read the way its own storefront reads
+ * it: the full list a page at a time, then the front page to learn which of
+ * them ICT is selling now (and which it features).
+ */
+async function readClassplus(): Promise<ClassplusCourse[]> {
+  const byId = new Map<number, ClassplusCourse>()
+  let total = Infinity
+  for (let page = 0; page < LIST_PAGES_MAX && byId.size < total; page++) {
+    const list = parseClassplusList(
+      await getJson(classplusListUrl(page * LIST_PAGE))
+    )
+    total = list.total
+    for (const course of list.courses) byId.set(course.classplusId, course)
+    if (list.courses.length < LIST_PAGE) break
+  }
+  if (byId.size === 0) throw new Error("ClassPlus returned no courses.")
+  const front = parseClassplusFrontPage(await getJson(classplusFeedUrl()))
+  return [...byId.values()].map((course) => ({
+    ...course,
+    listed: front.listed.has(course.classplusId),
+    classplusFeatured: front.featured.has(course.classplusId),
+  }))
+}
+
+/** Fetch ClassPlus, copy any new covers, then apply it in one transaction. */
 export const sync = internalAction({
   args: { trigger: TRIGGER },
   returns: v.null(),
   handler: async (ctx, args) => {
     let rows: Infer<typeof SOURCE>[]
     try {
-      const response = await fetch(classplusFeedUrl(), {
-        headers: CLASSPLUS_HEADERS,
-      })
-      if (!response.ok)
-        throw new Error(`ClassPlus returned ${response.status}.`)
-      rows = parseClassplusFeed(await response.json())
+      rows = await readClassplus()
     } catch (error) {
       await ctx.runMutation(internal.courses.recordFailure, {
         trigger: args.trigger,
@@ -120,8 +158,30 @@ export const coverSources = internalQuery({
   },
 })
 
-const sameSource = (a: Doc<"courses">["source"], b: Doc<"courses">["source"]) =>
-  JSON.stringify(a) === JSON.stringify(b)
+/** What changed between two copies of a course, in words ICT reads. */
+function changedFields(
+  a: Doc<"courses">["source"],
+  b: Doc<"courses">["source"]
+) {
+  const fields: string[] = []
+  if (a.finalPricePaise !== b.finalPricePaise || a.pricePaise !== b.pricePaise)
+    fields.push("price")
+  if (a.name !== b.name) fields.push("name")
+  if (a.imageUrl !== b.imageUrl) fields.push("poster")
+  if (a.description !== b.description) fields.push("description")
+  if (a.listed !== b.listed) fields.push(b.listed ? "listed" : "unlisted")
+  if (a.classplusFeatured !== b.classplusFeatured) fields.push("featured")
+  if (a.category !== b.category) fields.push("category")
+  return fields
+}
+
+/** Enrolment counts move daily; they update quietly without a rebuild. */
+const quietOnly = (a: Doc<"courses">["source"], b: Doc<"courses">["source"]) =>
+  JSON.stringify({ ...a, enrolled: 0 }) ===
+  JSON.stringify({ ...b, enrolled: 0 })
+
+/** A diff longer than this is cut; the counts stay exact. */
+const CHANGES_MAX = 100
 
 export const applySync = internalMutation({
   args: {
@@ -136,6 +196,7 @@ export const applySync = internalMutation({
     const now = Date.now()
     const covers = new Map(args.covers.map((c) => [c.classplusId, c.cover]))
     const seen = new Set<number>()
+    const changes: Infer<typeof COURSE_CHANGE>[] = []
     let added = 0
     let changed = 0
 
@@ -153,16 +214,19 @@ export const applySync = internalMutation({
           slug: (await slugFree(ctx, slug)) ? slug : `${slug}-${classplusId}`,
           source,
           cover,
-          local: { hidden: false },
+          // Older batches ICT no longer shows on its storefront arrive kept
+          // but off the site; the admin can show any of them.
+          local: { hidden: source.listed === false },
           syncedAt: now,
           revision: 0,
         })
         added += 1
+        changes.push({ classplusId, name: source.name, kind: "added" })
         continue
       }
       if (cover && existing.cover) await ctx.storage.delete(existing.cover)
-      const differs =
-        !sameSource(existing.source, source) || cover !== undefined
+      const fields = changedFields(existing.source, source)
+      const differs = !quietOnly(existing.source, source) || cover !== undefined
       // The slug never changes once a page has been published under it.
       await ctx.db.patch(existing._id, {
         source,
@@ -171,7 +235,18 @@ export const applySync = internalMutation({
         missingSince: undefined,
         ...(differs ? { revision: existing.revision + 1 } : {}),
       })
-      if (differs || existing.missingSince) changed += 1
+      if (existing.missingSince) {
+        changed += 1
+        changes.push({ classplusId, name: source.name, kind: "back" })
+      } else if (differs) {
+        changed += 1
+        changes.push({
+          classplusId,
+          name: source.name,
+          kind: "changed",
+          fields: fields.length ? fields : ["poster"],
+        })
+      }
     }
 
     let missing = 0
@@ -179,6 +254,11 @@ export const applySync = internalMutation({
       if (seen.has(course.classplusId) || course.missingSince) continue
       await ctx.db.patch(course._id, { missingSince: now })
       missing += 1
+      changes.push({
+        classplusId: course.classplusId,
+        name: course.source.name,
+        kind: "gone",
+      })
     }
 
     await ctx.db.insert("courseSyncs", {
@@ -188,13 +268,17 @@ export const applySync = internalMutation({
       added,
       changed,
       missing,
+      changes: changes.slice(0, CHANGES_MAX),
     })
-    if (added || changed || missing)
+    if (changes.length) {
       await recordAudit(ctx, null, {
         action: "course_sync",
         entity: "course",
         summary: `ClassPlus sync: ${added} new, ${changed} changed, ${missing} gone.`,
       })
+      // Only now do the course pages need rebuilding.
+      await revalidateSite(ctx, ["courses"])
+    }
     return null
   },
 })
@@ -258,6 +342,7 @@ const PUBLIC_COURSE = v.object({
   batchStarts: v.optional(v.string()),
   timing: v.optional(v.string()),
   offlineFeePaise: v.optional(v.number()),
+  featured: v.boolean(),
 })
 
 async function toPublic(ctx: QueryCtx, course: Doc<"courses">) {
@@ -281,6 +366,7 @@ async function toPublic(ctx: QueryCtx, course: Doc<"courses">) {
     batchStarts: course.local.batchStarts,
     timing: course.local.timing,
     offlineFeePaise: course.local.offlineFeePaise,
+    featured: course.local.featured === true,
   }
 }
 
@@ -330,6 +416,7 @@ const LOCAL = v.object({
   timing: v.optional(v.string()),
   offlineFeePaise: v.optional(v.number()),
   offlineStudents: v.optional(v.number()),
+  featured: v.optional(v.boolean()),
 })
 
 export const adminCourses = query({
@@ -347,6 +434,11 @@ export const adminCourses = query({
           local: LOCAL,
           missingSince: v.optional(v.number()),
           revision: v.number(),
+          listed: v.optional(v.boolean()),
+          classplusFeatured: v.optional(v.boolean()),
+          createdAt: v.optional(v.number()),
+          /** The exam the site files it under when ICT has not chosen one. */
+          autoTrack: v.optional(v.string()),
         })
       ),
       lastSync: v.union(
@@ -354,6 +446,8 @@ export const adminCourses = query({
           at: v.number(),
           status: v.union(v.literal("ok"), v.literal("failed")),
           error: v.optional(v.string()),
+          seen: v.number(),
+          changes: v.array(COURSE_CHANGE),
         }),
         v.null()
       ),
@@ -376,10 +470,23 @@ export const adminCourses = query({
           local: c.local,
           missingSince: c.missingSince,
           revision: c.revision,
+          listed: c.source.listed,
+          classplusFeatured: c.source.classplusFeatured,
+          createdAt: c.source.createdAt,
+          autoTrack: courseTrack({
+            name: c.source.name,
+            category: c.source.category,
+          }),
         }))
       ),
       lastSync: last
-        ? { at: last._creationTime, status: last.status, error: last.error }
+        ? {
+            at: last._creationTime,
+            status: last.status,
+            error: last.error,
+            seen: last.seen,
+            changes: last.changes ?? [],
+          }
         : null,
     }
   },
@@ -433,8 +540,32 @@ export const saveLocal = mutation({
     )
       return invalidInput("offlineStudents")
 
+    const exam = courseTrack({
+      track: local.track,
+      name: course.source.name,
+      category: course.source.category,
+    })
+    if (local.featured && !exam) return invalidInput("featured")
     const revision = course.revision + 1
     await ctx.db.patch(args.id, { local, revision })
+    // One lead course per exam: featuring this one stands the others down.
+    if (local.featured)
+      for await (const other of ctx.db.query("courses")) {
+        if (
+          other._id === course._id ||
+          !other.local.featured ||
+          courseTrack({
+            track: other.local.track,
+            name: other.source.name,
+            category: other.source.category,
+          }) !== exam
+        )
+          continue
+        await ctx.db.patch(other._id, {
+          local: { ...other.local, featured: undefined },
+          revision: other.revision + 1,
+        })
+      }
     await recordAudit(ctx, editor.value, {
       action: "save",
       entity: "course",

@@ -167,6 +167,20 @@ export const CAMPAIGN_STATUS = v.union(
   v.literal("paused")
 )
 
+/** One line of a ClassPlus sync's diff. */
+export const COURSE_CHANGE = v.object({
+  classplusId: v.number(),
+  name: v.string(),
+  kind: v.union(
+    v.literal("added"),
+    v.literal("changed"),
+    v.literal("gone"),
+    v.literal("back")
+  ),
+  /** For "changed": which of price, name, poster, description, listing. */
+  fields: v.optional(v.array(v.string())),
+})
+
 export default defineSchema({
   /** One row per mobile number: who they are and where they are as a lead. */
   persons: defineTable({
@@ -282,6 +296,10 @@ export default defineSchema({
       tags: v.array(v.string()),
       imageUrl: v.optional(v.string()),
       createdAt: v.optional(v.number()),
+      /** On ICT's storefront front page, so on sale now. */
+      listed: v.optional(v.boolean()),
+      /** In the storefront's "Featured" row. */
+      classplusFeatured: v.optional(v.boolean()),
     }),
     /** Our copy of the ClassPlus cover, refreshed when `imageUrl` changes. */
     cover: v.optional(v.id("_storage")),
@@ -295,6 +313,8 @@ export default defineSchema({
       offlineFeePaise: v.optional(v.number()),
       /** Students at the centre ClassPlus does not count; added on the site. */
       offlineStudents: v.optional(v.number()),
+      /** The course the home page leads its exam with. */
+      featured: v.optional(v.boolean()),
     }),
     syncedAt: v.number(),
     /** Set when a sync no longer sees it; hidden from the site from then on. */
@@ -312,6 +332,8 @@ export default defineSchema({
     changed: v.number(),
     missing: v.number(),
     error: v.optional(v.string()),
+    /** What this run changed on the site, course by course. */
+    changes: v.optional(v.array(COURSE_CHANGE)),
   }),
 
   /** A title ICT prints, in up to two language editions. Sold only in bundles. */

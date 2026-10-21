@@ -44,7 +44,7 @@ import {
 
 /* Courses come from ClassPlus every few hours; a new one gets its page on
    first visit and every page refreshes within the quarter hour. */
-export const revalidate = 900
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   return (await liveCourses())

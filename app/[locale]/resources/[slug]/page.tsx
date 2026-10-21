@@ -20,7 +20,7 @@ import {
 } from "@/lib/site"
 
 /* Cached with the rest of the catalogue (lib/catalog-server.ts). */
-export const revalidate = 300
+export const revalidate = 3600
 
 export async function generateStaticParams() {
   return (await publishedResources()).map((resource) => ({

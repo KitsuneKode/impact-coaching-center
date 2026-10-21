@@ -17,9 +17,9 @@ import {
   siteUrl,
 } from "@/lib/site"
 
-/* Catalogue data is cached for five minutes (lib/catalog-server.ts); the
+/* Catalogue data refreshes when it changes (lib/catalog-server.ts); the
    page is static and rebuilt in the background on the same beat. */
-export const revalidate = 300
+export const revalidate = 3600
 
 /* Known slugs are built ahead; a new one renders on first visit and is kept. */
 export async function generateStaticParams() {

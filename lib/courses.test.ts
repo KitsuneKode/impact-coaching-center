@@ -57,6 +57,11 @@ describe("lineup", () => {
     expect(free?.short).toBe("Kouxal")
   })
 
+  test("ICT's featured pick leads its exam, even a test series", () => {
+    const picked = apsc.map((c) => (c.id === 3 ? { ...c, featured: true } : c))
+    expect(lineup(picked, "APSC").flagship?.short).toBe("ARJUNA")
+  })
+
   test("the newest batch skips test series and free courses", () => {
     expect(newestBatch(apsc)?.short).toBe("Lakhya 2027")
   })

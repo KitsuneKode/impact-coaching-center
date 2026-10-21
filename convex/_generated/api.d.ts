@@ -37,6 +37,7 @@ import type * as people from "../people.js";
 import type * as persons from "../persons.js";
 import type * as profile from "../profile.js";
 import type * as settings from "../settings.js";
+import type * as site from "../site.js";
 
 import type {
   ApiFromModules,
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   persons: typeof persons;
   profile: typeof profile;
   settings: typeof settings;
+  site: typeof site;
 }>;
 
 /**

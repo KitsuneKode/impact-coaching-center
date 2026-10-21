@@ -16,17 +16,18 @@ export type PublicCourse = FunctionReturnType<typeof api.courses.list>[number]
 const configured = () => Boolean(clientEnv.NEXT_PUBLIC_CONVEX_URL)
 
 /*
- * Catalogue reads are cached across requests for five minutes (and tagged,
- * so a publish can refresh them at once), which lets the home, books, set,
- * notes and blog pages be static and rebuilt in the background instead of
- * rendering on every visit. `cache` on top so a page and its metadata share
- * one read.
+ * Catalogue reads are cached across requests and tagged. A change refreshes
+ * its tag the moment it lands: admin saves through app/admin/refresh-site.ts,
+ * the ClassPlus sync and promotion start/end times through
+ * app/api/revalidate. So pages stay static and rebuild only when something
+ * changed; the hour is a safety net, not the schedule. `cache` on top so a
+ * page and its metadata share one read.
  */
-const CATALOG_SECONDS = 300
+const CATALOG_SECONDS = 3600
 
 /*
  * In development every read goes straight to Convex, so a seed or an edit
- * in the dashboard shows on the next reload rather than five minutes on.
+ * in the dashboard shows on the next reload.
  */
 const cachedRead: typeof unstable_cache =
   process.env.NODE_ENV === "development" ? (read) => read : unstable_cache
@@ -67,11 +68,11 @@ export const publishedBundle = cache(
     configured() ? cachedBundle(slug) : null
 )
 
-/* Courses follow ClassPlus every six hours; pages need not be fresher. */
+/* Courses follow ClassPlus every six hours; the sync refreshes this tag. */
 const cachedCourses = cachedRead(
   (): Promise<PublicCourse[]> => fetchQuery(api.courses.list),
   ["courses"],
-  { revalidate: 900, tags: ["courses"] }
+  { revalidate: CATALOG_SECONDS, tags: ["courses"] }
 )
 
 /** Courses from the ClassPlus mirror; empty when Convex is unreachable. */

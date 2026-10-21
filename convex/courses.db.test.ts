@@ -100,4 +100,41 @@ describe("applySync", () => {
     expect(runs.map((r) => r.status)).toEqual(["ok", "failed"])
     expect(await coursesIn(t)).toHaveLength(1)
   })
+
+  test("a course ICT no longer shows on its storefront arrives off the site", async () => {
+    const t = convexTest(schema, modules)
+    await apply(t, [
+      row({ listed: true }),
+      row({
+        classplusId: 3,
+        slug: "victor-2",
+        name: "Victor 2.0",
+        listed: false,
+      }),
+    ])
+    const old = (await coursesIn(t)).find((c) => c.classplusId === 3)
+    expect(old!.local.hidden).toBe(true)
+    const live = (await coursesIn(t)).find((c) => c.classplusId === 886514)
+    expect(live!.local.hidden).toBe(false)
+  })
+
+  test("each run keeps its diff; enrolment alone is quiet", async () => {
+    const t = convexTest(schema, modules)
+    await apply(t, [row()])
+    await apply(t, [row({ enrolled: 11 })])
+    await apply(t, [row({ enrolled: 11, finalPricePaise: 2_000_000 })])
+    const runs = await t.run((ctx) => ctx.db.query("courseSyncs").collect())
+    expect(runs.map((r) => r.changes)).toEqual([
+      [{ classplusId: 886514, name: row().name, kind: "added" }],
+      [],
+      [
+        {
+          classplusId: 886514,
+          name: row().name,
+          kind: "changed",
+          fields: ["price"],
+        },
+      ],
+    ])
+  })
 })

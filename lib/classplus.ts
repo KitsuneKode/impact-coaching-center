@@ -3,21 +3,39 @@ import { parseFeatures, slugify, splitCourseName } from "./catalogue-import"
 /** ICT's organisation on ClassPlus. */
 export const CLASSPLUS_ORG_ID = 445114
 
+const orgHash = (orgId: number) =>
+  btoa(JSON.stringify({ tutorId: null, orgId, categoryId: null }))
+
 /**
- * The public storefront feed ICT's own ClassPlus site reads. Not a documented
- * API (docs/research/2026-09-20-classplus-integration.md): a failed or odd
+ * The calls ICT's own ClassPlus storefront makes (www.impactcareertutorials.in
+ * /courses, recorded 22 Oct 2026). Not a documented API
+ * (docs/research/2026-09-20-classplus-integration.md): a failed or odd
  * response keeps the last good data rather than emptying the site.
+ *
+ * Every course ICT has published, 20 a page; `totalCount` says how many.
  */
-export function classplusFeedUrl(orgId = CLASSPLUS_ORG_ID) {
-  const hash = btoa(JSON.stringify({ tutorId: null, orgId, categoryId: null }))
+export function classplusListUrl(offset = 0, orgId = CLASSPLUS_ORG_ID) {
   return (
-    `https://api.classplusapp.com/v2/course/preview/diy/similar/${hash}` +
-    `?subCatList=[]&mainCategoryList=[]&limit=60&offset=0`
+    `https://api.classplusapp.com/v2/course/preview/similar/${orgHash(orgId)}` +
+    `?subCatList=&mainCategory=0&limit=${LIST_PAGE}&offset=${offset}`
+  )
+}
+export const LIST_PAGE = 20
+
+/** The storefront's front page: its popular, recent, featured and newest rows. */
+export function classplusFeedUrl(orgId = CLASSPLUS_ORG_ID) {
+  return (
+    `https://api.classplusapp.com/v2/course/preview/diy/similar/${orgHash(orgId)}` +
+    `?subCatList=[]&mainCategory=0`
   )
 }
 
+/** The headers the storefront sends with both calls. */
 export const CLASSPLUS_HEADERS = {
-  accept: "application/json",
+  accept: "application/json, text/plain, */*",
+  "accept-language": "EN",
+  "api-version": "22",
+  region: "IN",
   origin: "https://www.impactcareertutorials.in",
   referer: "https://www.impactcareertutorials.in/",
 }
@@ -36,6 +54,10 @@ export type ClassplusCourse = {
   tags: string[]
   imageUrl?: string
   createdAt?: number
+  /** On the storefront's front page, so ICT is selling it now. */
+  listed?: boolean
+  /** In the storefront's "Featured" row. */
+  classplusFeatured?: boolean
 }
 
 const num = (value: unknown) =>
@@ -76,24 +98,69 @@ function toCourse(raw: Record<string, unknown>): ClassplusCourse | null {
   }
 }
 
-/**
- * Every course in a feed response, once each. Throws on a shape we do not
- * recognise, so a changed feed is a failed sync, not an empty catalogue.
- */
-export function parseClassplusFeed(payload: unknown): ClassplusCourse[] {
-  const body = payload as { status?: unknown; data?: unknown }
-  if (body?.status !== "success" || !body.data || typeof body.data !== "object")
+function body(payload: unknown) {
+  const response = payload as { status?: unknown; data?: unknown }
+  if (
+    response?.status !== "success" ||
+    !response.data ||
+    typeof response.data !== "object"
+  )
     throw new Error("ClassPlus returned an unexpected response.")
-  const byId = new Map<number, ClassplusCourse>()
-  for (const section of Object.values(body.data as Record<string, unknown>)) {
-    const courses = (section as { coursesData?: unknown })?.coursesData
-    if (!Array.isArray(courses)) continue
-    for (const raw of courses) {
-      if (!raw || typeof raw !== "object") continue
-      const course = toCourse(raw as Record<string, unknown>)
-      if (course) byId.set(course.classplusId, course)
+  return response.data as Record<string, unknown>
+}
+
+function coursesIn(raw: unknown) {
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return []
+    const course = toCourse(item as Record<string, unknown>)
+    return course ? [course] : []
+  })
+}
+
+/** One page of the full list, and how many courses there are in all. */
+export function parseClassplusList(payload: unknown) {
+  const data = body(payload)
+  const total = Number(data.totalCount)
+  if (!Number.isFinite(total) || !Array.isArray(data.coursesData))
+    throw new Error("ClassPlus returned an unexpected list.")
+  return { courses: coursesIn(data.coursesData), total }
+}
+
+/**
+ * The storefront front page: the ids it shows anywhere, and its "Featured"
+ * row. Throws on a shape we do not recognise, so a changed feed is a failed
+ * sync, not a catalogue with nothing listed.
+ */
+export function parseClassplusFrontPage(payload: unknown) {
+  const data = body(payload)
+  const listed = new Set<number>()
+  const featured = new Set<number>()
+  for (const [key, section] of Object.entries(data)) {
+    const courses = coursesIn(
+      (section as { coursesData?: unknown } | null)?.coursesData
+    )
+    for (const course of courses) {
+      listed.add(course.classplusId)
+      if (key === "featured") featured.add(course.classplusId)
     }
   }
+  if (listed.size === 0) throw new Error("ClassPlus returned no courses.")
+  return { listed, featured }
+}
+
+/**
+ * Every course in a front-page response, once each. Throws on a shape we do
+ * not recognise, so a changed feed is a failed sync, not an empty catalogue.
+ */
+export function parseClassplusFeed(payload: unknown): ClassplusCourse[] {
+  const data = body(payload)
+  const byId = new Map<number, ClassplusCourse>()
+  for (const section of Object.values(data))
+    for (const course of coursesIn(
+      (section as { coursesData?: unknown } | null)?.coursesData
+    ))
+      byId.set(course.classplusId, course)
   if (byId.size === 0) throw new Error("ClassPlus returned no courses.")
   return [...byId.values()]
 }

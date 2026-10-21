@@ -5,7 +5,7 @@ import type { Language } from "@/lib/catalog"
 import { buildSearchIndex } from "@/lib/search-index"
 
 /* Rebuilt at most every quarter hour, like the course pages it lists. */
-export const revalidate = 900
+export const revalidate = 3600
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }))

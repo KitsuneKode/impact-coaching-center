@@ -1,18 +1,16 @@
-import { IconArrowRight, IconPlayerPlayFilled } from "@tabler/icons-react"
+import { IconArrowRight } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
-import Image from "next/image"
-import type { CSSProperties } from "react"
 
-import { VideoDialog } from "@/components/marketing/video-dialog"
+import { StudentFanDeck } from "@/components/home/student-fan-deck"
 import { Link } from "@/i18n/navigation"
 import { Reveal } from "@/components/motion/reveal"
-import { studentReviews, thumb } from "@/lib/stories"
+import { studentReviews } from "@/lib/stories"
 
-/** Five students fanned out like a hand of cards; each plays its Short in place. */
+/** Five students fanned out like a hand of cards; each plays its Short in place
+ * (student-fan-deck.tsx). */
 export function StudentFan() {
   const t = useTranslations("Pulse")
   const voices = useTranslations("Voices")
-  const list = studentReviews.slice(0, 5)
   return (
     <section
       id="voices"
@@ -26,59 +24,7 @@ export function StudentFan() {
           </h2>
         </Reveal>
       </div>
-      <ul data-fan className="mbs-10">
-        {list.map((review, n) => {
-          const i = n - 2
-          return (
-            <li
-              key={review.id}
-              data-fan-card
-              style={
-                {
-                  "--i": i,
-                  "--a": Math.abs(i),
-                  "--z": 10 - Math.abs(i),
-                } as CSSProperties
-              }
-            >
-              <VideoDialog
-                id={review.id}
-                title={review.name}
-                subtitle={`${review.exam}, ${review.batch}`}
-                vertical
-                className="absolute inset-0"
-              >
-                <Image
-                  src={thumb(review.id)}
-                  alt=""
-                  fill
-                  sizes="(min-width: 768px) 600px, 440px"
-                  className="object-cover"
-                />
-                <span className="absolute inset-0 grid place-items-center">
-                  <span
-                    aria-hidden
-                    className="grid size-12 place-items-center rounded-full bg-white text-foreground shadow-lift"
-                  >
-                    <IconPlayerPlayFilled
-                      aria-hidden
-                      size={18}
-                      className="translate-x-px"
-                    />
-                  </span>
-                </span>
-              </VideoDialog>
-            </li>
-          )
-        })}
-      </ul>
-      <p className="container-page mbs-8 flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted-foreground">
-        {list.map((review) => (
-          <span key={review.id}>
-            {review.name}, {review.exam}
-          </span>
-        ))}
-      </p>
+      <StudentFanDeck reviews={studentReviews.slice(0, 5)} />
       <p className="container-page mbs-6 text-center">
         <Link
           href="/success-stories#voices"

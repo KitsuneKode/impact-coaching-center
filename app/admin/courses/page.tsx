@@ -29,10 +29,17 @@ import { rupeeDraft, rupeesToPaise } from "@/lib/catalog"
 import { enquiryTracks } from "@/lib/leads"
 import { formatPaise } from "@/lib/money"
 
-const TRACK_ITEMS = [
-  { value: "", label: "Not set" },
+const trackItems = (auto?: string) => [
+  { value: "", label: auto ? `${auto} (from ClassPlus)` : "Not set" },
   ...enquiryTracks.map((track) => ({ value: track, label: track })),
 ]
+
+const CHANGE_WORDS = {
+  added: "New:",
+  changed: "Changed:",
+  gone: "Gone from ClassPlus:",
+  back: "Back on ClassPlus:",
+} as const
 
 const when = (at: number) =>
   new Date(at).toLocaleString("en-IN", {
@@ -93,6 +100,7 @@ function Courses() {
   const rows = [...data.rows].sort(
     (a, b) =>
       Number(Boolean(a.missingSince)) - Number(Boolean(b.missingSince)) ||
+      Number(a.listed === false) - Number(b.listed === false) ||
       (a.local.sortOrder ?? Infinity) - (b.local.sortOrder ?? Infinity) ||
       b.finalPricePaise - a.finalPricePaise
   )
@@ -112,10 +120,25 @@ function Courses() {
             <p className="text-muted-foreground">
               {data.lastSync
                 ? data.lastSync.status === "ok"
-                  ? `Last checked ${when(data.lastSync.at)}.`
+                  ? `Last checked ${when(data.lastSync.at)}: ${data.lastSync.seen} courses on ClassPlus${data.lastSync.changes.length ? "." : ", nothing changed."}`
                   : `The last check failed (${when(data.lastSync.at)}): ${data.lastSync.error}. The site keeps showing the previous data.`
                 : "Not checked yet."}
             </p>
+            {data.lastSync?.changes.length ? (
+              <ul className="grid gap-0.5 text-muted-foreground">
+                {data.lastSync.changes.map((change) => (
+                  <li key={`${change.classplusId}-${change.kind}`}>
+                    <span className="font-medium text-foreground">
+                      {CHANGE_WORDS[change.kind]}
+                    </span>{" "}
+                    {change.name}
+                    {change.fields?.length
+                      ? ` (${change.fields.join(", ")})`
+                      : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           <Button
             variant="secondary"
@@ -165,12 +188,14 @@ function CourseRow({ course }: { course: Row }) {
         ? ""
         : `${course.local.offlineFeePaise / 100}`,
     offlineStudents: course.local.offlineStudents?.toString() ?? "",
+    featured: course.local.featured === true,
   }
   const [draft, setDraft] = useState(initial)
   const [revision, setRevision] = useState(course.revision)
   const [busy, setBusy] = useState(false)
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial)
   const prefix = `course-${course.id}`
+  const exam = draft.track || course.autoTrack
 
   async function onSave() {
     const offlineFeePaise = draft.offlineFee
@@ -195,6 +220,7 @@ function CourseRow({ course }: { course: Row }) {
           offlineStudents: draft.offlineStudents
             ? Number(draft.offlineStudents)
             : undefined,
+          featured: draft.featured || undefined,
         },
       })
       if (result.ok) {
@@ -228,6 +254,12 @@ function CourseRow({ course }: { course: Row }) {
         </div>
         <div className="flex items-center gap-3">
           {course.missingSince ? <Badge>No longer on ClassPlus</Badge> : null}
+          {!course.missingSince && course.listed === false ? (
+            <Badge>Not on ICT&rsquo;s storefront</Badge>
+          ) : null}
+          {course.classplusFeatured ? (
+            <Badge variant="neutral">Featured on ClassPlus</Badge>
+          ) : null}
           <Switch
             id={`${prefix}-shown`}
             checked={!draft.hidden}
@@ -246,13 +278,13 @@ function CourseRow({ course }: { course: Row }) {
             onValueChange={(value) =>
               setDraft({ ...draft, track: (value as string) ?? "" })
             }
-            items={TRACK_ITEMS}
+            items={trackItems(course.autoTrack)}
           >
             <SelectTrigger id={`${prefix}-track`} className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TRACK_ITEMS.map((item) => (
+              {trackItems(course.autoTrack).map((item) => (
                 <SelectItem key={item.value} value={item.value}>
                   {item.label}
                 </SelectItem>
@@ -325,7 +357,20 @@ function CourseRow({ course }: { course: Row }) {
           />
         </Field>
       </div>
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Switch
+            id={`${prefix}-featured`}
+            checked={draft.featured}
+            disabled={!exam}
+            onCheckedChange={(on) => setDraft({ ...draft, featured: on })}
+          />
+          <label htmlFor={`${prefix}-featured`} className="text-sm">
+            {exam
+              ? `Lead course for ${exam} on the home page`
+              : "Set an exam to lead it on the home page"}
+          </label>
+        </div>
         <Button size="sm" onClick={onSave} disabled={!dirty || busy}>
           {busy ? <Spinner /> : null}
           {dirty ? "Save" : "Saved"}

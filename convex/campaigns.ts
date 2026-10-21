@@ -21,6 +21,7 @@ import {
 } from "./authz"
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
+import { revalidateSite } from "./site"
 import { PICTURE, pictureOf } from "./images"
 import { CAMPAIGN_KIND, CAMPAIGN_STATUS, CAMPAIGN_WORDS } from "./schema"
 
@@ -223,6 +224,20 @@ async function imageOk(ctx: MutationCtx, id: Id<"_storage"> | undefined) {
 }
 
 /** Create (a draft) or update a campaign. */
+/**
+ * A live promotion's start and end change what the pages show with nobody
+ * editing anything, so the site is told to rebuild at those moments.
+ */
+async function rebuildAtWindow(
+  ctx: MutationCtx,
+  window: { startsAt?: number; endsAt?: number }
+) {
+  const now = Date.now()
+  for (const at of [window.startsAt, window.endsAt])
+    if (at !== undefined && at > now)
+      await revalidateSite(ctx, ["campaigns"], at)
+}
+
 export const saveCampaign = mutation({
   args: {
     id: v.optional(v.id("campaigns")),
@@ -291,6 +306,7 @@ export async function applySaveCampaign(
     entityId: args.id,
     summary: `Edited promotion “${checked.value.name}”.`,
   })
+  if (current.status === "live") await rebuildAtWindow(ctx, checked.value)
   return { ok: true as const, id: args.id, revision }
 }
 
@@ -340,6 +356,7 @@ export async function applySetCampaignStatus(
     from: current.status,
     to: args.status,
   })
+  if (args.status === "live") await rebuildAtWindow(ctx, current)
   return { ok: true as const, revision }
 }
 

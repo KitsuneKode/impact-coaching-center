@@ -13,6 +13,8 @@ export type Course = CatalogueCourse & {
   timing?: string
   offlineFee?: number
   tags: string[]
+  /** ICT's pick to lead its exam on the home page. */
+  featured?: boolean
 }
 
 /** ClassPlus categories ICT uses, read as our exam tracks. */
@@ -51,6 +53,20 @@ export type MirrorCourse = {
   batchStarts?: string
   timing?: string
   offlineFeePaise?: number
+  featured?: boolean
+}
+
+/** The exam a course belongs to: ICT's choice, else its name, else its category. */
+export function courseTrack(course: {
+  track?: string
+  name: string
+  category?: string
+}) {
+  return (
+    course.track ??
+    trackFromName(course.name) ??
+    (course.category ? CATEGORY_TRACK[course.category] : undefined)
+  )
 }
 
 export function fromMirror(row: MirrorCourse): Course {
@@ -66,10 +82,7 @@ export function fromMirror(row: MirrorCourse): Course {
     learners: row.enrolled,
     features: row.features,
     cover: row.cover?.url ?? null,
-    track:
-      row.track ??
-      trackFromName(row.name) ??
-      (row.category ? CATEGORY_TRACK[row.category] : undefined),
+    track: courseTrack(row),
     createdAt: row.createdAt,
     batchStarts: row.batchStarts,
     timing: row.timing,
@@ -78,6 +91,7 @@ export function fromMirror(row: MirrorCourse): Course {
         ? undefined
         : Math.round(row.offlineFeePaise / 100),
     tags: row.tags,
+    featured: row.featured,
   }
 }
 
@@ -99,9 +113,12 @@ const TEST_SERIES = /\bmock|test series\b/i
 export function lineup(courses: readonly Course[], exam: string) {
   const mine = courses.filter((course) => course.track === exam)
   const paid = mine.filter((course) => !course.free)
-  // A mock-test series sells beside a batch; it is never the exam's lead.
+  // ICT's pick leads; otherwise the first batch, since a mock-test series
+  // sells beside a batch and is never the exam's lead.
   const flagship =
-    paid.find((course) => !TEST_SERIES.test(course.name)) ?? paid[0]
+    paid.find((course) => course.featured) ??
+    paid.find((course) => !TEST_SERIES.test(course.name)) ??
+    paid[0]
   return {
     flagship,
     also: paid.filter((course) => course !== flagship),
