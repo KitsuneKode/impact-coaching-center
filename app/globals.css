@@ -77,6 +77,8 @@
   --radius-card: 1.25rem;
 
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  /* For something moving across the screen, not entering or leaving. */
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
   /* A critically damped spring, response 0.24 s (hooks/use-draw-in.ts). */
   --ease-spring: linear(
     0,
@@ -633,11 +635,13 @@
   [data-site-nav] [data-slot="navigation-menu-list"] {
     position: relative;
   }
+  /* Spans the whole row and is clipped to one section: moving it changes
+     only the clip, which the compositor animates (no layout per frame). */
   [data-nav-pill] {
     position: absolute;
     inset-block: 4px;
-    inset-inline-start: 0;
-    border-radius: 999px;
+    inset-inline: 0;
+    clip-path: inset(0 100% 0 0 round 999px);
     background-color: var(--secondary);
     opacity: 0;
     pointer-events: none;
@@ -742,8 +746,7 @@
     }
     [data-nav-pill] {
       transition:
-        translate 0.28s var(--ease-out-strong),
-        inline-size 0.28s var(--ease-out-strong),
+        clip-path 0.25s var(--ease-in-out-strong),
         opacity 0.15s ease;
     }
     [data-slot="navigation-menu-chevron"] {

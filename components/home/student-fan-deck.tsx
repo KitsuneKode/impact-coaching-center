@@ -95,7 +95,7 @@ export function StudentFanDeck({ reviews }: { reviews: StudentReview[] }) {
       </ul>
       {/* The buttons carry the names for screen readers; this is for eyes. */}
       <p aria-hidden className="container-page mbs-6 text-center">
-        <span key={shown?.id} data-fan-name className="block font-semibold">
+        <span data-fan-name className="block font-semibold">
           {shown?.name}
         </span>
         <span className="block text-sm text-muted-foreground">

@@ -97,8 +97,9 @@ export function SiteNav({
     const appearing = !pill.hasAttribute("data-shown")
     // Appearing: arrive in place rather than slide in from the last spot.
     if (appearing) pill.style.transitionProperty = "opacity"
-    pill.style.translate = `${box.left - frame.left}px 0`
-    pill.style.inlineSize = `${box.width}px`
+    const start = box.left - frame.left
+    const end = frame.right - box.right
+    pill.style.clipPath = `inset(0 ${end}px 0 ${start}px round 999px)`
     pill.setAttribute("data-shown", "")
     if (appearing) {
       void pill.offsetWidth
