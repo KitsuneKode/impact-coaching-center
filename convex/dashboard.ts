@@ -1,224 +1,234 @@
 import { v } from "convex/values"
 
-import { hasGrant, requireStaff } from "./authz"
+import { endOfTodayIst } from "../lib/ist"
+import { COUNT_CAP, hasGrant, requireStaff, type Viewer } from "./authz"
 import { indiaDay } from "./contactTaps"
-import { query } from "./_generated/server"
+import type { Doc, Id } from "./_generated/dataModel"
+import { query, type QueryCtx } from "./_generated/server"
+import { readLeadCounts } from "./leads"
+
+/*
+ * The admin overview. `today` is the work queue: what is waiting for
+ * somebody, and who to call first. `week` is how it is going: enquiries,
+ * first calls, enrolments and sales against last week, and where enquiries
+ * come from. Queries never read the clock, so the page passes `now` (to the
+ * minute). Every read is bounded; counts stop at COUNT_CAP ("99+").
+ */
 
 const DAY = 24 * 60 * 60 * 1000
-/** A week's rows stop here; past it the card says "500+". */
-const WEEK_CAP = 500
+const OPEN = new Set(["new", "contacted", "interested"])
+/** A pickup parcel waiting longer than this needs a reminder call. */
+const COLLECTION_WAIT_MS = 3 * DAY
+const TO_CALL_MAX = 8
 
-/**
- * The admin overview's week: money in, where enquiries came from, what sells,
- * what is stuck, what is live. Each part is read only for staff who may see
- * it. Queries never read the clock, so the page passes `now` (to the minute).
- */
-export const weekly = query({
+const canSeeSales = (viewer: Viewer) => hasGrant(viewer, "catalog")
+
+/** Where an enquiry came from, in one spelling for every report. */
+export function sourceOf(enquiry: Doc<"enquiries">) {
+  if (enquiry.utm?.source) return enquiry.utm.source.toLowerCase()
+  if (enquiry.channel !== "website") return enquiry.channel.replace("_", " ")
+  if (!enquiry.referrer) return "website, direct"
+  try {
+    return new URL(enquiry.referrer).hostname.replace(/^www\./, "")
+  } catch {
+    return "website, direct"
+  }
+}
+
+/** How many rows of an order status, capped, and the oldest one. */
+async function ordersIn(ctx: QueryCtx, status: Doc<"orders">["status"]) {
+  const rows = await ctx.db
+    .query("orders")
+    .withIndex("by_status_and_placedAt", (q) => q.eq("status", status))
+    .take(COUNT_CAP + 1)
+  return {
+    count: Math.min(rows.length, COUNT_CAP),
+    capped: rows.length > COUNT_CAP,
+    oldestAt: rows[0]?.placedAt,
+    rows,
+  }
+}
+
+const TO_CALL = v.object({
+  id: v.id("persons"),
+  name: v.string(),
+  phone: v.string(),
+  track: v.optional(v.string()),
+  reason: v.union(v.literal("overdue"), v.literal("due"), v.literal("new")),
+  at: v.number(),
+})
+
+export const today = query({
   args: { now: v.number() },
   returns: v.union(
     v.null(),
     v.object({
-      sales: v.optional(
-        v.object({
-          paidPaise: v.number(),
-          paidOrders: v.number(),
-          unpaidStale: v.number(),
-          capped: v.boolean(),
-        })
-      ),
-      taps: v.object({
-        whatsapp: v.number(),
-        call: v.number(),
-        topPages: v.array(v.object({ page: v.string(), count: v.number() })),
-      }),
-      enquiries: v.object({
-        total: v.number(),
+      uncalled: v.object({
+        count: v.number(),
         capped: v.boolean(),
-        bySource: v.array(v.object({ source: v.string(), count: v.number() })),
+        oldestAt: v.optional(v.number()),
       }),
-      topSets: v.optional(
-        v.array(
-          v.object({ slug: v.string(), title: v.string(), sold: v.number() })
-        )
-      ),
-      livePromotions: v.optional(v.number()),
-      lastSync: v.optional(
-        v.object({
-          at: v.number(),
-          status: v.union(v.literal("ok"), v.literal("failed")),
-          seen: v.number(),
-        })
-      ),
+      followUps: v.object({
+        due: v.number(),
+        overdue: v.number(),
+        capped: v.boolean(),
+      }),
+      toPack: v.object({
+        count: v.number(),
+        capped: v.boolean(),
+        oldestAt: v.optional(v.number()),
+      }),
+      toShip: v.number(),
+      collection: v.object({ count: v.number(), waitingLong: v.number() }),
+      unpaid: v.number(),
+      refundsDue: v.optional(v.number()),
+      syncFailedAt: v.optional(v.number()),
+      toCall: v.array(TO_CALL),
     })
   ),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
-    if (!staff.ok) return null
-    const viewer = staff.value
-    const since = args.now - 7 * DAY
-
-    /* Enquiries this week, by where they came from. */
-    const enquiries = await ctx.db
-      .query("enquiries")
-      .withIndex("by_creation_time", (q) => q.gt("_creationTime", since))
-      .take(WEEK_CAP + 1)
-    const counts = new Map<string, number>()
-    for (const enquiry of enquiries.slice(0, WEEK_CAP)) {
-      const source =
-        enquiry.utm?.source ??
-        (enquiry.channel === "website"
-          ? enquiry.referrer
-            ? hostOf(enquiry.referrer)
-            : "website"
-          : enquiry.channel.replace("_", " "))
-      counts.set(source, (counts.get(source) ?? 0) + 1)
-    }
-    const bySource = [...counts]
-      .map(([source, count]) => ({ source, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-
-    /* WhatsApp and phone taps, from the daily totals. */
-    const days = Array.from({ length: 7 }, (_, i) =>
-      indiaDay(args.now - i * DAY)
-    )
-    const tapRows = (
-      await Promise.all(
-        days.map((day) =>
-          ctx.db
-            .query("contactTaps")
-            .withIndex("by_day_and_kind_and_page_and_source", (q) =>
-              q.eq("day", day)
-            )
-            .take(200)
-        )
-      )
-    ).flat()
-    const pages = new Map<string, number>()
-    for (const row of tapRows)
-      pages.set(row.page, (pages.get(row.page) ?? 0) + row.count)
-    const taps = {
-      whatsapp: tapRows
-        .filter((row) => row.kind === "whatsapp")
-        .reduce((sum, row) => sum + row.count, 0),
-      call: tapRows
-        .filter((row) => row.kind === "call")
-        .reduce((sum, row) => sum + row.count, 0),
-      topPages: [...pages]
-        .map(([page, count]) => ({ page, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 3),
-    }
-
-    /* Orders: owners and staff who handle the shop. */
-    let sales
-    let topSets
-    if (hasGrant(viewer, "catalog") || viewer.role === "owner") {
-      const week = await ctx.db
-        .query("orders")
-        .withIndex("by_placedAt", (q) => q.gt("placedAt", since))
-        .take(WEEK_CAP + 1)
-      const paid = week.filter((order) => order.payment?.paidAt)
-      const unpaidStale = week.filter(
-        (order) =>
-          order.status === "awaiting_payment" && args.now - order.placedAt > DAY
-      ).length
-      sales = {
-        paidPaise: paid.reduce((sum, order) => sum + order.totalPaise, 0),
-        paidOrders: paid.length,
-        unpaidStale,
-        capped: week.length > WEEK_CAP,
-      }
-      const sets = await ctx.db
-        .query("bundles")
-        .withIndex("by_published_and_sortOrder", (q) => q.eq("published", true))
-        .take(100)
-      topSets = sets
-        .filter((set) => !set.sample && set.soldCount > 0)
-        .sort((a, b) => b.soldCount - a.soldCount)
-        .slice(0, 3)
-        .map((set) => ({
-          slug: set.slug,
-          title: set.title.en,
-          sold: set.soldCount,
-        }))
-    }
-
-    /* Live promotions, for those who run them. */
-    let livePromotions
-    if (hasGrant(viewer, "promotions")) {
-      const live = await ctx.db
-        .query("campaigns")
-        .withIndex("by_status_and_priority", (q) => q.eq("status", "live"))
-        .take(50)
-      livePromotions = live.filter(
-        (c) =>
-          (c.startsAt === undefined || c.startsAt <= args.now) &&
-          (c.endsAt === undefined || c.endsAt > args.now)
-      ).length
-    }
-
-    /* The last ClassPlus sync, for those who keep the courses. */
-    let lastSync
-    if (hasGrant(viewer, "catalog")) {
-      const sync = await ctx.db.query("courseSyncs").order("desc").first()
-      if (sync)
-        lastSync = {
-          at: sync._creationTime,
-          status: sync.status,
-          seen: sync.seen,
-        }
-    }
-
-    return {
-      taps,
-      sales,
-      enquiries: {
-        total: Math.min(enquiries.length, WEEK_CAP),
-        capped: enquiries.length > WEEK_CAP,
-        bySource,
-      },
-      topSets,
-      livePromotions,
-      lastSync,
-    }
+    return staff.ok ? readToday(ctx, staff.value, args.now) : null
   },
 })
 
-/** "www.google.com" from a referrer URL, or the raw text if it is not one. */
-function hostOf(referrer: string) {
-  try {
-    return new URL(referrer).hostname.replace(/^www\./, "")
-  } catch {
-    return referrer.slice(0, 40)
+/** The queue itself, split out so it can be tested without a session. */
+export async function readToday(ctx: QueryCtx, viewer: Viewer, now: number) {
+  const endOfToday = endOfTodayIst(now)
+  const startOfToday = endOfToday - DAY
+
+  // The same counts the sidebar badge shows, so the two never disagree.
+  const counts = await readLeadCounts(ctx, viewer, now)
+
+  const uncalled = await ctx.db
+    .query("persons")
+    .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
+      q.eq("leadStatus", "new")
+    )
+    .take(TO_CALL_MAX)
+  const due = (
+    await ctx.db
+      .query("persons")
+      .withIndex("by_nextFollowUpAt", (q) =>
+        q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfToday)
+      )
+      .take(200)
+  ).filter((p) => !p.deletedAt && p.leadStatus && OPEN.has(p.leadStatus))
+  const overdue = due.filter((p) => p.nextFollowUpAt! < startOfToday)
+
+  // Overdue first, then due today, then the longest-waiting new enquiries.
+  const toCall = [
+    ...due.map((p) => ({
+      person: p,
+      reason:
+        p.nextFollowUpAt! < startOfToday
+          ? ("overdue" as const)
+          : ("due" as const),
+      at: p.nextFollowUpAt!,
+    })),
+    ...uncalled
+      .filter((p) => !p.deletedAt && !due.some((d) => d._id === p._id))
+      .map((p) => ({
+        person: p,
+        reason: "new" as const,
+        at: p.lastEnquiryAt ?? p._creationTime,
+      })),
+  ]
+    .slice(0, TO_CALL_MAX)
+    .map(({ person, reason, at }) => ({
+      id: person._id,
+      name: person.name,
+      phone: person.phone,
+      track: person.interestTrack,
+      reason,
+      at,
+    }))
+
+  const paid = await ordersIn(ctx, "paid")
+  const packed = await ordersIn(ctx, "packed")
+  const ready = await ordersIn(ctx, "ready_for_collection")
+  const unpaid = await ordersIn(ctx, "awaiting_payment")
+
+  let refundsDue: number | undefined
+  if (viewer.role === "owner") {
+    const owed = await ctx.db
+      .query("orders")
+      .withIndex("by_refundDueAt", (q) => q.gt("refundDueAt", 0))
+      .take(COUNT_CAP)
+    refundsDue = owed.length
+  }
+
+  let syncFailedAt: number | undefined
+  if (hasGrant(viewer, "catalog")) {
+    const last = await ctx.db.query("courseSyncs").order("desc").first()
+    if (last?.status === "failed") syncFailedAt = last._creationTime
+  }
+
+  return {
+    uncalled: {
+      count: counts.fresh,
+      capped: counts.fresh >= COUNT_CAP,
+      oldestAt: uncalled[0]?.lastEnquiryAt,
+    },
+    followUps: {
+      due: counts.due,
+      overdue: overdue.length,
+      capped: counts.capped,
+    },
+    toPack: {
+      count: paid.count,
+      capped: paid.capped,
+      oldestAt: paid.oldestAt,
+    },
+    toShip: packed.count,
+    collection: {
+      count: ready.count,
+      waitingLong: ready.rows.filter(
+        (o) => now - (o.updatedAt ?? o.placedAt) > COLLECTION_WAIT_MS
+      ).length,
+    },
+    unpaid: unpaid.count,
+    refundsDue,
+    syncFailedAt,
+    toCall,
   }
 }
 
-const OPEN_STATUSES = new Set(["new", "contacted", "interested"])
-/** People read for the month's lead insights; past it the page says so. */
-const MONTH_CAP = 800
+/** Rows read per window; past it the page says the count is a floor. */
+const WINDOW_CAP = 600
+/** Enquiries checked for how fast they got their first call. */
+const FIRST_CALL_SAMPLE = 150
+/** What counts as somebody at ICT getting back to an enquirer. */
+const CONTACT_KINDS = new Set(["call", "status_change", "note"])
 
-/**
- * The lead side of the overview: enquiries per day for two weeks, the
- * funnel for the last 30 days, which sources bring people who enrol, the
- * pages that turn visitors into enquiries, and who is due a call. Read by
- * each person's enquiry time, so the history is right however rows arrived.
- */
-export const leadInsights = query({
+const STAGES = ["new", "contacted", "interested", "enrolled", "lost"] as const
+
+export const week = query({
   args: { now: v.number() },
   returns: v.union(
     v.null(),
     v.object({
-      days: v.array(v.object({ day: v.string(), count: v.number() })),
-      thisWeek: v.number(),
-      lastWeek: v.number(),
-      funnel: v.object({
-        new: v.number(),
-        contacted: v.number(),
-        interested: v.number(),
-        enrolled: v.number(),
-        lost: v.number(),
+      enquiries: v.object({
+        thisWeek: v.number(),
+        lastWeek: v.number(),
+        capped: v.boolean(),
       }),
+      firstCall: v.object({
+        /** Median hours from enquiry to first call, this week. */
+        medianHours: v.union(v.number(), v.null()),
+        /** This week's enquirers nobody has contacted yet. */
+        waiting: v.number(),
+      }),
+      enrolled: v.object({ thisWeek: v.number(), lastWeek: v.number() }),
+      sales: v.optional(
+        v.object({
+          thisWeekPaise: v.number(),
+          lastWeekPaise: v.number(),
+          orders: v.number(),
+        })
+      ),
+      taps: v.object({ whatsapp: v.number(), call: v.number() }),
+      /** Last 30 days: where enquiries came from and who enrolled. */
       sources: v.array(
         v.object({
           source: v.string(),
@@ -227,159 +237,158 @@ export const leadInsights = query({
         })
       ),
       pages: v.array(v.object({ page: v.string(), people: v.number() })),
-      followUps: v.array(
-        v.object({
-          id: v.id("persons"),
-          name: v.string(),
-          phone: v.string(),
-          track: v.optional(v.string()),
-          due: v.number(),
-          status: v.string(),
-        })
-      ),
+      /** Where last 30 days' enquirers are now. */
+      stages: v.object({
+        new: v.number(),
+        contacted: v.number(),
+        interested: v.number(),
+        enrolled: v.number(),
+        lost: v.number(),
+      }),
       capped: v.boolean(),
     })
   ),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
-    if (!staff.ok) return null
-    const since = args.now - 30 * DAY
-
-    const people = await ctx.db
-      .query("persons")
-      .withIndex("by_lastEnquiryAt", (q) => q.gt("lastEnquiryAt", since))
-      .order("desc")
-      .take(MONTH_CAP + 1)
-    const month = people.slice(0, MONTH_CAP).filter((p) => !p.deletedAt)
-
-    /* Enquiries per IST day, oldest first, for the sparkline. */
-    const days = Array.from({ length: 14 }, (_, i) =>
-      indiaDay(args.now - (13 - i) * DAY)
-    )
-    const perDay = new Map(days.map((day) => [day, 0]))
-    let thisWeek = 0
-    let lastWeek = 0
-    for (const person of month) {
-      const at = person.lastEnquiryAt ?? 0
-      const day = indiaDay(at)
-      if (perDay.has(day)) perDay.set(day, perDay.get(day)! + 1)
-      if (at > args.now - 7 * DAY) thisWeek += 1
-      else if (at > args.now - 14 * DAY) lastWeek += 1
-    }
-
-    const funnel = { new: 0, contacted: 0, interested: 0, enrolled: 0, lost: 0 }
-    for (const person of month)
-      if (person.leadStatus) funnel[person.leadStatus] += 1
-
-    /* Where each person first came from, and the page they enquired on. */
-    const sources = new Map<string, { people: number; enrolled: number }>()
-    const pages = new Map<string, number>()
-    for (const person of month) {
-      const first = await ctx.db
-        .query("enquiries")
-        .withIndex("by_person", (q) => q.eq("personId", person._id))
-        .first()
-      if (!first) continue
-      const source =
-        first.utm?.source ??
-        (first.channel === "website"
-          ? first.referrer
-            ? hostOf(first.referrer)
-            : "website, direct"
-          : first.channel.replace("_", " "))
-      const row = sources.get(source) ?? { people: 0, enrolled: 0 }
-      row.people += 1
-      if (person.leadStatus === "enrolled") row.enrolled += 1
-      sources.set(source, row)
-      if (first.page) {
-        const page = first.page.split("?")[0]!.split("#")[0]!
-        pages.set(page, (pages.get(page) ?? 0) + 1)
-      }
-    }
-
-    /* Due today or overdue, soonest first, still open. */
-    const due = await ctx.db
-      .query("persons")
-      .withIndex("by_nextFollowUpAt", (q) =>
-        q.gt("nextFollowUpAt", 0).lte("nextFollowUpAt", args.now + DAY)
-      )
-      .take(60)
-    const followUps = due
-      .filter(
-        (p) => !p.deletedAt && p.leadStatus && OPEN_STATUSES.has(p.leadStatus)
-      )
-      .slice(0, 6)
-      .map((p) => ({
-        id: p._id,
-        name: p.name,
-        phone: p.phone,
-        track: p.interestTrack,
-        due: p.nextFollowUpAt!,
-        status: p.leadStatus!,
-      }))
-
-    return {
-      days: days.map((day) => ({ day, count: perDay.get(day) ?? 0 })),
-      thisWeek,
-      lastWeek,
-      funnel,
-      sources: [...sources]
-        .map(([source, row]) => ({ source, ...row }))
-        .sort((a, b) => b.people - a.people)
-        .slice(0, 6),
-      pages: [...pages]
-        .map(([page, people]) => ({ page, people }))
-        .sort((a, b) => b.people - a.people)
-        .slice(0, 5),
-      followUps,
-      capped: people.length > MONTH_CAP,
-    }
+    return staff.ok ? readWeek(ctx, staff.value, args.now) : null
   },
 })
 
-/** Paid money per IST day for two weeks, and the two weeks' totals. */
-export const salesTrend = query({
-  args: { now: v.number() },
-  returns: v.union(
-    v.null(),
-    v.object({
-      days: v.array(v.object({ day: v.string(), paise: v.number() })),
-      thisWeek: v.number(),
-      lastWeek: v.number(),
-    })
-  ),
-  handler: async (ctx, args) => {
-    const staff = await requireStaff(ctx)
-    if (!staff.ok) return null
-    const viewer = staff.value
-    if (!(hasGrant(viewer, "catalog") || viewer.role === "owner")) return null
+/** The week itself, split out so it can be tested without a session. */
+export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
+  const weekAgo = now - 7 * DAY
+  const twoWeeksAgo = now - 14 * DAY
+
+  const fortnight = await ctx.db
+    .query("enquiries")
+    .withIndex("by_creation_time", (q) => q.gt("_creationTime", twoWeeksAgo))
+    .take(WINDOW_CAP + 1)
+  const thisWeek = fortnight.filter((e) => e._creationTime > weekAgo)
+
+  /* First call: for each person who enquired this week, the first time
+     somebody at ICT called, noted or moved them after that enquiry. */
+  const firstOf = new Map<Id<"persons">, number>()
+  for (const enquiry of thisWeek)
+    if (!firstOf.has(enquiry.personId))
+      firstOf.set(enquiry.personId, enquiry._creationTime)
+  const waits: number[] = []
+  let waiting = 0
+  for (const [personId, at] of [...firstOf].slice(0, FIRST_CALL_SAMPLE)) {
+    const contact = await ctx.db
+      .query("activities")
+      .withIndex("by_person", (q) => q.eq("personId", personId))
+      .filter((q) =>
+        q.and(
+          q.gt(q.field("_creationTime"), at),
+          q.neq(q.field("actorId"), undefined)
+        )
+      )
+      .take(20)
+    const first = contact.find((row) => CONTACT_KINDS.has(row.kind))
+    if (first) waits.push(first._creationTime - at)
+    else waiting += 1
+  }
+  waits.sort((a, b) => a - b)
+  const median = waits.length ? waits[Math.floor(waits.length / 2)]! : null
+
+  /* Enrolments: when staff moved somebody to enrolled. */
+  const moves = await ctx.db
+    .query("activities")
+    .withIndex("by_creation_time", (q) => q.gt("_creationTime", twoWeeksAgo))
+    .take(WINDOW_CAP * 3)
+  const enrolments = moves.filter(
+    (a) => a.kind === "status_change" && a.to === "enrolled"
+  )
+
+  let sales
+  if (canSeeSales(viewer)) {
+    // Placed up to three weeks ago covers anything paid in the fortnight.
     const orders = await ctx.db
       .query("orders")
-      .withIndex("by_placedAt", (q) => q.gt("placedAt", args.now - 14 * DAY))
-      .take(WEEK_CAP * 2)
-    const days = Array.from({ length: 14 }, (_, i) =>
-      indiaDay(args.now - (13 - i) * DAY)
-    )
-    const perDay = new Map(days.map((day) => [day, 0]))
-    let thisWeek = 0
-    let lastWeek = 0
+      .withIndex("by_placedAt", (q) => q.gt("placedAt", now - 21 * DAY))
+      .take(WINDOW_CAP)
+    let thisWeekPaise = 0
+    let lastWeekPaise = 0
+    let count = 0
     for (const order of orders) {
-      // Money counts once paid, whatever has happened to the parcel since.
-      const paid =
-        order.payment?.paidAt ??
-        (order.status !== "awaiting_payment" && order.status !== "cancelled"
-          ? order.placedAt
-          : undefined)
-      if (!paid || order.status === "refunded") continue
-      const day = indiaDay(paid)
-      if (perDay.has(day)) perDay.set(day, perDay.get(day)! + order.totalPaise)
-      if (paid > args.now - 7 * DAY) thisWeek += order.totalPaise
-      else lastWeek += order.totalPaise
+      const paidAt = order.payment?.paidAt
+      if (!paidAt || order.status === "refunded" || order.refundDueAt) continue
+      if (paidAt > weekAgo) {
+        thisWeekPaise += order.totalPaise
+        count += 1
+      } else if (paidAt > twoWeeksAgo) lastWeekPaise += order.totalPaise
     }
-    return {
-      days: days.map((day) => ({ day, paise: perDay.get(day) ?? 0 })),
-      thisWeek,
-      lastWeek,
+    sales = { thisWeekPaise, lastWeekPaise, orders: count }
+  }
+
+  const tapRows = (
+    await Promise.all(
+      Array.from({ length: 7 }, (_, i) => indiaDay(now - i * DAY)).map((day) =>
+        ctx.db
+          .query("contactTaps")
+          .withIndex("by_day_and_kind_and_page_and_source", (q) =>
+            q.eq("day", day)
+          )
+          .take(300)
+      )
+    )
+  ).flat()
+  const taps = { whatsapp: 0, call: 0 }
+  for (const row of tapRows) taps[row.kind] += row.count
+
+  /* The month: sources, pages and stages, one row per person. */
+  const month = await ctx.db
+    .query("enquiries")
+    .withIndex("by_creation_time", (q) => q.gt("_creationTime", now - 30 * DAY))
+    .take(WINDOW_CAP + 1)
+  const firstEnquiry = new Map<Id<"persons">, Doc<"enquiries">>()
+  for (const enquiry of month)
+    if (!firstEnquiry.has(enquiry.personId))
+      firstEnquiry.set(enquiry.personId, enquiry)
+  const sources = new Map<string, { people: number; enrolled: number }>()
+  const pages = new Map<string, number>()
+  const stages = { new: 0, contacted: 0, interested: 0, enrolled: 0, lost: 0 }
+  for (const [personId, enquiry] of firstEnquiry) {
+    const person = await ctx.db.get(personId)
+    if (!person || person.deletedAt) continue
+    const status = person.leadStatus
+    if (status && (STAGES as readonly string[]).includes(status))
+      stages[status] += 1
+    const row = sources.get(sourceOf(enquiry)) ?? { people: 0, enrolled: 0 }
+    row.people += 1
+    if (status === "enrolled") row.enrolled += 1
+    sources.set(sourceOf(enquiry), row)
+    if (enquiry.page) {
+      const page = enquiry.page.split(/[?#]/)[0]!
+      pages.set(page, (pages.get(page) ?? 0) + 1)
     }
-  },
-})
+  }
+
+  return {
+    enquiries: {
+      thisWeek: thisWeek.length,
+      lastWeek: fortnight.length - thisWeek.length,
+      capped: fortnight.length > WINDOW_CAP,
+    },
+    firstCall: {
+      medianHours: median === null ? null : median / (60 * 60 * 1000),
+      waiting,
+    },
+    enrolled: {
+      thisWeek: enrolments.filter((a) => a._creationTime > weekAgo).length,
+      lastWeek: enrolments.filter((a) => a._creationTime <= weekAgo).length,
+    },
+    sales,
+    taps,
+    sources: [...sources]
+      .map(([source, row]) => ({ source, ...row }))
+      .sort((a, b) => b.people - a.people)
+      .slice(0, 6),
+    pages: [...pages]
+      .map(([page, people]) => ({ page, people }))
+      .sort((a, b) => b.people - a.people)
+      .slice(0, 5),
+    stages,
+    capped: month.length > WINDOW_CAP,
+  }
+}

@@ -1,33 +1,40 @@
 "use client"
 
-import { Skeleton } from "@/components/ui/skeleton"
-import { useMinute } from "@/hooks/use-minute"
 import {
-  IconArrowRight,
+  IconAlertTriangle,
   IconBrandWhatsapp,
   IconCalendarDue,
+  IconCash,
+  IconChevronRight,
+  IconCircleCheck,
+  IconCreditCard,
   IconInbox,
   IconLock,
   IconPackage,
   IconPhone,
+  IconRefresh,
+  IconTruckDelivery,
+  IconUserCheck,
 } from "@tabler/icons-react"
-import Link from "next/link"
 import { useQuery } from "convex/react"
-import type { ReactNode } from "react"
+import Link from "next/link"
+import type { ComponentType, ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
-import { Sparkline } from "@/components/admin/sparkline"
+import { AddEnquiry } from "@/components/admin/add-enquiry"
 import { ButtonAnchor } from "@/components/ui/button"
 import { PageShell, StatePanel } from "@/components/ui/page-shell"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
-import { formatPhone } from "@/lib/brand"
-import { cn } from "@/lib/utils"
+import { useMinute } from "@/hooks/use-minute"
 import { useViewer } from "@/hooks/use-viewer"
+import { brand, formatPhone } from "@/lib/brand"
+import { cn } from "@/lib/utils"
 
 /**
- * The admin home. First what needs somebody now, then whether enquiries
- * and sales are rising, then the lead funnel and where enrolments come
- * from, then who to call. One screen on a laptop, a scroll on a phone.
+ * The admin home is a work queue, not a report. First what is waiting for
+ * somebody, worst first; then who to call, with a reason for each; then a
+ * quiet look at the week against the last one.
  */
 export default function AdminHome() {
   if (!convexConfigured) return <Unavailable />
@@ -54,50 +61,36 @@ const rupees = (paise: number) =>
 const count = (n: number) => new Intl.NumberFormat("en-IN").format(n)
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
 
-const ago = (at: number, now: number) => {
-  const minutes = Math.max(0, Math.round((now - at) / 60_000))
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.round(minutes / 60)
-  return hours < 48 ? `${hours} h ago` : `${Math.round(hours / 24)} days ago`
+/** "3 h", "2 days": how long something has waited. */
+function waited(since: number, now: number) {
+  const hours = Math.max(0, (now - since) / 3_600_000)
+  if (hours < 1) return "under an hour"
+  if (hours < 48) return `${Math.round(hours)} h`
+  return `${Math.round(hours / 24)} days`
 }
 
-function greeting(now: number) {
-  const hour = Number(
-    new Date(now).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      hour: "numeric",
-      hour12: false,
-    })
-  )
-  return hour < 12
-    ? "Good morning"
-    : hour < 17
-      ? "Good afternoon"
-      : "Good evening"
-}
+const today = (now: number) =>
+  new Date(now).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
 
 function Home() {
   const now = useMinute()
   const viewer = useViewer()
-  const leads = useQuery(api.leads.leadCounts, { now })
-  const orders = useQuery(api.orders.orderCounts)
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"
 
   if (viewer === undefined) return null
-
   if (!isStaff)
     return (
-      <PageShell
-        density="working"
-        title={<span className="text-foreground">Staff only.</span>}
-      >
+      <PageShell density="working" title="Staff only.">
         <StatePanel
           icon={<IconLock stroke={1.75} />}
           title="This area is for ICT staff"
           description="If you are staff and seeing this, log in with the number ICT has on file for you."
           action={
-            // A plain link: a full sign-in page, never the public site's
-            // pop-up over the admin with the admin loading behind it.
             <ButtonAnchor href="/login?next=/admin" target="_self" size="md">
               Log in
             </ButtonAnchor>
@@ -106,197 +99,352 @@ function Home() {
       </PageShell>
     )
 
-  const first = viewer.name.trim().split(" ")[0]
-  const plus = leads?.capped ? "+" : ""
-
   return (
     <PageShell
       density="working"
       title={
         <>
           <span className="text-foreground">Today.</span>{" "}
-          <span className="text-muted-foreground">
-            {greeting(now)}
-            {first ? `, ${first}` : ""}.
-          </span>
+          <span className="text-muted-foreground">{today(now)}</span>
         </>
       }
     >
-      <h2 className="sr-only">Needs you</h2>
-      <ul className="grid gap-3 md:grid-cols-3">
-        <NeedTile
-          href="/admin/leads"
-          icon={IconInbox}
-          tone="blue"
-          value={leads?.fresh}
-          suffix={plus}
-          label={(n) =>
-            plural(
-              n,
-              "new enquiry nobody has called",
-              "new enquiries nobody has called"
-            )
-          }
-        />
-        <NeedTile
-          href="/admin/leads"
-          icon={IconCalendarDue}
-          tone="amber"
-          value={leads?.due}
-          suffix={plus}
-          label={(n) =>
-            plural(n, "follow-up due today", "follow-ups due today")
-          }
-        />
-        <NeedTile
-          href="/admin/orders"
-          icon={IconPackage}
-          tone="ink"
-          value={orders?.open}
-          suffix={orders?.capped ? "+" : ""}
-          label={(n) => plural(n, "order to fulfil", "orders to fulfil")}
-          note={
-            [
-              orders && orders.unseen > 0
-                ? `${orders.unseen}${orders.capped ? "+" : ""} not opened`
-                : null,
-              orders && orders.unpaid > 0
-                ? `${orders.unpaid} awaiting payment`
-                : null,
-            ]
-              .filter(Boolean)
-              .join(" · ") || undefined
-          }
-        />
-      </ul>
-
-      <Insights now={now} />
+      <div className="grid items-start gap-3 lg:grid-cols-5">
+        <div className="grid gap-3 lg:col-span-3">
+          <Queue now={now} />
+          <ToCall now={now} />
+        </div>
+        <div className="grid gap-3 lg:col-span-2">
+          <Week now={now} />
+        </div>
+      </div>
     </PageShell>
   )
 }
 
-const TONES = {
-  blue: "bg-primary text-primary-foreground",
-  amber: "bg-highlight text-foreground",
-  ink: "bg-foreground text-background",
-} as const
-
-/** One thing that needs somebody, as a tile you can act on. */
-function NeedTile({
-  href,
-  icon: Icon,
-  tone,
-  value,
-  suffix,
-  label,
-  note,
-}: {
-  href: string
-  icon: typeof IconInbox
-  tone: keyof typeof TONES
-  value: number | undefined
-  suffix: string
-  label: (n: number) => string
-  note?: string
-}) {
-  const n = value ?? 0
-  const calm = value !== undefined && n === 0
-  return (
-    <li>
-      <Link
-        href={href}
-        data-need-tile
-        className={cn(
-          "group flex h-full min-h-28 flex-col justify-between gap-3 rounded-[22px] p-5 md:min-h-36",
-          calm
-            ? "bg-card text-foreground shadow-[0_0_0_1px_var(--border)]"
-            : TONES[tone]
-        )}
-      >
-        <span className="flex items-start justify-between gap-3">
-          <Icon aria-hidden stroke={1.75} className="size-5 opacity-80" />
-          <IconArrowRight
-            aria-hidden
-            stroke={2}
-            className="size-4 opacity-70 transition-transform group-hover:translate-x-0.5"
-          />
-        </span>
-        <span>
-          <span className="tnum block font-display text-4xl leading-none font-semibold tracking-[-0.03em]">
-            {value === undefined ? "–" : `${count(n)}${n > 0 ? suffix : ""}`}
-          </span>
-          <span className="mbs-2 block text-sm font-medium text-pretty">
-            {label(n)}
-          </span>
-          {note ? (
-            <span className="mbs-0.5 block text-xs opacity-75">{note}</span>
-          ) : null}
-        </span>
-      </Link>
-    </li>
-  )
-}
-
-function Delta({ now, before }: { now: number; before: number }) {
-  if (before === 0)
-    return now > 0 ? (
-      <span className="text-xs text-muted-foreground">new this week</span>
-    ) : null
-  const change = Math.round(((now - before) / before) * 100)
-  const up = change >= 0
-  return (
-    <span
-      className={cn(
-        "tnum rounded-full px-2 py-0.5 text-xs font-medium",
-        up
-          ? "bg-[color-mix(in_oklch,oklch(62%_0.15_150)_14%,transparent)] text-[oklch(42%_0.12_150)]"
-          : "bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive"
-      )}
-    >
-      {up ? "+" : "−"}
-      {Math.abs(change)}% vs last week
-    </span>
-  )
-}
-
-function Panel({
+function Card({
   title,
-  href,
   action,
   children,
   className,
 }: {
   title: string
-  href?: string
-  action?: string
+  action?: ReactNode
   children: ReactNode
   className?: string
 }) {
   return (
     <section
       className={cn(
-        "flex min-w-0 flex-col gap-4 rounded-[22px] bg-card p-5 shadow-[0_0_0_1px_var(--border)]",
+        "flex min-w-0 flex-col gap-3 rounded-[22px] bg-card p-5 shadow-[0_0_0_1px_var(--border)]",
         className
       )}
     >
-      <header className="flex items-baseline justify-between gap-3">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        {href ? (
-          <Link
-            href={href}
-            className="rounded-sm text-xs font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            {action ?? "Open"}
-            <span className="sr-only"> {title}</span>
-          </Link>
-        ) : null}
+      <header className="flex min-h-8 items-center justify-between gap-3">
+        <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
+        {action}
       </header>
       {children}
     </section>
   )
 }
 
-/** Sources as ICT would say them; anything else keeps its own spelling. */
+/* ------------------------------------------------------------- the queue */
+
+type Need = {
+  key: string
+  href: string
+  icon: ComponentType<{
+    size?: number
+    stroke?: number
+    "aria-hidden"?: boolean
+  }>
+  label: string
+  detail?: string
+  urgent?: boolean
+}
+
+function Queue({ now }: { now: number }) {
+  const data = useQuery(api.dashboard.today, { now })
+
+  if (data === undefined)
+    return (
+      <Card title="Waiting for you" action={<AddEnquiry />}>
+        <div aria-busy="true" className="grid gap-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-14 rounded-[14px] bg-secondary" />
+          ))}
+        </div>
+      </Card>
+    )
+  if (data === null) return null
+
+  const plus = (capped: boolean) => (capped ? "+" : "")
+  const needs: Need[] = []
+  if (data.syncFailedAt)
+    needs.push({
+      key: "sync",
+      href: "/admin/courses",
+      icon: IconRefresh,
+      label: "The ClassPlus course sync failed",
+      detail: `${waited(data.syncFailedAt, now)} ago · open Courses and sync now`,
+      urgent: true,
+    })
+  if (data.refundsDue)
+    needs.push({
+      key: "refunds",
+      href: "/admin/orders",
+      icon: IconCash,
+      label: `${count(data.refundsDue)} ${plural(data.refundsDue, "refund", "refunds")} to make in Razorpay`,
+      detail: "Then mark the order refunded",
+      urgent: true,
+    })
+  if (data.followUps.overdue)
+    needs.push({
+      key: "overdue",
+      href: "/admin/leads?view=due",
+      icon: IconCalendarDue,
+      label: `${count(data.followUps.overdue)} overdue ${plural(data.followUps.overdue, "follow-up", "follow-ups")}`,
+      detail: "Promised a call before today",
+      urgent: true,
+    })
+  if (data.uncalled.count)
+    needs.push({
+      key: "uncalled",
+      href: "/admin/leads?view=new",
+      icon: IconInbox,
+      label: `${count(data.uncalled.count)}${plus(data.uncalled.capped)} new ${plural(data.uncalled.count, "enquiry", "enquiries")} nobody has called`,
+      detail: data.uncalled.oldestAt
+        ? `Oldest waiting ${waited(data.uncalled.oldestAt, now)}`
+        : undefined,
+    })
+  const dueToday = data.followUps.due - data.followUps.overdue
+  if (dueToday > 0)
+    needs.push({
+      key: "due",
+      href: "/admin/leads?view=due",
+      icon: IconUserCheck,
+      label: `${count(dueToday)}${plus(data.followUps.capped)} ${plural(dueToday, "follow-up", "follow-ups")} due today`,
+    })
+  if (data.toPack.count)
+    needs.push({
+      key: "pack",
+      href: "/admin/orders",
+      icon: IconPackage,
+      label: `${count(data.toPack.count)}${plus(data.toPack.capped)} paid ${plural(data.toPack.count, "order", "orders")} to pack`,
+      detail: data.toPack.oldestAt
+        ? `Oldest placed ${waited(data.toPack.oldestAt, now)} ago`
+        : undefined,
+    })
+  if (data.toShip)
+    needs.push({
+      key: "ship",
+      href: "/admin/orders",
+      icon: IconTruckDelivery,
+      label: `${count(data.toShip)} packed ${plural(data.toShip, "parcel", "parcels")} to hand to the courier`,
+    })
+  if (data.collection.count)
+    needs.push({
+      key: "collect",
+      href: "/admin/orders",
+      icon: IconPackage,
+      label: `${count(data.collection.count)} ${plural(data.collection.count, "set", "sets")} waiting to be collected`,
+      detail: data.collection.waitingLong
+        ? `${count(data.collection.waitingLong)} for more than 3 days: call them`
+        : undefined,
+      urgent: data.collection.waitingLong > 0,
+    })
+  if (data.unpaid)
+    needs.push({
+      key: "unpaid",
+      href: "/admin/orders",
+      icon: IconCreditCard,
+      label: `${count(data.unpaid)} ${plural(data.unpaid, "order", "orders")} waiting for the buyer to pay`,
+      detail: "Cancelled automatically after 3 days",
+    })
+
+  return (
+    <Card title="Waiting for you" action={<AddEnquiry />}>
+      {needs.length ? (
+        <ul className="-mx-2 grid">
+          {needs.map((need) => (
+            <li key={need.key}>
+              <Link
+                href={need.href}
+                className="group flex items-center gap-3 rounded-[14px] px-2 py-2.5 hover:bg-secondary/60 focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                <span
+                  className={cn(
+                    "grid size-9 flex-none place-items-center rounded-full",
+                    need.urgent
+                      ? "bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive"
+                      : "bg-secondary text-foreground"
+                  )}
+                >
+                  <need.icon aria-hidden size={18} stroke={1.75} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium text-pretty">
+                    {need.label}
+                  </span>
+                  {need.detail ? (
+                    <span className="block text-xs text-muted-foreground">
+                      {need.detail}
+                    </span>
+                  ) : null}
+                </span>
+                <IconChevronRight
+                  aria-hidden
+                  size={16}
+                  stroke={2}
+                  className="flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+          <IconCircleCheck aria-hidden size={18} stroke={1.75} />
+          Nothing is waiting on anyone.
+        </p>
+      )}
+    </Card>
+  )
+}
+
+/* ----------------------------------------------------------- who to call */
+
+const REASON = {
+  overdue: { text: "overdue", tone: "font-medium text-destructive" },
+  due: { text: "due today", tone: "" },
+  new: { text: "new enquiry", tone: "" },
+} as const
+
+/** A first message staff can send as is, or edit before sending. */
+function whatsappHref(phone: string, name: string, track?: string) {
+  const first = name.trim().split(" ")[0]
+  const text = `Hello${first ? ` ${first}` : ""}, this is ${brand.legalName}, North Lakhimpur.${
+    track && track !== "Not sure yet" ? ` You asked about ${track}.` : ""
+  } Is this a good time to talk?`
+  return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`
+}
+
+function ToCall({ now }: { now: number }) {
+  const data = useQuery(api.dashboard.today, { now })
+  if (!data) return null
+  return (
+    <Card
+      title="Who to call first"
+      action={
+        <Link
+          href="/admin/leads"
+          className="rounded-sm text-xs font-medium underline-offset-4 hover:underline"
+        >
+          All enquiries
+        </Link>
+      }
+    >
+      {data.toCall.length ? (
+        <ul className="-mx-2 grid">
+          {data.toCall.map((lead) => {
+            const reason = REASON[lead.reason]
+            return (
+              <li
+                key={lead.id}
+                className="flex items-center gap-3 rounded-[14px] px-2 py-2 hover:bg-secondary/60"
+              >
+                <Link
+                  href={`/admin/leads?lead=${lead.id}`}
+                  className="min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  <span className="block truncate font-medium">
+                    {lead.name || formatPhone(lead.phone)}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {lead.track ?? "Exam not given"} ·{" "}
+                    <span className={reason.tone}>{reason.text}</span>
+                    {lead.reason === "new"
+                      ? `, waiting ${waited(lead.at, now)}`
+                      : ""}
+                  </span>
+                </Link>
+                <a
+                  href={`tel:${lead.phone}`}
+                  aria-label={`Call ${lead.name || lead.phone}`}
+                  className="grid size-10 flex-none place-items-center rounded-full bg-secondary active:scale-95"
+                >
+                  <IconPhone aria-hidden size={18} stroke={1.75} />
+                </a>
+                <a
+                  href={whatsappHref(lead.phone, lead.name, lead.track)}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`WhatsApp ${lead.name || lead.phone}`}
+                  className="grid size-10 flex-none place-items-center rounded-full bg-secondary active:scale-95"
+                >
+                  <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="py-2 text-sm text-muted-foreground">
+          Nobody is waiting for a call.
+        </p>
+      )}
+    </Card>
+  )
+}
+
+/* -------------------------------------------------------------- the week */
+
+/** "+4 on last week": plain numbers; a percentage of 2 is noise. */
+function Change({ now, before }: { now: number; before: number }) {
+  const diff = now - before
+  return (
+    <span className="text-xs text-muted-foreground">
+      {diff === 0
+        ? "same as last week"
+        : `${diff > 0 ? "+" : "−"}${count(Math.abs(diff))} on last week`}
+    </span>
+  )
+}
+
+function ChangeMoney({ now, before }: { now: number; before: number }) {
+  const diff = now - before
+  return (
+    <span className="text-xs text-muted-foreground">
+      {diff === 0
+        ? "same as last week"
+        : `${diff > 0 ? "+" : "−"}${rupees(Math.abs(diff))} on last week`}
+    </span>
+  )
+}
+
+function Stat({
+  label,
+  value,
+  note,
+}: {
+  label: string
+  value: string
+  note?: ReactNode
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-t border-border py-2.5 first:border-t-0 first:pt-0">
+      <span className="text-sm">{label}</span>
+      <span className="grid justify-items-end">
+        <span className="tnum font-display text-xl font-semibold tracking-[-0.02em]">
+          {value}
+        </span>
+        {note}
+      </span>
+    </div>
+  )
+}
+
 const SOURCE_NAMES: Record<string, string> = {
   facebook: "Facebook",
   instagram: "Instagram",
@@ -309,329 +457,194 @@ const SOURCE_NAMES: Record<string, string> = {
   other: "Other",
   "website, direct": "Website, direct",
 }
-const sourceName = (source: string) =>
-  SOURCE_NAMES[source.toLowerCase()] ?? source
+const sourceName = (source: string) => SOURCE_NAMES[source] ?? source
 
 const STAGES = [
-  ["new", "New"],
-  ["contacted", "Contacted"],
-  ["interested", "Interested"],
-  ["enrolled", "Enrolled"],
+  ["new", "New", "bg-primary/25"],
+  ["contacted", "Contacted", "bg-primary/45"],
+  ["interested", "Interested", "bg-primary/70"],
+  ["enrolled", "Enrolled", "bg-primary"],
+  ["lost", "Lost", "bg-muted-foreground/30"],
 ] as const
 
-function Insights({ now }: { now: number }) {
-  const insights = useQuery(api.dashboard.leadInsights, { now })
-  const sales = useQuery(api.dashboard.salesTrend, { now })
-  const week = useQuery(api.dashboard.weekly, { now })
+function Week({ now }: { now: number }) {
+  const data = useQuery(api.dashboard.week, { now })
 
-  if (!insights || !week)
+  if (data === undefined)
     return (
-      <div
-        aria-busy="true"
-        className="mbs-8 grid gap-3 md:grid-cols-2 xl:grid-cols-4"
-      >
-        {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-36 rounded-[22px] bg-secondary" />
-        ))}
+      <div aria-busy="true" className="grid gap-3">
+        <Skeleton className="h-64 rounded-[22px] bg-secondary" />
+        <Skeleton className="h-48 rounded-[22px] bg-secondary" />
       </div>
     )
+  if (data === null) return null
 
-  const total =
-    insights.funnel.new +
-    insights.funnel.contacted +
-    insights.funnel.interested +
-    insights.funnel.enrolled +
-    insights.funnel.lost
-  const decided = insights.funnel.enrolled + insights.funnel.lost
-  const rate = decided
-    ? Math.round((insights.funnel.enrolled / decided) * 100)
-    : null
-  const maxSource = Math.max(1, ...insights.sources.map((s) => s.people))
+  const people = STAGES.reduce((n, [key]) => n + data.stages[key], 0)
+  const firstCall = data.firstCall.medianHours
 
   return (
-    <div className="mbs-8 grid gap-3">
-      <h2 className="sr-only">This week and this month</h2>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Panel title="Enquiries · 7 days" href="/admin/leads">
-          <div className="flex items-end justify-between gap-3">
-            <span className="tnum font-display text-3xl font-semibold tracking-[-0.03em]">
-              {count(insights.thisWeek)}
-            </span>
-            <Sparkline
-              values={insights.days.map((d) => d.count)}
-              label={`Enquiries per day for two weeks, ${insights.days.at(-1)?.count ?? 0} today`}
-              className="h-9 w-28 text-primary"
-            />
-          </div>
-          <Delta now={insights.thisWeek} before={insights.lastWeek} />
-        </Panel>
-
-        {sales ? (
-          <Panel title="Paid · 7 days" href="/admin/orders">
-            <div className="flex items-end justify-between gap-3">
-              <span className="tnum font-display text-3xl font-semibold tracking-[-0.03em]">
-                {rupees(sales.thisWeek)}
-              </span>
-              <Sparkline
-                values={sales.days.map((d) => d.paise)}
-                label="Money paid per day for two weeks"
-                className="h-9 w-28 text-[oklch(55%_0.13_150)]"
+    <>
+      <Card title="This week">
+        <div className="grid">
+          <Stat
+            label="Enquiries"
+            value={`${count(data.enquiries.thisWeek)}${data.enquiries.capped ? "+" : ""}`}
+            note={
+              <Change
+                now={data.enquiries.thisWeek}
+                before={data.enquiries.lastWeek}
               />
-            </div>
-            <Delta now={sales.thisWeek} before={sales.lastWeek} />
-          </Panel>
-        ) : null}
+            }
+          />
+          <Stat
+            label="First call after enquiring"
+            value={
+              firstCall === null
+                ? "–"
+                : firstCall < 1
+                  ? "< 1 h"
+                  : firstCall < 48
+                    ? `${Math.round(firstCall)} h`
+                    : `${Math.round(firstCall / 24)} days`
+            }
+            note={
+              <span className="text-xs text-muted-foreground">
+                {data.firstCall.waiting
+                  ? `typical · ${count(data.firstCall.waiting)} not called yet`
+                  : "typical wait"}
+              </span>
+            }
+          />
+          <Stat
+            label="Enrolled"
+            value={count(data.enrolled.thisWeek)}
+            note={
+              <Change
+                now={data.enrolled.thisWeek}
+                before={data.enrolled.lastWeek}
+              />
+            }
+          />
+          {data.sales ? (
+            <Stat
+              label={`Book sales · ${count(data.sales.orders)} ${plural(data.sales.orders, "order", "orders")}`}
+              value={rupees(data.sales.thisWeekPaise)}
+              note={
+                <ChangeMoney
+                  now={data.sales.thisWeekPaise}
+                  before={data.sales.lastWeekPaise}
+                />
+              }
+            />
+          ) : null}
+          <Stat
+            label="WhatsApp and call taps"
+            value={count(data.taps.whatsapp + data.taps.call)}
+            note={
+              <span className="text-xs text-muted-foreground">
+                WhatsApp {count(data.taps.whatsapp)} · calls{" "}
+                {count(data.taps.call)}
+              </span>
+            }
+          />
+        </div>
+      </Card>
 
-        <Panel title="Enrolled · 30 days" href="/admin/leads">
-          <span className="tnum font-display text-3xl font-semibold tracking-[-0.03em]">
-            {count(insights.funnel.enrolled)}
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {rate === null
-              ? "No one decided yet"
-              : `${rate}% of those who decided joined · ${insights.funnel.lost} lost`}
-          </span>
-        </Panel>
-
-        <Panel title="WhatsApp and calls · 7 days">
-          <span className="tnum font-display text-3xl font-semibold tracking-[-0.03em]">
-            {count(week.taps.whatsapp + week.taps.call)}
-          </span>
-          <span className="tnum text-xs text-muted-foreground">
-            WhatsApp {week.taps.whatsapp} · calls {week.taps.call}
-            {week.taps.topPages[0]
-              ? ` · most from ${week.taps.topPages[0].page}`
-              : ""}
-          </span>
-        </Panel>
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-5">
-        <Panel
-          title="Who to call"
-          href="/admin/leads"
-          action="Follow-ups"
-          className="lg:col-span-3"
-        >
-          {insights.followUps.length ? (
-            <ul className="-mx-2 grid">
-              {insights.followUps.map((lead) => {
-                const overdue = lead.due < now - 12 * 60 * 60 * 1000
-                return (
-                  <li
-                    key={lead.id}
-                    className="flex items-center gap-3 rounded-[14px] px-2 py-2 hover:bg-secondary/60"
-                  >
-                    <Link
-                      href={`/admin/leads?lead=${lead.id}`}
-                      className="min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
-                    >
-                      <span className="block font-medium text-pretty">
-                        {lead.name || formatPhone(lead.phone)}
-                      </span>
-                      <span className="block truncate text-xs text-muted-foreground">
-                        {lead.track ?? "Exam not given"} ·{" "}
-                        <span
-                          className={
-                            overdue ? "font-medium text-destructive" : undefined
-                          }
-                        >
-                          {overdue ? "overdue" : "due today"}
-                        </span>
-                      </span>
-                    </Link>
-                    <a
-                      href={`tel:${lead.phone}`}
-                      aria-label={`Call ${lead.name || lead.phone}`}
-                      className="grid size-10 flex-none place-items-center rounded-full bg-secondary active:scale-95"
-                    >
-                      <IconPhone aria-hidden size={18} stroke={1.75} />
-                    </a>
-                    <a
-                      href={`https://wa.me/${lead.phone.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={`WhatsApp ${lead.name || lead.phone}`}
-                      className="grid size-10 flex-none place-items-center rounded-full bg-secondary active:scale-95"
-                    >
-                      <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
-                    </a>
-                  </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nobody is due a call today.
-            </p>
-          )}
-        </Panel>
-
-        <Panel title="Lead funnel, last 30 days" className="lg:col-span-2">
-          <ol className="grid gap-2.5">
-            {STAGES.map(([key, label]) => {
-              const n = insights.funnel[key]
-              const share = total ? n / total : 0
-              return (
-                <li key={key} className="grid gap-1">
-                  <span className="flex justify-between text-sm">
-                    <span>{label}</span>
-                    <span className="tnum text-muted-foreground">
-                      {count(n)}
-                    </span>
-                  </span>
-                  <span className="h-2 overflow-clip rounded-full bg-secondary">
+      <Card title="Last 30 days">
+        {people ? (
+          <>
+            <div>
+              <p className="text-sm">
+                <span className="tnum font-semibold">{count(people)}</span>{" "}
+                {plural(people, "person", "people")} enquired. Where they are
+                now:
+              </p>
+              <div
+                className="mbs-2 flex h-2.5 overflow-clip rounded-full bg-secondary"
+                aria-hidden
+              >
+                {STAGES.map(([key, , tone]) =>
+                  data.stages[key] ? (
                     <span
-                      className="block h-full rounded-full bg-primary"
-                      style={{ width: `${Math.max(share * 100, n ? 3 : 0)}%` }}
+                      key={key}
+                      className={tone}
+                      style={{ width: `${(data.stages[key] / people) * 100}%` }}
                     />
-                  </span>
-                </li>
-              )
-            })}
-          </ol>
-          <p className="text-xs text-muted-foreground">
-            {count(total)} {plural(total, "person", "people")} enquired
-            {insights.capped ? " (the latest 800 counted)" : ""} ·{" "}
-            {count(insights.funnel.lost)} lost
-          </p>
-        </Panel>
-      </div>
+                  ) : null
+                )}
+              </div>
+              <ul className="mbs-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {STAGES.map(([key, label, tone]) => (
+                  <li key={key} className="inline-flex items-center gap-1.5">
+                    <span className={cn("size-2 rounded-full", tone)} />
+                    {label}{" "}
+                    <span className="tnum">{count(data.stages[key])}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-      <div className="grid gap-3 lg:grid-cols-5">
-        <Panel
-          title="Where people come from, last 30 days"
-          className="lg:col-span-3"
-        >
-          {insights.sources.length ? (
             <table className="w-full text-sm">
+              <caption className="sr-only">Where enquiries came from</caption>
               <thead>
                 <tr className="text-left text-xs text-muted-foreground">
-                  <th className="pbe-2 font-medium">Source</th>
-                  <th className="pbe-2 text-right font-medium">People</th>
-                  <th className="pbe-2 text-right font-medium">Enrolled</th>
-                  <th className="hidden w-1/3 ps-3 pbe-2 font-medium sm:table-cell">
-                    Share
-                  </th>
+                  <th className="pbe-1.5 font-medium">Came from</th>
+                  <th className="pbe-1.5 text-right font-medium">People</th>
+                  <th className="pbe-1.5 text-right font-medium">Enrolled</th>
                 </tr>
               </thead>
               <tbody>
-                {insights.sources.map((row) => (
+                {data.sources.map((row) => (
                   <tr key={row.source} className="border-t border-border">
-                    <td className="py-2 pe-2">{sourceName(row.source)}</td>
-                    <td className="tnum py-2 text-right">
+                    <td className="py-1.5 pe-2">{sourceName(row.source)}</td>
+                    <td className="tnum py-1.5 text-right">
                       {count(row.people)}
                     </td>
-                    <td className="tnum py-2 text-right">
+                    <td className="tnum py-1.5 text-right">
                       {count(row.enrolled)}
-                      <span className="text-xs text-muted-foreground">
-                        {" "}
-                        ({Math.round((row.enrolled / row.people) * 100)}%)
-                      </span>
-                    </td>
-                    <td className="hidden py-2 ps-3 sm:table-cell">
-                      <span className="sr-only">
-                        {Math.round((row.people / maxSource) * 100)}% of the
-                        largest source
-                      </span>
-                      <span
-                        aria-hidden
-                        className="block h-1.5 overflow-clip rounded-full bg-secondary"
-                      >
-                        <span
-                          className="block h-full rounded-full bg-primary/70"
-                          style={{
-                            width: `${(row.people / maxSource) * 100}%`,
-                          }}
-                        />
-                      </span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : (
-            <p className="text-sm text-muted-foreground">No enquiries yet.</p>
-          )}
-        </Panel>
 
-        <Panel title="Pages that bring enquiries" className="lg:col-span-2">
-          {insights.pages.length ? (
-            <ol className="grid gap-1.5 text-sm">
-              {insights.pages.map((row) => (
-                <li key={row.page} className="flex justify-between gap-3">
-                  <a
-                    href={row.page}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="min-w-0 truncate underline-offset-4 hover:underline"
-                    title={row.page}
-                  >
-                    {row.page}
-                  </a>
-                  <span className="tnum text-muted-foreground">
-                    {count(row.people)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Website enquiries will show the page they came from.
-            </p>
-          )}
-        </Panel>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        {week.topSets ? (
-          <Panel title="Best-selling sets" href="/admin/books" action="Shop">
-            {week.topSets.length ? (
-              <ol className="grid gap-1 text-sm">
-                {week.topSets.map((set) => (
-                  <li key={set.slug} className="flex justify-between gap-3">
-                    <span className="min-w-0 truncate">{set.title}</span>
-                    <span className="tnum text-muted-foreground">
-                      {count(set.sold)} sold
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="text-sm text-muted-foreground">No sets sold yet.</p>
-            )}
-          </Panel>
-        ) : null}
-        {week.livePromotions !== undefined ? (
-          <Panel
-            title="Promotions live now"
-            href="/admin/promotions"
-            action="Promotions"
-          >
-            <span className="tnum font-display text-3xl font-semibold">
-              {week.livePromotions}
-            </span>
-          </Panel>
-        ) : null}
-        {week.lastSync ? (
-          <Panel title="ClassPlus sync" href="/admin/courses" action="Courses">
-            <span
-              className={
-                week.lastSync.status === "ok"
-                  ? "text-sm font-medium"
-                  : "text-sm font-medium text-destructive"
-              }
-            >
-              {week.lastSync.status === "ok"
-                ? `${week.lastSync.seen} courses up to date`
-                : "Last sync failed"}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {ago(week.lastSync.at, now)}
-            </span>
-          </Panel>
-        ) : null}
-      </div>
-    </div>
+            {data.pages.length ? (
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground">
+                  Pages people enquired from
+                </h3>
+                <ol className="mbs-1.5 grid gap-1 text-sm">
+                  {data.pages.map((row) => (
+                    <li key={row.page} className="flex justify-between gap-3">
+                      <a
+                        href={row.page}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="min-w-0 truncate underline-offset-4 hover:underline"
+                      >
+                        {row.page}
+                      </a>
+                      <span className="tnum text-muted-foreground">
+                        {count(row.people)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+            {data.capped ? (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <IconAlertTriangle aria-hidden size={14} stroke={1.75} />
+                Busy month: the latest 600 enquiries are counted.
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No enquiries in the last 30 days yet.
+          </p>
+        )}
+      </Card>
+    </>
   )
 }

@@ -56,7 +56,10 @@ function Inbox() {
   // this URL costs one boolean rather than a read of the follow-up queue.
   const allowed = useQuery(api.leads.canSeeInbox)
   // ?lead=<id> opens that person's sheet: links from the overview land here.
-  const linked = useSearchParams().get("lead") as Id<"persons"> | null
+  const params = useSearchParams()
+  const linked = params.get("lead") as Id<"persons"> | null
+  // ?view=due or ?view=new: the overview's queue rows land on that list.
+  const linkedView = params.get("view")
   const [chosen, setChosen] = useState<Id<"persons"> | null>(null)
   const [dismissed, setDismissed] = useState(false)
   const openId = chosen ?? (dismissed ? null : linked)
@@ -76,7 +79,9 @@ function Inbox() {
    * server for a different slice rather than hiding rows already fetched.
    * The queue opens on the work - new enquiries and due follow-ups.
    */
-  const [view, setView] = useState<InboxView>("action")
+  const [view, setView] = useState<InboxView>(
+    linkedView === "due" || linkedView === "new" ? linkedView : "action"
+  )
   const [track, setTrack] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebounced(search.trim(), 300)
