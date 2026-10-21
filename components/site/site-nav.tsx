@@ -79,7 +79,7 @@ export function SiteNav({
       aria-label={label}
       // Phones and tablets get the full menu sheet instead (site-menu.tsx).
       className="max-lg:hidden"
-      delay={80}
+      delay={50}
       closeDelay={160}
       positioner={{ anchor, align: "center", sideOffset: 10 }}
     >

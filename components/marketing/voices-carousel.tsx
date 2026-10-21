@@ -7,10 +7,11 @@ import {
 } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
-import { useId, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 
 import { VideoDialog } from "@/components/marketing/video-dialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useDragScroll } from "@/hooks/use-drag-scroll"
 import { type StudentReview, thumb } from "@/lib/stories"
 
 type Filter = "all" | StudentReview["exam"]
@@ -30,6 +31,27 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
   const shown =
     filter === "all" ? reviews : reviews.filter((r) => r.exam === filter)
   const exams = [...new Set(reviews.map((r) => r.exam))]
+  const [edges, setEdges] = useState({ start: true, end: false })
+  useDragScroll(track)
+
+  const sync = useCallback(() => {
+    const el = track.current
+    if (!el) return
+    const left = Math.abs(el.scrollLeft)
+    const start = left <= 2
+    const end = left >= el.scrollWidth - el.clientWidth - 2
+    setEdges((prev) =>
+      prev.start === start && prev.end === end ? prev : { start, end }
+    )
+  }, [])
+  useEffect(() => {
+    const el = track.current
+    if (!el) return
+    sync()
+    const observer = new ResizeObserver(sync)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [sync, filter])
 
   const step = (direction: number) => {
     const el = track.current
@@ -69,9 +91,10 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
             type="button"
             data-press
             onClick={() => step(-1)}
+            disabled={edges.start}
             aria-controls={`${id}-track`}
             aria-label={t("previous")}
-            className="grid size-11 place-items-center rounded-full bg-card shadow-[inset_0_0_0_1px_var(--border)]"
+            className="grid size-11 place-items-center rounded-full bg-card shadow-[inset_0_0_0_1px_var(--border)] disabled:opacity-35"
           >
             <IconChevronLeft aria-hidden size={20} stroke={1.75} />
           </button>
@@ -79,9 +102,10 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
             type="button"
             data-press
             onClick={() => step(1)}
+            disabled={edges.end}
             aria-controls={`${id}-track`}
             aria-label={t("next")}
-            className="grid size-11 place-items-center rounded-full bg-card shadow-[inset_0_0_0_1px_var(--border)]"
+            className="grid size-11 place-items-center rounded-full bg-card shadow-[inset_0_0_0_1px_var(--border)] disabled:opacity-35"
           >
             <IconChevronRight aria-hidden size={20} stroke={1.75} />
           </button>
@@ -92,6 +116,7 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
         id={`${id}-track`}
         ref={track}
         data-voices-track
+        onScroll={sync}
         aria-label={t("listLabel", { count: shown.length })}
         className="mbs-8"
       >

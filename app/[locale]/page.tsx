@@ -1,16 +1,16 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
+import { setRequestLocale } from "next-intl/server"
 
 import { Ask } from "@/components/home/ask"
 import { Books } from "@/components/home/books"
 import { ExamMarquee } from "@/components/home/exam-marquee"
 import { ExamStack } from "@/components/home/exam-stack"
-import { StudentVoices } from "@/components/marketing/student-voices"
 import { Faq } from "@/components/home/faq"
 import { FreeFirst } from "@/components/home/free-first"
 import { Hero } from "@/components/home/hero"
 import { JoinBand } from "@/components/home/join-band"
 import { LoopWatch } from "@/components/home/loop-watch"
 import { Results } from "@/components/home/results"
+import { StudentFan } from "@/components/home/student-fan"
 import { Teachers } from "@/components/home/teachers"
 import { publishedBundles, publishedResources } from "@/lib/catalog-server"
 import { newestBatch } from "@/lib/courses"
@@ -24,7 +24,6 @@ export const revalidate = 300
 export default async function Page({ params }: PageProps<"/[locale]">) {
   const { locale } = await params
   setRequestLocale(locale)
-  const pulse = await getTranslations("Pulse")
   const [courses, bundles, resources, today] = await Promise.all([
     liveCourses(),
     publishedBundles().catch(() => []),
@@ -37,7 +36,7 @@ export default async function Page({ params }: PageProps<"/[locale]">) {
       <ExamMarquee />
       <main>
         <ExamStack courses={courses} />
-        <StudentVoices limit={8} heading={pulse("voicesHeading")} />
+        <StudentFan />
         <FreeFirst resources={resources} courses={courses} />
         <Books bundles={bundles} />
         <Teachers />
