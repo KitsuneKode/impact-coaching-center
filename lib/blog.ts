@@ -31,7 +31,14 @@ export type PostCard = {
   publishedAt?: number
   updatedAt: number
   cover?: Picture | null
+  /** Reading time, whole minutes. */
+  minutes?: number
+  /** Counted reads (convex/blog.ts countRead); shown from READS_FROM. */
+  reads?: number
 }
+
+/** Below this a read count says "nobody reads this" more than anything. */
+export const READS_FROM = 100
 
 export type Post = PostCard & { body: string }
 

@@ -1,7 +1,8 @@
-import { IconPlus } from "@tabler/icons-react"
+import { IconBrandWhatsapp, IconPlus } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 
 import { useContent } from "@/i18n/content"
+import { contactHref } from "@/lib/contact"
 import { fillFees, type Course } from "@/lib/courses"
 
 /**
@@ -42,30 +43,40 @@ export function Faq({
           }}
         />
       )}
-      <div className="container-page">
-        <h2 id="faq-heading" className="type-display mbe-10">
-          {heading ?? t("questions")}
-        </h2>
-        <div className="grid items-start gap-3 md:grid-cols-2">
+      <div className="container-page grid gap-10 lg:grid-cols-12 lg:gap-16">
+        {/* Beside the list on wide screens, so it stays in view while reading. */}
+        <div className="grid content-start gap-4 lg:sticky lg:inset-bs-[calc(var(--header-height)+2rem)] lg:col-span-4 lg:self-start">
+          <h2 id="faq-heading" className="type-display">
+            {heading ?? t("questions")}
+          </h2>
+          <p className="max-w-[34ch] text-pretty text-muted-foreground">
+            {t("faqLede")}
+          </p>
+          <a
+            href={contactHref({ kind: "question" })}
+            target="_blank"
+            rel="noreferrer noopener"
+            data-press
+            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-secondary ps-4 pe-5 text-sm font-semibold"
+          >
+            <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
+            {t("faqAsk")}
+          </a>
+        </div>
+        <div data-faq-list className="lg:col-span-8">
           {faqs.map((item, index) => (
-            <details
-              key={item.q}
-              name="faq"
-              open={index === 0}
-              data-faq
-              className="rounded-[22px] bg-card shadow-[0_0_0_1px_var(--border)]"
-            >
-              <summary className="flex cursor-pointer items-start justify-between gap-4 p-5 font-semibold sm:p-6">
+            <details key={item.q} name="faq" open={index === 0} data-faq>
+              <summary className="flex cursor-pointer items-start justify-between gap-6 py-5 text-lg font-semibold text-balance">
                 {item.q}
-                <IconPlus
+                <span
                   aria-hidden
-                  size={18}
-                  stroke={2}
                   data-faq-icon
-                  className="mbs-0.5 flex-none text-muted-foreground"
-                />
+                  className="mbs-0.5 grid size-8 flex-none place-items-center rounded-full"
+                >
+                  <IconPlus size={16} stroke={2} />
+                </span>
               </summary>
-              <p className="ps-5 pe-5 pbe-5 text-muted-foreground sm:ps-6 sm:pe-6 sm:pbe-6">
+              <p className="max-w-[62ch] pe-14 pbe-6 text-pretty text-muted-foreground">
                 {item.a}
               </p>
             </details>

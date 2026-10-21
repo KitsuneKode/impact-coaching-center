@@ -7,6 +7,8 @@ import { notFound } from "next/navigation"
 
 import { PostContents } from "@/components/blog/post-contents"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
+import { ReadCounter } from "@/components/blog/read-counter"
+import { READS_FROM } from "@/lib/blog"
 import { headingsOf, readingMinutes } from "@/lib/article"
 import { brand } from "@/lib/brand"
 import { publishedPost } from "@/lib/catalog-server"
@@ -177,7 +179,18 @@ export default async function PostPage({
                 <IconClock aria-hidden size={15} stroke={1.75} />
                 {tb("readTime", { minutes: readingMinutes(post.body) })}
               </span>
+              {(post.reads ?? 0) >= READS_FROM ? (
+                <span>
+                  {tb("reads", {
+                    count: new Intl.NumberFormat(
+                      locale === "as" ? "as-IN" : "en-IN",
+                      { notation: "compact" }
+                    ).format(post.reads ?? 0),
+                  })}
+                </span>
+              ) : null}
             </p>
+            <ReadCounter slug={post.slug} />
             {post.excerpt ? (
               <p
                 lang={lang}

@@ -97,7 +97,7 @@ export function CourseBoard({
       >
         <div
           data-board-bar
-          className="sticky z-20 flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-2 p-1.5"
+          className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-2 p-1.5"
         >
           <h2 id="all-courses-heading" className="sr-only">
             {t("heading")}
@@ -157,19 +157,14 @@ export function CourseBoard({
               const own = !examOf[answers.exam ?? ""]
                 ? true
                 : pick.course.track === examOf[answers.exam ?? ""]
+              // Courses for another exam say so on the card itself (its exam
+              // chip); a label over each was noise.
               const label =
                 index === 0
                   ? t("best")
-                  : !own
-                    ? t("other", {
-                        exam:
-                          Object.values(exams).find(
-                            (e) => e.exam === pick.course.track
-                          )?.label ?? "",
-                      })
-                    : pick.score >= GOOD_FIT
-                      ? t("good")
-                      : undefined
+                  : own && pick.score >= GOOD_FIT
+                    ? t("good")
+                    : undefined
               return (
                 <li
                   key={pick.course.slug}

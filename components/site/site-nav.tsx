@@ -21,7 +21,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
-import { type RefObject, useEffect, useState } from "react"
+import { type RefObject, useEffect, useRef, useState } from "react"
 
 import {
   NavigationMenu,
@@ -79,6 +79,39 @@ export function SiteNav({
     setShownOn(path)
     setOpen(null)
   }
+  // One highlight that slides between the sections, the way a finger would
+  // move along them, instead of each lighting up on its own. It is moved by
+  // writing its style directly (a CSS transition does the motion), so moving
+  // the pointer along the row never re-renders anything.
+  const list = useRef<HTMLUListElement>(null)
+  const pillTo = (target: Element | null) => {
+    const row = list.current
+    const pill = row?.querySelector<HTMLElement>("[data-nav-pill]")
+    if (!row || !pill) return
+    if (!target) {
+      pill.removeAttribute("data-shown")
+      return
+    }
+    const box = target.getBoundingClientRect()
+    const frame = row.getBoundingClientRect()
+    const appearing = !pill.hasAttribute("data-shown")
+    // Appearing: arrive in place rather than slide in from the last spot.
+    if (appearing) pill.style.transitionProperty = "opacity"
+    pill.style.translate = `${box.left - frame.left}px 0`
+    pill.style.inlineSize = `${box.width}px`
+    pill.setAttribute("data-shown", "")
+    if (appearing) {
+      void pill.offsetWidth
+      pill.style.transitionProperty = ""
+    }
+  }
+  const openTrigger = () =>
+    list.current?.querySelector("[data-site-trigger][data-popup-open]") ?? null
+  useEffect(() => {
+    if (open !== null) pillTo(openTrigger())
+    else if (!list.current?.matches(":hover")) pillTo(null)
+  }, [open])
+
   useEffect(() => {
     if (open === null) return
     const from = window.scrollY
@@ -102,7 +135,11 @@ export function SiteNav({
       closeDelay={160}
       positioner={{ anchor, align: "center", sideOffset: 10 }}
     >
-      <NavigationMenuList>
+      <NavigationMenuList
+        ref={list}
+        onPointerLeave={() => pillTo(openTrigger())}
+      >
+        <li aria-hidden data-nav-pill />
         {NAV_MENUS.map((menu) => {
           const section = menu.key === "ict" ? t("ict") : nav(menu.key)
           const current = menu.items.some(
@@ -116,6 +153,8 @@ export function SiteNav({
               <NavigationMenuTrigger
                 data-site-trigger
                 data-current={current ? "" : undefined}
+                onPointerEnter={(e) => pillTo(e.currentTarget)}
+                onFocus={(e) => pillTo(e.currentTarget)}
               >
                 {section}
               </NavigationMenuTrigger>

@@ -2381,14 +2381,26 @@
   [data-faq] summary::-webkit-details-marker {
     display: none;
   }
+  /* One column, hairlines between: it stays even when an answer opens. */
+  [data-faq] {
+    border-block-end: 1px solid var(--border);
+  }
+  [data-faq]:first-child {
+    border-block-start: 1px solid var(--border);
+  }
   [data-faq] summary:focus-visible {
     outline: 2px solid var(--ring);
-    outline-offset: -2px;
-    border-radius: 22px;
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  [data-faq-icon] {
+    background-color: var(--secondary);
+    color: var(--muted-foreground);
   }
   [data-faq][open] [data-faq-icon] {
     rotate: 45deg;
-    color: var(--foreground);
+    background-color: var(--foreground);
+    color: var(--background);
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-faq] {
@@ -2405,7 +2417,10 @@
       block-size: auto;
     }
     [data-faq-icon] {
-      transition: rotate 0.2s var(--ease-out-strong);
+      transition:
+        rotate 0.2s var(--ease-out-strong),
+        background-color 0.2s var(--ease-out-strong),
+        color 0.2s var(--ease-out-strong);
     }
   }
   @media (hover: hover) and (pointer: fine) {
@@ -2786,9 +2801,6 @@
 /* ---------------------------------------------- course board (/courses) */
 @layer components {
   [data-board-bar] {
-    inset-block-start: calc(
-      var(--header-height) + var(--strip-height) + 0.5rem
-    );
     background-color: var(--background);
     border-radius: 999px;
     box-shadow: 0 10px 24px -18px
@@ -3107,6 +3119,25 @@
     background-color: var(--card);
     box-shadow: 0 1px 2px
       color-mix(in oklch, var(--foreground) 10%, transparent);
+  }
+  /* Five upright reviews in a row; phones swipe them. */
+  [data-trust-strip] > li {
+    flex: 1 1 0;
+  }
+  @media (width < 48rem) {
+    [data-trust-strip] {
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      margin-inline: -1.25rem;
+      padding-inline: 1.25rem;
+      scroll-padding-inline: 1.25rem;
+    }
+    [data-trust-strip] > li {
+      flex: none;
+      inline-size: 38%;
+      scroll-snap-align: start;
+    }
   }
   [data-trust-face] {
     box-shadow: inset 0 0 0 1px oklch(0% 0 none / 0.08);

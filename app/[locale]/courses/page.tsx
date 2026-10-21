@@ -179,6 +179,8 @@ async function CourseCard({ course }: { course: Course }) {
   const board = await getTranslations("Board")
   const content = await contentFor(await getLocale())
   const legacy = schedules[course.id]
+  const trackOf = tracks.find((tr) => tr.exam === course.track)
+  const exam = trackOf ? content.track(trackOf.slug).exam : undefined
   const when = course.timing
     ? course.timing
     : legacy?.when
@@ -202,7 +204,7 @@ async function CourseCard({ course }: { course: Course }) {
             alt={t("poster", { name: course.short })}
             fill
             sizes="(min-width: 1024px) 34rem, (min-width: 640px) 50vw, 8rem"
-            className="object-cover"
+            className="object-cover object-top"
           />
         ) : null}
       </span>
@@ -216,10 +218,14 @@ async function CourseCard({ course }: { course: Course }) {
           </span>
         ) : null}
         <span className="tnum mbs-4 flex flex-wrap gap-2 text-sm max-sm:mbs-2 max-sm:text-xs">
-          <span data-course-chip>
-            <IconClock aria-hidden size={15} stroke={1.75} />
-            {when ?? t("askTiming")}
-          </span>
+          {exam ? <span data-course-chip>{exam}</span> : null}
+          {/* No timing on file: say nothing rather than "ask" on every card. */}
+          {when ? (
+            <span data-course-chip>
+              <IconClock aria-hidden size={15} stroke={1.75} />
+              {when}
+            </span>
+          ) : null}
           {course.learners >= PROOF_FROM ? (
             <span data-course-chip>
               <IconUsers aria-hidden size={15} stroke={1.75} />

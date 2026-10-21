@@ -415,6 +415,13 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_published_and_publishedAt", ["published", "publishedAt"]),
 
+  /** How often each post has been read: one row per post, kept apart from
+      the post so counting never conflicts with an edit. */
+  postStats: defineTable({
+    postId: v.id("posts"),
+    reads: v.number(),
+  }).index("by_postId", ["postId"]),
+
   /** Exam dates from official notices. Days are IST `yyyy-mm-dd`. */
   examDates: defineTable({
     exam: v.union(...CALENDAR_EXAMS.map((exam) => v.literal(exam))),

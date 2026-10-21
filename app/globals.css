@@ -629,8 +629,24 @@
   [data-site-trigger]:is([data-current], [data-popup-open]) {
     color: var(--foreground);
   }
-  [data-site-trigger][data-popup-open] {
+  /* The sliding highlight (site-nav.tsx), under the section names. */
+  [data-site-nav] [data-slot="navigation-menu-list"] {
+    position: relative;
+  }
+  [data-nav-pill] {
+    position: absolute;
+    inset-block: 4px;
+    inset-inline-start: 0;
+    border-radius: 999px;
     background-color: var(--secondary);
+    opacity: 0;
+    pointer-events: none;
+  }
+  [data-nav-pill][data-shown] {
+    opacity: 1;
+  }
+  [data-site-trigger] {
+    position: relative;
   }
   [data-site-trigger][data-popup-open] [data-slot="navigation-menu-chevron"] {
     rotate: 180deg;
@@ -722,9 +738,13 @@
         box-shadow 0.2s var(--ease-out-strong);
     }
     [data-site-trigger] {
+      transition: color 0.15s ease;
+    }
+    [data-nav-pill] {
       transition:
-        color 0.15s ease,
-        background-color 0.15s ease;
+        translate 0.28s var(--ease-out-strong),
+        inline-size 0.28s var(--ease-out-strong),
+        opacity 0.15s ease;
     }
     [data-slot="navigation-menu-chevron"] {
       transition: rotate 0.2s var(--ease-out-strong);
@@ -733,7 +753,6 @@
   @media (hover: hover) and (pointer: fine) {
     [data-site-trigger]:hover {
       color: var(--foreground);
-      background-color: var(--secondary);
     }
   }
 
@@ -774,6 +793,8 @@
     }
     & [data-site-trigger]:is([data-current], [data-popup-open]) {
       color: oklch(100% 0 none);
+    }
+    & [data-nav-pill] {
       background-color: color-mix(in oklch, white 16%, transparent);
     }
     & [data-site-header-row] > :not(:has([data-menu-button])) {
@@ -791,7 +812,6 @@
       [data-site-header]:not([data-stuck])
       [data-site-trigger]:hover {
       color: oklch(100% 0 none);
-      background-color: color-mix(in oklch, white 16%, transparent);
     }
   }
 }
@@ -1478,11 +1498,11 @@ body :lang(as) {
     }
     [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="right"],
     [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="left"] {
-      translate: 1.5rem 0;
+      translate: 0.75rem 0;
     }
     [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="left"],
     [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="right"] {
-      translate: -1.5rem 0;
+      translate: -0.75rem 0;
     }
     [data-menu-tile],
     [data-menu-all],

@@ -22,10 +22,14 @@ export type EnquiryIntent =
   | { kind: "dates" }
   /** Site search found nothing for what they typed. */
   | { kind: "search"; query: string }
+  /** A question the FAQ did not answer. */
+  | { kind: "question" }
   | { kind: "call" }
 
 function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
   switch (intent.kind) {
+    case "question":
+      return "Hello ICT, I have a question that is not on your website: "
     case "workshop":
       return "Hello ICT, I would like to try a free workshop before joining. Which courses have one?"
     case "track":
