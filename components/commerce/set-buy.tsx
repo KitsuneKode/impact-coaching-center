@@ -21,10 +21,13 @@ export function SetBuy({
   slug,
   title,
   variants,
+  sample = false,
 }: {
   slug: string
   title: string
   variants: PublicBundle["variants"]
+  /** A placeholder set: prices show, nothing goes in the cart. */
+  sample?: boolean
 }) {
   const t = useTranslations("Shop")
   const { add } = useCartActions()
@@ -51,6 +54,23 @@ export function SetBuy({
       {LANGUAGES.map((language) => {
         const variant = variants[language]
         const name = language === "as" ? t("assameseSet") : t("englishSet")
+        if (sample && variant.available)
+          return (
+            <span
+              key={language}
+              data-set-price
+              data-off=""
+              title={t("sampleNotOnSale")}
+              className="tnum inline-flex min-w-0 flex-col rounded-2xl ps-4 pe-4 pbs-2 pbe-2"
+            >
+              <span className="text-xs whitespace-nowrap text-muted-foreground">
+                {name}
+              </span>
+              <span className="font-display text-lg font-semibold">
+                {formatPaise(variant.pricePaise)}
+              </span>
+            </span>
+          )
         if (!variant.available)
           return (
             <span

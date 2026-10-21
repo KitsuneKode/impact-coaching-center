@@ -167,7 +167,7 @@ export function SetView({
                 </span>
               </p>
               <div className="mbs-5">
-                {variant.available ? (
+                {variant.available && !bundle.sample ? (
                   <AddToCart
                     slug={bundle.slug}
                     language={language}
@@ -181,7 +181,7 @@ export function SetView({
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    {t("notAvailable")}
+                    {bundle.sample ? t("sampleNotOnSale") : t("notAvailable")}
                   </p>
                 )}
               </div>

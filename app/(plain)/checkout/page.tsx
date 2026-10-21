@@ -23,7 +23,12 @@ import { Input } from "@/components/ui/input"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import { track } from "@/lib/analytics"
-import { useCart, useCartHydrated, useCartSync } from "@/lib/cart-store"
+import {
+  useCart,
+  useCartActions,
+  useCartHydrated,
+  useCartSync,
+} from "@/lib/cart-store"
 import { inLanguage } from "@/lib/catalog"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
@@ -118,6 +123,7 @@ type Placed = { reference: string; totalPaise: number }
 
 function CheckoutForm() {
   const lines = useCart((s) => s.lines)
+  const cart = useCartActions()
   const bundles = useQuery(api.catalog.bundles)
   const shop = useQuery(api.settings.shop)
   const placeOrder = useMutation(api.checkout.placeOrder)
@@ -259,9 +265,27 @@ function CheckoutForm() {
       </PageShell>
     )
 
-  const missing = lines.filter(
-    (line) => !rows.some((row) => row.slug === line.slug)
-  )
+  // Lines the shop cannot sell, each with the real reason, so the buyer
+  // can remove exactly that one here instead of guessing in the cart.
+  const missing = lines
+    .filter(
+      (line) =>
+        !rows.some(
+          (row) => row.slug === line.slug && row.language === line.language
+        )
+    )
+    .map((line) => {
+      const bundle = bundles?.find((b) => b.slug === line.slug)
+      return {
+        ...line,
+        title: bundle ? inLanguage(bundle.title, line.language) : line.slug,
+        reason: !bundle
+          ? "is no longer sold"
+          : bundle.sample
+            ? "is a sample set and is not on sale yet"
+            : "is not available in this language right now",
+      }
+    })
 
   return (
     <PageShell
@@ -314,11 +338,32 @@ function CheckoutForm() {
                 ))}
               </ul>
               {missing.length > 0 && (
-                <output className="mbs-3 block text-sm text-destructive">
-                  {missing.length === 1 ? "One title is" : "Some titles are"} no
-                  longer available and won't be ordered. Remove{" "}
-                  {missing.length === 1 ? "it" : "them"} in the cart to go on.
-                </output>
+                <ul className="mbs-3 grid gap-2" aria-live="polite">
+                  {missing.map((line) => (
+                    <li
+                      key={`${line.slug}:${line.language}`}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-destructive/8 p-3 text-sm"
+                    >
+                      <span className="text-destructive">
+                        {line.title} (
+                        {line.language === "as" ? "Assamese" : "English"} set){" "}
+                        {line.reason}, so it can&rsquo;t be ordered.
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          cart.remove({
+                            slug: line.slug,
+                            language: line.language,
+                          })
+                        }
+                      >
+                        Remove
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
 

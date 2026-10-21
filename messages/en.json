@@ -363,6 +363,7 @@
     "guestsWatch": "Watch the session"
   },
   "Shop": {
+    "sampleNotOnSale": "Sample set: not on sale yet",
     "checkoutNote": "Sign in with your number to place the order, then pay by UPI, card or net banking through Razorpay.",
     "buyPay": "Pay by UPI, card or net banking, through Razorpay",
     "buyGet": "Delivered to your door, or collect free at the centre",

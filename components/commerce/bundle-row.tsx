@@ -97,7 +97,12 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
           })}
         </span>
         <span className="mbs-auto flex flex-wrap items-end justify-between gap-4">
-          <SetBuy slug={bundle.slug} title={title} variants={bundle.variants} />
+          <SetBuy
+            slug={bundle.slug}
+            title={title}
+            variants={bundle.variants}
+            sample={bundle.sample}
+          />
           <span
             aria-hidden
             className="inline-flex items-center gap-3 font-semibold"
