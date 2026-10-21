@@ -3077,3 +3077,53 @@
     }
   }
 }
+
+/* The trust wall on the home page (components/home/results.tsx). */
+@layer components {
+  [data-trust-card] {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent),
+      0 18px 36px -28px
+        color-mix(in oklch, var(--primary-deep) 40%, transparent);
+  }
+  [data-trust-face] {
+    box-shadow: inset 0 0 0 1px oklch(0% 0 none / 0.08);
+  }
+  /* Green means "verified" and nothing else on this site. */
+  [data-trust-verified] {
+    background-color: color-mix(in oklch, var(--verified) 12%, transparent);
+    color: var(--verified);
+  }
+  [data-trust-verified]:focus-visible,
+  [data-trust-all]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-trust-all] {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+  [data-trust-all] [data-row-go] {
+    background-color: var(--highlight);
+    color: var(--foreground);
+  }
+  [data-trust-all]:active {
+    scale: 0.98;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-trust-post] {
+      transition: scale 0.5s var(--ease-out-strong);
+    }
+    [data-trust-all] {
+      transition: scale 0.16s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-trust-card]:hover [data-trust-post] {
+      scale: 1.03;
+    }
+    [data-trust-verified]:hover {
+      background-color: color-mix(in oklch, var(--verified) 18%, transparent);
+    }
+  }
+}
