@@ -31,10 +31,11 @@ import { SidebarMenuBadge } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
 import { useMinute } from "@/hooks/use-minute"
 import { agency, brand } from "@/lib/brand"
+import { useViewer } from "@/hooks/use-viewer"
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const isOwner = viewer?.role === "owner"
   const content = viewer ? contentNavFor(viewer) : []
   /*

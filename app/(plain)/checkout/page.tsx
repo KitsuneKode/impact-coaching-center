@@ -35,6 +35,7 @@ import { formatPaise } from "@/lib/money"
 import { PayOrder } from "@/components/commerce/pay-order"
 import { place } from "@/lib/brand"
 import { cn } from "@/lib/utils"
+import { useViewer } from "@/hooks/use-viewer"
 
 /*
  * Checkout. The page prices nothing itself for the write: the server reads
@@ -62,7 +63,7 @@ export default function CheckoutPage() {
 function Checkout() {
   /* Merges any guest cart into the server copy on arrival after sign-in. */
   const { synced } = useCartSync()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const hydrated = useCartHydrated()
 
   if (viewer === undefined || !hydrated)

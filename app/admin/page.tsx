@@ -22,6 +22,7 @@ import { PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import { formatPhone } from "@/lib/brand"
 import { cn } from "@/lib/utils"
+import { useViewer } from "@/hooks/use-viewer"
 
 /**
  * The admin home. First what needs somebody now, then whether enquiries
@@ -77,7 +78,7 @@ function greeting(now: number) {
 
 function Home() {
   const now = useMinute()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const leads = useQuery(api.leads.leadCounts, { now })
   const orders = useQuery(api.orders.orderCounts)
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"

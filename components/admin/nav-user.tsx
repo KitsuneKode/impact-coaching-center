@@ -6,7 +6,6 @@ import {
   IconUser,
   IconUserCircle,
 } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -29,15 +28,15 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Spinner } from "@/components/ui/spinner"
-import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
 import { initials } from "@/lib/person"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** Who is signed in, at the foot of the admin sidebar. */
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const router = useRouter()
   const [leaving, setLeaving] = useState(false)
 

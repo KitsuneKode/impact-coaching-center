@@ -10,7 +10,6 @@ import {
   IconPlugConnectedX,
   IconSchool,
 } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useSyncExternalStore } from "react"
@@ -22,7 +21,7 @@ import { DetailsCard } from "@/components/account/details-card"
 import { OrdersCard } from "@/components/account/orders-card"
 import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
-import { api } from "@/convex/_generated/api"
+import { useViewer } from "@/hooks/use-viewer"
 
 const noSubscribe = () => () => {}
 
@@ -50,7 +49,7 @@ function Unavailable() {
 }
 
 function Account() {
-  const live = useQuery(api.auth.getCurrentPerson)
+  const live = useViewer()
   // The server cannot know who is signed in; the first browser render must
   // match it (the loading screen) before showing the greeting.
   const hydrated = useSyncExternalStore(

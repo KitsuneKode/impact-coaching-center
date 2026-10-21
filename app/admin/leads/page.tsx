@@ -14,6 +14,7 @@ import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { InboxView } from "@/convex/leads"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** The follow-up queue. */
 export default function AdminLeadsPage() {
@@ -68,7 +69,7 @@ function Inbox() {
    * table should be told what the viewer may do rather than work it out. The
    * decision itself lives in convex/authz.ts - this only chooses chrome.
    */
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
 
   /*
    * The filters live here because they are the query: changing them asks the

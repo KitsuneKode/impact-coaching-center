@@ -7,7 +7,6 @@ import {
   IconUser,
   IconUserCircle,
 } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -27,11 +26,11 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useStalled } from "@/components/ui/use-stalled"
-import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
 import { resetAnalytics } from "@/lib/analytics"
 import { initials } from "@/lib/person"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** Who you are, and the way out. */
 export function AccountMenu({ className }: { className?: string }) {
@@ -41,7 +40,7 @@ export function AccountMenu({ className }: { className?: string }) {
 
 function Menu({ className }: { className?: string }) {
   const t = useTranslations("Account")
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const router = useRouter()
   const [leaving, setLeaving] = useState(false)
   // A session check that never answers must not hide the way in.

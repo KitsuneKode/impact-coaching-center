@@ -20,6 +20,7 @@ import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 import { identify, track } from "@/lib/analytics"
 import { TERMS_VERSION } from "@/lib/terms"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** What the form needs, which is less than the whole Person. */
 type Viewer = { name: string; revision: number; role?: string }
@@ -27,7 +28,7 @@ type Viewer = { name: string; revision: number; role?: string }
 /** "What should ICT call you?" - asked once, immediately after verification. */
 export function NameStep({ next }: { next: string }) {
   const router = useRouter()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const questionnaire = useQuery(api.profile.ownQuestionnaire)
   const [done, setDone] = useState(false)
   const acceptTerms = useMutation(api.profile.acceptTerms)

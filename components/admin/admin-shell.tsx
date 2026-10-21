@@ -5,7 +5,6 @@ import {
   IconLock,
   IconPlugConnectedX,
 } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -26,9 +25,9 @@ import {
 import { Section } from "@/components/ui/section"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { useStalled } from "@/components/ui/use-stalled"
-import { api } from "@/convex/_generated/api"
 import { authClient } from "@/lib/auth-client"
 import { brand, formatPhone } from "@/lib/brand"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** The admin chrome, and who gets to see it. */
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -123,7 +122,7 @@ function Unreachable() {
 }
 
 function Shell({ children }: { children: ReactNode }) {
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"
   const stalled = useStalled(viewer === undefined)
 

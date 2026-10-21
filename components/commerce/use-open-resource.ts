@@ -1,6 +1,6 @@
 "use client"
 
-import { useMutation, useQuery } from "convex/react"
+import { useMutation } from "convex/react"
 import { useLocale, useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useState, useSyncExternalStore } from "react"
@@ -10,6 +10,7 @@ import type { ViewerPage } from "@/components/commerce/page-viewer"
 import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
 import { track } from "@/lib/analytics"
+import { useViewer } from "@/hooks/use-viewer"
 
 const noop = () => () => {}
 
@@ -35,7 +36,7 @@ export function useOpenResource() {
   const t = useTranslations("Shop")
   const locale = useLocale()
   const router = useRouter()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const openResource = useMutation(api.catalog.openResource)
   const [busy, setBusy] = useState<string | null>(null)
   const [opened, setOpened] = useState<OpenedResource | null>(null)

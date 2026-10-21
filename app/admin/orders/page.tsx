@@ -8,6 +8,7 @@ import { OrdersTable } from "@/components/admin/orders-table"
 import { ButtonAnchor } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** The fulfilment queue. */
 export default function AdminOrdersPage() {
@@ -34,7 +35,7 @@ function Orders() {
   const allowed = useQuery(api.orders.canSeeOrders)
   // The viewer's own Person, for the one role split the screen needs: the
   // refund move is offered only to an owner, matching the server gate.
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const {
     results: orders,
     status,

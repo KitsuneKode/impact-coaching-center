@@ -12,6 +12,7 @@ import {
   type Language,
   ORDER_SETS_MAX,
 } from "@/lib/catalog"
+import { useViewer } from "@/hooks/use-viewer"
 
 export type CartLine = {
   slug: string
@@ -141,7 +142,7 @@ export function useCartHydrated() {
  * commits, because Convex publishes mutation results before query updates.
  */
 export function useCartSync() {
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const serverCart = useQuery(api.carts.myCart)
   const mergeCart = useMutation(api.carts.mergeCart)
   const mergedFor = useRef<string | null>(null)
@@ -197,7 +198,7 @@ export function useCartSync() {
  * server cart, which other devices then see through the mirror above.
  */
 export function useCartActions() {
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const setLine = useMutation(api.carts.setCartLine)
   const authed = viewer != null
 
