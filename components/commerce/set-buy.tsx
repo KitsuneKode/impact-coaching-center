@@ -47,7 +47,7 @@ export function SetBuy({
   }
 
   return (
-    <span className="relative z-10 flex flex-wrap gap-2">
+    <span className="relative z-10 grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
       {LANGUAGES.map((language) => {
         const variant = variants[language]
         const name = language === "as" ? t("assameseSet") : t("englishSet")
@@ -57,7 +57,7 @@ export function SetBuy({
               key={language}
               data-set-price
               data-off=""
-              className="tnum inline-flex flex-col rounded-2xl ps-4 pe-4 pbs-2 pbe-2"
+              className="tnum inline-flex min-w-0 flex-col rounded-2xl ps-4 pe-4 pbs-2 pbe-2"
             >
               <span className="text-xs text-muted-foreground">{name}</span>
               <span className="pbs-1 text-sm font-medium">
@@ -75,10 +75,12 @@ export function SetBuy({
             data-added={done || undefined}
             onClick={() => buy(language)}
             aria-label={t("addSetAria", { set: name, title })}
-            className="tnum inline-flex items-center gap-3 rounded-2xl ps-4 pe-3 pbs-2 pbe-2 text-start"
+            className="tnum inline-flex min-w-0 items-center justify-between gap-2 rounded-2xl ps-3.5 pe-2.5 pbs-2 pbe-2 text-start sm:gap-3 sm:ps-4 sm:pe-3"
           >
-            <span className="flex flex-col">
-              <span className="text-xs text-muted-foreground">{name}</span>
+            <span className="flex min-w-0 flex-col">
+              <span className="text-xs whitespace-nowrap text-muted-foreground">
+                {name}
+              </span>
               <span className="font-display text-lg font-semibold">
                 {formatPaise(variant.pricePaise)}
               </span>
@@ -86,7 +88,7 @@ export function SetBuy({
             <span
               aria-hidden
               data-set-add
-              className="grid size-9 place-items-center rounded-full"
+              className="grid size-8 flex-none place-items-center rounded-full sm:size-9"
             >
               {done ? (
                 <IconCheck size={17} stroke={2.25} />

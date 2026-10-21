@@ -70,11 +70,11 @@ export default async function BooksPage({
             : undefined
         }
       >
-        <ul className="mbs-8 flex flex-wrap gap-3">
+        <ul className="mbs-8 grid gap-2 sm:flex sm:flex-wrap sm:gap-3">
           {promises.map(({ icon: Icon, key }) => (
             <li
               key={key}
-              className="inline-flex items-center gap-3 rounded-full bg-card ps-2 pe-5 pbs-2 pbe-2 text-sm text-muted-foreground shadow-[0_0_0_1px_var(--border)]"
+              className="flex items-center gap-3 text-sm text-muted-foreground sm:inline-flex sm:rounded-full sm:bg-card sm:ps-2 sm:pe-5 sm:pbs-2 sm:pbe-2 sm:shadow-[0_0_0_1px_var(--border)]"
             >
               <span className="grid size-8 place-items-center rounded-full bg-secondary text-foreground">
                 <Icon aria-hidden stroke={1.5} className="size-[18px]" />
