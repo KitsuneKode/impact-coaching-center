@@ -6,7 +6,9 @@ import { contactHref } from "@/lib/contact"
 import { fillFees, type Course } from "@/lib/courses"
 
 /**
- * Questions that open on a tap, one at a time, the first open to show how.
+ * Questions that open on a tap, the first open to show how. Each opens on
+ * its own: closing one above would pull the question just tapped out from
+ * under the finger.
  * Every answer stays in the page, so search reads them all; the full set
  * carries FAQ structured data, and a page showing only the first few
  * (`limit`) leaves that to home.
@@ -57,7 +59,7 @@ export function Faq({
             target="_blank"
             rel="noreferrer noopener"
             data-press
-            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-secondary ps-4 pe-5 text-sm font-semibold"
+            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-secondary ps-4 pe-5 text-sm font-semibold transition-colors duration-150 hover:bg-primary hover:text-primary-foreground"
           >
             <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
             {t("faqAsk")}
@@ -65,7 +67,7 @@ export function Faq({
         </div>
         <div data-faq-list className="lg:col-span-8">
           {faqs.map((item, index) => (
-            <details key={item.q} name="faq" open={index === 0} data-faq>
+            <details key={item.q} open={index === 0} data-faq>
               <summary className="flex cursor-pointer items-start justify-between gap-6 py-5 text-lg font-semibold text-balance">
                 {item.q}
                 <span

@@ -2384,12 +2384,14 @@
   }
   [data-faq-icon] {
     background-color: var(--secondary);
-    color: var(--muted-foreground);
+    color: var(--foreground);
   }
+  /* Open: the brand blue, so the colour change runs light blue to blue and
+     never through a muddy grey. */
   [data-faq][open] [data-faq-icon] {
     rotate: 45deg;
-    background-color: var(--foreground);
-    color: var(--background);
+    background-color: var(--primary);
+    color: var(--primary-foreground);
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-faq] {
@@ -2405,16 +2407,32 @@
     [data-faq][open]::details-content {
       block-size: auto;
     }
+    /* The answer fades as the row opens, so no half-cut line shows. */
+    [data-faq] > p {
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    }
+    [data-faq][open] > p {
+      opacity: 1;
+      transition: opacity 0.2s ease 0.06s;
+    }
     [data-faq-icon] {
       transition:
-        rotate 0.2s var(--ease-out-strong),
-        background-color 0.2s var(--ease-out-strong),
-        color 0.2s var(--ease-out-strong);
+        rotate 0.22s var(--ease-out-strong),
+        background-color 0.15s ease,
+        color 0.15s ease;
+    }
+    [data-faq] summary {
+      transition: color 0.15s ease;
     }
   }
   @media (hover: hover) and (pointer: fine) {
-    [data-faq] summary:hover [data-faq-icon] {
-      color: var(--foreground);
+    [data-faq] summary:hover {
+      color: var(--primary);
+    }
+    [data-faq]:not([open]) summary:hover [data-faq-icon] {
+      background-color: color-mix(in oklch, var(--primary) 14%, var(--card));
+      color: var(--primary);
     }
   }
 }
