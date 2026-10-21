@@ -142,14 +142,14 @@ export function CatalogList({
                       {detailHeading}: {row.detail}
                     </span>
                     <span className="text-muted-foreground">
-                      {updated(row.updatedAt)}
+                      Updated {updated(row.updatedAt)}
                     </span>
                   </div>
                   <PublishButton
                     row={row}
                     pending={pending === row.id}
                     onToggle={() => toggle(row)}
-                    className="w-full"
+                    stretch
                   />
                 </li>
               ))}
@@ -226,16 +226,17 @@ function PublishButton({
   row,
   pending,
   onToggle,
-  className,
+  stretch = false,
 }: {
   row: CatalogRow
   pending: boolean
   onToggle: () => void
-  className?: string
+  /** Full width, for the phone cards. */
+  stretch?: boolean
 }) {
   const blocked = !row.published && !!row.publishBlocked
   return (
-    <span className={className}>
+    <span className={stretch ? "grid" : "inline-block"}>
       <Button
         variant="secondary"
         size="sm"
@@ -243,7 +244,6 @@ function PublishButton({
         title={row.published ? undefined : row.publishBlocked}
         aria-label={`${row.published ? "Unpublish" : "Publish"} ${row.title}`}
         onClick={onToggle}
-        className={className}
       >
         {row.published ? "Unpublish" : "Publish"}
       </Button>

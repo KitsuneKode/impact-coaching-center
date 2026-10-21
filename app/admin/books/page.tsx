@@ -209,11 +209,10 @@ function SetsTable({ rows }: { rows: SetRow[] }) {
     )
   }
 
-  const publishButton = (row: SetRow, className?: string) => (
+  const publishButton = (row: SetRow) => (
     <Button
       variant="secondary"
       size="sm"
-      className={className}
       disabled={pending === row.id || (!row.published && !row.books)}
       title={
         !row.published && !row.books ? "Add books to the set first" : undefined
@@ -269,7 +268,7 @@ function SetsTable({ rows }: { rows: SetRow[] }) {
                 </div>
               ))}
             </div>
-            {publishButton(row, "w-full")}
+            <div className="grid">{publishButton(row)}</div>
           </li>
         ))}
       </ul>
