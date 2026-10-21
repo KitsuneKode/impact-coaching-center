@@ -1448,11 +1448,18 @@ body :lang(as) {
   ) {
     opacity: 0;
   }
-  [data-slot="navigation-menu-content"]:is(
-    [data-starting-style],
-    [data-ending-style]
-  ) {
+  /* The list fades only when it is replaced by another section's. On the
+     first open it arrives with the panel: one fade, not one inside another. */
+  [data-slot="navigation-menu-content"][data-activation-direction]:is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
     opacity: 0;
+  }
+  /* Kept on its own layer while open, so the end of the opening does not
+     drop the layer and redraw the panel and its shadow a pixel off. */
+  [data-slot="navigation-menu-popup"][data-open] {
+    will-change: transform, opacity;
   }
   [data-menu-tile] {
     color: var(--foreground);
@@ -1493,6 +1500,9 @@ body :lang(as) {
     }
     [data-slot="navigation-menu-popup"][data-ending-style] {
       transition-duration: 0.14s;
+    }
+    [data-instant] {
+      transition-duration: 0s;
     }
     [data-slot="navigation-menu-content"] {
       transition:
