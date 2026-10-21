@@ -110,7 +110,7 @@ export default async function ContactPage({
                       <span className="block text-xs text-muted-foreground">
                         {label}
                       </span>
-                      <span className="tnum block truncate font-semibold">
+                      <span className="tnum block font-semibold [overflow-wrap:anywhere]">
                         {value}
                       </span>
                     </span>

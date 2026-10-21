@@ -185,31 +185,37 @@ async function CourseCard({ course }: { course: Course }) {
       ? `${content.phrase(legacy.when)}${legacy.days ? `, ${content.phrase(legacy.days)}` : ""}`
       : undefined
   return (
-    <Link href={`/courses/${course.slug}`} data-course-card>
+    <Link
+      href={`/courses/${course.slug}`}
+      data-course-card
+      // Phones: a row, the poster small beside the name, so 26 courses
+      // read as a list rather than a 10,000px column of posters.
+      className="max-sm:grid max-sm:grid-cols-[7.5rem_minmax(0,1fr)] max-sm:rounded-[20px]"
+    >
       <span
         data-course-poster
-        className="relative block aspect-[16/9] overflow-clip"
+        className="relative block aspect-[16/9] overflow-clip max-sm:m-3 max-sm:me-0 max-sm:self-start max-sm:rounded-xl"
       >
         {course.cover ? (
           <Image
             src={course.cover}
             alt={t("poster", { name: course.short })}
             fill
-            sizes="(min-width: 1024px) 34rem, (min-width: 640px) 50vw, 100vw"
+            sizes="(min-width: 1024px) 34rem, (min-width: 640px) 50vw, 8rem"
             className="object-cover"
           />
         ) : null}
       </span>
-      <span className="flex flex-1 flex-col p-5">
-        <span className="block font-display text-xl font-semibold tracking-[-0.02em] text-balance">
+      <span className="flex flex-1 flex-col p-5 max-sm:p-3">
+        <span className="block font-display text-xl font-semibold tracking-[-0.02em] text-balance max-sm:text-base">
           {course.short}
         </span>
         {course.subtitle ? (
-          <span className="mbs-1 line-clamp-2 block text-muted-foreground">
+          <span className="mbs-1 line-clamp-2 block text-muted-foreground max-sm:line-clamp-1 max-sm:text-sm">
             {content.phrase(course.subtitle)}
           </span>
         ) : null}
-        <span className="tnum mbs-4 flex flex-wrap gap-2 text-sm">
+        <span className="tnum mbs-4 flex flex-wrap gap-2 text-sm max-sm:mbs-2 max-sm:text-xs">
           <span data-course-chip>
             <IconClock aria-hidden size={15} stroke={1.75} />
             {when ?? t("askTiming")}
@@ -221,9 +227,9 @@ async function CourseCard({ course }: { course: Course }) {
             </span>
           ) : null}
         </span>
-        <span className="mbs-auto flex items-end justify-between gap-4 pbs-5">
+        <span className="mbs-auto flex items-end justify-between gap-4 pbs-5 max-sm:pbs-2">
           <span className="tnum">
-            <span className="font-display text-2xl font-semibold">
+            <span className="font-display text-2xl font-semibold max-sm:text-lg">
               {course.free ? t("free") : inr(course.price)}
             </span>
             {!course.free && course.mrp > course.price ? (
@@ -239,7 +245,7 @@ async function CourseCard({ course }: { course: Course }) {
           </span>
           <span
             data-row-go
-            className="grid size-11 flex-none place-items-center rounded-full"
+            className="grid size-11 flex-none place-items-center rounded-full max-sm:size-9"
           >
             <IconArrowRight aria-hidden size={18} stroke={2} />
           </span>

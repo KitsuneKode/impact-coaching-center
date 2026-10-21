@@ -302,7 +302,7 @@ function CheckoutForm() {
                   >
                     <span>
                       {row.title}
-                      <span className="text-muted-foreground">
+                      <span className="whitespace-nowrap text-muted-foreground">
                         {" "}
                         × {row.quantity}
                       </span>
