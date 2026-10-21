@@ -196,6 +196,7 @@ export function CourseBoard({
             <section
               key={group.slug}
               id={group.slug}
+              data-board-group
               aria-labelledby={`${group.slug}-heading`}
               className="scroll-mt-40 pbs-10"
             >

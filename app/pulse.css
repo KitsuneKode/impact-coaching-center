@@ -3187,3 +3187,72 @@
     }
   }
 }
+
+/* The courses page: proof chips, exam doors, joining steps
+   (components/marketing/exam-doors.tsx). */
+@layer components {
+  /* Under its own exam's heading, a card need not name the exam again. */
+  [data-board-group] [data-course-exam] {
+    display: none;
+  }
+  [data-proof-chip] {
+    background-color: var(--card);
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  /* Each exam keeps its colour from the home page's exam stack. */
+  [data-door] {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    --door-dim: var(--on-primary);
+  }
+  [data-door="adre"] {
+    background-color: var(--foreground);
+    color: var(--background);
+    --door-dim: color-mix(in oklch, var(--background) 72%, transparent);
+  }
+  [data-door="banking"] {
+    background-color: var(--highlight);
+    color: var(--foreground);
+    --door-dim: color-mix(in oklch, var(--foreground) 72%, transparent);
+  }
+  [data-door-dim] {
+    color: var(--door-dim);
+  }
+  [data-door-lead] {
+    background-color: var(--card);
+    color: var(--foreground);
+    box-shadow: 0 10px 24px -18px oklch(0% 0 none / 0.5);
+  }
+  [data-door] [data-door-face] {
+    box-shadow: 0 0 0 2px color-mix(in oklch, currentColor 30%, transparent);
+  }
+  [data-door-all] {
+    background-color: color-mix(in oklch, currentColor 14%, transparent);
+  }
+  :is([data-door-lead], [data-door-all]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  :is([data-door-lead], [data-door-all]):active {
+    scale: 0.98;
+  }
+  [data-join-step] {
+    background-color: var(--card);
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :is([data-door-lead], [data-door-all]) {
+      transition:
+        scale 0.16s var(--ease-out-strong),
+        box-shadow 0.2s ease;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-door-lead]:hover {
+      box-shadow: 0 16px 30px -18px oklch(0% 0 none / 0.6);
+    }
+    [data-door-all]:hover {
+      background-color: color-mix(in oklch, currentColor 22%, transparent);
+    }
+  }
+}

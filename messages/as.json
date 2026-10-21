@@ -407,6 +407,15 @@
     "submit": "মোলৈ ফোন কৰক"
   },
   "CoursesPage": {
+    "doorsHeading": "আপোনাৰ পৰীক্ষাৰে আৰম্ভ কৰক।",
+    "doorsLede": "প্ৰতিটো পৰীক্ষাৰ মূল বেচ, কেতিয়া চলে, মাচুল কিমান, আৰু কোনে পঢ়ায়।",
+    "doorLead": "মূল বেচ",
+    "doorCount": "{count, plural, other {#টা পাঠ্যক্ৰম}}",
+    "doorSee": "{exam}ৰ সকলো পাঠ্যক্ৰম",
+    "proofOfficers": "APSC CCE 2022ৰ তালিকাত ICTৰ দুজন বিষয়া",
+    "proofRecorded": "প্ৰতিটো শ্ৰেণী ICT এপত ৰেকৰ্ড কৰা",
+    "joinHeading": "নামভৰ্তি, তিনিটা খোজত।",
+    "joinCta": "ICTক WhatsAppত বাৰ্তা দিয়ক",
     "title": "পাঠ্যক্ৰম আৰু মাচুল",
     "description": "Impact Career Tutorialsৰ প্ৰতিটো চলিত পাঠ্যক্ৰম আৰু বৰ্তমানৰ মাচুল: APSC, ADRE আৰু অসম আৰক্ষী, বেংক, SSC আৰু ৰেলৱে, লগতে বিনামূলীয়া কৰ্মশালা।",
     "claim": "পাঠ্যক্ৰম আৰু মাচুল।",

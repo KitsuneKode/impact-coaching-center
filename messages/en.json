@@ -207,6 +207,15 @@
     "submit": "Request a call back"
   },
   "CoursesPage": {
+    "doorsHeading": "Start with your exam.",
+    "doorsLede": "Each exam's lead batch, when it runs, what it costs, and who teaches it.",
+    "doorLead": "Lead batch",
+    "doorCount": "{count, plural, one {# course} other {# courses}}",
+    "doorSee": "All {exam} courses",
+    "proofOfficers": "2 officers from ICT on the APSC CCE 2022 list",
+    "proofRecorded": "Every class recorded on the ICT app",
+    "joinHeading": "Joining, in three steps.",
+    "joinCta": "Message ICT on WhatsApp",
     "title": "Courses and fees",
     "description": "Every live course at Impact Career Tutorials with its current fee: APSC, ADRE and Assam Police, and Banking, SSC and Railway, plus free workshops.",
     "claim": "Courses and fees.",

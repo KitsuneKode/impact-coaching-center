@@ -1,14 +1,23 @@
-import { IconArrowRight, IconClock, IconUsers } from "@tabler/icons-react"
+import {
+  IconArrowRight,
+  IconArrowUpRight,
+  IconCircleCheckFilled,
+  IconClock,
+  IconDeviceMobile,
+  IconUsers,
+} from "@tabler/icons-react"
 import type { Metadata } from "next"
 import Image from "next/image"
 import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Ask } from "@/components/home/ask"
 import { CourseBoard, type DayBatch } from "@/components/marketing/course-board"
+import { ExamDoors, JoinSteps } from "@/components/marketing/exam-doors"
 import { PageHead } from "@/components/site/page-head"
 import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
-import { facultyBySlug, schedules, tracks } from "@/lib/brand"
+import { facultyBySlug, links, schedules, tracks } from "@/lib/brand"
+import { contactHref } from "@/lib/contact"
 import { parseTiming } from "@/lib/batch-time"
 import { type Course, inr, lineup } from "@/lib/courses"
 import { liveCourses, todayInIndia } from "@/lib/courses-server"
@@ -39,6 +48,7 @@ export default async function CoursesPage({
   const fees = await getTranslations("Fees")
   const nav = await getTranslations("Nav")
   const board = await getTranslations("Board")
+  const cp = await getTranslations("CoursesPage")
   const content = await contentFor(locale)
   const courses = await liveCourses()
 
@@ -89,18 +99,51 @@ export default async function CoursesPage({
         title={t("coursesTitle")}
         lede={`${fees("note")} ${fees("scholarship")}`}
       >
-        {students >= PROOF_FROM ? (
-          <p className="tnum mbs-5 flex items-center gap-2 text-sm font-medium">
-            <IconUsers
+        {/* What can be checked, before anything is asked of the reader. */}
+        <ul className="tnum mbs-6 flex flex-wrap gap-2 text-sm font-medium">
+          <li>
+            <a
+              href={links.apscResultPdf}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-trust-tag="verified"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full ps-3 pe-3.5"
+            >
+              <IconCircleCheckFilled aria-hidden size={16} />
+              {cp("proofOfficers")}
+              <IconArrowUpRight aria-hidden size={14} stroke={2} />
+            </a>
+          </li>
+          {students >= PROOF_FROM ? (
+            <li
+              data-proof-chip
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-full ps-3 pe-3.5"
+            >
+              <IconUsers
+                aria-hidden
+                size={16}
+                stroke={1.75}
+                className="text-primary"
+              />
+              {board("studentsAll", { count: roundDown(students) })}
+            </li>
+          ) : null}
+          <li
+            data-proof-chip
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full ps-3 pe-3.5"
+          >
+            <IconDeviceMobile
               aria-hidden
-              size={18}
+              size={16}
               stroke={1.75}
               className="text-primary"
             />
-            {board("studentsAll", { count: roundDown(students) })}
-          </p>
-        ) : null}
+            {cp("proofRecorded")}
+          </li>
+        </ul>
       </PageHead>
+
+      <ExamDoors courses={courses} />
 
       <CourseBoard
         finder={finderCourses}
@@ -122,6 +165,7 @@ export default async function CoursesPage({
         )}
       />
 
+      <JoinSteps href={contactHref({ kind: "workshop" })} />
       <Ask />
     </main>
   )
@@ -218,7 +262,11 @@ async function CourseCard({ course }: { course: Course }) {
           </span>
         ) : null}
         <span className="tnum mbs-4 flex flex-wrap gap-2 text-sm max-sm:mbs-2 max-sm:text-xs">
-          {exam ? <span data-course-chip>{exam}</span> : null}
+          {exam ? (
+            <span data-course-chip data-course-exam>
+              {exam}
+            </span>
+          ) : null}
           {/* No timing on file: say nothing rather than "ask" on every card. */}
           {when ? (
             <span data-course-chip>
