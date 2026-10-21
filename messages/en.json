@@ -422,6 +422,7 @@
     "notAvailable": "Not available right now",
     "allSets": "All sets",
     "setCount": "{count, plural, one {# set} other {# sets}}",
+    "bookOf": "Book {n} of {count}",
     "insideSet": "What's in the set",
     "placeholderSet": "A placeholder set and price, to show how a set page works.",
     "setOf": "{set}, {language}",

@@ -622,6 +622,7 @@
     "notAvailable": "এতিয়া উপলব্ধ নহয়",
     "allSets": "সকলো সংকলন",
     "setCount": "{count, plural, other {{count}টা সংকলন}}",
+    "bookOf": "{count}খন কিতাপৰ {n} নম্বৰ",
     "insideSet": "সংকলনত কি আছে",
     "placeholderSet": "এই সংকলন আৰু মূল্য নমুনা মাত্ৰ, পৃষ্ঠাটোৱে কেনেকৈ কাম কৰে দেখুৱাবলৈ।",
     "setOf": "{set}, {language}",

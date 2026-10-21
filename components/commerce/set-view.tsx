@@ -231,9 +231,10 @@ export function SetView({
 }
 
 /**
- * The books on a native scroll row: swipe, trackpad and keys all work, each
- * book snaps to the centre and turns to face the reader there (a CSS scroll
- * timeline in app/pulse.css). Arrows are the only script.
+ * The set's books. Wide screens: a still shelf, every book in view (a set
+ * has two to four), dealt out from one stack. Phones: a swipe row with the
+ * current book whole in the middle and its neighbours peeking in, smaller and
+ * dimmed, with dots and arrows. Both are the same list; CSS decides.
  */
 function Coverflow({
   books,
@@ -256,35 +257,46 @@ function Coverflow({
 }) {
   const t = useTranslations("Shop")
   const row = useRef<HTMLUListElement>(null)
-  const [edges, setEdges] = useState({ start: true, end: false })
+  const [state, setState] = useState({ scrollable: false, active: 0 })
   const middle = (books.length - 1) / 2
 
   const sync = useCallback(() => {
     const el = row.current
     if (!el) return
-    const max = el.scrollWidth - el.clientWidth
-    const scrolled = Math.abs(el.scrollLeft)
-    setEdges({ start: scrolled <= 1, end: scrolled >= max - 1 })
+    const scrollable = el.scrollWidth > el.clientWidth + 1
+    const centre = el.getBoundingClientRect().left + el.clientWidth / 2
+    let active = 0
+    let best = Infinity
+    el.querySelectorAll<HTMLElement>("[data-flow-item]").forEach((item, i) => {
+      const box = item.getBoundingClientRect()
+      const gap = Math.abs(box.left + box.width / 2 - centre)
+      if (gap < best) [best, active] = [gap, i]
+    })
+    setState((prev) =>
+      prev.scrollable === scrollable && prev.active === active
+        ? prev
+        : { scrollable, active }
+    )
   }, [])
 
   useEffect(() => {
     const el = row.current
     if (!el) return
-    // Start on the middle book, so the deal lands centred.
-    const items = el.querySelectorAll<HTMLElement>("[data-flow-item]")
-    const centre = items[Math.floor(middle)]
-    if (centre)
-      el.scrollLeft =
-        centre.offsetLeft - (el.clientWidth - centre.clientWidth) / 2
     sync()
-  }, [middle, sync])
+    const observer = new ResizeObserver(sync)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [sync])
 
-  const step = (dir: number) => {
+  const go = (index: number) => {
     const el = row.current
-    const item = el?.querySelector<HTMLElement>("[data-flow-item]")
+    const item = el?.querySelectorAll<HTMLElement>("[data-flow-item]")[index]
     if (!el || !item) return
-    const sign = getComputedStyle(el).direction === "rtl" ? -1 : 1
-    el.scrollBy({ left: sign * dir * item.getBoundingClientRect().width })
+    const box = item.getBoundingClientRect()
+    const frame = el.getBoundingClientRect()
+    el.scrollBy({
+      left: box.left + box.width / 2 - (frame.left + frame.width / 2),
+    })
   }
 
   return (
@@ -296,7 +308,7 @@ function Coverflow({
         onScroll={sync}
         // A scrolling region with no focusable items must take focus itself.
         // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-        tabIndex={0}
+        tabIndex={state.scrollable ? 0 : undefined}
         aria-label={t("booksInSet", { count: books.length })}
       >
         {books.map((book, i) => {
@@ -307,9 +319,12 @@ function Coverflow({
             <li
               key={book.slug}
               data-flow-item
+              data-current={
+                state.scrollable && i === state.active ? "" : undefined
+              }
               style={{ "--deal": i - middle, "--order": i } as CSSProperties}
             >
-              <div>
+              <div data-flow-book>
                 <Book3D
                   title={edition?.title ?? ""}
                   subtitle={edition?.subtitle}
@@ -319,7 +334,10 @@ function Coverflow({
                   tone={TONES[i % TONES.length]}
                 />
               </div>
-              <div className="mbs-5 grid justify-items-center gap-1 text-center">
+              <div
+                data-flow-caption
+                className="mbs-5 grid justify-items-center gap-1 text-center"
+              >
                 <span className="font-display text-lg font-semibold text-balance">
                   {edition?.title}
                 </span>
@@ -345,26 +363,41 @@ function Coverflow({
           )
         })}
       </ul>
-      {books.length > 1 ? (
-        <div className="container-page mbs-4 flex justify-center gap-2">
+      {state.scrollable && books.length > 1 ? (
+        <div className="container-page mbs-5 flex items-center justify-center gap-3">
           <button
             type="button"
             data-press
             data-flow-arrow
             aria-label={prevLabel}
-            disabled={edges.start}
-            onClick={() => step(-1)}
+            disabled={state.active === 0}
+            onClick={() => go(state.active - 1)}
             className="grid size-11 place-items-center rounded-full"
           >
             <IconChevronLeft aria-hidden size={20} stroke={1.75} />
           </button>
+          <div className="flex items-center gap-1">
+            {books.map((book, i) => (
+              <button
+                key={book.slug}
+                type="button"
+                data-flow-dot
+                aria-label={t("bookOf", { n: i + 1, count: books.length })}
+                aria-current={i === state.active ? "true" : undefined}
+                onClick={() => go(i)}
+                className="grid size-6 place-items-center"
+              >
+                <span aria-hidden />
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             data-press
             data-flow-arrow
             aria-label={nextLabel}
-            disabled={edges.end}
-            onClick={() => step(1)}
+            disabled={state.active === books.length - 1}
+            onClick={() => go(state.active + 1)}
             className="grid size-11 place-items-center rounded-full"
           >
             <IconChevronRight aria-hidden size={20} stroke={1.75} />

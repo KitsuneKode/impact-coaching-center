@@ -1079,73 +1079,112 @@
 }
 
 @layer components {
-  /* ------------------------------------------------------ set coverflow */
+  /* ---------------------------------------------------------- set books */
 
+  /* Wide screens: a still shelf with every book in view. Phones: a snap row,
+     the current book whole in the middle (set-view.tsx marks it). */
   [data-flow] {
-    --item: clamp(12rem, 8rem + 14vw, 17rem);
+    --item: clamp(11rem, 7rem + 10vw, 15rem);
     display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-inline: calc(50% - var(--item) / 2);
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(1.5rem, 0.5rem + 3vw, 3.5rem);
     padding-block: 1.5rem 0.5rem;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    padding-inline: clamp(1.25rem, 0.4rem + 2.6vw, 2rem);
+  }
+  [data-flow-item] {
+    flex: none;
+    inline-size: var(--item);
+    perspective: 1200px;
+  }
+  [data-flow] [data-book-inner] {
+    rotate: y 18deg;
   }
   [data-flow]:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 4px;
     border-radius: 12px;
   }
-  [data-flow]::-webkit-scrollbar {
-    display: none;
-  }
-  [data-flow-item] {
-    flex: none;
-    inline-size: var(--item);
-    scroll-snap-align: center;
-    perspective: 1200px;
-  }
-  /* Inside the flow a book rests nearly square on; the row does the turning. */
-  [data-flow] [data-book-inner] {
-    rotate: y 10deg;
+  @media (width < 48rem) {
+    [data-flow] {
+      --item: min(14rem, 62vw);
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      gap: 0.5rem;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      padding-inline: calc(50% - var(--item) / 2);
+    }
+    [data-flow]::-webkit-scrollbar {
+      display: none;
+    }
+    [data-flow-item] {
+      scroll-snap-align: center;
+      scroll-snap-stop: always;
+    }
+    [data-flow] [data-book-inner] {
+      rotate: y 10deg;
+    }
+    /* Neighbours peek in, cover only: smaller and quieter, never a caption
+       cut mid-word at the screen edge. */
+    [data-flow]:has([data-current]) [data-flow-item]:not([data-current]) > * {
+      opacity: 0.4;
+      scale: 0.88;
+    }
+    [data-flow]:has([data-current])
+      [data-flow-item]:not([data-current])
+      > [data-flow-caption] {
+      opacity: 0;
+    }
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-flow] {
       scroll-behavior: smooth;
     }
-    /* The books deal out from a single stack when the page opens. The
-       children move, never the item: Chrome keeps the snap points it measured
-       mid-animation, so a moving item would leave every book snapping centre. */
+    [data-flow-item] > * {
+      transition:
+        opacity 0.3s var(--ease-out-strong),
+        scale 0.3s var(--ease-out-strong);
+    }
+    /* The books deal out from one stack when the page opens. The children
+       move, never the item, so snap points are measured at rest. */
     @keyframes deal {
       from {
         translate: calc(var(--deal) * -100%) 0;
         opacity: 0;
       }
     }
+    @keyframes flow-rise {
+      from {
+        translate: 0 16px;
+        opacity: 0;
+      }
+    }
     [data-flow-item] > * {
-      animation: deal 0.7s var(--ease-out-strong) both;
+      animation: deal 0.7s var(--ease-out-strong) backwards;
       animation-delay: calc(0.15s + var(--order) * 0.08s);
     }
-  }
-  /* Each book turns to face the reader as it reaches the centre: books to the
-     left show their spine, books to the right their page edges. */
-  @keyframes flow-turn {
-    0% {
-      rotate: y -34deg;
-    }
-    50% {
-      rotate: y 0deg;
-    }
-    100% {
-      rotate: y 34deg;
-    }
-  }
-  @supports (animation-timeline: view()) {
-    @media (prefers-reduced-motion: no-preference) {
-      [data-flow] [data-book-inner] {
-        animation: flow-turn linear both;
-        animation-timeline: view(inline);
+    @media (width < 48rem) {
+      [data-flow-item] > * {
+        animation-name: flow-rise;
+        animation-duration: 0.5s;
       }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-flow-item] > * {
+      transition: opacity 0.2s ease;
+    }
+    [data-flow]:has([data-current]) [data-flow-item]:not([data-current]) > * {
+      scale: 1;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) and (width >= 48rem) {
+    [data-flow-item]:hover [data-book-inner] {
+      rotate: y 6deg;
+      translate: 0 -8px;
     }
   }
   [data-flow-arrow] {
@@ -1153,6 +1192,28 @@
   }
   [data-flow-arrow]:disabled {
     opacity: 0.35;
+  }
+  [data-flow-dot] > span {
+    inline-size: 20px;
+    block-size: 6px;
+    border-radius: 999px;
+    background-color: color-mix(in oklch, var(--foreground) 22%, transparent);
+    scale: 0.35 1;
+  }
+  [data-flow-dot][aria-current] > span {
+    background-color: var(--foreground);
+    scale: 1;
+  }
+  [data-flow-dot]:focus-visible {
+    outline: 2px solid var(--ring);
+    border-radius: 999px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-flow-dot] > span {
+      transition:
+        scale 0.25s var(--ease-out-strong),
+        background-color 0.25s var(--ease-out-strong);
+    }
   }
 
   /* The language choice on a set: two priced options. */
