@@ -133,6 +133,18 @@ describe("domain identity and enquiries", () => {
     track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }
+  test("two children asked for from one phone are two enquiries, each named", async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.persons.recordEnquiry, lead)
+    await t.mutation(internal.persons.recordEnquiry, { ...lead, name: "Arjun" })
+    const enquiries = await t.run((ctx) => ctx.db.query("enquiries").collect())
+    expect(enquiries.map((e) => e.name)).toEqual(["Rituparna", "Arjun"])
+    const notes = await t.run((ctx) => ctx.db.query("activities").collect())
+    expect(notes.map((n) => n.body)).toEqual([undefined, "For Arjun"])
+    const people = await t.run((ctx) => ctx.db.query("persons").collect())
+    expect(people).toHaveLength(1)
+  })
+
   test("an enquiry creates one unverified Person; retry creates no duplicate activity", async () => {
     const t = convexTest(schema, modules)
     expect(await t.mutation(internal.persons.recordEnquiry, lead)).toBe(

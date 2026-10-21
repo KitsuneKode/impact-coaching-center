@@ -153,30 +153,23 @@ http.route({
     if (!eventId || typeof event.event !== "string")
       return new Response(null, { status: 400 })
     const payment = event.payload?.payment?.entity
-    const gatewayOrderId =
-      event.payload?.order?.entity?.id ?? payment?.order_id ?? undefined
-    const fresh = await ctx.runMutation(internal.payments.recordWebhook, {
-      eventId,
-      type: event.event,
-      gatewayOrderId,
-      paymentId: payment?.id,
-      method: payment?.method,
-      amountPaise: payment?.amount,
+    const text = (value: unknown) =>
+      typeof value === "string" && value.length <= 100 ? value : undefined
+    // Recorded and settled in one transaction: if settling fails, the event
+    // is not marked seen, the route answers 500 and Razorpay retries it.
+    await ctx.runMutation(internal.payments.handleWebhook, {
+      eventId: eventId.slice(0, 100),
+      type: event.event.slice(0, 60),
+      gatewayOrderId:
+        text(event.payload?.order?.entity?.id) ?? text(payment?.order_id),
+      paymentId: text(payment?.id),
+      method: text(payment?.method),
+      amountPaise:
+        typeof payment?.amount === "number" &&
+        Number.isSafeInteger(payment.amount)
+          ? payment.amount
+          : undefined,
     })
-    if (
-      fresh &&
-      (event.event === "order.paid" || event.event === "payment.captured") &&
-      gatewayOrderId &&
-      payment?.id &&
-      typeof payment.amount === "number"
-    )
-      await ctx.runMutation(internal.payments.settle, {
-        gatewayOrderId,
-        paymentId: payment.id,
-        method: payment.method ?? "razorpay",
-        amountPaise: payment.amount,
-        source: "webhook",
-      })
     return new Response(null, { status: 200 })
   }),
 })
@@ -185,13 +178,13 @@ http.route({
 type RazorpayEvent = {
   event?: unknown
   payload?: {
-    order?: { entity?: { id?: string } }
+    order?: { entity?: { id?: unknown } }
     payment?: {
       entity?: {
-        id?: string
-        order_id?: string
-        amount?: number
-        method?: string
+        id?: unknown
+        order_id?: unknown
+        amount?: unknown
+        method?: unknown
       }
     }
   }

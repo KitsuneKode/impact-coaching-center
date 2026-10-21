@@ -115,7 +115,7 @@ const PRUNE_PER_CALL = 10
  * longest window any caller uses is 24 hours (convex/otp.ts), so two days is
  * comfortably past every live bucket. Raise this before adding a longer one.
  */
-const STALE_AFTER = 2 * 24 * 60 * 60 * 1000
+export const RATE_LIMIT_STALE_AFTER = 2 * 24 * 60 * 60 * 1000
 
 export async function consumeRateLimit(
   ctx: MutationCtx,
@@ -128,7 +128,9 @@ export async function consumeRateLimit(
   // buckets would otherwise leave a row behind for every one it ever saw.
   const stale = await ctx.db
     .query("rateLimits")
-    .withIndex("by_windowStart", (q) => q.lt("windowStart", now - STALE_AFTER))
+    .withIndex("by_windowStart", (q) =>
+      q.lt("windowStart", now - RATE_LIMIT_STALE_AFTER)
+    )
     .take(PRUNE_PER_CALL)
   await Promise.all(stale.map((row) => ctx.db.delete(row._id)))
 
@@ -245,16 +247,21 @@ export const recordEnquiry = internalMutation({
       .withIndex("by_person", (q) => q.eq("personId", personId))
       .order("desc")
       .first()
-    // A double-click or a retried request is the same enquiry.
+    // A double-click or a retried request is the same enquiry. A second
+    // child on the same phone is not: the name tells them apart.
     if (
       last &&
       now - last._creationTime < DUPLICATE_WINDOW_MS &&
       last.track === lead.track &&
-      last.timing === lead.timing
+      last.timing === lead.timing &&
+      (last.name === undefined || last.name === lead.name)
     )
       return "recorded" as const
 
     const person = await ctx.db.get(personId)
+    // Families share one phone; the lead sheet says who this one was for.
+    const forSomeoneElse =
+      person && person.name && person.name !== lead.name ? lead.name : undefined
     await ctx.db.patch(personId, {
       leadStatus: person?.leadStatus ?? "new",
       interestTrack: lead.track,
@@ -269,6 +276,7 @@ export const recordEnquiry = internalMutation({
     await ctx.db.insert("enquiries", {
       personId,
       channel: "website",
+      name: lead.name,
       track: lead.track,
       timing: lead.timing,
       page: clip(args.page),
@@ -280,6 +288,7 @@ export const recordEnquiry = internalMutation({
       kind: "enquiry",
       track: lead.track,
       timing: lead.timing,
+      body: forSomeoneElse ? `For ${forSomeoneElse}` : undefined,
     })
     return "recorded" as const
   },

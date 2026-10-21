@@ -381,28 +381,82 @@ describe("placeOrder", () => {
   })
 })
 
+describe("order rules ICT set", () => {
+  test("parcels go only within Assam; collection is open to anyone", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await bundle(t, "apsc")
+    const place = (fulfilment: "delivery" | "collection", pin?: string) =>
+      t.run((ctx) =>
+        placeOrderAs(ctx, buyer, {
+          fulfilment,
+          address: pin ? { ...ADDRESS, pin } : undefined,
+          idempotencyKey: `key-${fulfilment}-${pin}`,
+        })
+      )
+    await cart(t, buyer.id, [line("apsc")])
+    expect(await place("delivery", "110001")).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "pin-area",
+    })
+    expect(await place("delivery", "787001")).toMatchObject({ ok: true })
+    await cart(t, buyer.id, [line("apsc")])
+    expect(await place("collection")).toMatchObject({ ok: true })
+  })
+
+  test("one order holds at most five sets across its lines", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await bundle(t, "apsc")
+    await bundle(t, "adre")
+    await cart(t, buyer.id, [line("apsc", "en", 3), line("adre", "as", 3)])
+    expect(
+      await t.run((ctx) =>
+        placeOrderAs(ctx, buyer, {
+          fulfilment: "collection",
+          idempotencyKey: "too-many",
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "quantity" })
+  })
+})
+
 describe("the server cart", () => {
+  test("a merge past five sets keeps the newest lines and trims the oldest", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await cart(t, buyer.id, [line("apsc", "en", 3, 100)])
+    await t.run((ctx) =>
+      mergeCartAs(ctx, buyer.id, [line("adre", "as", 4, 200)])
+    )
+    expect(await cartLinesOf(t, buyer.id)).toEqual([
+      line("apsc", "en", 1, 100),
+      line("adre", "as", 4, 200),
+    ])
+  })
+
   test("merge is a union by set and language, and the newer write wins", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
     await cart(t, buyer.id, [
-      line("apsc", "en", 3, 100),
+      line("apsc", "en", 2, 100),
       line("adre", "as", 1, 50),
     ])
 
     // The browser carried an older apsc, a newer adre, and the other language.
     const incoming = [
       line("apsc", "en", 1, 10),
-      line("adre", "as", 5, 200),
-      line("apsc", "as", 2, 5),
+      line("adre", "as", 2, 200),
+      line("apsc", "as", 1, 5),
     ]
     expect(await t.run((ctx) => mergeCartAs(ctx, buyer.id, incoming))).toEqual({
       ok: true,
     })
     const merged = [
-      line("apsc", "en", 3, 100),
-      line("adre", "as", 5, 200),
-      line("apsc", "as", 2, 5),
+      line("apsc", "en", 2, 100),
+      line("adre", "as", 2, 200),
+      line("apsc", "as", 1, 5),
     ]
     expect(await cartLinesOf(t, buyer.id)).toEqual(merged)
 
@@ -448,7 +502,8 @@ describe("the server cart", () => {
       ["en", 3],
     ])
 
-    // Fractional quantities are refused; oversized ones clamp to five.
+    // Fractional quantities are refused; oversized ones clamp to what one
+    // order holds (five sets in all, one of them already Assamese).
     expect(await set("apsc", "en", 1.5)).toEqual({
       ok: false,
       reason: "invalid-input",
@@ -456,7 +511,14 @@ describe("the server cart", () => {
     })
     await set("apsc", "en", 55)
     lines = await cartLinesOf(t, buyer.id)
-    expect(lines.find((l) => l.language === "en")?.quantity).toBe(5)
+    expect(lines.find((l) => l.language === "en")?.quantity).toBe(4)
+
+    // A full cart refuses another set rather than dropping one silently.
+    expect(await set("adre", "en", 1)).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "quantity",
+    })
 
     await set("apsc", "en", 0)
     lines = await cartLinesOf(t, buyer.id)

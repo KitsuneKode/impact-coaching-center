@@ -100,7 +100,17 @@ export function receiptNumber(prefix: string, year: string, sequence: number) {
   return `${prefix}/${year}/${String(sequence).padStart(4, "0")}`
 }
 
-/** What Razorpay's payment states mean for an order. */
+/**
+ * What Razorpay's payment states mean for an order. Only `captured` is
+ * money ICT holds: an `authorized` payment Razorpay fails to capture within
+ * three days is refunded to the buyer, so it must not mint a receipt. The
+ * `payment.captured` webhook settles it once the capture lands.
+ */
 export function paymentSettled(status: string) {
-  return status === "captured" || status === "authorized"
+  return status === "captured"
+}
+
+/** Approved by the bank but not yet captured: wait for the webhook. */
+export function paymentPending(status: string) {
+  return status === "authorized"
 }

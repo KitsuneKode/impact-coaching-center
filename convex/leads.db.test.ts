@@ -735,7 +735,8 @@ describe("staff adding an enquiry", () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       kind: "enquiry",
-      body: "Added by staff (phone call)",
+      // Another name on a known number: a sibling, or a new spelling.
+      body: "Added by staff (phone call) for A different spelling",
     })
   })
 

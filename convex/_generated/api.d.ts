@@ -21,6 +21,7 @@ import type * as carts from "../carts.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogAdmin from "../catalogAdmin.js";
 import type * as checkout from "../checkout.js";
+import type * as cleanup from "../cleanup.js";
 import type * as contactTaps from "../contactTaps.js";
 import type * as courses from "../courses.js";
 import type * as crons from "../crons.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
   catalogAdmin: typeof catalogAdmin;
   checkout: typeof checkout;
+  cleanup: typeof cleanup;
   contactTaps: typeof contactTaps;
   courses: typeof courses;
   crons: typeof crons;

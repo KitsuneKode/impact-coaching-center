@@ -41,7 +41,7 @@ async function setup(role: "student" | "staff" | "owner" = "student") {
 async function order(
   t: ReturnType<typeof convexTest>,
   personId: Id<"persons">,
-  status: "paid" | "delivered" | "cancelled"
+  status: "paid" | "delivered" | "cancelled" | "awaiting_payment"
 ) {
   return t.run(async (ctx) =>
     ctx.db.insert("orders", {
@@ -166,6 +166,27 @@ describe("account deletion", () => {
     expect(kept?.totalPaise).toBe(31000)
     expect(kept?.address).toBeUndefined()
     expect(kept?.contact).toEqual({ name: "", phone: "" })
+  })
+})
+
+describe("account deletion and unpaid orders", () => {
+  test("an order still awaiting payment is cancelled, so a late payment is refunded", async () => {
+    const { t, id, viewer } = await setup()
+    const orderId = await order(t, id, "awaiting_payment")
+    await t.run((ctx) =>
+      ctx.db.insert("carts", {
+        personId: id,
+        lines: [{ slug: "gk-set", language: "en", quantity: 1, at: 1 }],
+        updatedAt: 0,
+      })
+    )
+    await t.run((ctx) => eraseAccount(ctx, viewer, "DELETE"))
+    const cancelled = await t.run((ctx) => ctx.db.get(orderId))
+    expect(cancelled?.status).toBe("cancelled")
+    // Cancelled, not expired: a payment that still arrives is not revived.
+    expect(cancelled?.expiredAt).toBeUndefined()
+    const carts = await t.run((ctx) => ctx.db.query("carts").collect())
+    expect(carts).toHaveLength(0)
   })
 })
 

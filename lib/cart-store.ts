@@ -7,7 +7,11 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 import { api } from "@/convex/_generated/api"
-import { BUNDLE_QUANTITY_MAX, type Language } from "@/lib/catalog"
+import {
+  BUNDLE_QUANTITY_MAX,
+  type Language,
+  ORDER_SETS_MAX,
+} from "@/lib/catalog"
 
 export type CartLine = {
   slug: string
@@ -33,6 +37,22 @@ type CartState = {
 /** A bulk order is a phone call, not a cart. */
 export const MAX_QUANTITY = BUNDLE_QUANTITY_MAX
 
+/** Sets the other lines leave room for, under one order's cap. */
+const roomFor = (lines: CartLine[], key: LineKey) =>
+  ORDER_SETS_MAX -
+  lines.filter((l) => !same(l, key)).reduce((n, l) => n + l.quantity, 0)
+
+/** Said once when a change would pass the cap; the cart keeps what fits. */
+function sayCapReached() {
+  const assamese = document.documentElement.lang === "as"
+  toast(
+    assamese
+      ? `এটা অৰ্ডাৰত বেছি হ'লে ${ORDER_SETS_MAX}টা ছেট। অধিক লাগিলে ICTলৈ ফোন কৰক।`
+      : `One order holds up to ${ORDER_SETS_MAX} sets. For more, call ICT.`,
+    { id: "cart-cap" }
+  )
+}
+
 /**
  * The cart, kept in this browser until sign-in, when `useCartSync` merges it
  * into the server copy (`at` decides which write is newer). From then on this
@@ -45,35 +65,39 @@ export const useCart = create<CartState>()(
       add: (key) =>
         set((state) => {
           const line = state.lines.find((l) => same(l, key))
+          const wanted = (line?.quantity ?? 0) + 1
+          const quantity = Math.min(
+            MAX_QUANTITY,
+            wanted,
+            roomFor(state.lines, key)
+          )
+          if (quantity < wanted && wanted <= MAX_QUANTITY) sayCapReached()
+          if (quantity <= 0) return state
           return {
             lines: line
               ? state.lines.map((l) =>
-                  same(l, key)
-                    ? {
-                        ...l,
-                        quantity: Math.min(MAX_QUANTITY, l.quantity + 1),
-                        at: Date.now(),
-                      }
-                    : l
+                  same(l, key) ? { ...l, quantity, at: Date.now() } : l
                 )
-              : [...state.lines, { ...key, quantity: 1, at: Date.now() }],
+              : [...state.lines, { ...key, quantity, at: Date.now() }],
           }
         }),
       setQuantity: (key, quantity) =>
-        set((state) => ({
-          lines:
-            quantity <= 0
-              ? state.lines.filter((l) => !same(l, key))
-              : state.lines.map((l) =>
-                  same(l, key)
-                    ? {
-                        ...l,
-                        quantity: Math.min(MAX_QUANTITY, quantity),
-                        at: Date.now(),
-                      }
-                    : l
-                ),
-        })),
+        set((state) => {
+          if (quantity <= 0)
+            return { lines: state.lines.filter((l) => !same(l, key)) }
+          const allowed = Math.min(
+            MAX_QUANTITY,
+            quantity,
+            roomFor(state.lines, key)
+          )
+          if (allowed < quantity) sayCapReached()
+          if (allowed <= 0) return state
+          return {
+            lines: state.lines.map((l) =>
+              same(l, key) ? { ...l, quantity: allowed, at: Date.now() } : l
+            ),
+          }
+        }),
       remove: (key) =>
         set((state) => ({ lines: state.lines.filter((l) => !same(l, key)) })),
       clear: () => set({ lines: [] }),

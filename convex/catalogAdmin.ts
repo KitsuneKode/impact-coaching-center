@@ -188,6 +188,25 @@ async function slugTaken(
   return rows.some((row) => row._id !== self)
 }
 
+/**
+ * The first language a bundle is on sale in that one of its books has no
+ * edition for, or null. Sold that way, the order would list no books and
+ * the set page would show an empty shelf for that language.
+ */
+async function editionGap(
+  ctx: MutationCtx,
+  bundle: Pick<Doc<"bundles">, "bookIds" | "variants">
+) {
+  const books = await Promise.all(bundle.bookIds.map((id) => ctx.db.get(id)))
+  for (const language of LANGUAGES)
+    if (
+      bundle.variants[language].available &&
+      books.some((book) => !book?.editions[language])
+    )
+      return language
+  return null
+}
+
 const canEdit = (viewer: Viewer) => hasGrant(viewer, "catalog")
 
 export const canEditCatalog = query({
@@ -628,6 +647,8 @@ export async function applySaveBundle(
   // A live bundle with nothing in it is a broken product page.
   if (current.published && record.bookIds.length === 0)
     return invalidInput("books")
+  if (current.published && (await editionGap(ctx, record)))
+    return invalidInput("editions")
 
   await dropReplaced(
     ctx,
@@ -670,6 +691,15 @@ export const setVariantAvailable = mutation({
     if (!current) return missingRecord
     const conflict = checkRevision(current, args.expectedRevision)
     if (conflict) return conflict
+    const variants = {
+      ...current.variants,
+      [args.language]: {
+        ...current.variants[args.language],
+        available: args.available,
+      },
+    }
+    if (current.published && (await editionGap(ctx, { ...current, variants })))
+      return invalidInput("editions")
     const revision = current.revision + 1
     await ctx.db.patch(args.id, {
       variants: {
@@ -942,6 +972,8 @@ export async function applyPublish(
   if (args.published) {
     if ("bookIds" in current && current.bookIds.length === 0)
       return invalidInput("books")
+    if ("bookIds" in current && (await editionGap(ctx, current)))
+      return invalidInput("editions")
     if (
       "pageImages" in current &&
       current.pageImages.length === 0 &&

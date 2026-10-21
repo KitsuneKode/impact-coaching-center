@@ -13,6 +13,9 @@ const tidy = (text: string, max: number) =>
     .trim()
     .slice(0, max) || "unknown"
 
+/** Distinct page and source pairs one day keeps; ICT's site has far fewer. */
+const ROWS_PER_DAY = 300
+
 /**
  * Count one tap on a WhatsApp or phone link. Anonymous on purpose: it adds
  * one to the day's total for that page and source, nothing else. A flood can
@@ -27,8 +30,24 @@ export const record = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const day = indiaDay(Date.now())
-    const page = tidy(args.page.split("?")[0] ?? "/", 120)
-    const source = tidy(args.source, 60)
+    let page = tidy(args.page.split("?")[0] ?? "/", 120)
+    let source = tidy(args.source, 60)
+    // Anyone can call this, so made-up pages must not grow the table without
+    // end: past a day's worth of real rows, new spellings share one row.
+    const today = await ctx.db
+      .query("contactTaps")
+      .withIndex("by_day_and_kind_and_page_and_source", (q) => q.eq("day", day))
+      .take(ROWS_PER_DAY)
+    if (
+      today.length >= ROWS_PER_DAY &&
+      !today.some(
+        (row) =>
+          row.kind === args.kind && row.page === page && row.source === source
+      )
+    ) {
+      page = "other"
+      source = "other"
+    }
     const row = await ctx.db
       .query("contactTaps")
       .withIndex("by_day_and_kind_and_page_and_source", (q) =>

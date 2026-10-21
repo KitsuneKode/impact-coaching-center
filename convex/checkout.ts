@@ -4,6 +4,7 @@ import { invalidInput, REFUSAL, viewerPerson, type Viewer } from "./authz"
 import { clearCart } from "./carts"
 import { mutation, type MutationCtx } from "./_generated/server"
 import { allocateOrderReference } from "./orders"
+import { deliversTo, ORDER_SETS_MAX } from "../lib/catalog"
 import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
 import { readSettings } from "./settings"
@@ -124,6 +125,8 @@ export async function placeOrderAs(
       ? (validateAddress(args.address) ?? undefined)
       : undefined
   if (args.fulfilment === "delivery" && !address) return invalidInput("address")
+  // Collection is open to anyone; parcels only go within Assam.
+  if (address && !deliversTo(address.pin)) return invalidInput("pin-area")
 
   /* The cart on the server is the order; what the client displayed is
      advice, not evidence. */
@@ -133,6 +136,8 @@ export async function placeOrderAs(
     .first()
   const cartLines = cart?.lines ?? []
   if (cartLines.length === 0) return invalidInput("cart")
+  const sets = cartLines.reduce((n, line) => n + line.quantity, 0)
+  if (sets > ORDER_SETS_MAX) return invalidInput("quantity")
 
   const lines = []
   for (const line of cartLines) {
@@ -145,15 +150,16 @@ export async function placeOrderAs(
     if (!bundle || !bundle.published || bundle.sample || !variant?.available)
       return invalidInput("items")
     const books = await Promise.all(bundle.bookIds.map((id) => ctx.db.get(id)))
+    const titles = books.map((book) => book?.editions[line.language]?.title)
+    // A set missing a book in this language is not the set on the page.
+    if (titles.length === 0 || titles.some((title) => !title))
+      return invalidInput("items")
     lines.push({
       bundleId: bundle._id,
       slug: bundle.slug,
       title: bundle.title.en,
       language: line.language,
-      books: books.flatMap((book) => {
-        const edition = book?.editions[line.language]
-        return edition ? [edition.title] : []
-      }),
+      books: titles as string[],
       quantity: line.quantity,
       unitPaise: variant.pricePaise,
     })

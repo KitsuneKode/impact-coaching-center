@@ -447,6 +447,54 @@ describe("bundles", () => {
   })
 })
 
+describe("languages a bundle sells in", () => {
+  test("a language whose books have no edition cannot go on sale", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const englishOnly = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        fields: {
+          ...fields,
+          editions: { en: fields.editions.en },
+        },
+        images: noImages,
+      })
+    )
+    if (!englishOnly.ok) throw new Error("book failed")
+    const created = await t.run((ctx) =>
+      applySaveBundle(ctx, owner!, {
+        fields: bundleFields,
+        bookIds: [englishOnly.id],
+      })
+    )
+    if (!created.ok) throw new Error("bundle failed")
+    // Saving a draft is fine; selling Assamese with no Assamese book is not.
+    const publish = () =>
+      t.run((ctx) =>
+        applyPublish(ctx, owner!, {
+          entity: "bundle",
+          id: created.id,
+          published: true,
+          expectedRevision: 0,
+        })
+      )
+    expect(await publish()).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "editions",
+    })
+    await t.run((ctx) =>
+      ctx.db.patch(created.id, {
+        variants: {
+          ...bundleFields.variants,
+          as: { ...bundleFields.variants.as, available: false },
+        },
+      })
+    )
+    expect(await publish()).toMatchObject({ ok: true })
+  })
+})
+
 describe("catalogue audit trail", () => {
   test("saving a book writes an audit row naming the editor", async () => {
     const t = convexTest(schema, modules)

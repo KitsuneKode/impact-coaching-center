@@ -231,6 +231,9 @@ export default defineSchema({
   enquiries: defineTable({
     personId: v.id("persons"),
     channel: ENQUIRY_CHANNEL,
+    /** The name given with this enquiry. Families share a phone, so it can
+        differ from the Person's name: a mother asking for two children. */
+    name: v.optional(v.string()),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
     /** Path the form was on, e.g. "/as/courses/lakhya-2027". */
@@ -516,6 +519,16 @@ export default defineSchema({
     ),
     /** Sequential per financial year, e.g. ICT/26-27/0001. Set when paid. */
     receiptNumber: v.optional(v.string()),
+    /** The seller as the receipt names them, frozen when it was paid. */
+    seller: v.optional(
+      v.object({
+        legalName: v.string(),
+        gstin: v.optional(v.string()),
+        address: v.string(),
+      })
+    ),
+    /** Money ICT holds for a cancelled order; cleared when marked refunded. */
+    refundDueAt: v.optional(v.number()),
     placedAt: v.number(),
     updatedAt: v.optional(v.number()),
     /** First time a staff member opened it; drives the new-order badge. */
@@ -530,7 +543,8 @@ export default defineSchema({
     .index("by_placedAt", ["placedAt"])
     .index("by_reference", ["reference"])
     .index("by_idempotencyKey", ["idempotencyKey"])
-    .index("by_razorpayOrderId", ["payment.razorpayOrderId"]),
+    .index("by_razorpayOrderId", ["payment.razorpayOrderId"])
+    .index("by_refundDueAt", ["refundDueAt"]),
 
   /** Razorpay webhook events already handled, so a retry is a no-op. */
   paymentEvents: defineTable({
@@ -590,7 +604,9 @@ export default defineSchema({
     /** Meta's error code, e.g. 131026 "message undeliverable". */
     code: v.number(),
     at: v.number(),
-  }).index("by_phone", ["phone"]),
+  })
+    .index("by_phone", ["phone"])
+    .index("by_at", ["at"]),
 
   /** One in-flight send and one acceptable code per phone. */
   otpSendLeases: defineTable({

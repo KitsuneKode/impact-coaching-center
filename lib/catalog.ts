@@ -130,6 +130,13 @@ export const RESOURCE_PAGES_MAX = 300
 export const BUNDLE_BOOKS_MAX = 12
 /** Largest quantity of one bundle in one order. */
 export const BUNDLE_QUANTITY_MAX = 5
+/** Sets in one order, across every line: more than this is a bulk buyer, who calls ICT. */
+export const ORDER_SETS_MAX = 5
+
+/** Parcels go within Assam, whose PIN codes all start with 78. */
+export function deliversTo(pin: string) {
+  return /^78\d{4}$/.test(pin.trim())
+}
 const PRICE_MAX_PAISE = 10_000_000
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/

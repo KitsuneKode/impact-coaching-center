@@ -1,7 +1,7 @@
 import { convexTest } from "convex-test"
 import { describe, expect, test } from "bun:test"
 
-import { financialYear } from "../lib/payments"
+import { financialYear, hmacHex } from "../lib/payments"
 import { placeOrderAs } from "./checkout"
 import { findVerifiedPerson } from "./persons"
 import { internal } from "./_generated/api"
@@ -157,20 +157,106 @@ describe("settle", () => {
 })
 
 describe("webhook events", () => {
-  test("an event id is recorded once; a retry is reported as seen", async () => {
+  const paidEvent = (
+    eventId: string,
+    gatewayOrderId: string,
+    amount: number
+  ) => ({
+    eventId,
+    type: "payment.captured",
+    gatewayOrderId,
+    paymentId: `pay_${eventId}`,
+    method: "upi",
+    amountPaise: amount,
+  })
+
+  test("an event is recorded and settled together; a retry changes nothing", async () => {
     const t = convexTest(schema, modules)
-    await placed(t, "+919800000006", "order_F")
-    const event = {
-      eventId: "evt_1",
-      type: "order.paid",
-      gatewayOrderId: "order_F",
-      paymentId: "pay_F",
-    }
-    expect(await t.mutation(internal.payments.recordWebhook, event)).toBe(true)
-    expect(await t.mutation(internal.payments.recordWebhook, event)).toBe(false)
+    const { orderId, bundleId, totalPaise } = await placed(
+      t,
+      "+919800000006",
+      "order_F"
+    )
+    const event = paidEvent("evt_1", "order_F", totalPaise)
+    expect(await t.mutation(internal.payments.handleWebhook, event)).toBe(true)
+    expect(await t.mutation(internal.payments.handleWebhook, event)).toBe(false)
     const events = await t.run((ctx) => ctx.db.query("paymentEvents").collect())
     expect(events).toHaveLength(1)
-    expect(events[0]?.orderId).toBeDefined()
+    expect(events[0]?.orderId).toBe(orderId)
+    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(order?.status).toBe("paid")
+    const set = await t.run((ctx) => ctx.db.get("bundles", bundleId))
+    expect(set?.soldCount).toBe(5)
+  })
+
+  test("an authorized-only event is recorded but settles nothing", async () => {
+    const t = convexTest(schema, modules)
+    const { orderId, totalPaise } = await placed(t, "+919800000016", "order_H")
+    await t.mutation(internal.payments.handleWebhook, {
+      ...paidEvent("evt_auth", "order_H", totalPaise),
+      type: "payment.authorized",
+    })
+    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(order?.status).toBe("awaiting_payment")
+  })
+
+  test("the signed route settles the order once, and refuses a bad signature", async () => {
+    const t = convexTest(schema, modules)
+    process.env.RAZORPAY_WEBHOOK_SECRET = "whsec_test"
+    process.env.SITE_URL ??= "http://localhost:3000"
+    const { orderId, totalPaise } = await placed(t, "+919800000026", "order_I")
+    const body = JSON.stringify({
+      event: "payment.captured",
+      payload: {
+        payment: {
+          entity: {
+            id: "pay_route",
+            order_id: "order_I",
+            amount: totalPaise,
+            method: "upi",
+          },
+        },
+      },
+    })
+    const send = async (signature: string) =>
+      (
+        await t.fetch("/razorpay/webhook", {
+          method: "POST",
+          headers: {
+            "x-razorpay-signature": signature,
+            "x-razorpay-event-id": "evt_route",
+          },
+          body,
+        })
+      ).status
+    expect(await send("00".repeat(32))).toBe(401)
+    const signature = await hmacHex("whsec_test", body)
+    expect(await send(signature)).toBe(200)
+    expect(await send(signature)).toBe(200)
+    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(order?.status).toBe("paid")
+    expect(order?.receiptNumber).toMatch(/\/0001$/)
+    delete process.env.RAZORPAY_WEBHOOK_SECRET
+  })
+})
+
+describe("receipts", () => {
+  test("name the seller as they were when paid, whatever settings say later", async () => {
+    const t = convexTest(schema, modules)
+    const { orderId, totalPaise } = await placed(t, "+919800000036", "order_J")
+    await settle(t, "order_J", totalPaise)
+    await t.run((ctx) =>
+      ctx.db.insert("siteSettings", {
+        shippingPaise: 0,
+        pickupAddress: "Somewhere new",
+        legalName: "Renamed Ltd",
+        receiptPrefix: "NEW",
+        revision: 0,
+        updatedAt: 0,
+      })
+    )
+    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    expect(order?.seller?.legalName).toBe("Impact Career Tutorials")
   })
 })
 
@@ -221,6 +307,8 @@ describe("unpaid orders", () => {
     expect(await settle(t, "order_x", totalPaise, "pay_x")).toBeNull()
     const order = await t.run((ctx) => ctx.db.get("orders", orderId))
     expect(order?.status).toBe("cancelled")
+    expect(order?.refundDueAt).toBeDefined()
+    expect(order?.payment?.razorpayPaymentId).toBe("pay_x")
     const notes = await t.run((ctx) => ctx.db.query("activities").collect())
     expect(
       notes.some((note) => note.body?.includes("Refund it in Razorpay"))

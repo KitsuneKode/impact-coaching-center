@@ -58,6 +58,8 @@ const REFUSED: Record<string, string> = {
   declined: "The payment did not go through. Nothing was charged; try again.",
   gateway:
     "The payment service did not answer. Wait a moment and try again; nothing was charged.",
+  pending:
+    "Your bank approved the payment and it is being confirmed. This page updates by itself in a few minutes; do not pay again.",
   anonymous: "Your session ended. Log in again to pay.",
   "missing-record": "We could not find that order.",
 }

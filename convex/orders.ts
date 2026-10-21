@@ -14,6 +14,7 @@ import {
   type Viewer,
   viewerPerson,
 } from "./authz"
+import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import {
   internalMutation,
@@ -24,6 +25,7 @@ import {
 } from "./_generated/server"
 import { ADDRESS, ORDER_LINE, ORDER_STATUS } from "./schema"
 import { newOrderReference } from "../lib/order-reference"
+import { countSales } from "./payments"
 import { readSettings } from "./settings"
 
 /** Who carries the parcel. Shared by schema, args and projections. */
@@ -59,7 +61,8 @@ const TRANSITIONS: Record<string, readonly string[]> = {
   ready_for_collection: ["collected", "cancelled", "refunded"],
   delivered: ["refunded"],
   collected: ["refunded"],
-  cancelled: [],
+  // Only once money is held for it (refundDueAt); see applyStatusChange.
+  cancelled: ["refunded"],
   refunded: [],
 }
 
@@ -261,6 +264,23 @@ export async function applyStatusChange(
   if (!allowed.includes(args.status)) return invalidInput("transition")
 
   /*
+   * Money ICT holds changes the rules. Cancelling a paid order means a
+   * refund is owed, which is the owner's decision, and a cancelled order
+   * can only be marked refunded when money actually arrived for it.
+   */
+  const paid = order.receiptNumber !== undefined
+  if (args.status === "cancelled" && paid && viewer.role !== "owner")
+    return forbidden
+  if (order.status === "cancelled" && !order.refundDueAt)
+    return invalidInput("transition")
+  /* A paid order stops counting as sold the moment it is undone. A
+     cancelled one was already taken off when it was cancelled. */
+  const unsell =
+    paid &&
+    order.status !== "cancelled" &&
+    (args.status === "cancelled" || args.status === "refunded")
+
+  /*
    * A parcel move onto a collection order - or the other way round - is a
    * data error, not a state the queue can hold. Shipping is also the moment
    * the courier details become compulsory: "it is on its way" without a
@@ -287,13 +307,17 @@ export async function applyStatusChange(
     return invalidInput("courier")
   }
 
+  const now = Date.now()
   const revision = revisionOf(order) + 1
   await ctx.db.patch(args.orderId, {
     status: args.status,
     courier,
     revision,
-    updatedAt: Date.now(),
+    updatedAt: now,
+    ...(args.status === "cancelled" && paid ? { refundDueAt: now } : {}),
+    ...(args.status === "refunded" ? { refundDueAt: undefined } : {}),
   })
+  if (unsell) await countSales(ctx, order, -1)
 
   await ctx.db.insert("activities", {
     personId: order.personId,
@@ -448,7 +472,13 @@ export const myReceipt = query({
     if (!order?.receiptNumber || !order.payment?.paidAt) return null
     const staff = viewer.value.role === "owner" || viewer.value.role === "staff"
     if (order.personId !== viewer.value.id && !staff) return null
-    const settings = await readSettings(ctx)
+    // Frozen at payment; orders paid before that existed read the settings.
+    const settings = order.seller ? null : await readSettings(ctx)
+    const seller = order.seller ?? {
+      legalName: settings!.legalName,
+      gstin: settings!.gstin,
+      address: settings!.pickupAddress,
+    }
     return {
       reference: order.reference,
       receiptNumber: order.receiptNumber,
@@ -462,11 +492,7 @@ export const myReceipt = query({
       itemsPaise: order.itemsPaise,
       deliveryPaise: order.deliveryPaise,
       totalPaise: order.totalPaise,
-      seller: {
-        legalName: settings.legalName,
-        gstin: settings.gstin,
-        address: settings.pickupAddress,
-      },
+      seller,
     }
   },
 })
@@ -490,6 +516,7 @@ export const markOrderSeen = mutation({
 
 /** How long an order may wait for payment before the daily job cancels it. */
 export const UNPAID_EXPIRY_MS = 3 * 24 * 60 * 60 * 1000
+const EXPIRE_BATCH = 100
 
 /**
  * Cancel orders left unpaid for three days, oldest first, a batch at a
@@ -508,7 +535,7 @@ export const expireUnpaid = internalMutation({
           .eq("status", "awaiting_payment")
           .lt("placedAt", now - UNPAID_EXPIRY_MS)
       )
-      .take(100)
+      .take(EXPIRE_BATCH)
     for (const order of stale) {
       await ctx.db.patch(order._id, {
         status: "cancelled",
@@ -524,6 +551,9 @@ export const expireUnpaid = internalMutation({
         to: "cancelled",
       })
     }
+    // More than one batch left: carry on in a fresh transaction.
+    if (stale.length === EXPIRE_BATCH)
+      await ctx.scheduler.runAfter(0, internal.orders.expireUnpaid, { now })
     return stale.length
   },
 })

@@ -194,3 +194,19 @@ Business Profile and Search Console (KIT-43).
 - Sign in with a real phone on the deployed build, place a collection order,
   and confirm it appears in `/admin` — the dev deployment is seeded with the
   owner account; production needs `people.bootstrapOwner` run once.
+
+## Owner locked out (lost phone or new number)
+
+ICT has one owner, and only an owner can manage staff, settings and refunds.
+Recovery is a developer step, run from a machine with the production deploy
+key; nothing on the site can do it.
+
+1. Confirm the request by calling ICT's main number and speaking to the owner.
+2. The owner signs in once on the site with the new number, so a verified
+   Person exists for it.
+3. Promote it: `npx convex run --prod people:bootstrapOwner '{"phone":"+91XXXXXXXXXX"}'`
+   only works while no owner exists, so first demote the old record in the
+   Convex dashboard (Data → persons → the old phone's row → `role: "student"`),
+   then run the command.
+4. Check the Convex logs for the `[audit] role_change` line, then ask the
+   owner to sign in and open People.

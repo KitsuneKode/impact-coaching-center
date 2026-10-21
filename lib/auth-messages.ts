@@ -1,3 +1,6 @@
+// Relative: convex/ imports this through lib/phone-auth.ts.
+import { contact, formatPhone } from "./brand"
+
 /** Every sentence the sign-in server may say to a person. */
 export const SEND_REFUSALS = {
   phone:
@@ -6,8 +9,7 @@ export const SEND_REFUSALS = {
     "Too many codes requested from this network. Please try later, or call ICT.",
   deployment: "We can't send codes right now. Please call or WhatsApp ICT.",
   inflight: "A code is already on its way. Please wait a moment.",
-  not_whatsapp:
-    "This number isn't on WhatsApp, so the code can't reach it. Use the number you have WhatsApp on.",
+  not_whatsapp: `No WhatsApp account was found on this number, so the code can't reach it. Use another number that has WhatsApp, or call ICT on ${formatPhone(contact.phones[0])}.`,
 } as const
 
 export const WHATSAPP_ONLY =

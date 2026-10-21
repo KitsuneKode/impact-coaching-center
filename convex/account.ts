@@ -56,13 +56,36 @@ export async function eraseAccount(
 
   const now = Date.now()
 
-  // Orders stay for the books' sake; who and where they went do not.
+  // Orders stay for the books' sake; who and where they went do not. One
+  // still awaiting payment is cancelled (not expired), so a payment that
+  // arrives later is flagged for a refund instead of reviving it.
   for (const order of orders)
     await ctx.db.patch(order._id, {
       address: undefined,
       contact: { name: "", phone: "" },
       updatedAt: now,
+      ...(order.status === "awaiting_payment"
+        ? { status: "cancelled" as const, revision: (order.revision ?? 0) + 1 }
+        : {}),
     })
+
+  const cart = await ctx.db
+    .query("carts")
+    .withIndex("by_person", (q) => q.eq("personId", person._id))
+    .first()
+  if (cart) await ctx.db.delete(cart._id)
+  const opens = await ctx.db
+    .query("resourceOpens")
+    .withIndex("by_personId_and_resourceId", (q) =>
+      q.eq("personId", person._id)
+    )
+    .collect()
+  for (const open of opens) await ctx.db.delete(open._id)
+  const undeliverable = await ctx.db
+    .query("otpUndeliverable")
+    .withIndex("by_phone", (q) => q.eq("phone", person.phone))
+    .first()
+  if (undeliverable) await ctx.db.delete(undeliverable._id)
 
   const activities = await ctx.db
     .query("activities")

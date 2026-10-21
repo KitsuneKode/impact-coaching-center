@@ -271,6 +271,75 @@ describe("the status machine", () => {
     ).toEqual({ ok: true, revision: 1 })
   })
 
+  test("cancelling a paid order is the owner's call, owes a refund and unsells the set", async () => {
+    const t = convexTest(schema, modules)
+    const staff = await person(t, "+919876543210", "staff")
+    const owner = await person(t, "+919876543212", "owner")
+    const buyer = await person(t, "+919876543211", "student")
+    const orderId = await order(t, buyer.id, { status: "paid" })
+    const bundleId = await t.run(async (ctx) => {
+      const row = await ctx.db.get(orderId)
+      await ctx.db.patch(orderId, { receiptNumber: "ICT/26-27/0001" })
+      await ctx.db.patch(row!.lines[0]!.bundleId, { soldCount: 4 })
+      return row!.lines[0]!.bundleId
+    })
+    const cancel = (viewer: typeof staff, expectedRevision: number) =>
+      t.run((ctx) =>
+        applyStatusChange(ctx, viewer, {
+          orderId,
+          status: "cancelled",
+          expectedRevision,
+        })
+      )
+
+    expect(await cancel(staff, 0)).toEqual({ ok: false, reason: "forbidden" })
+    expect(await cancel(owner, 0)).toEqual({ ok: true, revision: 1 })
+    const cancelled = await t.run((ctx) => ctx.db.get(orderId))
+    expect(cancelled?.refundDueAt).toBeDefined()
+    const set = await t.run((ctx) => ctx.db.get(bundleId))
+    expect(set?.soldCount).toBe(3)
+
+    // Marking it refunded clears the flag and does not unsell it twice.
+    expect(
+      await t.run((ctx) =>
+        applyStatusChange(ctx, owner, {
+          orderId,
+          status: "refunded",
+          expectedRevision: 1,
+        })
+      )
+    ).toEqual({ ok: true, revision: 2 })
+    const refunded = await t.run((ctx) => ctx.db.get(orderId))
+    expect(refunded?.refundDueAt).toBeUndefined()
+    expect((await t.run((ctx) => ctx.db.get(bundleId)))?.soldCount).toBe(3)
+  })
+
+  test("an unpaid order staff cancelled has no refund to mark", async () => {
+    const t = convexTest(schema, modules)
+    const staff = await person(t, "+919876543210", "staff")
+    const owner = await person(t, "+919876543212", "owner")
+    const buyer = await person(t, "+919876543211", "student")
+    const orderId = await order(t, buyer.id, { status: "awaiting_payment" })
+    expect(
+      await t.run((ctx) =>
+        applyStatusChange(ctx, staff, {
+          orderId,
+          status: "cancelled",
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual({ ok: true, revision: 1 })
+    expect(
+      await t.run((ctx) =>
+        applyStatusChange(ctx, owner, {
+          orderId,
+          status: "refunded",
+          expectedRevision: 1,
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "transition" })
+  })
+
   test("a stale revision is refused before anything is checked or written", async () => {
     const t = convexTest(schema, modules)
     const staff = await person(t, "+919876543210", "staff")

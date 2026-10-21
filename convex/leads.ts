@@ -348,15 +348,18 @@ export async function applyCreateLead(
   await ctx.db.insert("enquiries", {
     personId,
     channel: args.source,
+    name,
     track: args.track,
     actorId: viewer.id,
   })
+  const forSomeoneElse =
+    existing?.name && existing.name !== name ? ` for ${name}` : ""
   await ctx.db.insert("activities", {
     personId,
     kind: "enquiry",
     actorId: viewer.id,
     track: args.track,
-    body: `Added by staff (${STAFF_SOURCE_LABELS[args.source]})`,
+    body: `Added by staff (${STAFF_SOURCE_LABELS[args.source]})${forSomeoneElse}`,
   })
   if (note)
     await ctx.db.insert("activities", {
