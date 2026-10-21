@@ -1,6 +1,6 @@
 "use client"
 
-import { IconRefresh, IconSchool } from "@tabler/icons-react"
+import { IconChevronDown, IconRefresh, IconSchool } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -66,6 +66,7 @@ function Courses() {
   const data = useQuery(api.courses.adminCourses)
   const syncNow = useMutation(api.courses.syncNow)
   const [syncing, setSyncing] = useState(false)
+  const [show, setShow] = useState<"site" | "off" | "all">("site")
 
   if (allowed === undefined || data === undefined)
     return (
@@ -104,6 +105,14 @@ function Courses() {
       (a.local.sortOrder ?? Infinity) - (b.local.sortOrder ?? Infinity) ||
       b.finalPricePaise - a.finalPricePaise
   )
+
+  const onSite = rows.filter((c) => !c.local.hidden && !c.missingSince)
+  const shown =
+    show === "all"
+      ? rows
+      : show === "site"
+        ? onSite
+        : rows.filter((c) => c.local.hidden || c.missingSince)
 
   return (
     <PageShell
@@ -152,13 +161,40 @@ function Courses() {
         </div>
 
         {rows.length ? (
-          <ul className="grid gap-4">
-            {rows.map((course) => (
-              <li key={course.id}>
-                <CourseRow course={course} />
-              </li>
-            ))}
-          </ul>
+          <div className="grid gap-4">
+            <fieldset className="flex w-fit flex-wrap gap-1 rounded-full bg-secondary p-1">
+              <legend className="sr-only">Show courses</legend>
+              {(
+                [
+                  ["site", "On the site", onSite.length],
+                  ["off", "Off the site", rows.length - onSite.length],
+                  ["all", "All", rows.length],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={show === value}
+                  onClick={() => setShow(value)}
+                  className="tnum min-h-9 rounded-full px-4 text-sm font-medium text-muted-foreground aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-sm"
+                >
+                  {label} {count}
+                </button>
+              ))}
+            </fieldset>
+            <ul className="grid gap-3">
+              {shown.map((course) => (
+                <li key={course.id}>
+                  <CourseRow course={course} />
+                </li>
+              ))}
+            </ul>
+            {shown.length ? null : (
+              <p className="text-sm text-muted-foreground">
+                Nothing here. Switch a course on or off from its row.
+              </p>
+            )}
+          </div>
         ) : (
           <StatePanel
             icon={<IconSchool stroke={1.75} />}
@@ -241,18 +277,24 @@ function CourseRow({ course }: { course: Row }) {
   }
 
   return (
-    <article className="grid gap-5 rounded-card border border-border p-5">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="grid gap-1">
-          <h2 className="font-medium text-balance">{course.name}</h2>
-          <p className="tnum text-sm text-muted-foreground">
+    <details
+      data-course-row
+      className="group rounded-card border border-border bg-card"
+    >
+      {/* Closed: what the course is and whether the site shows it. Open:
+          ICT's own details for it. 27 open forms were a wall. */}
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4 md:p-5 [&::-webkit-details-marker]:hidden">
+        <span className="grid min-w-0 gap-1">
+          <span className="font-medium text-balance">{course.name}</span>
+          <span className="tnum text-sm text-muted-foreground">
             {course.finalPricePaise
               ? formatPaise(course.finalPricePaise)
               : "Free"}{" "}
             · {course.enrolled} enrolled on ClassPlus
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+            {draft.featured ? " · Leads its exam on the home page" : ""}
+          </span>
+        </span>
+        <span className="flex flex-wrap items-center gap-2">
           {course.missingSince ? <Badge>No longer on ClassPlus</Badge> : null}
           {!course.missingSince && course.listed === false ? (
             <Badge>Not on ICT&rsquo;s storefront</Badge>
@@ -260,6 +302,19 @@ function CourseRow({ course }: { course: Row }) {
           {course.classplusFeatured ? (
             <Badge variant="neutral">Featured on ClassPlus</Badge>
           ) : null}
+          <Badge variant={draft.hidden ? "neutral" : "verified"}>
+            {draft.hidden ? "Off the site" : "On the site"}
+          </Badge>
+          <IconChevronDown
+            aria-hidden
+            size={18}
+            stroke={1.75}
+            className="text-muted-foreground transition-transform group-open:rotate-180"
+          />
+        </span>
+      </summary>
+      <div className="grid gap-5 p-4 [border-block-start:1px_solid_var(--border)] md:p-5">
+        <div className="flex items-center gap-3">
           <Switch
             id={`${prefix}-shown`}
             checked={!draft.hidden}
@@ -269,113 +324,117 @@ function CourseRow({ course }: { course: Row }) {
             Shown on the site
           </label>
         </div>
-      </header>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Field>
-          <FieldLabel htmlFor={`${prefix}-track`}>Exam</FieldLabel>
-          <Select
-            value={draft.track}
-            onValueChange={(value) =>
-              setDraft({ ...draft, track: (value as string) ?? "" })
-            }
-            items={trackItems(course.autoTrack)}
-          >
-            <SelectTrigger id={`${prefix}-track`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {trackItems(course.autoTrack).map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`${prefix}-starts`}>Batch starts</FieldLabel>
-          <Input
-            id={`${prefix}-starts`}
-            type="date"
-            value={draft.batchStarts}
-            onChange={(e) =>
-              setDraft({ ...draft, batchStarts: e.target.value })
-            }
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`${prefix}-timing`}>Class time</FieldLabel>
-          <Input
-            id={`${prefix}-timing`}
-            placeholder="7-9 AM"
-            value={draft.timing}
-            onChange={(e) => setDraft({ ...draft, timing: e.target.value })}
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`${prefix}-offline`}>Offline fee (₹)</FieldLabel>
-          <Input
-            id={`${prefix}-offline`}
-            inputMode="decimal"
-            value={draft.offlineFee}
-            onChange={(e) =>
-              setDraft({ ...draft, offlineFee: rupeeDraft(e.target.value) })
-            }
-          />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`${prefix}-students`}>
-            Students at the centre
-          </FieldLabel>
-          <Input
-            id={`${prefix}-students`}
-            inputMode="numeric"
-            value={draft.offlineStudents}
-            onChange={(e) =>
-              setDraft({
-                ...draft,
-                offlineStudents: e.target.value.replace(/\D/g, "").slice(0, 5),
-              })
-            }
-          />
-          <FieldDescription>
-            The site shows these plus ClassPlus&rsquo;s {course.enrolled}.
-          </FieldDescription>
-        </Field>
-        <Field>
-          <FieldLabel htmlFor={`${prefix}-order`}>Position</FieldLabel>
-          <Input
-            id={`${prefix}-order`}
-            inputMode="numeric"
-            value={draft.sortOrder}
-            onChange={(e) =>
-              setDraft({
-                ...draft,
-                sortOrder: e.target.value.replace(/\D/g, "").slice(0, 3),
-              })
-            }
-          />
-        </Field>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Switch
-            id={`${prefix}-featured`}
-            checked={draft.featured}
-            disabled={!exam}
-            onCheckedChange={(on) => setDraft({ ...draft, featured: on })}
-          />
-          <label htmlFor={`${prefix}-featured`} className="text-sm">
-            {exam
-              ? `Lead course for ${exam} on the home page`
-              : "Set an exam to lead it on the home page"}
-          </label>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-track`}>Exam</FieldLabel>
+            <Select
+              value={draft.track}
+              onValueChange={(value) =>
+                setDraft({ ...draft, track: (value as string) ?? "" })
+              }
+              items={trackItems(course.autoTrack)}
+            >
+              <SelectTrigger id={`${prefix}-track`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {trackItems(course.autoTrack).map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-starts`}>Batch starts</FieldLabel>
+            <Input
+              id={`${prefix}-starts`}
+              type="date"
+              value={draft.batchStarts}
+              onChange={(e) =>
+                setDraft({ ...draft, batchStarts: e.target.value })
+              }
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-timing`}>Class time</FieldLabel>
+            <Input
+              id={`${prefix}-timing`}
+              placeholder="7-9 AM"
+              value={draft.timing}
+              onChange={(e) => setDraft({ ...draft, timing: e.target.value })}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-offline`}>
+              Offline fee (₹)
+            </FieldLabel>
+            <Input
+              id={`${prefix}-offline`}
+              inputMode="decimal"
+              value={draft.offlineFee}
+              onChange={(e) =>
+                setDraft({ ...draft, offlineFee: rupeeDraft(e.target.value) })
+              }
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-students`}>
+              Students at the centre
+            </FieldLabel>
+            <Input
+              id={`${prefix}-students`}
+              inputMode="numeric"
+              value={draft.offlineStudents}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  offlineStudents: e.target.value
+                    .replace(/\D/g, "")
+                    .slice(0, 5),
+                })
+              }
+            />
+            <FieldDescription>
+              The site shows these plus ClassPlus&rsquo;s {course.enrolled}.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor={`${prefix}-order`}>Position</FieldLabel>
+            <Input
+              id={`${prefix}-order`}
+              inputMode="numeric"
+              value={draft.sortOrder}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  sortOrder: e.target.value.replace(/\D/g, "").slice(0, 3),
+                })
+              }
+            />
+          </Field>
         </div>
-        <Button size="sm" onClick={onSave} disabled={!dirty || busy}>
-          {busy ? <Spinner /> : null}
-          {dirty ? "Save" : "Saved"}
-        </Button>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Switch
+              id={`${prefix}-featured`}
+              checked={draft.featured}
+              disabled={!exam}
+              onCheckedChange={(on) => setDraft({ ...draft, featured: on })}
+            />
+            <label htmlFor={`${prefix}-featured`} className="text-sm">
+              {exam
+                ? `Lead course for ${exam} on the home page`
+                : "Set an exam to lead it on the home page"}
+            </label>
+          </div>
+          <Button size="sm" onClick={onSave} disabled={!dirty || busy}>
+            {busy ? <Spinner /> : null}
+            {dirty ? "Save" : "Saved"}
+          </Button>
+        </div>
       </div>
-    </article>
+    </details>
   )
 }
