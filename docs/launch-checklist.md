@@ -1,7 +1,8 @@
 # Launch checklist
 
 **Live by 31 October 2026.** Branch `feat/launch`, draft PR #18. Brand rules:
-`docs/brand.md`.
+`docs/brand.md`. Live status and notes: the ICT Launch Board,
+https://claude.ai/artifact/TXPTiwjfof1B8mZtzwxrqW (the board wins where they differ).
 
 How to use it: `[x]` under **Locked** means done and not touched again unless
 something breaks or the owner asks. Work happens in three threads; each owns
@@ -73,7 +74,7 @@ deployment settings.
 - [ ] Policy pages approved
 - [ ] Domain access
 - [ ] The open facts in `toConfirm` (`lib/brand.ts`) and `libraryQuestions`
-  (`lib/library.ts`): names, timings, ASSIST, Dhemaji address, policies
+      (`lib/library.ts`): names, timings, ASSIST, Dhemaji address, policies
 
 ## After launch
 
