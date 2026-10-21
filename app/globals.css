@@ -626,7 +626,7 @@
   [data-site-trigger] {
     color: var(--muted-foreground);
   }
-  [data-site-trigger]:is([aria-current="page"], [data-popup-open]) {
+  [data-site-trigger]:is([data-current], [data-popup-open]) {
     color: var(--foreground);
   }
   [data-site-trigger][data-popup-open] {
@@ -772,7 +772,7 @@
     & [data-site-trigger] {
       color: var(--on-primary);
     }
-    & [data-site-trigger]:is([aria-current="page"], [data-popup-open]) {
+    & [data-site-trigger]:is([data-current], [data-popup-open]) {
       color: oklch(100% 0 none);
       background-color: color-mix(in oklch, white 16%, transparent);
     }

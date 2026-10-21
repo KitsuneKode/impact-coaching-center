@@ -21,7 +21,7 @@ import {
   IconUsers,
 } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
-import type { RefObject } from "react"
+import { type RefObject, useEffect, useState } from "react"
 
 import {
   NavigationMenu,
@@ -55,11 +55,10 @@ const ICONS = {
 } as const
 
 /**
- * The header's sections. Hovering one opens its pages in a panel under the
- * header bar (it glides between sections rather than closing and opening);
- * clicking the section name goes to its listing, so "Courses" still means
- * the courses page. Arrow keys move along the row, and every page in a panel
- * is also reachable from its listing.
+ * The header's sections. Each name is a button that opens its pages in a
+ * panel under the header bar (hover or click; it glides between sections
+ * rather than closing and opening). One control, one job: the panel's last
+ * row goes to the section's listing. Arrow keys move along the row.
  */
 export function SiteNav({
   anchor,
@@ -71,9 +70,29 @@ export function SiteNav({
   const t = useTranslations("NavMenu")
   const nav = useTranslations("Nav")
   const path = usePathname()
+  // Open section, ours to close: a click on a page, a new page, or reading
+  // on down the page closes it, so it never hangs over what comes next.
+  const [open, setOpen] = useState<string | null>(null)
+  const close = () => setOpen(null)
+  const [shownOn, setShownOn] = useState(path)
+  if (shownOn !== path) {
+    setShownOn(path)
+    setOpen(null)
+  }
+  useEffect(() => {
+    if (open === null) return
+    const from = window.scrollY
+    const onScroll = () => {
+      if (Math.abs(window.scrollY - from) > 32) setOpen(null)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [open])
 
   return (
     <NavigationMenu
+      value={open}
+      onValueChange={(value) => setOpen((value as string | null) ?? null)}
       data-site-nav
       data-flip
       aria-label={label}
@@ -95,14 +114,8 @@ export function SiteNav({
           return (
             <NavigationMenuItem key={menu.key} value={menu.key}>
               <NavigationMenuTrigger
-                nativeButton={false}
-                render={<Link href={menu.href} />}
                 data-site-trigger
-                // It renders an <a> to the listing; Base UI would announce it as
-                // a button, but activating it navigates.
-                // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role
-                role="link"
-                aria-current={current ? "page" : undefined}
+                data-current={current ? "" : undefined}
               >
                 {section}
               </NavigationMenuTrigger>
@@ -116,7 +129,7 @@ export function SiteNav({
                     return (
                       <li key={item.key}>
                         <NavigationMenuLink
-                          render={<Link href={item.href} />}
+                          render={<Link href={item.href} onClick={close} />}
                           data-menu-tile
                         >
                           <span
@@ -140,7 +153,7 @@ export function SiteNav({
                 </ul>
                 {menu.key === "ict" ? null : (
                   <NavigationMenuLink
-                    render={<Link href={menu.href} />}
+                    render={<Link href={menu.href} onClick={close} />}
                     data-menu-all
                   >
                     {t(`all.${menu.key}`)}

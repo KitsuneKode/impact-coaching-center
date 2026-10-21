@@ -2507,6 +2507,7 @@
 @layer components {
   :root:active-view-transition [data-site-header] {
     view-transition-name: site-header;
+    transition: none;
   }
   :root:active-view-transition [data-promo-strip] {
     view-transition-name: promo-strip;
@@ -2520,11 +2521,14 @@
   animation: none;
   z-index: 100;
 }
-::view-transition-old(site-header),
+/* The header can change tone between pages (white over a blue hero, ink on
+   paper). It keeps the browser's own crossfade, the same one the page gets,
+   so the two change together; identical headers blend to themselves, so a
+   same-tone change shows nothing. While the browser holds the old page
+   (waiting on the new page's images) the old header stays on it. */
 ::view-transition-old(promo-strip) {
   display: none;
 }
-::view-transition-new(site-header),
 ::view-transition-new(promo-strip) {
   animation: none;
 }
