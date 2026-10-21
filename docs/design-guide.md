@@ -1,6 +1,6 @@
 # ICT design guide
 
-**Status:** draft, 22 September 2026. Two decisions are still open (§9) and are
+**Status:** superseded by `docs/brand.md` (22 Oct 2026) for colour, type and motion; the form and state rules below still apply. Draft, 22 September 2026. Two decisions are still open (§9) and are
 marked inline. Everything else is a contract: if you are building a screen for
 this project, this file and `app/globals.css` are the two things to read.
 
