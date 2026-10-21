@@ -102,7 +102,8 @@ function ListSkeleton({
   return (
     <div
       aria-hidden="true"
-      className={cn("flex flex-col gap-3", className)}
+      // Tall enough that the footer stays below the fold while it waits.
+      className={cn("flex min-h-[55dvh] flex-col gap-3", className)}
       {...props}
     >
       {Array.from({ length: rows }, (_, index) => (

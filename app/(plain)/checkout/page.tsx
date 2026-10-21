@@ -303,10 +303,12 @@ function CheckoutForm() {
         </>
       }
     >
-      {rows.length === 0 ? (
+      {bundles === undefined ? (
+        <ListSkeleton rows={4} className="max-w-160" />
+      ) : lines.length === 0 ? (
         <StatePanel
           icon={<IconPackage stroke={1.75} />}
-          title={bundles === undefined ? "Loading…" : "Your cart is empty"}
+          title="Your cart is empty"
           description="The sets you add wait here until you place the order."
           action={
             <ButtonLink href="/books" className="mbs-6">
