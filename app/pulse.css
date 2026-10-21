@@ -3081,21 +3081,46 @@
 /* The trust wall on the home page (components/home/results.tsx). */
 @layer components {
   [data-trust-card] {
+    background-color: var(--card);
     box-shadow:
       0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent),
       0 18px 36px -28px
         color-mix(in oklch, var(--primary-deep) 40%, transparent);
   }
+  /* The page's one amber surface: the lead result. */
+  [data-trust-card][data-featured] {
+    background-color: var(--highlight);
+    color: var(--foreground);
+    box-shadow: 0 24px 48px -30px
+      color-mix(in oklch, var(--highlight) 70%, black);
+  }
+  [data-trust-who] {
+    background-color: var(--secondary);
+  }
+  [data-featured] [data-trust-who] {
+    background-color: color-mix(in oklch, white 70%, transparent);
+  }
+  [data-featured] [data-trust-who] .text-muted-foreground {
+    color: color-mix(in oklch, var(--foreground) 70%, transparent);
+  }
+  [data-trust-slip] {
+    background-color: var(--card);
+    box-shadow: 0 1px 2px
+      color-mix(in oklch, var(--foreground) 10%, transparent);
+  }
   [data-trust-face] {
     box-shadow: inset 0 0 0 1px oklch(0% 0 none / 0.08);
   }
+  [data-trust-tag] {
+    background-color: var(--secondary);
+    color: var(--muted-foreground);
+  }
   /* Green means "verified" and nothing else on this site. */
-  [data-trust-verified] {
+  [data-trust-tag="verified"] {
     background-color: color-mix(in oklch, var(--verified) 12%, transparent);
     color: var(--verified);
   }
-  [data-trust-verified]:focus-visible,
-  [data-trust-all]:focus-visible {
+  :is([data-trust-tag], [data-trust-slip], [data-trust-all]):focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
@@ -3107,22 +3132,37 @@
     background-color: var(--highlight);
     color: var(--foreground);
   }
-  [data-trust-all]:active {
+  :is([data-trust-all], [data-trust-slip]):active {
     scale: 0.98;
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-trust-post] {
       transition: scale 0.5s var(--ease-out-strong);
     }
-    [data-trust-all] {
+    :is([data-trust-all], [data-trust-slip]) {
       transition: scale 0.16s var(--ease-out-strong);
+    }
+    /* Cards rise in as they scroll into view, tied to the scroll itself:
+       CSS on the compositor, nothing running per frame in JavaScript. */
+    @supports (animation-timeline: view()) {
+      [data-trust-wall] > li {
+        animation: trust-in linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 60%;
+      }
+    }
+  }
+  @keyframes trust-in {
+    from {
+      opacity: 0;
+      translate: 0 1.5rem;
     }
   }
   @media (hover: hover) and (pointer: fine) {
     [data-trust-card]:hover [data-trust-post] {
       scale: 1.03;
     }
-    [data-trust-verified]:hover {
+    a[data-trust-tag="verified"]:hover {
       background-color: color-mix(in oklch, var(--verified) 18%, transparent);
     }
   }
