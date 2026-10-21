@@ -16,6 +16,7 @@ import {
   openGraphFor,
   siteUrl,
 } from "@/lib/site"
+import { OrderSteps } from "@/components/commerce/order-steps"
 
 /* Catalogue data refreshes when it changes (lib/catalog-server.ts); the
    page is static and rebuilt in the background on the same beat. */
@@ -146,6 +147,7 @@ export default async function BundlePage({
         </ul>
       </section>
 
+      <OrderSteps />
       {related.length ? (
         <section aria-labelledby="more-sets" className="container-page pbe-20">
           <h2 id="more-sets" className="type-display">

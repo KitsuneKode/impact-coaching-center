@@ -5,6 +5,8 @@ import {
   IconBook,
   IconChevronLeft,
   IconChevronRight,
+  IconShieldCheck,
+  IconTruckDelivery,
 } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import {
@@ -183,6 +185,27 @@ export function SetView({
                   </p>
                 )}
               </div>
+              {/* How it is paid for and how it arrives, before the click. */}
+              <ul className="mbs-5 grid gap-2 pbs-4 text-sm text-muted-foreground [border-block-start:1px_solid_var(--border)]">
+                <li className="flex items-center gap-2.5">
+                  <IconShieldCheck
+                    aria-hidden
+                    size={17}
+                    stroke={1.75}
+                    className="flex-none text-verified"
+                  />
+                  {t("buyPay")}
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <IconTruckDelivery
+                    aria-hidden
+                    size={17}
+                    stroke={1.75}
+                    className="flex-none text-primary"
+                  />
+                  {t("buyGet")}
+                </li>
+              </ul>
             </div>
           </div>
         </div>

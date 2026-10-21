@@ -17,6 +17,7 @@ import { contentFor } from "@/i18n/content-server"
 import { onlySamples, publishedBundles } from "@/lib/catalog-server"
 import { slugify } from "@/lib/catalog"
 import { alternatesFor, openGraphFor } from "@/lib/site"
+import { OrderSteps } from "@/components/commerce/order-steps"
 
 /* Catalogue data refreshes when it changes (lib/catalog-server.ts); the
    page is static and rebuilt in the background on the same beat. */
@@ -132,6 +133,7 @@ export default async function BooksPage({
           />
         </div>
       )}
+      <OrderSteps />
     </main>
   )
 }
