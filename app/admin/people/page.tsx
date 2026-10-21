@@ -24,14 +24,6 @@ import {
 } from "@/components/ui/input-group"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Spinner } from "@/components/ui/spinner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
 import { GRANT_LABELS, GRANTS } from "@/lib/grants"
 import { formatPhone } from "@/lib/brand"
@@ -181,94 +173,85 @@ function People() {
         </FieldGroup>
       </form>
 
-      <div className="mbs-12 overflow-x-auto">
-        <Table className="min-w-200">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Mobile</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Areas</TableHead>
-              <TableHead>Access</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {admins.map((person) => (
-              <TableRow key={person.id}>
-                <TableCell>
+      {/* One card per person: who they are, what they can open, and the one
+          action. Reads the same on a phone and a desk. */}
+      <ul className="mbs-12 grid gap-3 md:grid-cols-2">
+        {admins.map((person) => (
+          <li
+            key={person.id}
+            className="grid content-start gap-4 rounded-card border border-border bg-card p-4 md:p-5"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid min-w-0">
+                <span className="font-medium">
                   {person.name || (
-                    <span className="text-muted-foreground">Not given</span>
-                  )}
-                </TableCell>
-                <TableCell className="tnum">
-                  {formatPhone(person.phone)}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={person.role === "owner" ? "solid" : "neutral"}
-                  >
-                    {person.role === "owner" ? "Owner" : "Staff"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  {person.role === "owner" ? (
-                    <span className="text-sm text-muted-foreground">
-                      Everything
+                    <span className="text-muted-foreground">
+                      Name not given
                     </span>
-                  ) : (
-                    <div className="grid gap-1.5">
-                      <span className="text-xs text-muted-foreground">
-                        Enquiries and orders, plus:
-                      </span>
-                      {GRANTS.map((grant) => (
-                        <label
-                          key={grant}
-                          className="flex items-center gap-2 text-sm"
-                        >
-                          <Checkbox
-                            checked={person.grants.includes(grant)}
-                            onCheckedChange={async (on) => {
-                              setError(null)
-                              const grants = on
-                                ? [...person.grants, grant]
-                                : person.grants.filter((g) => g !== grant)
-                              try {
-                                const result = await setGrants({
-                                  personId: person.id as never,
-                                  grants,
-                                  expectedRevision: person.revision,
-                                })
-                                if (!result.ok)
-                                  setError(
-                                    REFUSALS[result.reason] ?? "Refused."
-                                  )
-                              } catch {
-                                setError(
-                                  "Could not reach the server. Try again."
-                                )
-                              }
-                            }}
-                          />
-                          {GRANT_LABELS[grant]}
-                        </label>
-                      ))}
-                    </div>
                   )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setRemoving(person)}
+                </span>
+                <span className="tnum text-sm text-muted-foreground">
+                  {formatPhone(person.phone)}
+                </span>
+              </div>
+              <Badge variant={person.role === "owner" ? "solid" : "neutral"}>
+                {person.role === "owner" ? "Owner" : "Staff"}
+              </Badge>
+            </div>
+            {person.role === "owner" ? (
+              <p className="text-sm text-muted-foreground">
+                Can open everything, including this page.
+              </p>
+            ) : (
+              <fieldset className="grid gap-2">
+                <legend className="mbe-2 text-xs text-muted-foreground">
+                  Enquiries and orders, plus:
+                </legend>
+                {GRANTS.map((grant) => (
+                  <label
+                    key={grant}
+                    className="flex min-h-8 items-center gap-2.5 text-sm"
                   >
-                    Remove access
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                    <Checkbox
+                      checked={person.grants.includes(grant)}
+                      onCheckedChange={async (on) => {
+                        setError(null)
+                        const grants = on
+                          ? [...person.grants, grant]
+                          : person.grants.filter((g) => g !== grant)
+                        try {
+                          const result = await setGrants({
+                            personId: person.id as never,
+                            grants,
+                            expectedRevision: person.revision,
+                          })
+                          if (!result.ok)
+                            setError(REFUSALS[result.reason] ?? "Refused.")
+                        } catch {
+                          setError("Could not reach the server. Try again.")
+                        }
+                      }}
+                    />
+                    {GRANT_LABELS[grant]}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {person.role === "owner" ? null : (
+              <div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => setRemoving(person)}
+                >
+                  Remove access
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
 
       {status === "CanLoadMore" || status === "LoadingMore" ? (
         <div className="mbs-6">

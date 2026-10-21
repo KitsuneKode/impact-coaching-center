@@ -186,100 +186,141 @@ function SetsTable({ rows }: { rows: SetRow[] }) {
       `${LANGUAGE_NAMES[language]} set ${next ? "available" : "switched off"}`
     )
 
+  const languageSwitch = (row: SetRow, language: Language) => {
+    const variant = row.variants[language]
+    return (
+      <label className="flex items-center gap-2.5">
+        <Switch
+          checked={variant.available}
+          disabled={pending === `${row.id}:${language}`}
+          onCheckedChange={(next) => toggleLanguage(row, language, next)}
+          aria-label={`${LANGUAGE_NAMES[language]} set of ${row.title.en} available`}
+        />
+        <span
+          className={
+            variant.available
+              ? "tnum"
+              : "tnum text-muted-foreground line-through"
+          }
+        >
+          {formatPaise(variant.pricePaise)}
+        </span>
+      </label>
+    )
+  }
+
+  const publishButton = (row: SetRow, className?: string) => (
+    <Button
+      variant="secondary"
+      size="sm"
+      className={className}
+      disabled={pending === row.id || (!row.published && !row.books)}
+      title={
+        !row.published && !row.books ? "Add books to the set first" : undefined
+      }
+      onClick={() =>
+        run(
+          row.id,
+          () =>
+            setPublished({
+              id: row.id as Id<"bundles">,
+              published: !row.published,
+              expectedRevision: row.revision,
+            }),
+          row.published ? "Unpublished" : "Published on /books"
+        )
+      }
+    >
+      {row.published ? "Unpublish" : "Publish"}
+    </Button>
+  )
+
   return (
-    <div className="overflow-x-auto rounded-card border border-border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="min-w-56">Set</TableHead>
-            {LANGUAGES.map((language) => (
-              <TableHead key={language}>{LANGUAGE_NAMES[language]}</TableHead>
-            ))}
-            <TableHead>Sold</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>
-              <span className="sr-only">Publish</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.id}>
-              <TableCell>
-                <div className="grid min-w-0">
-                  <Link
-                    href={`/admin/bundles/${row.id}`}
-                    className="truncate font-medium hover:underline"
-                  >
-                    {row.title.en}
-                  </Link>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {row.exam} · {row.books} book{row.books === 1 ? "" : "s"}
-                  </span>
-                </div>
-              </TableCell>
-              {LANGUAGES.map((language) => {
-                const variant = row.variants[language]
-                return (
-                  <TableCell key={language}>
-                    <label className="flex items-center gap-2.5">
-                      <Switch
-                        checked={variant.available}
-                        disabled={pending === `${row.id}:${language}`}
-                        onCheckedChange={(next) =>
-                          toggleLanguage(row, language, next)
-                        }
-                        aria-label={`${LANGUAGE_NAMES[language]} set of ${row.title.en} available`}
-                      />
-                      <span
-                        className={
-                          variant.available
-                            ? "tnum"
-                            : "tnum text-muted-foreground line-through"
-                        }
-                      >
-                        {formatPaise(variant.pricePaise)}
-                      </span>
-                    </label>
-                  </TableCell>
-                )
-              })}
-              <TableCell className="tnum">{row.soldCount}</TableCell>
-              <TableCell>
-                <PublishState published={row.published} sample={row.sample} />
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={
-                    pending === row.id || (!row.published && !row.books)
-                  }
-                  title={
-                    !row.published && !row.books
-                      ? "Add books to the set first"
-                      : undefined
-                  }
-                  onClick={() =>
-                    run(
-                      row.id,
-                      () =>
-                        setPublished({
-                          id: row.id as Id<"bundles">,
-                          published: !row.published,
-                          expectedRevision: row.revision,
-                        }),
-                      row.published ? "Unpublished" : "Published on /books"
-                    )
-                  }
+    <>
+      {/* Phones: one card per set, both language switches in reach. */}
+      <ul className="grid gap-3 md:hidden">
+        {rows.map((row) => (
+          <li
+            key={row.id}
+            className="grid gap-3 rounded-card border border-border bg-card p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid min-w-0">
+                <Link
+                  href={`/admin/bundles/${row.id}`}
+                  className="font-medium text-pretty"
                 >
-                  {row.published ? "Unpublish" : "Publish"}
-                </Button>
-              </TableCell>
+                  {row.title.en}
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  {row.exam} · {row.books} book{row.books === 1 ? "" : "s"} ·{" "}
+                  {row.soldCount} sold
+                </span>
+              </div>
+              <PublishState published={row.published} sample={row.sample} />
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {LANGUAGES.map((language) => (
+                <div key={language} className="grid gap-1.5">
+                  <span className="text-xs text-muted-foreground">
+                    {LANGUAGE_NAMES[language]}
+                  </span>
+                  {languageSwitch(row, language)}
+                </div>
+              ))}
+            </div>
+            {publishButton(row, "w-full")}
+          </li>
+        ))}
+      </ul>
+      <div className="overflow-x-auto rounded-card border border-border max-md:hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="min-w-56">Set</TableHead>
+              {LANGUAGES.map((language) => (
+                <TableHead key={language}>{LANGUAGE_NAMES[language]}</TableHead>
+              ))}
+              <TableHead>Sold</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>
+                <span className="sr-only">Publish</span>
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell>
+                  <div className="grid min-w-0">
+                    <Link
+                      href={`/admin/bundles/${row.id}`}
+                      className="truncate font-medium hover:underline"
+                    >
+                      {row.title.en}
+                    </Link>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {row.exam} · {row.books} book{row.books === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </TableCell>
+                {LANGUAGES.map((language) => (
+                  <TableCell key={language}>
+                    {languageSwitch(row, language)}
+                  </TableCell>
+                ))}
+                <TableCell className="tnum">{row.soldCount}</TableCell>
+                <TableCell>
+                  <PublishState published={row.published} sample={row.sample} />
+                </TableCell>
+                <TableCell className="text-right">
+                  {publishButton(row)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   )
 }
