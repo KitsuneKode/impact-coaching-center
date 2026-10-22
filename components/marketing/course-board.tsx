@@ -110,7 +110,9 @@ export function CourseBoard({
               if (next) setFilter(next)
             }}
             spacing={1}
-            className="max-w-full [scrollbar-width:none] overflow-x-auto rounded-full bg-secondary p-1"
+            // Wraps on a phone, so every exam is in sight rather than
+            // hidden past the edge of a row that scrolls.
+            className="max-w-full flex-wrap rounded-[22px] bg-secondary p-1 sm:[scrollbar-width:none] sm:flex-nowrap sm:overflow-x-auto sm:rounded-full"
           >
             {[
               { value: "all", label: t("all", { count: total }) },

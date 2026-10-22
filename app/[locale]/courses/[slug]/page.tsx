@@ -150,7 +150,12 @@ export default async function CoursePage({
     notation: "compact",
   })
 
-  const tones = wideTones(course.features.length)
+  // The hero shows the first four lines' heads; the cards below carry the
+  // rest, and any of those four with more to say, never the same line twice.
+  const included = course.features.filter(
+    (feature, i) => i >= 4 || splitFeature(feature).body
+  )
+  const tones = wideTones(included.length)
   const timing =
     course.timing ?? (legacy?.when ? phrase(legacy.when) : undefined)
   const facts = [
@@ -408,7 +413,7 @@ export default async function CoursePage({
       </section>
 
       {/* ---- what the fee buys ---- */}
-      {course.features.length ? (
+      {included.length ? (
         <section
           aria-labelledby="includes-heading"
           className="container-page pbs-20 pbe-20 md:pbs-28"
@@ -420,7 +425,7 @@ export default async function CoursePage({
           </Reveal>
           <div data-includes className="mbs-10">
             <ul>
-              {course.features.map((feature, i) => {
+              {included.map((feature, i) => {
                 const { head, body } = splitFeature(feature)
                 return (
                   <li key={feature} data-include={tones[i]}>
