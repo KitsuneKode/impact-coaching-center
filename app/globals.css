@@ -4,6 +4,9 @@
 @import "./typeset.css";
 @import "./pulse.css";
 
+/* dark: utilities follow the site's theme switch, not the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /*
  * ICT design system: Pulse.
  *
@@ -50,6 +53,11 @@
   --accent-foreground: var(--foreground);
 
   --brand: var(--primary);
+  /* The brand ink as a material, the same in both themes: text on amber,
+     ink panels, the strip. --foreground is the reading colour and flips. */
+  --ink-fixed: oklch(20.9% 0.059 265.9);
+  /* What shadows are tinted with: the ink here, near-black in dark. */
+  --shade: var(--foreground);
   --highlight: oklch(84.9% 0.149 80.9);
   /* the highlight, lifted for hover */
   --highlight-hover: color-mix(in oklch, var(--highlight), white 22%);
@@ -120,6 +128,43 @@
   --strip-height: 0px;
 }
 
+/*
+ * Dark: the same ink, paper and blue, turned over. The ground is the brand
+ * ink a step deeper, cards one step lighter than it, text the paper. Blue
+ * and green lift so they still read on ink; amber stays the one highlight.
+ * Shadows go to near-black, since the ink-tinted ones would glow.
+ * Measured on the dark ground: text 15.6:1, muted 7.1:1, blue links 4.9:1;
+ * white on the blue fill 4.6:1.
+ */
+:root[data-theme="dark"] {
+  --background: oklch(16.5% 0.037 266);
+  --foreground: oklch(95.5% 0.012 262);
+
+  --surface: oklch(20% 0.042 265);
+  --card: oklch(21.5% 0.043 265);
+
+  --primary: oklch(58.5% 0.185 260.5);
+  --primary-foreground: oklch(100% 0 none);
+  --primary-deep: oklch(50% 0.17 261);
+  --on-primary: oklch(94% 0.028 262.8);
+
+  --secondary: oklch(26.5% 0.045 264);
+  --muted-foreground: oklch(73% 0.035 262);
+
+  --highlight-hover: color-mix(in oklch, var(--highlight), white 18%);
+  --verified: oklch(0.72 0.15 150);
+  --destructive: oklch(0.66 0.19 27);
+
+  --border: color-mix(in oklch, var(--foreground) 12%, transparent);
+  --input: color-mix(in oklch, var(--foreground) 18%, transparent);
+  --shade: oklch(5% 0.02 266);
+
+  --shadow-frame:
+    0 1px 1px oklch(0% 0 none / 0.25), 0 8px 24px -12px oklch(0% 0 none / 0.5);
+  --shadow-lift:
+    0 2px 4px oklch(0% 0 none / 0.25), 0 26px 48px -20px oklch(0% 0 none / 0.6);
+}
+
 /* Unlayered, like the :root tokens above, or they would win. */
 :root:has([data-promo-strip]:not([data-hidden])) {
   --strip-height: 2.75rem;
@@ -131,6 +176,7 @@
 }
 
 @theme inline {
+  --color-ink: var(--ink-fixed);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --font-as: var(--font-as);
@@ -571,11 +617,9 @@
     pointer-events: none;
     opacity: 0;
     filter: drop-shadow(
-        0 0 0.6px color-mix(in oklch, var(--foreground) 30%, transparent)
+        0 0 0.6px color-mix(in oklch, var(--shade) 30%, transparent)
       )
-      drop-shadow(
-        0 10px 16px color-mix(in oklch, var(--foreground) 9%, transparent)
-      );
+      drop-shadow(0 10px 16px color-mix(in oklch, var(--shade) 9%, transparent));
   }
   [data-site-bar] {
     position: absolute;
@@ -804,8 +848,8 @@
     }
     & [data-site-header-row] > :not(:has([data-menu-button])) {
       text-shadow:
-        0 1px 10px color-mix(in oklch, var(--foreground) 60%, transparent),
-        0 0 22px color-mix(in oklch, var(--foreground) 35%, transparent);
+        0 1px 10px color-mix(in oklch, var(--ink-fixed) 60%, transparent),
+        0 0 22px color-mix(in oklch, var(--ink-fixed) 35%, transparent);
     }
     & [data-menu-button] {
       background-color: oklch(100% 0 none);
@@ -833,7 +877,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 1fr;
-    background-color: var(--foreground);
+    background-color: var(--ink-fixed);
     color: oklch(100% 0 none);
     transition: opacity 0.2s var(--ease-out-strong);
   }
@@ -1057,7 +1101,7 @@
     color: var(--foreground);
     box-shadow:
       0 0 0 1px var(--border),
-      0 24px 48px -24px color-mix(in oklch, var(--foreground) 45%, transparent);
+      0 24px 48px -24px color-mix(in oklch, var(--shade) 45%, transparent);
     outline: 2px solid transparent;
     transition: opacity 0.2s ease-out;
   }
@@ -1268,7 +1312,7 @@ body :lang(as) {
     border-radius: 20px;
     background:
       radial-gradient(
-          color-mix(in oklch, var(--foreground) 10%, transparent) 1px,
+          color-mix(in oklch, var(--ink-fixed) 10%, transparent) 1px,
           transparent 1.3px
         )
         0 0 / 14px 14px,
@@ -1385,7 +1429,7 @@ body :lang(as) {
     border-radius: 0.375rem;
     background-color: var(--secondary);
     box-shadow: inset 0 -1px 0
-      color-mix(in oklch, var(--foreground) 12%, transparent);
+      color-mix(in oklch, var(--shade) 12%, transparent);
     color: var(--foreground);
     font-family: inherit;
     font-size: 0.6875rem;

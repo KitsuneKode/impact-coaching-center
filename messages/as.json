@@ -9,6 +9,20 @@
   "Chrome": {
     "skip": "মূল বিষয়লৈ যাওক"
   },
+  "Theme": {
+    "current": "বৰ্তমান",
+    "switch": "ৰঙৰ ধৰণ",
+    "light": "পোহৰ",
+    "dark": "আন্ধাৰ",
+    "system": "ডিভাইচৰ দৰে",
+    "group": "ৰূপ",
+    "useLight": "পোহৰ ৰূপ",
+    "useDark": "আন্ধাৰ ৰূপ",
+    "useSystem": "ৰূপ: ডিভাইচৰ দৰে",
+    "languageGroup": "ভাষা",
+    "readEn": "Read in English",
+    "readAs": "অসমীয়াত পঢ়ক"
+  },
   "Language": {
     "title": "আপোনাৰ ভাষা বাছনি কৰক।",
     "titleOther": "Choose your language.",

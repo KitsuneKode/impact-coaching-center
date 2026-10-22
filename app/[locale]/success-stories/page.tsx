@@ -115,7 +115,7 @@ export default async function SuccessStoriesPage({
                 href="#officers"
                 data-press
                 data-cta="amber"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
               >
                 {t("meet")}
                 <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
@@ -283,7 +283,7 @@ export default async function SuccessStoriesPage({
                     <span className="absolute inset-0 grid place-items-center">
                       <span
                         data-play
-                        className="grid size-14 place-items-center rounded-full bg-highlight text-foreground"
+                        className="grid size-14 place-items-center rounded-full bg-highlight text-ink"
                       >
                         <IconPlayerPlayFilled
                           aria-hidden
@@ -319,7 +319,7 @@ export default async function SuccessStoriesPage({
                   target="_blank"
                   rel="noreferrer noopener"
                   data-press
-                  className="inline-flex h-12 items-center gap-2 self-start rounded-full bg-foreground px-6 font-semibold text-background"
+                  className="inline-flex h-12 items-center gap-2 self-start rounded-full bg-ink px-6 font-semibold text-white"
                 >
                   <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
                   {t("share")}

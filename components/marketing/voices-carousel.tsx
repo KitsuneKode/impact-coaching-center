@@ -140,7 +140,7 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
                 />
                 <span
                   data-play
-                  className="absolute inset-e-3 inset-bs-3 grid size-10 place-items-center rounded-full bg-highlight text-foreground"
+                  className="absolute inset-e-3 inset-bs-3 grid size-10 place-items-center rounded-full bg-highlight text-ink"
                 >
                   <IconPlayerPlayFilled
                     aria-hidden

@@ -314,7 +314,7 @@ export default async function CoursePage({
                     })}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-5 font-semibold text-foreground"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-5 font-semibold text-ink"
                   >
                     {course.free
                       ? detail("joinFree", { course: course.short })
@@ -425,7 +425,7 @@ export default async function CoursePage({
                   <VideoDialog
                     id={track.sample.id}
                     title={t("watchSample", { exam })}
-                    className="group relative block aspect-video w-full overflow-clip rounded-[20px] bg-foreground"
+                    className="group relative block aspect-video w-full overflow-clip rounded-[20px] bg-ink"
                   >
                     <Image
                       src={lectureStill(track.sample.id)}
@@ -437,7 +437,7 @@ export default async function CoursePage({
                     <span className="absolute inset-0 grid place-items-center">
                       <span
                         data-play
-                        className="grid size-16 place-items-center rounded-full bg-highlight text-foreground"
+                        className="grid size-16 place-items-center rounded-full bg-highlight text-ink"
                       >
                         <IconPlayerPlayFilled
                           aria-hidden

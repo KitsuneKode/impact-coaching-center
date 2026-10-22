@@ -174,7 +174,7 @@ export function Hero() {
                     sizes="(max-width: 768px) 44vw, 18vw"
                     className="object-cover object-top contrast-[1.04] transition-transform duration-500 ease-out group-hover:scale-[1.03]"
                   />
-                  <span className="absolute inset-e-2.5 inset-be-2.5 inline-flex size-8 translate-y-1 items-center justify-center rounded-md bg-white/90 text-foreground opacity-0 shadow-frame transition-[opacity,translate] duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                  <span className="absolute inset-e-2.5 inset-be-2.5 inline-flex size-8 translate-y-1 items-center justify-center rounded-md bg-white/90 text-ink opacity-0 shadow-frame transition-[opacity,translate] duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     <IconArrowUpRight size={16} stroke={1.75} />
                   </span>
                 </div>

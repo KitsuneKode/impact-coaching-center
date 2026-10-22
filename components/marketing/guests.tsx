@@ -48,7 +48,7 @@ export function Guests() {
                   <span className="absolute inset-0 grid place-items-center">
                     <span
                       data-play
-                      className="grid size-12 place-items-center rounded-full bg-highlight text-foreground"
+                      className="grid size-12 place-items-center rounded-full bg-highlight text-ink"
                     >
                       <IconPlayerPlayFilled
                         aria-hidden

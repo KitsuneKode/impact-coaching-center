@@ -284,7 +284,7 @@ export function CourseFinder({
                             href={`/courses/${best.course.slug}`}
                             data-cta="amber"
                             data-press
-                            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+                            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
                           >
                             {t("see")}
                             <IconArrowRight

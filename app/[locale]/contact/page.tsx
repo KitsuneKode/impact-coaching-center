@@ -149,7 +149,7 @@ export default async function ContactPage({
                 rel="noreferrer noopener"
                 data-press
                 data-cta="amber"
-                className="mbs-5 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+                className="mbs-5 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
               >
                 {t("directions")}
                 <IconArrowUpRight data-nudge aria-hidden size={16} stroke={2} />

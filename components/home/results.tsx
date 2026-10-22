@@ -46,7 +46,7 @@ export function Results() {
             target="_blank"
             rel="noreferrer noopener"
             data-press
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-foreground ps-5 pe-4 text-sm font-semibold text-background"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-ink ps-5 pe-4 text-sm font-semibold text-white"
           >
             {t("trustCheck")}
             <IconArrowUpRight aria-hidden size={16} stroke={2} />
@@ -367,7 +367,7 @@ function Upright({
       <span className="absolute inset-0 grid place-items-center">
         <span
           aria-hidden
-          className="grid size-10 place-items-center rounded-full bg-white text-foreground shadow-lift"
+          className="grid size-10 place-items-center rounded-full bg-white text-ink shadow-lift"
         >
           <IconPlayerPlayFilled
             aria-hidden

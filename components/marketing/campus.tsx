@@ -72,7 +72,7 @@ function Figure({
             sizes="(max-width: 768px) 92vw, 33vw"
             className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
-          <span className="absolute inset-e-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-foreground opacity-0 shadow-frame transition-opacity duration-300 group-hover:opacity-100">
+          <span className="absolute inset-e-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-ink opacity-0 shadow-frame transition-opacity duration-300 group-hover:opacity-100">
             <IconPlayerPlayFilled size={14} />
           </span>
         </div>

@@ -42,7 +42,7 @@ function Themed({ children }: { children: ReactNode }) {
       attribute="data-theme"
       defaultTheme={defaultTheme}
       themes={[...themes]}
-      enableSystem={false}
+      enableSystem
       disableTransitionOnChange
     >
       {children}

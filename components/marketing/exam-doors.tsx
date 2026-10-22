@@ -174,7 +174,7 @@ export async function JoinSteps({ href }: { href: string }) {
         target="_blank"
         rel="noreferrer noopener"
         data-press
-        className="inline-flex min-h-12 w-fit items-center gap-2 rounded-full bg-highlight ps-6 pe-5 font-semibold text-foreground"
+        className="inline-flex min-h-12 w-fit items-center gap-2 rounded-full bg-highlight ps-6 pe-5 font-semibold text-ink"
       >
         {t("joinCta")}
         <IconArrowRight aria-hidden size={18} stroke={2} />

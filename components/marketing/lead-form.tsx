@@ -383,7 +383,7 @@ export function LeadForm({
                   data-press
                   data-cta="amber"
                   disabled={pending}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground disabled:opacity-70 sm:min-w-56"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink disabled:opacity-70 sm:min-w-56"
                 >
                   {pending ? (
                     <>

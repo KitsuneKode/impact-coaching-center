@@ -14,6 +14,7 @@ import { createPortal } from "react-dom"
 
 import { AccountMenu } from "@/components/account/account-menu"
 import { LocaleSwitch } from "@/components/i18n/locale-switch"
+import { ThemeSwitch } from "@/components/theme/theme-switch"
 import { Link, usePathname } from "@/i18n/navigation"
 import { contactHref } from "@/lib/contact"
 import { NAV_MENUS } from "./nav-links"
@@ -192,6 +193,7 @@ export function SiteMenu({ phone }: { phone: string }) {
                   </ul>
                   <div className="flex items-center gap-2 px-5 pbs-5">
                     <LocaleSwitch />
+                    <ThemeSwitch />
                     <AccountMenu />
                   </div>
                   <div className="grid gap-3 p-5 sm:grid-cols-2">
@@ -200,7 +202,7 @@ export function SiteMenu({ phone }: { phone: string }) {
                       target="_blank"
                       rel="noreferrer noopener"
                       onClick={() => setOpen(false)}
-                      className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground transition-transform duration-150 ease-out-strong active:scale-[0.97]"
+                      className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink transition-transform duration-150 ease-out-strong active:scale-[0.97]"
                     >
                       {offer("cta")}
                       <IconArrowRight

@@ -148,7 +148,7 @@ export default async function TeachersPage({
                       className="object-cover"
                     />
                     <span className="absolute inset-0 grid place-items-center bg-[color-mix(in_oklch,black_25%,transparent)]">
-                      <span className="grid size-14 place-items-center rounded-full bg-white/95 text-foreground shadow-lift">
+                      <span className="grid size-14 place-items-center rounded-full bg-white/95 text-ink shadow-lift">
                         <IconPlayerPlayFilled aria-hidden size={22} />
                       </span>
                     </span>

@@ -239,7 +239,7 @@
   [data-ticket-wrap] {
     display: block;
     filter: drop-shadow(
-      0 18px 30px color-mix(in oklch, var(--foreground) 14%, transparent)
+      0 18px 30px color-mix(in oklch, var(--shade) 14%, transparent)
     );
     transition: filter 0.35s var(--ease-out-strong);
   }
@@ -272,7 +272,7 @@
     [data-ticket-wrap]:hover {
       translate: 0 -4px;
       filter: drop-shadow(
-        0 26px 40px color-mix(in oklch, var(--foreground) 20%, transparent)
+        0 26px 40px color-mix(in oklch, var(--shade) 20%, transparent)
       );
     }
   }
@@ -345,16 +345,16 @@
     color: var(--ink);
   }
   [data-panel="adre"] {
-    --field: var(--foreground);
+    --field: var(--ink-fixed);
     --dim: color-mix(in oklch, white 62%, transparent);
     --tilt: 2deg;
   }
   [data-panel="banking"] {
     --field: var(--highlight);
-    --ink: var(--foreground);
-    --dim: color-mix(in oklch, var(--foreground) 60%, transparent);
-    --mrp: var(--muted-foreground);
-    --go: var(--foreground);
+    --ink: var(--ink-fixed);
+    --dim: color-mix(in oklch, var(--ink-fixed) 60%, transparent);
+    --mrp: color-mix(in oklch, var(--ink-fixed) 55%, transparent);
+    --go: var(--ink-fixed);
     --go-ink: oklch(100% 0 none);
     --tilt: -1.5deg;
   }
@@ -410,7 +410,7 @@
     aspect-ratio: 4 / 3;
     rotate: var(--tilt);
     box-shadow:
-      0 30px 50px -24px color-mix(in oklch, var(--foreground) 50%, transparent),
+      0 30px 50px -24px color-mix(in oklch, var(--shade) 50%, transparent),
       0 0 0 6px color-mix(in oklch, white 92%, transparent);
   }
   @media (width < 48rem) {
@@ -468,7 +468,7 @@
     aspect-ratio: 9 / 13;
     overflow: clip;
     border-radius: 22px;
-    background-color: var(--foreground);
+    background-color: var(--ink-fixed);
     color: oklch(100% 0 none);
     box-shadow:
       0 0 0 5px oklch(100% 0 none),
@@ -685,7 +685,7 @@
 
   [data-book] {
     --book-bg: var(--highlight);
-    --book-ink: var(--foreground);
+    --book-ink: var(--ink-fixed);
     --book-spine: color-mix(in oklch, var(--highlight), black 15%);
     position: relative;
     perspective: 1400px;
@@ -693,12 +693,12 @@
   }
   [data-book="paper"] {
     --book-bg: oklch(100% 0 none);
-    --book-spine: color-mix(in oklch, var(--secondary), var(--foreground) 8%);
+    --book-spine: oklch(91% 0.018 262);
   }
   [data-book="ink"] {
-    --book-bg: var(--foreground);
-    --book-ink: var(--background);
-    --book-spine: color-mix(in oklch, var(--foreground), black 40%);
+    --book-bg: var(--ink-fixed);
+    --book-ink: oklch(97.6% 0.006 264.5);
+    --book-spine: color-mix(in oklch, var(--ink-fixed), black 40%);
   }
   [data-book-inner] {
     position: relative;
@@ -952,8 +952,8 @@
     inset: 0;
     background: linear-gradient(
       to top,
-      color-mix(in oklch, var(--foreground) 82%, transparent),
-      color-mix(in oklch, var(--foreground) 30%, transparent) 32%,
+      color-mix(in oklch, var(--ink-fixed) 82%, transparent),
+      color-mix(in oklch, var(--ink-fixed) 30%, transparent) 32%,
       transparent 58%
     );
   }
@@ -1065,7 +1065,7 @@
   }
   [data-row-go] {
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-row-card] {
@@ -1146,7 +1146,7 @@
   }
   [data-set-add] {
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
   }
   button[data-set-price] {
     cursor: pointer;
@@ -1419,7 +1419,7 @@
   }
   [data-include="amber"] [data-include-card] {
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
     box-shadow: none;
   }
   /* Numbers and descriptions: quieter than the title, still 4.5:1 or more. */
@@ -1720,7 +1720,7 @@
     block-size: 6rem;
     background: repeating-linear-gradient(
         to bottom,
-        color-mix(in oklch, var(--foreground) 9%, transparent) 0 2px,
+        color-mix(in oklch, var(--ink-fixed) 9%, transparent) 0 2px,
         transparent 2px 12px
       )
       content-box;
@@ -1737,7 +1737,7 @@
     border-radius: 999px;
     font-weight: 600;
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
   }
   [data-notes-read][data-wait] {
     opacity: 0.75;
@@ -1954,7 +1954,7 @@
     position: fixed;
     inset: 0;
     z-index: 60;
-    background-color: color-mix(in oklch, var(--foreground) 55%, transparent);
+    background-color: color-mix(in oklch, var(--ink-fixed) 55%, transparent);
     opacity: 1;
   }
   [data-promo-popup] {
@@ -1969,7 +1969,7 @@
     border-radius: 28px;
     translate: -50% -50%;
     box-shadow: 0 40px 80px -30px
-      color-mix(in oklch, var(--foreground) 60%, transparent);
+      color-mix(in oklch, var(--shade) 60%, transparent);
   }
   /* The dialog takes focus so its heading is read first; it is not a
      control, so no ring (a transparent outline still shows in forced colours). */
@@ -2042,7 +2042,7 @@
     position: fixed;
     inset: 0;
     z-index: 70;
-    background-color: color-mix(in oklch, var(--foreground) 70%, transparent);
+    background-color: color-mix(in oklch, var(--ink-fixed) 70%, transparent);
   }
   /* Full screen on a phone, a large framed sheet on a wide screen. */
   [data-reader-popup] {
@@ -2059,7 +2059,7 @@
       border-radius: 24px;
       overflow: clip;
       box-shadow: 0 40px 80px -30px
-        color-mix(in oklch, var(--foreground) 60%, transparent);
+        color-mix(in oklch, var(--shade) 60%, transparent);
     }
   }
   [data-reader-backdrop],
@@ -2829,7 +2829,7 @@
     background-color: var(--background);
     border-radius: 999px;
     box-shadow: 0 10px 24px -18px
-      color-mix(in oklch, var(--foreground) 40%, transparent);
+      color-mix(in oklch, var(--shade) 40%, transparent);
   }
   [data-board-grid] {
     display: grid;
@@ -2906,7 +2906,7 @@
   }
   [data-fit="best"] [data-fit-label] {
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
   }
   [data-fit="best"] [data-course-card] {
     box-shadow:
@@ -3011,8 +3011,7 @@
     padding-inline-start: 1rem;
     color: var(--muted-foreground);
     text-wrap: pretty;
-    box-shadow: inset 2px 0 0
-      color-mix(in oklch, var(--foreground) 10%, transparent);
+    box-shadow: inset 2px 0 0 color-mix(in oklch, var(--shade) 10%, transparent);
   }
   [data-contents-list] [data-depth="3"] a {
     padding-inline-start: 1.75rem;
@@ -3127,7 +3126,7 @@
   /* The page's one amber surface: the lead result. */
   [data-trust-card][data-featured] {
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
     box-shadow: 0 24px 48px -30px
       color-mix(in oklch, var(--highlight) 70%, black);
   }
@@ -3138,12 +3137,12 @@
     background-color: color-mix(in oklch, white 70%, transparent);
   }
   [data-featured] [data-trust-who] .text-muted-foreground {
-    color: color-mix(in oklch, var(--foreground) 70%, transparent);
+    color: color-mix(in oklch, var(--ink-fixed) 70%, transparent);
   }
   [data-trust-slip] {
     background-color: var(--card);
-    box-shadow: 0 1px 2px
-      color-mix(in oklch, var(--foreground) 10%, transparent);
+    color: var(--foreground);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--shade) 10%, transparent);
   }
   /* Five upright reviews in a row; phones swipe them. */
   [data-trust-strip] > li {
@@ -3186,7 +3185,7 @@
   }
   [data-trust-all] [data-row-go] {
     background-color: var(--highlight);
-    color: var(--foreground);
+    color: var(--ink-fixed);
   }
   :is([data-trust-all], [data-trust-slip]):active {
     scale: 0.98;
@@ -3242,14 +3241,14 @@
     --door-dim: var(--on-primary);
   }
   [data-door="adre"] {
-    background-color: var(--foreground);
-    color: var(--background);
-    --door-dim: color-mix(in oklch, var(--background) 72%, transparent);
+    background-color: var(--ink-fixed);
+    color: oklch(97.6% 0.006 264.5);
+    --door-dim: color-mix(in oklch, white 72%, transparent);
   }
   [data-door="banking"] {
     background-color: var(--highlight);
-    color: var(--foreground);
-    --door-dim: color-mix(in oklch, var(--foreground) 72%, transparent);
+    color: var(--ink-fixed);
+    --door-dim: color-mix(in oklch, var(--ink-fixed) 72%, transparent);
   }
   [data-door-dim] {
     color: var(--door-dim);

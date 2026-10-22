@@ -16,7 +16,7 @@ export function PrimaryCta({ className }: { className?: string }) {
         href={contactHref({ kind: "workshop" })}
         target="_blank"
         rel="noreferrer noopener"
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
       >
         {t("cta")}
         <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />

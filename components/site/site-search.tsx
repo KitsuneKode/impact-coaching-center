@@ -3,6 +3,8 @@
 import {
   IconBook2,
   IconCalendarEvent,
+  IconCheck,
+  IconLanguage,
   IconFileText,
   IconFolder,
   IconNews,
@@ -24,11 +26,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
+import { useChooseLocale } from "@/components/i18n/use-choose-locale"
+import { THEME_CHOICES, useThemeChoice } from "@/components/theme/theme-switch"
 import { useRouter } from "@/i18n/navigation"
 import type { SearchItem } from "@/lib/search-index"
 import { track } from "@/lib/analytics"
 import { searchScore } from "@/lib/search-match"
 import { contactHref } from "@/lib/contact"
+
+const normalise = (text: string) => text.trim().toLowerCase().normalize("NFKD")
 
 /** The last few things searched for, on this device only. */
 const RECENT_KEY = "ict-search-recent"
@@ -133,8 +139,11 @@ export function SiteSearch({
   variant?: "header" | "menu"
 }) {
   const t = useTranslations("Pulse")
+  const theme = useTranslations("Theme")
   const locale = useLocale()
   const router = useRouter()
+  const { choice, choose } = useThemeChoice()
+  const language = useChooseLocale()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<SearchItem[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -209,6 +218,80 @@ export function SiteSearch({
       GROUPS.filter((group) => items?.some((item) => item.kind === group.kind)),
     [items]
   )
+
+  // Settings sit in the start list, and come up for words that ask for
+  // them ("dark", "theme", "assamese", ...).
+  const asked = normalise(query)
+  const settings = [
+    ...THEME_CHOICES.map(({ id, icon }) => ({
+      key: `theme:${id}`,
+      group: "theme" as const,
+      label: theme(
+        id === "light" ? "useLight" : id === "dark" ? "useDark" : "useSystem"
+      ),
+      words: `theme mode colour color appearance ${id} ${theme(id)}`,
+      icon,
+      on: choice === id,
+      run: () => choose(id),
+    })),
+    ...(["en", "as"] as const).map((l) => ({
+      key: `lang:${l}`,
+      group: "language" as const,
+      label: theme(l === "en" ? "readEn" : "readAs"),
+      words: `language bhasha ${l === "en" ? "english" : "assamese asomiya অসমীয়া"}`,
+      icon: IconLanguage,
+      on: language.current === l,
+      run: () => {
+        setOpen(false)
+        setQuery("")
+        language.choose(l)
+      },
+    })),
+  ].filter(
+    (item) =>
+      kind === "all" &&
+      (browsing ||
+        (asked.length > 1 &&
+          normalise(`${item.label} ${item.words}`).includes(asked)))
+  )
+
+  // First in the start list; after the results once something is typed.
+  const settingsGroups = (["theme", "language"] as const).map((group) => {
+    const rows = settings.filter((item) => item.group === group)
+    return rows.length ? (
+      <CommandGroup
+        key={group}
+        heading={theme(group === "theme" ? "group" : "languageGroup")}
+      >
+        {rows.map(({ key, label, icon: Icon, on, run }) => (
+          <CommandItem
+            key={key}
+            value={key}
+            onSelect={run}
+            className="min-h-11 gap-3"
+          >
+            <span data-search-icon aria-hidden>
+              <Icon size={16} stroke={1.75} />
+            </span>
+            <span
+              lang={key === "lang:as" ? "as-IN" : undefined}
+              className="min-w-0 flex-1 truncate font-medium"
+            >
+              {label}
+            </span>
+            {on ? (
+              <IconCheck
+                aria-label={theme("current")}
+                size={16}
+                stroke={2}
+                className="text-primary"
+              />
+            ) : null}
+          </CommandItem>
+        ))}
+      </CommandGroup>
+    ) : null
+  })
 
   const go = (href: string, kind: string) => {
     track({ name: "search_result_opened", kind, query_length: query.length })
@@ -359,6 +442,7 @@ export function SiteSearch({
                     ))}
                   </CommandGroup>
                 ) : null}
+                {browsing ? settingsGroups : null}
                 {groups.map(({ kind, key, icon: Icon, rows }) => (
                   <CommandGroup key={kind} heading={t(key)}>
                     {rows.map(({ item }) => (
@@ -385,6 +469,7 @@ export function SiteSearch({
                     ))}
                   </CommandGroup>
                 ))}
+                {browsing ? null : settingsGroups}
               </>
             )}
           </CommandList>

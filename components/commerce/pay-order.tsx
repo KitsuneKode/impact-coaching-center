@@ -195,7 +195,7 @@ export function PayOrder({
         data-cta="amber"
         onClick={pay}
         disabled={busy || stage.kind === "test"}
-        className={`inline-flex items-center gap-2 rounded-full bg-highlight font-semibold text-foreground disabled:opacity-70 ${size === "lg" ? "h-12 px-6" : "h-10 px-5 text-sm"}`}
+        className={`inline-flex items-center gap-2 rounded-full bg-highlight font-semibold text-ink disabled:opacity-70 ${size === "lg" ? "h-12 px-6" : "h-10 px-5 text-sm"}`}
       >
         {busy ? (
           <>
@@ -292,7 +292,7 @@ function TestGateway({
                 data-cta="amber"
                 disabled={working}
                 onClick={() => run("success")}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground disabled:opacity-70"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink disabled:opacity-70"
               >
                 {working ? <Spinner /> : null}
                 Pay (test)

@@ -9,6 +9,20 @@
   "Chrome": {
     "skip": "Skip to content"
   },
+  "Theme": {
+    "current": "Current",
+    "switch": "Colour theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "Match the device",
+    "group": "Appearance",
+    "useLight": "Light theme",
+    "useDark": "Dark theme",
+    "useSystem": "Theme: match the device",
+    "languageGroup": "Language",
+    "readEn": "Read in English",
+    "readAs": "অসমীয়াত পঢ়ক"
+  },
   "Language": {
     "title": "Choose your language.",
     "titleOther": "আপোনাৰ ভাষা বাছনি কৰক।",

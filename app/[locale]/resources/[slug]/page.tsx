@@ -129,7 +129,7 @@ export default async function ResourcePage({
             href={`/resources?open=${resource.slug}`}
             data-press
             data-cta="amber"
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
           >
             {t("read")}
             <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />

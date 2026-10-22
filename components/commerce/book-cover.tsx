@@ -11,9 +11,9 @@ const tones = {
     muted: "text-primary-foreground/70",
   },
   highlight: {
-    cover: "bg-highlight text-foreground",
-    rule: "bg-foreground/30",
-    muted: "text-foreground/65",
+    cover: "bg-highlight text-ink",
+    rule: "bg-ink/30",
+    muted: "text-ink/65",
   },
   muted: {
     cover: "bg-card text-foreground ring-1 ring-border ring-inset",

@@ -9,6 +9,8 @@ import {
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 
+import { LocaleSwitch } from "@/components/i18n/locale-switch"
+import { ThemeSwitch } from "@/components/theme/theme-switch"
 import { useContent } from "@/i18n/content"
 import { Link } from "@/i18n/navigation"
 import {
@@ -228,6 +230,12 @@ export function SiteFooter() {
 
       <div className="container-page flex flex-wrap items-center justify-between gap-3 pbs-4 pbe-28 text-xs text-muted-foreground md:pbe-10">
         <p>{t("copyright", { year, city: place.city })}</p>
+        {/* Language and theme, also in the header and Ctrl+K: the foot of the
+            page is where many look for them. */}
+        <div className="flex items-center gap-2 sm:order-last sm:basis-full lg:order-none lg:basis-auto">
+          <LocaleSwitch />
+          <ThemeSwitch />
+        </div>
         <p>
           {t.rich("builtBy", {
             name: agency.name,

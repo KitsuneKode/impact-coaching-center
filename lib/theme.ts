@@ -1,4 +1,4 @@
-/** Themes next-themes may write to `data-theme`. Dark arrives after launch. */
+/** Themes next-themes may write to `data-theme` (palettes in app/globals.css). */
 export const themes = ["light", "dark"] as const
 
 export type ThemeId = (typeof themes)[number]
@@ -14,8 +14,9 @@ export const themeStorageKey = "theme"
  * execute that script (the "Encountered a script tag while rendering" error).
  * A server-rendered script is the one the browser actually runs.
  *
- * Equivalent to ThemeProvider with attribute "data-theme" and system themes off.
+ * Equivalent to ThemeProvider with attribute "data-theme": light by default,
+ * "system" follows the device.
  */
 export function themeInitScript(): string {
-  return `(function(){try{var d=document.documentElement,t=localStorage.getItem(${JSON.stringify(themeStorageKey)})||${JSON.stringify(defaultTheme)};d.setAttribute("data-theme",t);if(t==="light"||t==="dark")d.style.colorScheme=t;}catch(e){}})();`
+  return `(function(){try{var d=document.documentElement,t=localStorage.getItem(${JSON.stringify(themeStorageKey)})||${JSON.stringify(defaultTheme)};if(t==="system")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";d.setAttribute("data-theme",t);if(t==="light"||t==="dark")d.style.colorScheme=t;}catch(e){}})();`
 }

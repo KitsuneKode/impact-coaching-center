@@ -89,7 +89,7 @@ export function TeacherCard({ teacher }: { teacher: Teacher }) {
           data-turn-face
           data-turn-back
           inert={!flipped}
-          className="flex flex-col rounded-[24px] bg-foreground p-5 text-white"
+          className="flex flex-col rounded-[24px] bg-ink p-5 text-white"
         >
           <span className="text-sm text-on-primary/80">{teacher.called}</span>
           <span className="mbs-1 font-display text-lg leading-tight font-semibold">
@@ -104,7 +104,7 @@ export function TeacherCard({ teacher }: { teacher: Teacher }) {
               title={teacher.name}
               subtitle={teaches}
               label={`${t("watchClass")}: ${teacher.name}`}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-highlight text-sm font-semibold text-foreground"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-highlight text-sm font-semibold text-ink"
             >
               <IconPlayerPlayFilled aria-hidden size={14} />
               {t("watchClass")}

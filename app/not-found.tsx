@@ -32,7 +32,7 @@ export default function NotFound() {
                 href="/"
                 data-press
                 data-cta="amber"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
               >
                 Home
                 <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />

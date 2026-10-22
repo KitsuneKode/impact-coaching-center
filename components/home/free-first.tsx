@@ -98,7 +98,7 @@ export function FreeFirst({
             </div>
           </Reveal>
           <Reveal delay={0.06}>
-            <div className="h-full rounded-[28px] bg-foreground p-7 text-white">
+            <div className="h-full rounded-[28px] bg-ink p-7 text-white">
               <h3 className="font-display text-lg font-semibold">
                 {t("workshops")}
               </h3>

@@ -26,7 +26,7 @@ const paperThemes: Record<
     text: "text-foreground",
     muted: "text-muted-foreground",
     border: "border-border",
-    cover: "bg-foreground",
+    cover: "bg-ink",
     coverText: "text-background",
   },
   dark: {
@@ -54,7 +54,7 @@ function themeClasses(appearance: BookPreviewAppearance) {
       text: "text-card-foreground",
       muted: "text-muted-foreground",
       border: "border-border",
-      cover: "bg-foreground",
+      cover: "bg-ink",
       coverText: "text-background",
     }
   }

@@ -5,13 +5,10 @@ import { useTranslations } from "next-intl"
 export function ExamMarquee() {
   const words = useTranslations("Pulse")("marquee").split("|")
   return (
-    <div
-      aria-hidden
-      className="overflow-clip bg-foreground pbs-5 pbe-5 text-white"
-    >
+    <div aria-hidden className="overflow-clip bg-ink pbs-5 pbe-5 text-white">
       <ul
         data-marquee-track
-        className="flex w-max items-center gap-8 bg-foreground font-display text-lg font-semibold"
+        className="flex w-max items-center gap-8 bg-ink font-display text-lg font-semibold"
       >
         {[...words, ...words].map((word, i) => (
           <li key={`${word}-${i}`} className="flex items-center gap-8">

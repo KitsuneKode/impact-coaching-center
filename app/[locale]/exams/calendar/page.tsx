@@ -68,7 +68,7 @@ export default async function CalendarPage({
                 target="_blank"
                 rel="noreferrer noopener"
                 data-press
-                className="mbs-8 inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-6 font-semibold text-background"
+                className="mbs-8 inline-flex h-12 items-center gap-2 rounded-full bg-ink px-6 font-semibold text-white"
               >
                 <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
                 {t("notify")}

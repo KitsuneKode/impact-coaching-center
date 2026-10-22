@@ -79,7 +79,7 @@ export function StudentFanDeck({ reviews }: { reviews: StudentReview[] }) {
                 <span className="absolute inset-0 grid place-items-center">
                   <span
                     aria-hidden
-                    className="grid size-12 place-items-center rounded-full bg-white text-foreground shadow-lift"
+                    className="grid size-12 place-items-center rounded-full bg-white text-ink shadow-lift"
                   >
                     <IconPlayerPlayFilled
                       aria-hidden

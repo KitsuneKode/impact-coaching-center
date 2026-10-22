@@ -120,7 +120,7 @@ export default async function LibraryPage({
                 rel="noreferrer noopener"
                 data-press
                 data-cta="amber"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
               >
                 {t("libAsk")}
                 <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
@@ -290,7 +290,7 @@ export default async function LibraryPage({
                 target="_blank"
                 rel="noreferrer noopener"
                 data-press
-                className="inline-flex h-12 flex-none items-center gap-2 rounded-full bg-foreground px-6 font-semibold text-background"
+                className="inline-flex h-12 flex-none items-center gap-2 rounded-full bg-ink px-6 font-semibold text-white"
               >
                 {t("askFee")}
                 <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />

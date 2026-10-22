@@ -16,7 +16,7 @@ export function PostVideo({ id, title }: { id: string; title?: string }) {
   const name = title ?? t("video")
   return (
     <figure data-post-figure data-post-video>
-      <div className="relative aspect-video overflow-clip rounded-2xl bg-foreground">
+      <div className="relative aspect-video overflow-clip rounded-2xl bg-ink">
         {playing ? (
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
@@ -42,7 +42,7 @@ export function PostVideo({ id, title }: { id: string; title?: string }) {
             />
             <span
               data-post-play
-              className="relative grid size-16 place-items-center rounded-full bg-highlight text-foreground"
+              className="relative grid size-16 place-items-center rounded-full bg-highlight text-ink"
             >
               <IconPlayerPlayFilled
                 aria-hidden

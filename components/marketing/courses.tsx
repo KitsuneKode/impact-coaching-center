@@ -240,7 +240,7 @@ function TrackCard({
               className="object-cover transition-transform duration-500 group-hover/sample:scale-[1.03]"
             />
             <span className="absolute inset-0 grid place-items-center">
-              <span className="grid size-5 place-items-center rounded-full bg-white/90 text-foreground">
+              <span className="grid size-5 place-items-center rounded-full bg-white/90 text-ink">
                 <IconPlayerPlayFilled className="size-2.5" />
               </span>
             </span>

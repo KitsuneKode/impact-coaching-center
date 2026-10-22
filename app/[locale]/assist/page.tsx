@@ -103,7 +103,7 @@ export default async function AssistPage({
               rel="noreferrer noopener"
               data-press
               data-cta="amber"
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
             >
               <IconBrandWhatsapp aria-hidden size={19} stroke={1.75} />
               {t("notify")}
@@ -182,7 +182,7 @@ export default async function AssistPage({
                   vertical
                   className="group block w-full text-start"
                 >
-                  <span className="relative block aspect-[9/16] overflow-clip rounded-[22px] bg-foreground">
+                  <span className="relative block aspect-[9/16] overflow-clip rounded-[22px] bg-ink">
                     <Image
                       src={thumb(video.id)}
                       alt=""
@@ -193,7 +193,7 @@ export default async function AssistPage({
                     <span className="absolute inset-0 grid place-items-center">
                       <span
                         data-play
-                        className="grid size-14 place-items-center rounded-full bg-highlight text-foreground"
+                        className="grid size-14 place-items-center rounded-full bg-highlight text-ink"
                       >
                         <IconPlayerPlayFilled
                           aria-hidden

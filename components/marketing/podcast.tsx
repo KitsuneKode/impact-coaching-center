@@ -48,7 +48,7 @@ export function Podcast() {
                 className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
               />
               <span className="absolute inset-0 grid place-items-center">
-                <span className="grid size-14 place-items-center rounded-full bg-white/95 text-foreground shadow-lift transition-transform duration-300 group-hover:scale-105">
+                <span className="grid size-14 place-items-center rounded-full bg-white/95 text-ink shadow-lift transition-transform duration-300 group-hover:scale-105">
                   <IconPlayerPlayFilled className="size-5" />
                 </span>
               </span>
