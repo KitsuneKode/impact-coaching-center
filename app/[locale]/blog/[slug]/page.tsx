@@ -1,14 +1,20 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { IconChevronRight, IconClock } from "@tabler/icons-react"
+import {
+  IconArrowRight,
+  IconArrowUp,
+  IconChevronRight,
+  IconClock,
+} from "@tabler/icons-react"
 import Image from "next/image"
 import type { Metadata } from "next"
 import { Link } from "@/i18n/navigation"
 import { notFound } from "next/navigation"
 
 import { PostContents } from "@/components/blog/post-contents"
+import { PostShare } from "@/components/blog/post-share"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
 import { ReadCounter } from "@/components/blog/read-counter"
-import { READS_FROM } from "@/lib/blog"
+import { ownLanguageFirst, READS_FROM } from "@/lib/blog"
 import { headingsOf, readingMinutes } from "@/lib/article"
 import { brand } from "@/lib/brand"
 import { publishedPost } from "@/lib/catalog-server"
@@ -65,9 +71,19 @@ export default async function PostPage({
   setRequestLocale(locale)
   const t = await getTranslations("Shop")
   const tb = await getTranslations("BlogPage")
-  const post = await publishedPost(slug)
+  const [post, posts] = await Promise.all([
+    publishedPost(slug),
+    publishedPosts(),
+  ])
   if (!post) notFound()
   const lang = post.language === "as" ? "as" : "en"
+  // Three more to read next, in the post's own language first.
+  const more = ownLanguageFirst(
+    posts.filter((other) => other.slug !== post.slug),
+    lang
+  ).slice(0, 3)
+  // Pictures only when every card has one, so the row stays level.
+  const covers = more.every((other) => other.cover)
   const headings = headingsOf(post.body)
 
   /* Article schema: only claims the visible page makes. */
@@ -96,6 +112,7 @@ export default async function PostPage({
   }
 
   const base = `${siteUrl}${locale === "en" ? "" : `/${locale}`}`
+  const url = `${base}/blog/${post.slug}`
   const breadcrumbs = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -128,6 +145,7 @@ export default async function PostPage({
         }}
       />
       <article
+        id="post-top"
         data-post
         className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-20 md:pbs-[calc(var(--header-height)+2.5rem)] md:pbe-28"
       >
@@ -227,6 +245,19 @@ export default async function PostPage({
             <div lang={lang} className="mbs-12">
               <MarkdownBody headings={headings}>{post.body}</MarkdownBody>
             </div>
+
+            {/* The end of the post: pass it on, or go back up. */}
+            <footer className="mbs-16 grid justify-items-start gap-4 border-bs border-border pbs-8">
+              <p className="text-sm font-semibold">{tb("shareLabel")}</p>
+              <PostShare title={post.title} url={url} />
+              <a
+                href="#post-top"
+                className="mbs-2 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <IconArrowUp aria-hidden size={16} stroke={1.75} />
+                {tb("backToTop")}
+              </a>
+            </footer>
           </div>
           {headings.length > 2 ? (
             <aside className="hidden xl:col-start-3 xl:block">
@@ -237,6 +268,68 @@ export default async function PostPage({
           ) : null}
         </div>
       </article>
+
+      {more.length ? (
+        <section
+          aria-labelledby="keep-reading"
+          className="container-page pbe-20 md:pbe-28"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h2 id="keep-reading" className="type-display-sm">
+              {tb("keepReading")}
+            </h2>
+            <Link
+              href="/blog"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary"
+            >
+              {tb("allPosts")}
+              <IconArrowRight aria-hidden size={16} stroke={2} />
+            </Link>
+          </div>
+          <ul className="mbs-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {more.map((other) => (
+              <li key={other.slug} className="flex">
+                <Link
+                  href={`/blog/${other.slug}`}
+                  lang={other.language === "as" ? "as" : "en"}
+                  data-row-card
+                  className="flex flex-1 flex-col gap-3 overflow-clip p-6"
+                >
+                  {covers && other.cover ? (
+                    <span className="relative -mx-6 mbe-1 -mt-6 block aspect-[16/9] bg-secondary">
+                      <Image
+                        src={other.cover.url}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 24rem, (min-width: 640px) 50vw, 100vw"
+                        placeholder={other.cover.blurDataUrl ? "blur" : "empty"}
+                        blurDataURL={other.cover.blurDataUrl}
+                        className="object-cover"
+                      />
+                    </span>
+                  ) : null}
+                  {other.minutes ? (
+                    <span
+                      lang={locale}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {tb("readTime", { minutes: other.minutes })}
+                    </span>
+                  ) : null}
+                  <span className="font-display text-lg leading-snug font-semibold text-balance">
+                    {other.title}
+                  </span>
+                  {other.excerpt ? (
+                    <span className="line-clamp-2 text-sm text-muted-foreground">
+                      {other.excerpt}
+                    </span>
+                  ) : null}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </main>
   )
 }

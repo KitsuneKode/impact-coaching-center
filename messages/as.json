@@ -471,7 +471,13 @@
     "clear": "বিচৰা মচক",
     "onThisPage": "এই পৃষ্ঠাত",
     "backToTop": "ওপৰলৈ উভতি যাওক",
-    "progress": "পঢ়াৰ অগ্ৰগতি"
+    "progress": "পঢ়াৰ অগ্ৰগতি",
+    "shareLabel": "আনলৈ পঠিয়াওক",
+    "shareWhatsapp": "WhatsAppত পঠিয়াওক",
+    "copyLink": "লিংক কপি কৰক",
+    "copied": "লিংক কপি হ’ল।",
+    "keepReading": "আৰু পঢ়ক।",
+    "allPosts": "সকলো লেখা"
   },
   "Policy": {
     "englishOnly": "এই নথিখন বৰ্তমান কেৱল ইংৰাজীতহে উপলব্ধ।"

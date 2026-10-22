@@ -553,6 +553,11 @@
     --typeset-size: 16px;
     --typeset-leading: 1.75;
     --typeset-flow: 1.25em;
+    /* Typeset reads 18px on phones; a desk screen sits further from the
+       eye, so the text stays 18px there too instead of dropping to 16. */
+    @media (min-width: 48rem) {
+      --typeset-size: 18px;
+    }
   }
   .typeset-docs:lang(as) {
     --typeset-font-body:

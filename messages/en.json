@@ -271,7 +271,13 @@
     "clear": "Clear search",
     "onThisPage": "On this page",
     "backToTop": "Back to the top",
-    "progress": "Reading progress"
+    "progress": "Reading progress",
+    "shareLabel": "Pass it on",
+    "shareWhatsapp": "Send on WhatsApp",
+    "copyLink": "Copy link",
+    "copied": "Link copied.",
+    "keepReading": "Keep reading.",
+    "allPosts": "All posts"
   },
   "Policy": {
     "englishOnly": "This document is in English only for now."
