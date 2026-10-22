@@ -2,13 +2,22 @@
 
 import { IconPrinter } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
+import Image from "next/image"
 import { useParams } from "next/navigation"
 
 import { convexConfigured } from "@/app/providers"
 import { ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
+import { contact, formatPhone } from "@/lib/brand"
 import { formatPaise } from "@/lib/money"
+
+/** The stored address can open with the name already printed above it. */
+const withoutName = (address: string, name: string) =>
+  address.startsWith(`${name}, `) ? address.slice(name.length + 2) : address
+
+/** Printed books: HSN 4901, nil-rated under GST. */
+const BOOKS_HSN = "4901"
 
 const when = (ms: number) =>
   new Date(ms).toLocaleString("en-IN", {
@@ -64,7 +73,7 @@ function Receipt({ reference }: { reference: string }) {
             data-press
             data-cta="amber"
             onClick={() => window.print()}
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-highlight px-5 font-semibold text-foreground"
+            className="inline-flex h-11 items-center gap-2 rounded-full bg-highlight px-5 font-semibold text-ink"
           >
             <IconPrinter aria-hidden size={18} stroke={1.75} />
             Print or save as PDF
@@ -79,18 +88,35 @@ function Receipt({ reference }: { reference: string }) {
           className="rounded-[28px] bg-card p-7 shadow-[0_0_0_1px_var(--border)] md:p-10"
         >
           <header className="flex flex-wrap items-start justify-between gap-6">
-            <div>
-              <p className="font-display text-xl font-semibold">
-                {receipt.seller.legalName}
-              </p>
-              <p className="mbs-1 max-w-[32ch] text-sm text-muted-foreground">
-                {receipt.seller.address}
-              </p>
-              {receipt.seller.gstin ? (
-                <p className="tnum mbs-1 text-sm">
-                  GSTIN {receipt.seller.gstin}
+            <div className="flex items-start gap-4">
+              <span className="grid size-12 flex-none place-items-center rounded-xl bg-white shadow-[inset_0_0_0_1px_var(--border)]">
+                <Image
+                  src="/brand/ict-mark.png"
+                  alt=""
+                  width={30}
+                  height={30}
+                  className="size-8"
+                />
+              </span>
+              <div>
+                <p className="font-display text-xl font-semibold">
+                  {receipt.seller.legalName}
                 </p>
-              ) : null}
+                <p className="mbs-1 max-w-[32ch] text-sm text-muted-foreground">
+                  {withoutName(
+                    receipt.seller.address,
+                    receipt.seller.legalName
+                  )}
+                </p>
+                <p className="tnum mbs-1 text-sm text-muted-foreground">
+                  {formatPhone(contact.phones[0])} · {contact.email}
+                </p>
+                {receipt.seller.gstin ? (
+                  <p className="tnum mbs-1 text-sm">
+                    GSTIN {receipt.seller.gstin}
+                  </p>
+                ) : null}
+              </div>
             </div>
             <div className="text-end">
               <h1 className="font-display text-3xl font-semibold tracking-[-0.03em]">
@@ -109,7 +135,7 @@ function Receipt({ reference }: { reference: string }) {
             <div>
               <dt className="text-muted-foreground">Billed to</dt>
               <dd className="mbs-1 font-semibold">{receipt.buyer.name}</dd>
-              <dd className="tnum">{receipt.buyer.phone}</dd>
+              <dd className="tnum">{formatPhone(receipt.buyer.phone)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">
@@ -130,7 +156,13 @@ function Receipt({ reference }: { reference: string }) {
                   <span className="tnum">{receipt.address.pin}</span>
                 </dd>
               ) : (
-                <dd className="mbs-1">The centre, {receipt.seller.address}</dd>
+                <dd className="mbs-1">
+                  The centre,{" "}
+                  {withoutName(
+                    receipt.seller.address,
+                    receipt.seller.legalName
+                  )}
+                </dd>
               )}
             </div>
             <div>
@@ -155,7 +187,10 @@ function Receipt({ reference }: { reference: string }) {
                 <th scope="col" className="pbe-2 text-start font-normal">
                   Item
                 </th>
-                <th scope="col" className="pbe-2 text-end font-normal">
+                <th scope="col" className="ps-4 pbe-2 text-end font-normal">
+                  HSN
+                </th>
+                <th scope="col" className="ps-4 pbe-2 text-end font-normal">
                   Qty
                 </th>
                 <th scope="col" className="pbe-2 text-end font-normal">
@@ -175,6 +210,9 @@ function Receipt({ reference }: { reference: string }) {
                       {line.books.join(", ")}
                     </span>
                   </td>
+                  <td className="tnum pbs-3 text-end text-muted-foreground">
+                    {BOOKS_HSN}
+                  </td>
                   <td className="tnum pbs-3 text-end">{line.quantity}</td>
                   <td className="tnum pbs-3 text-end">
                     {formatPaise(line.unitPaise * line.quantity)}
@@ -186,7 +224,7 @@ function Receipt({ reference }: { reference: string }) {
               <tr>
                 <th
                   scope="row"
-                  colSpan={2}
+                  colSpan={3}
                   className="pbs-3 text-end font-normal text-muted-foreground"
                 >
                   Books
@@ -198,7 +236,7 @@ function Receipt({ reference }: { reference: string }) {
               <tr>
                 <th
                   scope="row"
-                  colSpan={2}
+                  colSpan={3}
                   className="pbs-1 text-end font-normal text-muted-foreground"
                 >
                   Delivery
@@ -207,8 +245,18 @@ function Receipt({ reference }: { reference: string }) {
                   {formatPaise(receipt.deliveryPaise)}
                 </td>
               </tr>
+              <tr>
+                <th
+                  scope="row"
+                  colSpan={3}
+                  className="pbs-1 text-end font-normal text-muted-foreground"
+                >
+                  GST
+                </th>
+                <td className="tnum pbs-1 text-end">{formatPaise(0)}</td>
+              </tr>
               <tr className="text-base">
-                <th scope="row" colSpan={2} className="pbs-3 text-end">
+                <th scope="row" colSpan={3} className="pbs-3 text-end">
                   Total paid
                 </th>
                 <td className="tnum ps-4 pbs-3 text-end font-display text-xl font-semibold">
@@ -219,7 +267,8 @@ function Receipt({ reference }: { reference: string }) {
           </table>
 
           <p className="mbs-10 text-xs text-muted-foreground">
-            Computer-generated receipt; no signature needed.
+            Printed books (HSN {BOOKS_HSN}) are exempt from GST, so no tax is
+            charged. Computer-generated receipt; no signature needed.
           </p>
         </article>
       </div>
