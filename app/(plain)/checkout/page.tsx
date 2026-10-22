@@ -88,19 +88,7 @@ function Checkout() {
   const viewer = useViewer()
   const hydrated = useCartHydrated()
 
-  if (viewer === undefined || !hydrated)
-    return (
-      <PageShell
-        title={
-          <>
-            <span className="text-foreground">Checkout.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
-      >
-        <ListSkeleton rows={3} className="max-w-160" />
-      </PageShell>
-    )
+  if (viewer === undefined || !hydrated) return <CheckoutWaiting />
 
   if (viewer === null)
     return (
@@ -125,21 +113,23 @@ function Checkout() {
       </PageShell>
     )
 
-  if (!synced)
-    return (
-      <PageShell
-        title={
-          <>
-            <span className="text-foreground">Checkout.</span>{" "}
-            <span className="text-muted-foreground">Syncing your cart…</span>
-          </>
-        }
-      >
-        <ListSkeleton rows={3} className="max-w-160" />
-      </PageShell>
-    )
+  if (!synced) return <CheckoutWaiting />
 
   return <CheckoutForm />
+}
+
+/**
+ * Every wait before the form (the session, then the cart catching up) is
+ * one screen: the same title and the same outline the form fills, so the
+ * page does not change its mind twice on the way in.
+ */
+function CheckoutWaiting() {
+  return (
+    <PageShell title={<span className="text-foreground">Checkout.</span>}>
+      <output className="sr-only">Getting your cart ready…</output>
+      <ListSkeleton rows={4} className="max-w-160" />
+    </PageShell>
+  )
 }
 
 type Placed = { reference: string; totalPaise: number }

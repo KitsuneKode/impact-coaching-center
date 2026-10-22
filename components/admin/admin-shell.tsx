@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/empty"
 import { Section } from "@/components/ui/section"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useStalled } from "@/components/ui/use-stalled"
 import { authClient } from "@/lib/auth-client"
 import { brand, formatPhone } from "@/lib/brand"
@@ -92,6 +93,49 @@ function StaffGate({ phone }: { phone?: string }) {
   )
 }
 
+/** The sidebar and a page, in outline, while the session is checked. */
+function ShellWaiting() {
+  return (
+    <div aria-busy="true" className="flex min-h-dvh">
+      <output className="sr-only">Opening the admin…</output>
+      <div
+        aria-hidden
+        className="hidden w-64 flex-none flex-col gap-6 bg-sidebar p-4 md:flex"
+      >
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-8 rounded-lg" />
+          <div className="grid flex-1 gap-1.5">
+            <Skeleton className="h-3.5 w-24" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        </div>
+        {[3, 1, 6, 2].map((rows, group) => (
+          <div key={group} className="grid gap-2.5">
+            <Skeleton className="h-3 w-14" />
+            {Array.from({ length: rows }, (_, i) => (
+              <Skeleton key={i} className="h-4 w-32" />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div aria-hidden className="min-w-0 flex-1">
+        <div className="flex h-14 items-center gap-3 border-b border-border px-4">
+          <Skeleton className="size-6 rounded-md" />
+          <Skeleton className="h-3.5 w-28" />
+        </div>
+        <div className="grid gap-6 px-5 pt-8 md:px-8 md:pt-10">
+          <Skeleton className="h-8 w-56" />
+          <div className="grid gap-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-11 w-full rounded-control" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** What an admin sees when the query never comes back. */
 function Unreachable() {
   return (
@@ -128,10 +172,11 @@ function Shell({ children }: { children: ReactNode }) {
 
   /*
    * `undefined` is still asking. Rendering the bare page first and then
-   * wrapping it in a sidebar is a visible jolt on every admin navigation, so
-   * the shell waits for an answer rather than guessing at one.
+   * wrapping it in a sidebar is a visible jolt, and a blank screen reads as
+   * broken; nearly everyone who opens /admin is staff, so it waits in the
+   * admin's own shape.
    */
-  if (viewer === undefined) return stalled ? <Unreachable /> : null
+  if (viewer === undefined) return stalled ? <Unreachable /> : <ShellWaiting />
   if (!isStaff) return <StaffGate phone={viewer?.phone} />
 
   return (

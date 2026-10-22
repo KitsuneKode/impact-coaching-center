@@ -50,12 +50,7 @@ function Orders() {
     return (
       <PageShell
         density="working"
-        title={
-          <>
-            <span className="text-foreground">Orders.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
+        title={<span className="text-foreground">Orders.</span>}
       >
         <ListSkeleton rows={6} />
       </PageShell>

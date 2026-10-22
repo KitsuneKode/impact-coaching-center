@@ -7,7 +7,8 @@ import { useParams } from "next/navigation"
 
 import { convexConfigured } from "@/app/providers"
 import { ButtonLink } from "@/components/ui/button"
-import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
+import { PageShell, StatePanel } from "@/components/ui/page-shell"
+import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
 import { contact, formatPhone } from "@/lib/brand"
 import { formatPaise } from "@/lib/money"
@@ -29,6 +30,54 @@ const when = (ms: number) =>
     minute: "2-digit",
   })
 
+/** The receipt in outline: the buttons, the header, the lines, the total. */
+function ReceiptWaiting() {
+  return (
+    <main className="container-page pbs-[calc(var(--header-height)+1.5rem)] pbe-20">
+      <output className="sr-only">Opening the receipt…</output>
+      <div aria-hidden className="mx-auto max-w-[46rem]">
+        <div className="mbe-6 flex gap-3">
+          <Skeleton className="h-11 w-48 rounded-full" />
+          <Skeleton className="h-11 w-28 rounded-full" />
+        </div>
+        <div className="rounded-[28px] bg-card p-7 shadow-[0_0_0_1px_var(--border)] md:p-10">
+          <div className="flex justify-between gap-6">
+            <div className="flex gap-4">
+              <Skeleton className="size-12 rounded-xl" />
+              <div className="grid content-start gap-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-3.5 w-56" />
+                <Skeleton className="h-3.5 w-40" />
+              </div>
+            </div>
+            <div className="grid content-start justify-items-end gap-2">
+              <Skeleton className="h-8 w-28" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+          <div className="mbs-8 grid gap-4 border-bs border-border pbs-6 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="grid gap-2">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-4 w-36" />
+              </div>
+            ))}
+          </div>
+          <div className="mbs-8 grid gap-3">
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+          <div className="mbs-6 grid justify-items-end gap-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
 /** A paid order's receipt, laid out to print on one A4 page. */
 export default function ReceiptPage() {
   const { reference } = useParams<{ reference: string }>()
@@ -40,12 +89,7 @@ export default function ReceiptPage() {
 function Receipt({ reference }: { reference: string }) {
   const receipt = useQuery(api.orders.myReceipt, { reference })
 
-  if (receipt === undefined)
-    return (
-      <PageShell title="Receipt.">
-        <ListSkeleton rows={4} className="max-w-160" />
-      </PageShell>
-    )
+  if (receipt === undefined) return <ReceiptWaiting />
   if (receipt === null)
     return (
       <PageShell title="No receipt here.">

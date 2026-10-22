@@ -115,12 +115,7 @@ function Inbox() {
     return (
       <PageShell
         density="working"
-        title={
-          <>
-            <span className="text-foreground">Enquiries.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
+        title={<span className="text-foreground">Enquiries.</span>}
       >
         <ListSkeleton rows={5} />
       </PageShell>
@@ -157,12 +152,7 @@ function Inbox() {
     return (
       <PageShell
         density="working"
-        title={
-          <>
-            <span className="text-foreground">Enquiries.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
+        title={<span className="text-foreground">Enquiries.</span>}
       >
         <ListSkeleton rows={5} />
       </PageShell>
