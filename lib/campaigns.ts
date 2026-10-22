@@ -12,7 +12,7 @@ export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number]
 
 export const CAMPAIGN_KIND_LABEL: Record<CampaignKind, string> = {
   bar: "Announcement bar",
-  banner: "Top banner",
+  banner: "End-of-page banner",
   modal: "Pop-up",
   reel: "Video reel",
 }
