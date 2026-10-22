@@ -43,8 +43,9 @@ export function AddToCart({
       className={cn("min-w-36", className)}
       disabled={disabled}
       onClick={() => {
+        // At the cap nothing goes in; the cart has already said why.
+        if (!add({ slug, language })) return
         track({ name: "add_to_cart", slug })
-        add({ slug, language })
         setAdded(true)
         window.setTimeout(() => setAdded(false), 1400)
         toast.success(t("addedToast", { title }), {

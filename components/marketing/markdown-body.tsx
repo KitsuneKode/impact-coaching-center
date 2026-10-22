@@ -43,10 +43,18 @@ export const proseComponents: Components = {
       {children}
     </blockquote>
   ),
+  // A wide table scrolls sideways on a phone. A keyboard can only scroll
+  // what it can focus (axe: scrollable-region-focusable), so the labelled
+  // section takes focus, as the WAI table pattern does.
   table: ({ children }) => (
-    <div className="mbs-4 overflow-x-auto rounded-card border border-border">
+    <section
+      aria-label="Table"
+      // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+      tabIndex={0}
+      className="mbs-4 overflow-x-auto rounded-card border border-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
       <table className="w-full min-w-120 text-left text-sm">{children}</table>
-    </div>
+    </section>
   ),
   th: ({ children }) => (
     <th className="border-b border-border bg-muted/50 px-4 py-3 font-medium text-foreground">

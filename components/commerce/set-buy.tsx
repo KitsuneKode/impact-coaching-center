@@ -36,8 +36,9 @@ export function SetBuy({
   const [added, setAdded] = useState<Language | null>(null)
 
   const buy = (language: Language) => {
+    // At the cap nothing goes in; the cart has already said why.
+    if (!add({ slug, language })) return
     track({ name: "add_to_cart", slug })
-    add({ slug, language })
     setAdded(language)
     window.setTimeout(() => setAdded(null), 1400)
     toast.success(t("addedToast", { title }), {

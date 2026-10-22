@@ -45,7 +45,7 @@ const roomFor = (lines: CartLine[], key: LineKey) =>
 
 /** Said once when a change would pass the cap; the cart keeps what fits. */
 function sayCapReached() {
-  const assamese = document.documentElement.lang === "as"
+  const assamese = document.documentElement.lang.startsWith("as")
   toast(
     assamese
       ? `এটা অৰ্ডাৰত বেছি হ'লে ${ORDER_SETS_MAX}টা ছেট। অধিক লাগিলে ICTলৈ ফোন কৰক।`
@@ -72,7 +72,8 @@ export const useCart = create<CartState>()(
             wanted,
             roomFor(state.lines, key)
           )
-          if (quantity < wanted && wanted <= MAX_QUANTITY) sayCapReached()
+          // Either cap (five of one set, five in the order) says the same.
+          if (quantity < wanted) sayCapReached()
           if (quantity <= 0) return state
           return {
             lines: line
@@ -213,9 +214,13 @@ export function useCartActions() {
 
   const { add, setQuantity, remove } = useCart.getState()
   return {
+    /** True when a copy went in; false when a cap kept it out (and said so). */
     add: (key: LineKey) => {
+      const before = quantityOf(key)
       add(key)
-      sync(key, quantityOf(key))
+      const after = quantityOf(key)
+      if (after !== before) sync(key, after)
+      return after > before
     },
     setQuantity: (key: LineKey, quantity: number) => {
       setQuantity(key, quantity)

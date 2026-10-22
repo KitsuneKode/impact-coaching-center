@@ -74,7 +74,8 @@ const guessed = [
   ["/teacher/:slug", "/teachers#:slug"],
   ["/teachers/:slug", "/teachers#:slug"],
   ["/faculty", "/teachers"],
-  ["/faculty/:slug", "/teachers#:slug"],
+  // Not /faculty/raheef.jpg: the teachers' photos live in public/faculty.
+  ["/faculty/:slug([^./]+)", "/teachers#:slug"],
   ["/course", "/courses"],
   ["/course/:slug", "/courses/:slug"],
   ["/book", "/books"],

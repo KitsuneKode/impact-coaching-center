@@ -29,7 +29,7 @@ import {
   useCartHydrated,
   useCartSync,
 } from "@/lib/cart-store"
-import { inLanguage } from "@/lib/catalog"
+import { deliversTo, inLanguage, ORDER_SETS_MAX } from "@/lib/catalog"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
 import { PayOrder } from "@/components/commerce/pay-order"
@@ -46,6 +46,22 @@ import { useViewer } from "@/hooks/use-viewer"
  * (components/commerce/pay-order.tsx) takes the money through Razorpay, and
  * only its verified payment marks the order paid.
  */
+type AddressField = "line1" | "city" | "pin"
+/** In the order they appear, so focus lands on the first one to fix. */
+const ADDRESS_FIELDS: AddressField[] = ["line1", "city", "pin"]
+
+/** What each server refusal means for the buyer, and what to do. */
+const REFUSED_FIELD: Record<string, string> = {
+  items:
+    "Something in your cart is no longer available - check it and try again.",
+  cart: "Your cart is empty.",
+  "pin-area":
+    "We deliver within Assam only (PIN codes starting 78). Choose collection at the centre, or call ICT.",
+  address: "Check the address: house and street, town, and a 6-digit PIN.",
+  quantity: `One order holds up to ${ORDER_SETS_MAX} sets. Remove some, or call ICT for more.`,
+  name: "Add your name in your account before ordering.",
+}
+
 export default function CheckoutPage() {
   if (!convexConfigured)
     return (
@@ -139,6 +155,9 @@ function CheckoutForm() {
     pin: "",
   })
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<AddressField, string>>
+  >({})
   const [placing, setPlacing] = useState(false)
   const [placed, setPlaced] = useState<Placed | null>(null)
   const [paid, setPaid] = useState(false)
@@ -175,11 +194,28 @@ function CheckoutForm() {
           ? e.target.value.replace(/\D/g, "").slice(0, 6)
           : e.target.value
       setAddress((a) => ({ ...a, [field]: value }))
+      setFieldErrors((errors) => ({ ...errors, [field]: undefined }))
     }
 
+  /** Checked here first, so the buyer fixes it in place, not after a round trip. */
+  const checkAddress = () => {
+    const errors: Partial<Record<AddressField, string>> = {}
+    if (!address.line1.trim()) errors.line1 = "Add the house number and street."
+    if (!address.city.trim()) errors.city = "Add the town or city."
+    if (!/^\d{6}$/.test(address.pin)) errors.pin = "A PIN code is 6 digits."
+    else if (!deliversTo(address.pin))
+      errors.pin =
+        "We deliver within Assam only (PIN codes starting 78). Choose collection, or call ICT."
+    setFieldErrors(errors)
+    const first = ADDRESS_FIELDS.find((field) => errors[field])
+    if (first) document.getElementById(first)?.focus()
+    return !first
+  }
+
   const submit = async () => {
-    setPlacing(true)
     setError(null)
+    if (fulfilment === "delivery" && !checkAddress()) return
+    setPlacing(true)
     try {
       track({ name: "checkout_started", lines: rows.length })
       const result = await placeOrder({
@@ -209,15 +245,12 @@ function CheckoutForm() {
         setError(
           result.reason === "rate-limited"
             ? "Too many orders just now - wait a little and try again."
-            : result.reason === "invalid-input" && result.field === "items"
-              ? "Something in your cart is no longer available - check it and try again."
-              : result.reason === "invalid-input" && result.field === "cart"
-                ? "Your cart is empty."
-                : result.reason === "invalid-input"
-                  ? `Check the ${result.field ?? "details"} and try again.`
-                  : result.reason === "anonymous"
-                    ? "Sign in to place the order."
-                    : "We couldn't place that order - try again."
+            : result.reason === "anonymous"
+              ? "Sign in to place the order."
+              : result.reason === "invalid-input"
+                ? (REFUSED_FIELD[result.field ?? ""] ??
+                  "Check your details and try again.")
+                : "We couldn't place that order - try again."
         )
       }
     } catch {
@@ -437,7 +470,7 @@ function CheckoutForm() {
 
             {fulfilment === "delivery" && (
               <FieldGroup>
-                <Field>
+                <Field data-invalid={Boolean(fieldErrors.line1)}>
                   <FieldLabel htmlFor="line1">Address</FieldLabel>
                   <Input
                     id="line1"
@@ -445,7 +478,16 @@ function CheckoutForm() {
                     value={address.line1}
                     onChange={set("line1")}
                     required
+                    aria-invalid={Boolean(fieldErrors.line1)}
+                    aria-describedby={
+                      fieldErrors.line1 ? "line1-error" : undefined
+                    }
                   />
+                  {fieldErrors.line1 ? (
+                    <FieldError id="line1-error">
+                      {fieldErrors.line1}
+                    </FieldError>
+                  ) : null}
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="line2">
@@ -460,7 +502,7 @@ function CheckoutForm() {
                   />
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field>
+                  <Field data-invalid={Boolean(fieldErrors.city)}>
                     <FieldLabel htmlFor="city">Town or city</FieldLabel>
                     <Input
                       id="city"
@@ -468,9 +510,18 @@ function CheckoutForm() {
                       value={address.city}
                       onChange={set("city")}
                       required
+                      aria-invalid={Boolean(fieldErrors.city)}
+                      aria-describedby={
+                        fieldErrors.city ? "city-error" : undefined
+                      }
                     />
+                    {fieldErrors.city ? (
+                      <FieldError id="city-error">
+                        {fieldErrors.city}
+                      </FieldError>
+                    ) : null}
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(fieldErrors.pin)}>
                     <FieldLabel htmlFor="pin">PIN code</FieldLabel>
                     <Input
                       id="pin"
@@ -481,7 +532,18 @@ function CheckoutForm() {
                       value={address.pin}
                       onChange={set("pin")}
                       required
+                      aria-invalid={Boolean(fieldErrors.pin)}
+                      aria-describedby={
+                        fieldErrors.pin ? "pin-error" : "pin-hint"
+                      }
                     />
+                    {fieldErrors.pin ? (
+                      <FieldError id="pin-error">{fieldErrors.pin}</FieldError>
+                    ) : (
+                      <FieldDescription id="pin-hint">
+                        We deliver within Assam.
+                      </FieldDescription>
+                    )}
                   </Field>
                 </div>
                 <Field>
@@ -490,7 +552,7 @@ function CheckoutForm() {
                   </FieldLabel>
                   <Input
                     id="district"
-                    autoComplete="address-level1"
+                    autoComplete="address-level3"
                     value={address.district}
                     onChange={set("district")}
                   />
