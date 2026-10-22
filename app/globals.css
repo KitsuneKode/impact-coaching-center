@@ -876,6 +876,8 @@
     }
     & [data-menu-button] {
       background-color: oklch(100% 0 none);
+      /* Ink on the white disc in both themes. */
+      color: var(--ink-fixed);
       box-shadow: none;
     }
   }

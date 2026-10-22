@@ -1701,6 +1701,11 @@
       0 30px 50px -28px
         color-mix(in oklch, var(--primary-deep) 50%, transparent);
   }
+  /* In dark mode the sheet is a dark card: a white sheet kept the page's
+     light text and the title all but vanished. */
+  :root[data-theme="dark"] [data-notes-sheet] {
+    background-color: var(--card);
+  }
   [data-notes-sheet]::before {
     content: "";
     position: absolute;
