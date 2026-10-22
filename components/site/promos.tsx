@@ -103,7 +103,7 @@ export function PromoCard({
       )}
       <div className="grid gap-4 p-6 sm:p-7">
         {promo.tag ? (
-          <span className="justify-self-start rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold">
+          <span className="justify-self-start rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold text-ink">
             {promo.tag}
           </span>
         ) : null}
@@ -126,7 +126,7 @@ export function PromoCard({
               onClick={onAction}
               data-press
               data-cta="amber"
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
             >
               {promo.cta}
               <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
@@ -159,7 +159,7 @@ export function PromoBanner({
     >
       <div
         data-promo-banner
-        className="relative grid gap-6 overflow-clip rounded-[32px] bg-foreground p-7 text-white @3xl:grid-cols-12 @3xl:items-center @3xl:p-10"
+        className="relative grid gap-6 overflow-clip rounded-[32px] bg-ink p-7 text-white @3xl:grid-cols-12 @3xl:items-center @3xl:p-10"
       >
         {promo.image ? (
           <span className="relative block aspect-[16/9] overflow-clip rounded-[20px] bg-primary-deep @3xl:col-span-4">
@@ -174,7 +174,7 @@ export function PromoBanner({
         ) : null}
         <div className={promo.image ? "@3xl:col-span-8" : "@3xl:col-span-12"}>
           {promo.tag ? (
-            <span className="inline-block rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold text-foreground">
+            <span className="inline-block rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold text-ink">
               {promo.tag}
             </span>
           ) : null}
@@ -192,7 +192,7 @@ export function PromoBanner({
                 onClick={onAction}
                 data-press
                 data-cta="amber"
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
               >
                 {promo.cta}
                 <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
@@ -258,7 +258,7 @@ export function PromoReel({
                 vertical
                 className="group block w-full"
               >
-                <span className="relative block aspect-[9/16] overflow-clip rounded-[20px] bg-foreground">
+                <span className="relative block aspect-[9/16] overflow-clip rounded-[20px] bg-ink">
                   <Image
                     src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
                     alt=""
@@ -269,7 +269,7 @@ export function PromoReel({
                   <span className="absolute inset-0 grid place-items-center">
                     <span
                       data-play
-                      className="grid size-12 place-items-center rounded-full bg-highlight text-foreground"
+                      className="grid size-12 place-items-center rounded-full bg-highlight text-ink"
                     >
                       <IconPlayerPlayFilled
                         aria-hidden
@@ -290,7 +290,7 @@ export function PromoReel({
             onClick={onAction}
             data-press
             data-cta="amber"
-            className="mbs-6 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground"
+            className="mbs-6 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
           >
             {promo.cta}
             <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />

@@ -784,7 +784,7 @@ function PromotionForm({
                   className="overflow-clip rounded-2xl bg-background ring-1 ring-border"
                 >
                   {kind === "bar" ? (
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-foreground ps-4 pe-4 pbs-3 pbe-3 text-sm text-white">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-ink ps-4 pe-4 pbs-3 pbe-3 text-sm text-white">
                       {preview.tag ? (
                         <span className="font-semibold text-highlight">
                           {preview.tag}
@@ -798,7 +798,7 @@ function PromotionForm({
                       ) : null}
                     </div>
                   ) : kind === "modal" ? (
-                    <div className="grid place-items-center bg-[color-mix(in_oklch,var(--foreground)_55%,transparent)] p-6">
+                    <div className="grid place-items-center bg-[color-mix(in_oklch,var(--ink-fixed)_55%,transparent)] p-6">
                       <PromoCard
                         promo={{ ...preview, kind }}
                         close={(label) => (
