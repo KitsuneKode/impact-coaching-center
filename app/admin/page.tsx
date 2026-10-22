@@ -2,23 +2,18 @@
 
 import {
   IconAlertTriangle,
+  IconArrowDownRight,
+  IconArrowRight,
+  IconArrowUpRight,
   IconBrandWhatsapp,
-  IconCalendarDue,
-  IconCash,
-  IconChevronRight,
   IconCircleCheck,
-  IconCreditCard,
-  IconInbox,
   IconLock,
-  IconPackage,
   IconPhone,
   IconRefresh,
-  IconTruckDelivery,
-  IconUserCheck,
 } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
 import Link from "next/link"
-import type { ComponentType, ReactNode } from "react"
+import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { AddEnquiry } from "@/components/admin/add-enquiry"
@@ -109,14 +104,12 @@ function Home() {
         </>
       }
     >
-      <div className="grid items-start gap-3 lg:grid-cols-5">
-        <div className="grid gap-3 lg:col-span-3">
-          <Queue now={now} />
-          <ToCall now={now} />
-        </div>
-        <div className="grid gap-3 lg:col-span-2">
-          <Week now={now} />
-        </div>
+      {/* Work first: what is waiting and who to call sit side by side; the
+          numbers that say how the week went follow at full width. */}
+      <div className="grid items-start gap-3 xl:grid-cols-12">
+        <Queue now={now} />
+        <ToCall now={now} />
+        <Week now={now} />
       </div>
     </PageShell>
   )
@@ -124,11 +117,14 @@ function Home() {
 
 function Card({
   title,
+  aside,
   action,
   children,
   className,
 }: {
   title: string
+  /** A quiet count or note beside the title. */
+  aside?: ReactNode
   action?: ReactNode
   children: ReactNode
   className?: string
@@ -136,12 +132,19 @@ function Card({
   return (
     <section
       className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-[22px] bg-card p-5 shadow-[0_0_0_1px_var(--border)]",
+        "flex min-w-0 flex-col gap-4 rounded-[22px] bg-card p-5 shadow-[0_0_0_1px_var(--border)] md:p-6",
         className
       )}
     >
-      <header className="flex min-h-8 items-center justify-between gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">{title}</h2>
+      <header className="flex min-h-9 flex-wrap items-center justify-between gap-3">
+        <h2 className="flex flex-wrap items-baseline gap-x-2 font-display text-lg font-semibold tracking-[-0.015em]">
+          <span className="whitespace-nowrap">{title}</span>
+          {aside ? (
+            <span className="tnum text-sm font-normal tracking-normal whitespace-nowrap text-muted-foreground">
+              {aside}
+            </span>
+          ) : null}
+        </h2>
         {action}
       </header>
       {children}
@@ -154,25 +157,31 @@ function Card({
 type Need = {
   key: string
   href: string
-  icon: ComponentType<{
-    size?: number
-    stroke?: number
-    "aria-hidden"?: boolean
-  }>
+  /** The figure that leads the tile; a tile without one says it in words. */
+  count?: string
   label: string
   detail?: string
   urgent?: boolean
 }
+
+const QUEUE_SPAN = "xl:col-span-7"
 
 function Queue({ now }: { now: number }) {
   const data = useQuery(api.dashboard.today, { now })
 
   if (data === undefined)
     return (
-      <Card title="Waiting for you" action={<AddEnquiry />}>
-        <div aria-busy="true" className="grid gap-2">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-14 rounded-[14px] bg-secondary" />
+      <Card
+        title="Waiting for you"
+        action={<AddEnquiry />}
+        className={QUEUE_SPAN}
+      >
+        <div
+          aria-busy="true"
+          className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-2"
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-28 rounded-[16px]" />
           ))}
         </div>
       </Card>
@@ -185,7 +194,6 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "sync",
       href: "/admin/courses",
-      icon: IconRefresh,
       label: "The ClassPlus course sync failed",
       detail: `${waited(data.syncFailedAt, now)} ago · open Courses and sync now`,
       urgent: true,
@@ -194,8 +202,8 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "refunds",
       href: "/admin/orders",
-      icon: IconCash,
-      label: `${count(data.refundsDue)} ${plural(data.refundsDue, "refund", "refunds")} to make in Razorpay`,
+      count: count(data.refundsDue),
+      label: `${plural(data.refundsDue, "refund", "refunds")} to make in Razorpay`,
       detail: "Then mark the order refunded",
       urgent: true,
     })
@@ -203,8 +211,8 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "overdue",
       href: "/admin/leads?view=due",
-      icon: IconCalendarDue,
-      label: `${count(data.followUps.overdue)} overdue ${plural(data.followUps.overdue, "follow-up", "follow-ups")}`,
+      count: count(data.followUps.overdue),
+      label: `overdue ${plural(data.followUps.overdue, "follow-up", "follow-ups")}`,
       detail: "Promised a call before today",
       urgent: true,
     })
@@ -212,8 +220,8 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "uncalled",
       href: "/admin/leads?view=new",
-      icon: IconInbox,
-      label: `${count(data.uncalled.count)}${plus(data.uncalled.capped)} new ${plural(data.uncalled.count, "enquiry", "enquiries")} nobody has called`,
+      count: `${count(data.uncalled.count)}${plus(data.uncalled.capped)}`,
+      label: `new ${plural(data.uncalled.count, "enquiry", "enquiries")} nobody has called`,
       detail: data.uncalled.oldestAt
         ? `Oldest waiting ${waited(data.uncalled.oldestAt, now)}`
         : undefined,
@@ -223,15 +231,15 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "due",
       href: "/admin/leads?view=due",
-      icon: IconUserCheck,
-      label: `${count(dueToday)}${plus(data.followUps.capped)} ${plural(dueToday, "follow-up", "follow-ups")} due today`,
+      count: `${count(dueToday)}${plus(data.followUps.capped)}`,
+      label: `${plural(dueToday, "follow-up", "follow-ups")} due today`,
     })
   if (data.toPack.count)
     needs.push({
       key: "pack",
       href: "/admin/orders",
-      icon: IconPackage,
-      label: `${count(data.toPack.count)}${plus(data.toPack.capped)} paid ${plural(data.toPack.count, "order", "orders")} to pack`,
+      count: `${count(data.toPack.count)}${plus(data.toPack.capped)}`,
+      label: `paid ${plural(data.toPack.count, "order", "orders")} to pack`,
       detail: data.toPack.oldestAt
         ? `Oldest placed ${waited(data.toPack.oldestAt, now)} ago`
         : undefined,
@@ -240,15 +248,15 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "ship",
       href: "/admin/orders",
-      icon: IconTruckDelivery,
-      label: `${count(data.toShip)} packed ${plural(data.toShip, "parcel", "parcels")} to hand to the courier`,
+      count: count(data.toShip),
+      label: `packed ${plural(data.toShip, "parcel", "parcels")} for the courier`,
     })
   if (data.collection.count)
     needs.push({
       key: "collect",
       href: "/admin/orders",
-      icon: IconPackage,
-      label: `${count(data.collection.count)} ${plural(data.collection.count, "set", "sets")} waiting to be collected`,
+      count: count(data.collection.count),
+      label: `${plural(data.collection.count, "set", "sets")} waiting to be collected`,
       detail: data.collection.waitingLong
         ? `${count(data.collection.waitingLong)} for more than 3 days: call them`
         : undefined,
@@ -258,53 +266,69 @@ function Queue({ now }: { now: number }) {
     needs.push({
       key: "unpaid",
       href: "/admin/orders",
-      icon: IconCreditCard,
-      label: `${count(data.unpaid)} ${plural(data.unpaid, "order", "orders")} waiting for the buyer to pay`,
+      count: count(data.unpaid),
+      label: `${plural(data.unpaid, "order", "orders")} waiting for the buyer to pay`,
       detail: "Cancelled automatically after 3 days",
     })
 
+  const urgent = needs.filter((need) => need.urgent).length
+
   return (
-    <Card title="Waiting for you" action={<AddEnquiry />}>
+    <Card
+      title="Waiting for you"
+      aside={urgent ? `${count(urgent)} urgent` : undefined}
+      action={<AddEnquiry />}
+      className={QUEUE_SPAN}
+    >
       {needs.length ? (
-        <ul className="-mx-2 grid">
+        <ul className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-2">
           {needs.map((need) => (
-            <li key={need.key}>
+            <li
+              key={need.key}
+              className={need.count ? undefined : "col-span-full"}
+            >
               <Link
                 href={need.href}
-                className="group flex items-center gap-3 rounded-[14px] px-2 py-2.5 hover:bg-secondary/60 focus-visible:outline-2 focus-visible:outline-ring"
+                data-urgent={need.urgent || undefined}
+                className="group relative flex h-full flex-col gap-1 rounded-[16px] bg-secondary/55 p-3.5 transition-[background-color] duration-150 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
               >
-                <span
-                  className={cn(
-                    "grid size-9 flex-none place-items-center rounded-full",
-                    need.urgent
-                      ? "bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive"
-                      : "bg-secondary text-foreground"
-                  )}
-                >
-                  <need.icon aria-hidden size={18} stroke={1.75} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium text-pretty">
-                    {need.label}
+                {need.count ? (
+                  <span
+                    className={cn(
+                      "tnum font-display text-[1.75rem] leading-none font-semibold tracking-[-0.03em]",
+                      need.urgent ? "text-destructive" : "text-foreground"
+                    )}
+                  >
+                    {need.count}
                   </span>
-                  {need.detail ? (
-                    <span className="block text-xs text-muted-foreground">
-                      {need.detail}
-                    </span>
-                  ) : null}
+                ) : (
+                  <IconRefresh
+                    aria-hidden
+                    size={24}
+                    stroke={1.75}
+                    className="text-destructive"
+                  />
+                )}
+                <span className="mbs-1 text-sm leading-snug font-medium text-pretty">
+                  {need.label}
                 </span>
-                <IconChevronRight
+                {need.detail ? (
+                  <span className="text-xs leading-snug text-pretty text-muted-foreground">
+                    {need.detail}
+                  </span>
+                ) : null}
+                <IconArrowRight
                   aria-hidden
                   size={16}
                   stroke={2}
-                  className="flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  className="absolute end-3.5 top-3.5 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5 sm:end-4 sm:top-4"
                 />
               </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 rounded-[16px] bg-secondary/55 p-4 text-sm text-muted-foreground">
           <IconCircleCheck aria-hidden size={18} stroke={1.75} />
           Nothing is waiting on anyone.
         </p>
@@ -316,9 +340,12 @@ function Queue({ now }: { now: number }) {
 /* ----------------------------------------------------------- who to call */
 
 const REASON = {
-  overdue: { text: "overdue", tone: "font-medium text-destructive" },
-  due: { text: "due today", tone: "" },
-  new: { text: "new enquiry", tone: "" },
+  overdue: {
+    text: "Overdue",
+    tone: "bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive",
+  },
+  due: { text: "Due today", tone: "bg-primary/10 text-primary" },
+  new: { text: "New", tone: "bg-secondary text-foreground" },
 } as const
 
 /** A first message staff can send as is, or edit before sending. */
@@ -330,49 +357,80 @@ function whatsappHref(phone: string, name: string, track?: string) {
   return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(text)}`
 }
 
+const CALL_SPAN = "xl:col-span-5"
+
 function ToCall({ now }: { now: number }) {
   const data = useQuery(api.dashboard.today, { now })
+  if (data === undefined)
+    return (
+      <Card title="Who to call first" className={CALL_SPAN}>
+        <div aria-busy="true" className="grid gap-2">
+          {[0, 1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 rounded-[14px]" />
+          ))}
+        </div>
+      </Card>
+    )
   if (!data) return null
   return (
     <Card
       title="Who to call first"
+      aside={
+        data.toCall.length ? `${count(data.toCall.length)} people` : undefined
+      }
       action={
         <Link
           href="/admin/leads"
-          className="rounded-sm text-xs font-medium underline-offset-4 hover:underline"
+          className="inline-flex min-h-9 items-center gap-1 rounded-full px-3 text-sm font-medium hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
         >
-          All enquiries
+          All
+          <IconArrowRight aria-hidden size={14} stroke={2} />
         </Link>
       }
+      className={CALL_SPAN}
     >
       {data.toCall.length ? (
-        <ul className="-mx-2 grid">
-          {data.toCall.map((lead) => {
+        // In order: the sheet is worked top down.
+        <ol className="-mx-2 grid">
+          {data.toCall.map((lead, i) => {
             const reason = REASON[lead.reason]
             return (
               <li
                 key={lead.id}
                 className="flex items-center gap-3 rounded-[14px] px-2 py-2 hover:bg-secondary/60"
               >
+                <span
+                  aria-hidden
+                  className="tnum w-5 flex-none text-end font-display text-sm font-semibold text-muted-foreground"
+                >
+                  {i + 1}
+                </span>
                 <Link
                   href={`/admin/leads?lead=${lead.id}`}
-                  className="min-w-0 flex-1 rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
+                  className="grid min-w-0 flex-1 gap-1 rounded-sm focus-visible:outline-2 focus-visible:outline-ring"
                 >
-                  <span className="block truncate font-medium">
+                  <span className="truncate font-medium">
                     {lead.name || formatPhone(lead.phone)}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {lead.track ?? "Exam not given"} ·{" "}
-                    <span className={reason.tone}>{reason.text}</span>
-                    {lead.reason === "new"
-                      ? `, waiting ${waited(lead.at, now)}`
-                      : ""}
+                  <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                    <span
+                      className={cn(
+                        "flex-none rounded-full px-2 py-0.5 font-medium",
+                        reason.tone
+                      )}
+                    >
+                      {reason.text}
+                      {lead.reason === "new" ? `, ${waited(lead.at, now)}` : ""}
+                    </span>
+                    <span className="truncate">
+                      {lead.track ?? "Exam not given"}
+                    </span>
                   </span>
                 </Link>
                 <a
                   href={`tel:${lead.phone}`}
                   aria-label={`Call ${lead.name || lead.phone}`}
-                  className="grid size-10 flex-none place-items-center rounded-full bg-secondary active:scale-95"
+                  className="grid size-10 flex-none place-items-center rounded-full bg-secondary transition-transform duration-150 active:scale-[0.96]"
                 >
                   <IconPhone aria-hidden size={18} stroke={1.75} />
                 </a>
@@ -381,16 +439,17 @@ function ToCall({ now }: { now: number }) {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={`WhatsApp ${lead.name || lead.phone}`}
-                  className="grid size-10 flex-none place-items-center rounded-full bg-secondary active:scale-95"
+                  className="grid size-10 flex-none place-items-center rounded-full bg-secondary transition-transform duration-150 active:scale-[0.96]"
                 >
                   <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
                 </a>
               </li>
             )
           })}
-        </ul>
+        </ol>
       ) : (
-        <p className="py-2 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 rounded-[16px] bg-secondary/55 p-4 text-sm text-muted-foreground">
+          <IconCircleCheck aria-hidden size={18} stroke={1.75} />
           Nobody is waiting for a call.
         </p>
       )}
@@ -401,24 +460,31 @@ function ToCall({ now }: { now: number }) {
 /* -------------------------------------------------------------- the week */
 
 /** "+4 on last week": plain numbers; a percentage of 2 is noise. */
-function Change({ now, before }: { now: number; before: number }) {
+function Change({
+  now,
+  before,
+  format = count,
+}: {
+  now: number
+  before: number
+  format?: (n: number) => string
+}) {
   const diff = now - before
+  if (diff === 0)
+    return (
+      <span className="text-xs text-muted-foreground">same as last week</span>
+    )
+  const Arrow = diff > 0 ? IconArrowUpRight : IconArrowDownRight
   return (
-    <span className="text-xs text-muted-foreground">
-      {diff === 0
-        ? "same as last week"
-        : `${diff > 0 ? "+" : "−"}${count(Math.abs(diff))} on last week`}
-    </span>
-  )
-}
-
-function ChangeMoney({ now, before }: { now: number; before: number }) {
-  const diff = now - before
-  return (
-    <span className="text-xs text-muted-foreground">
-      {diff === 0
-        ? "same as last week"
-        : `${diff > 0 ? "+" : "−"}${rupees(Math.abs(diff))} on last week`}
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Arrow aria-hidden size={14} stroke={2} className="text-foreground" />
+      <span>
+        <span className="tnum font-medium text-foreground">
+          {diff > 0 ? "+" : "−"}
+          {format(Math.abs(diff))}
+        </span>{" "}
+        on last week
+      </span>
     </span>
   )
 }
@@ -433,14 +499,12 @@ function Stat({
   note?: ReactNode
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-t border-border py-2.5 first:border-t-0 first:pt-0">
-      <span className="text-sm">{label}</span>
-      <span className="grid justify-items-end">
-        <span className="tnum font-display text-xl font-semibold tracking-[-0.02em]">
-          {value}
-        </span>
-        {note}
+    <div className="grid content-start gap-1.5 bg-card p-4 md:p-5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className="tnum font-display text-[1.75rem] leading-none font-semibold tracking-[-0.03em]">
+        {value}
       </span>
+      {note}
     </div>
   )
 }
@@ -467,25 +531,38 @@ const STAGES = [
   ["lost", "Lost", "bg-muted-foreground/30"],
 ] as const
 
+const percent = (part: number, whole: number) =>
+  whole ? `${Math.round((part / whole) * 100)}%` : "0%"
+
+function firstCallText(hours: number | null) {
+  if (hours === null) return "–"
+  if (hours < 1) return "< 1 h"
+  if (hours < 48) return `${Math.round(hours)} h`
+  return `${Math.round(hours / 24)} days`
+}
+
 function Week({ now }: { now: number }) {
   const data = useQuery(api.dashboard.week, { now })
 
   if (data === undefined)
     return (
-      <div aria-busy="true" className="grid gap-3">
-        <Skeleton className="h-64 rounded-[22px] bg-secondary" />
-        <Skeleton className="h-48 rounded-[22px] bg-secondary" />
+      <div aria-busy="true" className="grid gap-3 xl:col-span-12">
+        <Skeleton className="h-36 rounded-[22px]" />
+        <Skeleton className="h-80 rounded-[22px]" />
       </div>
     )
   if (data === null) return null
 
   const people = STAGES.reduce((n, [key]) => n + data.stages[key], 0)
-  const firstCall = data.firstCall.medianHours
+  const topSource = Math.max(1, ...data.sources.map((row) => row.people))
+  const topPage = Math.max(1, ...data.pages.map((row) => row.people))
 
   return (
     <>
-      <Card title="This week">
-        <div className="grid">
+      <Card title="This week" className="xl:col-span-12">
+        {/* Hairlines between the figures come from the gap over a border
+            fill, so they meet cleanly however the grid wraps. */}
+        <div className="grid grid-cols-2 gap-px overflow-clip rounded-[16px] bg-border shadow-[0_0_0_1px_var(--border)] lg:grid-cols-5 max-lg:[&>:last-child:nth-child(odd)]:col-span-2">
           <Stat
             label="Enquiries"
             value={`${count(data.enquiries.thisWeek)}${data.enquiries.capped ? "+" : ""}`}
@@ -498,15 +575,7 @@ function Week({ now }: { now: number }) {
           />
           <Stat
             label="First call after enquiring"
-            value={
-              firstCall === null
-                ? "–"
-                : firstCall < 1
-                  ? "< 1 h"
-                  : firstCall < 48
-                    ? `${Math.round(firstCall)} h`
-                    : `${Math.round(firstCall / 24)} days`
-            }
+            value={firstCallText(data.firstCall.medianHours)}
             note={
               <span className="text-xs text-muted-foreground">
                 {data.firstCall.waiting
@@ -525,23 +594,32 @@ function Week({ now }: { now: number }) {
               />
             }
           />
-          {data.sales ? (
-            <Stat
-              label={`Book sales · ${count(data.sales.orders)} ${plural(data.sales.orders, "order", "orders")}`}
-              value={rupees(data.sales.thisWeekPaise)}
-              note={
-                <ChangeMoney
+          <Stat
+            label={
+              data.sales
+                ? `Book sales · ${count(data.sales.orders)} ${plural(data.sales.orders, "order", "orders")}`
+                : "Book sales"
+            }
+            value={data.sales ? rupees(data.sales.thisWeekPaise) : rupees(0)}
+            note={
+              data.sales ? (
+                <Change
                   now={data.sales.thisWeekPaise}
                   before={data.sales.lastWeekPaise}
+                  format={rupees}
                 />
-              }
-            />
-          ) : null}
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  no orders yet
+                </span>
+              )
+            }
+          />
           <Stat
             label="WhatsApp and call taps"
             value={count(data.taps.whatsapp + data.taps.call)}
             note={
-              <span className="text-xs text-muted-foreground">
+              <span className="tnum text-xs text-muted-foreground">
                 WhatsApp {count(data.taps.whatsapp)} · calls{" "}
                 {count(data.taps.call)}
               </span>
@@ -550,17 +628,21 @@ function Week({ now }: { now: number }) {
         </div>
       </Card>
 
-      <Card title="Last 30 days">
+      <Card
+        title="Last 30 days"
+        aside={
+          people
+            ? `${count(people)} ${plural(people, "person", "people")} enquired`
+            : undefined
+        }
+        className="xl:col-span-12"
+      >
         {people ? (
-          <>
-            <div>
-              <p className="text-sm">
-                <span className="tnum font-semibold">{count(people)}</span>{" "}
-                {plural(people, "person", "people")} enquired. Where they are
-                now:
-              </p>
+          <div className="grid gap-8">
+            <div className="grid gap-3">
+              <h3 className="text-sm font-medium">Where they are now</h3>
               <div
-                className="mbs-2 flex h-2.5 overflow-clip rounded-full bg-secondary"
+                className="flex h-3 gap-0.5 overflow-clip rounded-full"
                 aria-hidden
               >
                 {STAGES.map(([key, , tone]) =>
@@ -573,72 +655,131 @@ function Week({ now }: { now: number }) {
                   ) : null
                 )}
               </div>
-              <ul className="mbs-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <ul className="grid grid-cols-3 gap-x-4 gap-y-3 sm:grid-cols-5">
                 {STAGES.map(([key, label, tone]) => (
-                  <li key={key} className="inline-flex items-center gap-1.5">
-                    <span className={cn("size-2 rounded-full", tone)} />
-                    {label}{" "}
-                    <span className="tnum">{count(data.stages[key])}</span>
+                  <li key={key} className="grid gap-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className={cn("size-2 rounded-full", tone)} />
+                      {label}
+                    </span>
+                    <span className="flex items-baseline gap-1.5">
+                      <span className="tnum font-display text-xl leading-none font-semibold tracking-[-0.02em]">
+                        {count(data.stages[key])}
+                      </span>
+                      <span className="tnum text-xs text-muted-foreground">
+                        {percent(data.stages[key], people)}
+                      </span>
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <table className="w-full text-sm">
-              <caption className="sr-only">Where enquiries came from</caption>
-              <thead>
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="pbe-1.5 font-medium">Came from</th>
-                  <th className="pbe-1.5 text-right font-medium">People</th>
-                  <th className="pbe-1.5 text-right font-medium">Enrolled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.sources.map((row) => (
-                  <tr key={row.source} className="border-t border-border">
-                    <td className="py-1.5 pe-2">{sourceName(row.source)}</td>
-                    <td className="tnum py-1.5 text-right">
-                      {count(row.people)}
-                    </td>
-                    <td className="tnum py-1.5 text-right">
-                      {count(row.enrolled)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {data.pages.length ? (
-              <div>
-                <h3 className="text-xs font-medium text-muted-foreground">
-                  Pages people enquired from
-                </h3>
-                <ol className="mbs-1.5 grid gap-1 text-sm">
-                  {data.pages.map((row) => (
-                    <li key={row.page} className="flex justify-between gap-3">
-                      <a
-                        href={row.page}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="min-w-0 truncate underline-offset-4 hover:underline"
-                      >
-                        {row.page}
-                      </a>
-                      <span className="tnum text-muted-foreground">
-                        {count(row.people)}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
+            <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+              <div className="grid content-start gap-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="text-sm font-medium">Where they came from</h3>
+                  <span className="inline-flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-primary/25" />
+                      Enquired
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-primary" />
+                      Enrolled
+                    </span>
+                  </span>
+                </div>
+                <table className="w-full text-sm">
+                  <caption className="sr-only">
+                    Where enquiries came from, and how many enrolled
+                  </caption>
+                  <thead className="sr-only">
+                    <tr>
+                      <th>Came from</th>
+                      <th>People</th>
+                      <th>Enrolled</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.sources.map((row) => (
+                      <tr key={row.source}>
+                        <th
+                          scope="row"
+                          className="w-full py-1.5 pe-4 text-start font-normal"
+                        >
+                          {sourceName(row.source)}
+                          <span
+                            aria-hidden
+                            className="relative mbs-1.5 block h-1.5 overflow-clip rounded-full"
+                            style={{
+                              width: `${(row.people / topSource) * 100}%`,
+                            }}
+                          >
+                            <span className="absolute inset-0 bg-primary/25" />
+                            <span
+                              className="absolute inset-y-0 start-0 bg-primary"
+                              style={{
+                                width: `${row.people ? (row.enrolled / row.people) * 100 : 0}%`,
+                              }}
+                            />
+                          </span>
+                        </th>
+                        <td className="tnum py-1.5 pe-4 text-end align-top font-medium">
+                          {count(row.people)}
+                        </td>
+                        <td className="tnum py-1.5 text-end align-top whitespace-nowrap text-muted-foreground">
+                          {count(row.enrolled)} enrolled
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ) : null}
+
+              {data.pages.length ? (
+                <div className="grid content-start gap-3">
+                  <h3 className="text-sm font-medium">
+                    Pages people enquired from
+                  </h3>
+                  <ol className="grid gap-1">
+                    {data.pages.map((row) => (
+                      <li
+                        key={row.page}
+                        className="grid gap-1.5 py-1.5 text-sm"
+                      >
+                        <span className="flex justify-between gap-3">
+                          <a
+                            href={row.page}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="min-w-0 truncate underline-offset-4 hover:underline"
+                          >
+                            {row.page === "/" ? "Home page" : row.page}
+                          </a>
+                          <span className="tnum font-medium">
+                            {count(row.people)}
+                          </span>
+                        </span>
+                        <span
+                          aria-hidden
+                          className="block h-1.5 rounded-full bg-primary/25"
+                          style={{ width: `${(row.people / topPage) * 100}%` }}
+                        />
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+            </div>
+
             {data.capped ? (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <IconAlertTriangle aria-hidden size={14} stroke={1.75} />
                 Busy month: the latest 600 enquiries are counted.
               </p>
             ) : null}
-          </>
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">
             No enquiries in the last 30 days yet.
