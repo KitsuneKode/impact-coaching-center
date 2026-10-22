@@ -447,6 +447,63 @@ describe("bundles", () => {
   })
 })
 
+describe("files a save stops using", () => {
+  test("a cover removed in one language survives while the book uses it elsewhere", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const shared = await upload(t, "image/png")
+    const other = await upload(t, "image/png")
+    const created = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        fields,
+        images: {
+          en: { cover: shared, samplePages: [other] },
+          as: { samplePages: [shared] },
+        },
+      })
+    )
+    if (!created.ok) throw new Error("book failed")
+    // The English cover goes; the Assamese edition still shows that image.
+    const saved = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        id: created.id,
+        expectedRevision: 0,
+        fields,
+        images: {
+          en: { samplePages: [other] },
+          as: { samplePages: [shared] },
+        },
+      })
+    )
+    expect(saved).toMatchObject({ ok: true })
+    const file = await t.run((ctx) => ctx.db.system.get("_storage", shared))
+    expect(file).not.toBeNull()
+  })
+
+  test("a cover nothing else uses is deleted with the save", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const cover = await upload(t, "image/png")
+    const created = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        fields,
+        images: { en: { cover, samplePages: [] } },
+      })
+    )
+    if (!created.ok) throw new Error("book failed")
+    await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        id: created.id,
+        expectedRevision: 0,
+        fields,
+        images: { en: { samplePages: [] } },
+      })
+    )
+    const file = await t.run((ctx) => ctx.db.system.get("_storage", cover))
+    expect(file).toBeNull()
+  })
+})
+
 describe("languages a bundle sells in", () => {
   test("a language whose books have no edition cannot go on sale", async () => {
     const t = convexTest(schema, modules)

@@ -143,8 +143,8 @@ const PHONE_FRAGMENT_MIN = 4
  * A phone fragment has no index to answer it, so the queue order is walked
  * in bounded chunks: at most this many pages of 200 persons.
  */
-const FRAGMENT_SCAN_PAGES = 10
-const FRAGMENT_SCAN_PAGE_ROWS = 200
+/** People a phone-fragment search reads at most, newest enquiry first. */
+const FRAGMENT_SCAN_ROWS = 2000
 
 /** One page of the queue. */
 export async function readInboxPage(
@@ -215,21 +215,23 @@ export async function readInboxPage(
     /* Too few digits matches phones freely rather than naming anyone. */
     if (digits.length < PHONE_FRAGMENT_MIN)
       return { page: [], isDone: true, continueCursor: "" }
+    /* Streamed, not paginated: Convex allows one .paginate() per query,
+       and a second page threw. Stops at a page of matches or the scan
+       bound, whichever comes first. */
     const matches: Doc<"persons">[] = []
-    let cursor: string | null = null
-    for (let pages = 0; pages < FRAGMENT_SCAN_PAGES; pages++) {
-      const chunk = await ctx.db
-        .query("persons")
-        .withIndex("by_lastEnquiryAt")
-        .order("desc")
-        .filter((q) => viewExpr(q, view, track, endOfToday))
-        .paginate({ numItems: FRAGMENT_SCAN_PAGE_ROWS, cursor })
-      for (const person of chunk.page) {
-        if (matches.length >= paginationOpts.numItems) break
-        if (person.phone.includes(digits)) matches.push(person)
-      }
-      if (matches.length >= paginationOpts.numItems || chunk.isDone) break
-      cursor = chunk.continueCursor
+    let scanned = 0
+    for await (const person of ctx.db
+      .query("persons")
+      .withIndex("by_lastEnquiryAt")
+      .order("desc")
+      .filter((q) => viewExpr(q, view, track, endOfToday))) {
+      if (person.phone.includes(digits)) matches.push(person)
+      scanned += 1
+      if (
+        matches.length >= paginationOpts.numItems ||
+        scanned >= FRAGMENT_SCAN_ROWS
+      )
+        break
     }
     /* A fragment answer is one flat page: a cursor would have to name where
        the scan stopped rather than a row, so no continueCursor is kept. */
@@ -563,10 +565,14 @@ export async function applyLeadStatus(
     return { ok: true as const, revision: revisionOf(person) }
 
   const revision = revisionOf(person) + 1
+  // A closed lead needs no call back: left set, its date would sit in the
+  // due index forever and every count would read past it.
+  const closed = args.status === "enrolled" || args.status === "lost"
   await ctx.db.patch(args.personId, {
     leadStatus: args.status,
     revision,
     updatedAt: Date.now(),
+    ...(closed ? { nextFollowUpAt: undefined } : {}),
   })
   await ctx.db.insert("activities", {
     personId: args.personId,
@@ -687,6 +693,9 @@ export const setLeadFollowUp = mutation({
  * that have come due. Bounded reads, capped counts - a home screen needs to
  * know "some" versus "none", not an exact total over the whole table.
  */
+/** Follow-up rows a count reads at most; past it the badge says "99+". */
+const DUE_SCAN_ROWS = 2000
+
 export async function readLeadCounts(
   ctx: Pick<QueryCtx, "db">,
   viewer: Viewer,
@@ -699,31 +708,25 @@ export async function readLeadCounts(
       q.eq("leadStatus", "new")
     )
     .take(COUNT_CAP + 1)
-  /* The follow-up index range also matches enrolled/lost leads, and they are
-     filtered after the read - a plain `take` can fill its window on closed
-     leads and under-count what is actually due. Page through instead and stop
-     as soon as the cap is reached. */
+  /* The follow-up index range also matches enrolled/lost leads, filtered
+     after the read, so a plain `take` could fill on closed leads and
+     under-count. Streamed rather than paginated (one .paginate() per query
+     is a Convex limit), stopping at the cap or the scan bound. */
   let due = 0
   let capped = fresh.length > COUNT_CAP
-  let cursor: string | null = null
-  while (true) {
-    const chunk = await ctx.db
-      .query("persons")
-      .withIndex("by_nextFollowUpAt", (q) =>
-        q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfTodayIst(now))
-      )
-      .paginate({ numItems: 200, cursor })
-    due += chunk.page.filter(
-      (person) =>
-        person.leadStatus !== "enrolled" && person.leadStatus !== "lost"
-    ).length
-    if (due >= COUNT_CAP) {
-      due = COUNT_CAP
+  let scanned = 0
+  for await (const person of ctx.db
+    .query("persons")
+    .withIndex("by_nextFollowUpAt", (q) =>
+      q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfTodayIst(now))
+    )) {
+    if (person.leadStatus !== "enrolled" && person.leadStatus !== "lost")
+      due += 1
+    scanned += 1
+    if (due >= COUNT_CAP || scanned >= DUE_SCAN_ROWS) {
       capped = true
       break
     }
-    if (chunk.isDone) break
-    cursor = chunk.continueCursor
   }
   return {
     fresh: Math.min(fresh.length, COUNT_CAP),

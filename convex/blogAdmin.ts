@@ -230,6 +230,9 @@ export async function applySavePost(
   await ctx.db.patch(args.id, {
     ...checked.value,
     cover: args.cover,
+    // An edited fixture is real: the dev reseed must not overwrite it,
+    // exactly as books and resources do.
+    sample: false,
     revision,
     updatedAt: now,
   })

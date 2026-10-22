@@ -36,6 +36,8 @@ import { CODE_LENGTH } from "@/lib/phone-auth-flow"
 const REFUSALS: Record<string, string> = {
   "orders-in-progress":
     "You have an order on its way. You can delete your account once it's delivered or cancelled.",
+  "history-too-long":
+    "Your account has too much history to delete here. Call ICT and they will delete it for you.",
   code: "Enter the WhatsApp code we just sent, then delete.",
   forbidden: "Staff and owner accounts are removed by an owner from the admin.",
   anonymous: "Your session expired. Log in again, then delete.",

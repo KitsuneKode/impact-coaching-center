@@ -788,3 +788,71 @@ describe("staff adding an enquiry", () => {
     ).toEqual({ ok: false, reason: "invalid-input", field: "track" })
   })
 })
+
+describe("past one page of people", () => {
+  /* Convex allows one .paginate() per query. A loop that paginates again
+     throws on the second page, which small fixtures never reach. */
+  async function many(
+    t: ReturnType<typeof convexTest>,
+    n: number,
+    leadStatus: "contacted" | "enrolled" = "contacted",
+    from = 0
+  ) {
+    const now = Date.now()
+    await t.run(async (ctx) => {
+      for (let i = from; i < from + n; i++)
+        await ctx.db.insert("persons", {
+          phone: `+9198${String(10000000 + i)}`,
+          name: `Lead ${i}`,
+          role: "student",
+          source: "website",
+          leadStatus,
+          lastEnquiryAt: now - i * 1000,
+          // Older follow-ups first in the index: the closed ones lead.
+          nextFollowUpAt: now - 3 * 24 * 60 * 60 * 1000 + i,
+        })
+    })
+  }
+
+  test("due follow-ups behind 250 closed leads are still counted", async () => {
+    const t = convexTest(schema, modules)
+    const me = await viewer(t, await seed(t, "staff"))
+    // Enrolled people whose old follow-up date was never cleared come first.
+    await many(t, 250, "enrolled")
+    await many(t, 3, "contacted", 250)
+    const counts = await t.run((ctx) => readLeadCounts(ctx, me!, Date.now()))
+    expect(counts.due).toBe(3)
+  })
+
+  test("a phone fragment past the first 200 people is still found", async () => {
+    const t = convexTest(schema, modules)
+    const me = await viewer(t, await seed(t, "staff"))
+    await many(t, 250)
+    const result = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { search: "10000249" })
+    )
+    expect(result.page.map((row) => row.name)).toEqual(["Lead 249"])
+  })
+})
+
+describe("closing a lead", () => {
+  test("enrolled or lost clears the call-back date, so it stops counting as due", async () => {
+    const t = convexTest(schema, modules)
+    const me = await viewer(t, await seed(t, "staff"))
+    const lead = await seed(t, "student", {
+      phone: "+919800000077",
+      leadStatus: "interested",
+      nextFollowUpAt: Date.now() - 60_000,
+    })
+    const result = await t.run((ctx) =>
+      applyLeadStatus(ctx, me!, {
+        personId: lead,
+        status: "enrolled",
+        expectedRevision: 0,
+      })
+    )
+    expect(result).toMatchObject({ ok: true })
+    const after = await t.run((ctx) => ctx.db.get(lead))
+    expect(after?.nextFollowUpAt).toBeUndefined()
+  })
+})

@@ -46,6 +46,12 @@ import { useViewer } from "@/hooks/use-viewer"
  * (components/commerce/pay-order.tsx) takes the money through Razorpay, and
  * only its verified payment marks the order paid.
  */
+/** "1 set", "3 sets". */
+const setCount = (lines: { quantity: number }[]) => {
+  const n = lines.reduce((sum, line) => sum + line.quantity, 0)
+  return `${n} ${n === 1 ? "set" : "sets"}`
+}
+
 type AddressField = "line1" | "city" | "pin"
 /** In the order they appear, so focus lands on the first one to fix. */
 const ADDRESS_FIELDS: AddressField[] = ["line1", "city", "pin"]
@@ -144,6 +150,11 @@ function CheckoutForm() {
   const bundles = useQuery(api.catalog.bundles)
   const shop = useQuery(api.settings.shop)
   const placeOrder = useMutation(api.checkout.placeOrder)
+  /* An order saved whose answer never reached this phone (a dropped
+     connection, a reload) took the cart with it. Shown here, it is paid
+     rather than placed a second time. */
+  const myOrders = useQuery(api.orders.myOrders)
+  const unpaid = myOrders?.find((order) => order.status === "awaiting_payment")
   const [fulfilment, setFulfilment] = useState<"delivery" | "collection">(
     "delivery"
   )
@@ -341,6 +352,20 @@ function CheckoutForm() {
     >
       {bundles === undefined ? (
         <ListSkeleton rows={4} className="max-w-160" />
+      ) : lines.length === 0 && unpaid ? (
+        <StatePanel
+          icon={<IconPackage stroke={1.75} />}
+          title={`Order ${unpaid.reference} is waiting for payment`}
+          description={`${formatPaise(unpaid.totalPaise)} for ${setCount(unpaid.lines)}. Pay for it here; unpaid orders are cancelled after three days.`}
+          action={
+            <div className="mbs-6">
+              <PayOrder
+                reference={unpaid.reference}
+                amountPaise={unpaid.totalPaise}
+              />
+            </div>
+          }
+        />
       ) : lines.length === 0 ? (
         <StatePanel
           icon={<IconPackage stroke={1.75} />}
@@ -355,6 +380,17 @@ function CheckoutForm() {
       ) : (
         <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
           <div className="space-y-10">
+            {unpaid ? (
+              <p className="rounded-card border border-border bg-secondary/50 p-4 text-sm">
+                Order{" "}
+                <span className="tnum font-medium">{unpaid.reference}</span> (
+                {formatPaise(unpaid.totalPaise)}) is still waiting for payment.{" "}
+                <Link href="/account" className="link">
+                  Pay for it in your account
+                </Link>{" "}
+                if that is the one you meant, or carry on to place a new order.
+              </p>
+            ) : null}
             <section aria-label="Your order">
               <h2 className="type-label">Your order</h2>
               <ul className="mbs-4 divide-y divide-border">

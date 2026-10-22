@@ -149,12 +149,13 @@ async function privilegedSessionFresh(ctx: Ctx): Promise<boolean> {
   return !sessionStale(session.createdAt, Date.now())
 }
 
-/** How many owners exist. */
+/** How many owners exist, counted to two. */
 export async function ownerCount(ctx: Ctx): Promise<number> {
+  // Only "none", "one" or "more than one" is ever asked: two rows answer it.
   const owners = await ctx.db
     .query("persons")
     .withIndex("by_role", (q) => q.eq("role", "owner"))
-    .collect()
+    .take(2)
   return owners.length
 }
 

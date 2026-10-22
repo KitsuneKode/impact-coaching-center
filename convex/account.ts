@@ -28,6 +28,9 @@ const LIVE_ORDER: ReadonlySet<Doc<"orders">["status"]> = new Set([
 /** Sent by the deletion dialog, and checked here, so a stray call cannot erase an account. */
 const CONFIRMATION = "DELETE"
 
+/** Rows of one kind an erasure rewrites in its one transaction. */
+const ERASE_ROWS_MAX = 2000
+
 /** Deleting needs a WhatsApp code entered just before: a session this young. */
 export const DELETE_CODE_MAX_AGE_MS = 10 * 60_000
 
@@ -65,15 +68,15 @@ export async function eraseAccount(
         .withIndex("by_personId_and_resourceId", (q) =>
           q.eq("personId", person._id)
         )
-        .collect(),
+        .take(ERASE_ROWS_MAX + 1),
       ctx.db
         .query("activities")
         .withIndex("by_person", (q) => q.eq("personId", person._id))
-        .collect(),
+        .take(ERASE_ROWS_MAX + 1),
       ctx.db
         .query("enquiries")
         .withIndex("by_person", (q) => q.eq("personId", person._id))
-        .collect(),
+        .take(ERASE_ROWS_MAX + 1),
       /* Collect rather than `unique()`: a duplicated lease must not throw
          and leave the erasure half-done - delete every row for the number. */
       ctx.db
@@ -87,6 +90,13 @@ export async function eraseAccount(
     ])
   if (orders.some((order) => LIVE_ORDER.has(order.status)))
     return invalidInput("orders-in-progress")
+  /* One transaction has a write ceiling. A history this long is refused
+     whole, saying so, rather than failing the same way on every retry;
+     staff erase it with the owner's help. */
+  if (
+    [opens, activities, enquiries].some((rows) => rows.length > ERASE_ROWS_MAX)
+  )
+    return invalidInput("history-too-long")
 
   const now = Date.now()
   await Promise.all([
@@ -151,6 +161,36 @@ export async function eraseAccount(
   return { ok: true as const, phone: person.phone }
 }
 
+/** Pages a single erasure walks through per model before giving up. */
+const AUTH_DELETE_PAGES = 20
+
+/**
+ * Every Better Auth row of one model for this person, not just the first
+ * page: deleteMany answers 100 at a time with a cursor to the rest, and a
+ * person with more sessions than that must not keep the remainder.
+ */
+async function deleteAllAuthRows(
+  ctx: MutationCtx,
+  model: "session" | "account" | "verification",
+  field: "userId" | "identifier",
+  value: string
+) {
+  let cursor: string | null = null
+  for (let page = 0; page < AUTH_DELETE_PAGES; page++) {
+    const result = (await ctx.runMutation(
+      components.betterAuth.adapter.deleteMany,
+      {
+        // The component's input is a union per model; this is one of them.
+        input: { model, where: [{ field, value }] } as never,
+        paginationOpts: { numItems: 100, cursor },
+      }
+    )) as { isDone?: boolean; continueCursor?: string }
+    if (result.isDone !== false || !result.continueCursor) return
+    cursor = result.continueCursor
+  }
+  throw new Error(`Too many ${model} rows to erase in one go.`)
+}
+
 export const deleteOwnAccount = mutation({
   args: { confirmation: v.string() },
   returns: mutationResult({}),
@@ -170,25 +210,14 @@ export const deleteOwnAccount = mutation({
     // rolled back with it rather than leaving a signed-in tombstone.
     const user = await authComponent.safeGetAuthUser(ctx)
     if (user) {
-      for (const model of ["session", "account"] as const)
-        await ctx.runMutation(components.betterAuth.adapter.deleteMany, {
-          input: {
-            model,
-            where: [{ field: "userId", value: user._id as string }],
-          },
-          paginationOpts: { numItems: 100, cursor: null },
-        })
-      await ctx.runMutation(components.betterAuth.adapter.deleteMany, {
-        input: {
-          model: "verification",
-          where: [{ field: "identifier", value: erased.phone }],
-        },
-        paginationOpts: { numItems: 100, cursor: null },
-      })
+      const userId = user._id as string
+      await deleteAllAuthRows(ctx, "session", "userId", userId)
+      await deleteAllAuthRows(ctx, "account", "userId", userId)
+      await deleteAllAuthRows(ctx, "verification", "identifier", erased.phone)
       await ctx.runMutation(components.betterAuth.adapter.deleteOne, {
         input: {
           model: "user",
-          where: [{ field: "_id", value: user._id as string }],
+          where: [{ field: "_id", value: userId }],
         },
       })
     }

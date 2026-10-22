@@ -29,6 +29,12 @@ const same = (a: LineKey, b: LineKey) =>
 
 type CartState = {
   lines: CartLine[]
+  /**
+   * Whose server cart these lines mirror, or null for a guest's own cart.
+   * Only a guest cart is merged at sign-in: on a shared phone, the copy of
+   * one person's cart must never land in the next person's account.
+   */
+  owner: string | null
   add: (key: LineKey) => void
   setQuantity: (key: LineKey, quantity: number) => void
   remove: (key: LineKey) => void
@@ -63,6 +69,7 @@ export const useCart = create<CartState>()(
   persist(
     (set) => ({
       lines: [],
+      owner: null,
       add: (key) =>
         set((state) => {
           const line = state.lines.find((l) => same(l, key))
@@ -102,17 +109,19 @@ export const useCart = create<CartState>()(
         }),
       remove: (key) =>
         set((state) => ({ lines: state.lines.filter((l) => !same(l, key)) })),
-      clear: () => set({ lines: [] }),
+      clear: () => set({ lines: [], owner: null }),
     }),
     {
       name: "ict-cart",
       skipHydration: true,
       // v2: lines became bundle + language. Older carts held single books,
       // which are no longer sold on their own, so they are dropped.
-      version: 2,
+      // v3: lines carry their owner. A v2 cart is treated as a guest's.
+      version: 3,
       migrate: (state, version) => {
-        if (version < 2) return { lines: [] }
-        return state as { lines: CartLine[] }
+        if (version < 2) return { lines: [], owner: null }
+        const old = state as { lines: CartLine[]; owner?: string | null }
+        return { lines: old.lines, owner: old.owner ?? null }
       },
     }
   )
@@ -166,11 +175,24 @@ export function useCartSync() {
     )
   }, [hydrated])
 
-  // Signed-in only: merge this browser's lines into the server cart, once.
+  /* Signed out (viewer null, not still loading): lines that mirrored
+     somebody's account leave with them, so the next person starts clean. */
+  useEffect(() => {
+    if (!hydrated || viewer !== null) return
+    mergedFor.current = null
+    if (useCart.getState().owner !== null) useCart.getState().clear()
+  }, [hydrated, viewer])
+
+  // Signed-in only: merge this browser's guest lines into the server cart,
+  // once. Lines that mirror another account are not this person's to merge.
   useEffect(() => {
     if (!hydrated || !viewerId || mergedFor.current === viewerId) return
     mergedFor.current = viewerId
-    mergeCart({ lines: useCart.getState().lines })
+    const { lines, owner } = useCart.getState()
+    const foreign = owner !== null && owner !== viewerId
+    // From here these lines are this person's, merged or not.
+    useCart.setState({ lines: foreign ? [] : lines, owner: viewerId })
+    mergeCart({ lines: foreign ? [] : lines })
       .then((result) => {
         if (!result.ok) toast.error("Your saved cart could not be merged.")
       })
@@ -187,7 +209,7 @@ export function useCartSync() {
   useEffect(() => {
     if (!hydrated || !viewerId || !serverCart) return
     if (!synced && useCart.getState().lines.length > 0) return
-    useCart.setState({ lines: serverCart.lines })
+    useCart.setState({ lines: serverCart.lines, owner: viewerId })
   }, [hydrated, viewerId, serverCart, synced])
 
   return { synced: !viewerId || synced }
@@ -205,6 +227,9 @@ export function useCartActions() {
 
   const sync = (key: LineKey, quantity: number) => {
     if (!authed) return
+    // A signed-in change is this account's line, never a guest's.
+    if (useCart.getState().owner !== viewer.id)
+      useCart.setState({ owner: viewer.id })
     void setLine({ ...key, quantity }).catch(() => {
       toast.error("Cart could not sync - check your connection.")
     })

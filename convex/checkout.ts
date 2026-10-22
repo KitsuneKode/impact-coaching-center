@@ -36,8 +36,12 @@ function validateAddress(address: {
 }) {
   const line1 = cleanAddressField(address.line1, 200)
   const city = cleanAddressField(address.city, 100)
-  const line2 = address.line2?.trim() || undefined
-  const district = address.district?.trim() || undefined
+  // Optional, but capped like the rest: an unbounded field would sit on the
+  // order and in every staff page that lists it.
+  const line2 = cleanAddressField(address.line2, 200) ?? undefined
+  const district = cleanAddressField(address.district, 100) ?? undefined
+  if ((address.line2?.trim().length ?? 0) > 200) return null
+  if ((address.district?.trim().length ?? 0) > 100) return null
   const pin = address.pin.trim()
   if (!line1 || !city) return null
   if (!/^\d{6}$/.test(pin)) return null
@@ -110,14 +114,6 @@ export async function placeOrderAs(
     }
   }
 
-  const allowed = await consumeRateLimit(
-    ctx,
-    `order:person:${viewer.id}`,
-    ORDERS_PER_PERSON_HOUR,
-    HOUR
-  )
-  if (!allowed) return { ok: false as const, reason: "rate-limited" as const }
-
   if (args.fulfilment === "collection" && args.address !== undefined)
     return invalidInput("address")
   const address =
@@ -138,6 +134,16 @@ export async function placeOrderAs(
   if (cartLines.length === 0) return invalidInput("cart")
   const sets = cartLines.reduce((n, line) => n + line.quantity, 0)
   if (sets > ORDER_SETS_MAX) return invalidInput("quantity")
+
+  /* Spent only once the request is well formed: a mistyped PIN or an
+     empty cart is fixed and resent, not counted as another order. */
+  const allowed = await consumeRateLimit(
+    ctx,
+    `order:person:${viewer.id}`,
+    ORDERS_PER_PERSON_HOUR,
+    HOUR
+  )
+  if (!allowed) return { ok: false as const, reason: "rate-limited" as const }
 
   /* Every line's set and its books are read together; a line that cannot
      be sold comes back null and refuses the whole order. */
