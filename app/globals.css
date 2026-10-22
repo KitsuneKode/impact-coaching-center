@@ -87,7 +87,8 @@
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   /* For something moving across the screen, not entering or leaving. */
   --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
-  /* A critically damped spring, response 0.24 s (hooks/use-draw-in.ts). */
+  /* A critically damped spring, response 0.175 s, settled in 0.24 s
+     (hooks/use-draw-in.ts). */
   --ease-spring: linear(
     0,
     0.0596,
@@ -605,28 +606,27 @@
   }
   /* Scrolled: the header stays as a floating paper bar a little in from
      the edges. A real element, so its edges can glide: useDrawIn sets
-     --bar-start/--bar-end to wrap whatever the row holds, and the inset
-     moves on the same spring as the items (clip-path paints; no layout). */
-  /* The wrapper draws the edge and shadow of the clipped bar (a box-shadow
-     would be clipped with it). Near-opaque paper, so no backdrop blur: a
-     blur under a filtered parent would see nothing behind it anyway. */
+     --bar-start/--bar-end to wrap whatever the row holds, and the edges
+     move on the same spring as the items. The bar is an empty box on its
+     own, so moving its edges lays out nothing else; a clip-path here left
+     a ghost of the shadow at the old width while the clip ran on the
+     compositor. Near-opaque paper, so no backdrop blur. */
   [data-site-bar-wrap] {
     position: absolute;
     z-index: -1;
     inset: 0;
     pointer-events: none;
     opacity: 0;
-    filter: drop-shadow(
-        0 0 0.6px color-mix(in oklch, var(--shade) 30%, transparent)
-      )
-      drop-shadow(0 10px 16px color-mix(in oklch, var(--shade) 9%, transparent));
   }
   [data-site-bar] {
     position: absolute;
     inset-block: 12px;
-    inset-inline: 0;
+    inset-inline: var(--bar-start, 0px) var(--bar-end, 0px);
+    border-radius: 20px;
     background-color: color-mix(in oklch, var(--card) 97%, transparent);
-    clip-path: inset(0 var(--bar-end, 0px) 0 var(--bar-start, 0px) round 20px);
+    box-shadow:
+      0 0 0 0.5px color-mix(in oklch, var(--shade) 22%, transparent),
+      0 10px 24px -6px color-mix(in oklch, var(--shade) 14%, transparent);
   }
   [data-site-header][data-stuck] [data-site-bar-wrap] {
     opacity: 1;
@@ -649,10 +649,12 @@
     [data-site-header] {
       transition:
         color 0.2s var(--ease-out-strong),
-        translate 0.33s var(--ease-spring);
+        translate 0.24s var(--ease-spring);
     }
     [data-site-bar] {
-      transition: clip-path 0.33s var(--ease-spring);
+      transition:
+        inset-inline-start 0.24s var(--ease-spring),
+        inset-inline-end 0.24s var(--ease-spring);
     }
     [data-site-bar-wrap] {
       transition: opacity 0.2s var(--ease-out-strong);
@@ -776,10 +778,10 @@
         opacity 0.2s var(--ease-out-strong) 0.1s,
         visibility 0s linear 0s;
     }
+    /* Gone before the row starts to close up, so nothing rides along
+       outside the bar as it draws in. */
     [data-site-header][data-stuck] :is([data-fold], [data-fold-lg]) {
-      transition:
-        opacity 0.12s var(--ease-out-strong),
-        visibility 0s linear 0.12s;
+      transition: none;
     }
     [data-site-nav] [data-slot="navigation-menu-list"] {
       transition:
@@ -802,6 +804,11 @@
     [data-site-trigger]:hover {
       color: var(--foreground);
     }
+  }
+  /* A jump (hooks/use-headroom.ts): the header changes in place. */
+  :root[data-chrome-jump] :is([data-site-header], [data-site-header] *) {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
   }
 
   [data-menu-button] {
@@ -1550,18 +1557,25 @@ body :lang(as) {
     [data-instant] {
       transition-duration: 0s;
     }
+    /* Between sections the old list is gone before the new one shows, so
+       the two never sit on top of each other mid-fade. */
     [data-slot="navigation-menu-content"] {
       transition:
-        opacity 0.16s var(--ease-out-strong),
-        translate 0.2s var(--ease-out-strong);
+        opacity 0.16s var(--ease-out-strong) 0.06s,
+        translate 0.2s var(--ease-out-strong) 0.06s;
+    }
+    [data-slot="navigation-menu-content"][data-ending-style] {
+      transition:
+        opacity 0.06s linear,
+        translate 0.06s linear;
     }
     [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="right"],
     [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="left"] {
-      translate: 0.75rem 0;
+      translate: 0.5rem 0;
     }
     [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="left"],
     [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="right"] {
-      translate: -0.75rem 0;
+      translate: -0.5rem 0;
     }
     [data-menu-tile],
     [data-menu-all],

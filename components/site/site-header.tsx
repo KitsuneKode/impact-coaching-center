@@ -27,13 +27,13 @@ import { SiteNav } from "./site-nav"
  */
 export function SiteHeader() {
   const t = useTranslations("Nav")
-  const headroom = useHeadroom({
+  const stuck = useHeadroom({
     keep: "[data-site-header],[data-promo-strip]",
   })
   const phone = formatPhone(contact.phones[0])
   const row = useRef<HTMLDivElement>(null)
   const header = useRef<HTMLElement>(null)
-  useDrawIn({ header, row, stuck: headroom !== "top" })
+  useDrawIn({ header, row, stuck })
 
   return (
     <>
@@ -74,11 +74,15 @@ export function SiteHeader() {
             <SiteSearch />
           </span>
 
-          <div data-site-tools data-flip className="relative">
+          {/* The account button slides on its own: the language switch
+              opening up beside it must not shove it across the phone. */}
+          <div data-site-tools className="relative">
             <span data-fold>
               <LocaleSwitch />
             </span>
-            <AccountMenu />
+            <span data-flip className="flex">
+              <AccountMenu />
+            </span>
           </div>
 
           {/*

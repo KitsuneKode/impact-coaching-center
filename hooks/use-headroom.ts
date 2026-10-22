@@ -11,7 +11,11 @@ export type Headroom = "top" | "pinned" | "hidden"
  * It hides after `hideAfter` px of page when scrolling down, and comes back
  * on any deliberate scroll up (`tolerance` px), when focus moves into
  * `keep`, or while the page is scroll-locked (a menu or dialog is open).
- * The state is also written to <html data-chrome>, for the CSS.
+ * The state is also written to <html data-chrome>, for the CSS, and a jump
+ * (a new page starting at the top, Home or End) sets <html data-chrome-jump>
+ * so the header changes in place instead of drawing in or out.
+ * Returns only whether the header is stuck: showing and hiding the strip is
+ * CSS's job, so reading down never re-renders the header.
  */
 export function useHeadroom({
   keep,
@@ -22,8 +26,8 @@ export function useHeadroom({
   keep: string
   hideAfter?: number
   tolerance?: number
-}): Headroom {
-  const [state, setState] = useState<Headroom>("top")
+}): boolean {
+  const [stuck, setStuck] = useState(false)
 
   useEffect(() => {
     const root = document.documentElement
@@ -36,7 +40,7 @@ export function useHeadroom({
       if (next === current) return
       current = next
       root.dataset.chrome = next
-      setState(next)
+      setStuck(next !== "top")
     }
     // Keyboard focus only: a clicked link keeps focus, and that must not
     // pin the header for the rest of the page.
@@ -53,6 +57,10 @@ export function useHeadroom({
       const y = Math.max(0, window.scrollY)
       const delta = y - last
       last = y
+      root.toggleAttribute(
+        "data-chrome-jump",
+        Math.abs(delta) > window.innerHeight / 2
+      )
       // Hysteresis: draws in after a real scroll, back only near the top,
       // so a nudge never sets the header off.
       if (y < 8 || (current === "top" && y < 40)) return set("top")
@@ -79,8 +87,9 @@ export function useHeadroom({
       window.removeEventListener("scroll", onScroll)
       document.removeEventListener("focusin", onFocus)
       delete root.dataset.chrome
+      root.removeAttribute("data-chrome-jump")
     }
   }, [hideAfter, keep, tolerance])
 
-  return state
+  return stuck
 }
