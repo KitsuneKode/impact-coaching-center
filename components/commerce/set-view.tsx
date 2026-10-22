@@ -9,6 +9,7 @@ import {
   IconTruckDelivery,
 } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
+import { usePathname } from "next/navigation"
 import {
   useCallback,
   useEffect,
@@ -70,6 +71,8 @@ export function SetView({
       : (LANGUAGES.find((l) => bundle.variants[l].available) ?? initialLanguage)
   )
   const [reading, setReading] = useState<PublicBook | null>(null)
+  // The browser's own address, language prefix included, for Share.
+  const pathname = usePathname()
   const variant = bundle.variants[language]
   const title = inLanguage(bundle.title, language)
   const setName = (l: Language) =>
@@ -247,6 +250,7 @@ export function SetView({
               : t("placeholderBookPages")
           }
           pages={pagesOf(reading, language, bundle.sample)}
+          sharePath={bundle.sample ? undefined : pathname}
         />
       ) : null}
     </>

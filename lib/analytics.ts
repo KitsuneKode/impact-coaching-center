@@ -21,6 +21,7 @@ export type AnalyticsEvent =
   | { name: "payment_started"; reference: string }
   | { name: "order_paid"; reference: string }
   | { name: "resource_opened"; slug: string }
+  | { name: "reader_shared"; path: string; method: "share" | "copy" }
   | { name: "contact_tapped"; kind: "whatsapp" | "call"; page: string }
   | { name: "finder_completed"; exam: string; matched: boolean }
   | { name: "search_result_opened"; kind: string; query_length: number }

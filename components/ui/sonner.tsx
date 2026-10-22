@@ -11,12 +11,12 @@ import {
 } from "@tabler/icons-react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // The site's palettes are named ("elegance-dark"); Sonner only knows light or dark.
-  const { theme = "current" } = useTheme()
+  // Themes are "light" and "dark" (lib/theme.ts), with no system option.
+  const { resolvedTheme } = useTheme()
 
   return (
     <Sonner
-      theme={theme.endsWith("-dark") ? "dark" : "light"}
+      theme={resolvedTheme === "dark" ? "dark" : "light"}
       icons={{
         success: <IconCircleCheck className="size-4" />,
         info: <IconInfoCircle className="size-4" />,

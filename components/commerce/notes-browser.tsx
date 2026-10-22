@@ -6,7 +6,7 @@ import {
   IconLock,
   IconSearch,
 } from "@tabler/icons-react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useSearchParams } from "next/navigation"
 import {
   startTransition,
@@ -112,6 +112,7 @@ function Shelf({
 }) {
   const t = useTranslations("Shop")
   const pulse = useTranslations("Pulse")
+  const locale = useLocale()
   const { phrase } = useContent()
 
   // One lower-cased haystack per file, built once per list rather than on
@@ -491,6 +492,8 @@ function Shelf({
           }
           pages={reader.opened.pages}
           pdfUrl={reader.opened.pdfUrl}
+          pageCount={reader.opened.pageCount}
+          sharePath={`${locale === "en" ? "" : `/${locale}`}/resources/${reader.opened.slug}`}
         />
       ) : null}
     </div>

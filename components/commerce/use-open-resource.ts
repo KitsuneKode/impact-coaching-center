@@ -15,6 +15,7 @@ import { useViewer } from "@/hooks/use-viewer"
 const noop = () => () => {}
 
 export type OpenedResource = {
+  slug: string
   title: string
   pages: ViewerPage[]
   /** A signed link to the whole PDF, read page by page in the reader. */
@@ -60,6 +61,7 @@ export function useOpenResource() {
         track({ name: "resource_opened", slug })
         const placeholder = result.pages.length === 0 && !result.pdfUrl
         setOpened({
+          slug,
           title: result.title,
           pdfUrl: result.pdfUrl,
           pageCount: result.pageCount,

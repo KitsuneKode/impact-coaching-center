@@ -794,7 +794,8 @@
     "copied": "Copied",
     "notNow": "Not now",
     "close": "Close",
-    "label": "Offer"
+    "label": "Offer",
+    "ends": "Ends {when}"
   },
   "Finder": {
     "kicker": "Not sure which course?",
@@ -1012,5 +1013,17 @@
       "notes": "All free notes",
       "exams": "All exam guides"
     }
+  },
+  "Reader": {
+    "book": "Book",
+    "pages": "Pages",
+    "scroll": "Scroll",
+    "howToRead": "How to read",
+    "close": "Close the reader",
+    "share": "Share",
+    "shareText": "{title}: free to read at Impact Career Tutorials.",
+    "linkCopied": "Link copied. Paste it in WhatsApp or anywhere.",
+    "copyThis": "Copy this link to share it",
+    "notesNotKept": "Your notes could not be saved on this device. They stay until you close the reader."
   }
 }
