@@ -3388,3 +3388,53 @@
     }
   }
 }
+
+/* An order's progress on the account page (components/account/
+   orders-card.tsx): dots joined by a line that fills as it moves. */
+@layer components {
+  [data-order-track] {
+    display: grid;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+  }
+  [data-order-track] li {
+    position: relative;
+    display: grid;
+    justify-items: start;
+    gap: 0.5rem;
+  }
+  [data-order-track] li::before {
+    content: "";
+    position: absolute;
+    inset-block-start: 5px;
+    inset-inline: 14px 4px;
+    block-size: 2px;
+    border-radius: 2px;
+    background-color: var(--border);
+  }
+  [data-order-track] li:last-child::before {
+    display: none;
+  }
+  [data-order-track] li[data-next-done]::before {
+    background-color: var(--primary);
+  }
+  [data-order-dot] {
+    inline-size: 12px;
+    block-size: 12px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 2px var(--border);
+  }
+  [data-order-track] li[data-done] {
+    color: var(--foreground);
+  }
+  [data-order-track] li[data-done] [data-order-dot] {
+    background-color: var(--primary);
+    box-shadow: none;
+  }
+  [data-order-track] li[aria-current] {
+    font-weight: 600;
+  }
+  [data-order-track] li[aria-current] [data-order-dot] {
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 20%, transparent);
+  }
+}

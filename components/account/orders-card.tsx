@@ -1,9 +1,16 @@
 "use client"
 
-import { IconReceipt } from "@tabler/icons-react"
+import {
+  IconBuildingStore,
+  IconCheck,
+  IconCopy,
+  IconReceipt,
+  IconTruckDelivery,
+} from "@tabler/icons-react"
 import { useQuery } from "convex/react"
 import { useTranslations } from "next-intl"
 import Link from "next/link"
+import { useState } from "react"
 
 import { OrderStatusBadge } from "@/components/admin/order-status"
 import { PayOrder } from "@/components/commerce/pay-order"
@@ -62,35 +69,63 @@ export function OrdersCard() {
   return (
     <section className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
       <h2 className="text-lg font-medium">Your orders</h2>
-      <ul className="mbs-4 flex flex-col divide-y divide-border">
+      <ul className="mbs-2 flex flex-col divide-y divide-border">
         {orders.map((order) => (
-          <li key={order.id} className="flex flex-col gap-2 py-4 first:pbs-0">
-            <div className="flex items-center justify-between gap-4">
-              <span className="tnum font-medium">{order.reference}</span>
+          <li key={order.id} className="grid gap-4 py-5 last:pbe-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="font-semibold text-pretty">
+                  {order.lines
+                    // Two lines of one set differ only by language, so say it.
+                    .map(
+                      (line) =>
+                        `${line.title} (${shop(line.language === "as" ? "assameseSet" : "englishSet")}) × ${line.quantity}`
+                    )
+                    .join(", ")}
+                </p>
+                <p className="tnum mbs-1 text-sm text-muted-foreground">
+                  {order.reference}
+                  {" · "}
+                  <time dateTime={new Date(order.placedAt).toISOString()}>
+                    {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                      timeZone: "Asia/Kolkata",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </time>
+                  {" · "}
+                  {formatPaise(order.totalPaise)}
+                </p>
+              </div>
               <OrderStatusBadge status={order.status} />
             </div>
-            <p className="text-sm text-muted-foreground">
-              <time dateTime={new Date(order.placedAt).toISOString()}>
-                {new Date(order.placedAt).toLocaleDateString("en-IN", {
-                  timeZone: "Asia/Kolkata",
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </time>
-              {" · "}
-              {order.lines
-                // Two lines of one set differ only by language, so say it.
-                .map(
-                  (line) =>
-                    `${line.title} (${shop(line.language === "as" ? "assameseSet" : "englishSet")}) × ${line.quantity}`
-                )
-                .join(", ")}
-              {" · "}
-              <span className="tnum">{formatPaise(order.totalPaise)}</span>
-            </p>
+
+            <OrderTrack status={order.status} fulfilment={order.fulfilment} />
+
+            {order.courier ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-secondary px-4 py-3 text-sm">
+                <IconTruckDelivery aria-hidden size={18} stroke={1.75} />
+                <span>
+                  {order.courier.name}
+                  {" · "}
+                  <span className="tnum font-semibold">
+                    {order.courier.trackingNumber}
+                  </span>
+                </span>
+                <CopyTracking number={order.courier.trackingNumber} />
+              </div>
+            ) : order.fulfilment === "collection" &&
+              order.status === "ready_for_collection" ? (
+              <p className="flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm">
+                <IconBuildingStore aria-hidden size={18} stroke={1.75} />
+                Ready at the centre. Bring your reference,{" "}
+                <span className="tnum font-semibold">{order.reference}</span>.
+              </p>
+            ) : null}
+
             {order.status === "awaiting_payment" ? (
-              <div className="pbs-1">
+              <div>
                 <PayOrder
                   reference={order.reference}
                   amountPaise={order.totalPaise}
@@ -106,21 +141,86 @@ export function OrdersCard() {
                 Receipt <span className="tnum">{order.receiptNumber}</span>
               </Link>
             ) : null}
-            {order.courier ? (
-              <p className="text-sm">
-                Sent via {order.courier.name}
-                {" · tracking "}
-                <span className="tnum">{order.courier.trackingNumber}</span>
-              </p>
-            ) : order.fulfilment === "collection" &&
-              order.status === "ready_for_collection" ? (
-              <p className="text-sm">
-                Ready at the centre - bring your reference number.
-              </p>
-            ) : null}
           </li>
         ))}
       </ul>
     </section>
+  )
+}
+
+/** Where a parcel or a pickup can be, in order. */
+const TRACKS = {
+  delivery: [
+    ["paid", "Paid"],
+    ["packed", "Packed"],
+    ["shipped", "Shipped"],
+    ["delivered", "Delivered"],
+  ],
+  collection: [
+    ["paid", "Paid"],
+    ["ready_for_collection", "Ready"],
+    ["collected", "Collected"],
+  ],
+} as const
+
+/**
+ * How far the order has come, as steps. Shown once paid and while it is
+ * moving; a cancelled or refunded order says so in its badge instead.
+ */
+function OrderTrack({
+  status,
+  fulfilment,
+}: {
+  status: string
+  fulfilment: "delivery" | "collection"
+}) {
+  const steps = TRACKS[fulfilment]
+  const at = steps.findIndex(([key]) => key === status)
+  if (at < 0) return null
+  return (
+    <ol
+      aria-label="Progress"
+      data-order-track
+      style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+    >
+      {steps.map(([key, label], i) => (
+        <li
+          key={key}
+          data-done={i <= at || undefined}
+          data-next-done={i < at || undefined}
+          aria-current={i === at ? "step" : undefined}
+        >
+          <span aria-hidden data-order-dot />
+          {label}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** Copies the tracking number, for pasting into the courier's site. */
+function CopyTracking({ number }: { number: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(number)
+          setCopied(true)
+          window.setTimeout(() => setCopied(false), 2000)
+        } catch {
+          // No clipboard: the number is on screen to copy by hand.
+        }
+      }}
+      className="ms-auto inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold text-primary hover:bg-card"
+    >
+      {copied ? (
+        <IconCheck aria-hidden size={16} stroke={2} />
+      ) : (
+        <IconCopy aria-hidden size={16} stroke={1.75} />
+      )}
+      {copied ? "Copied" : "Copy number"}
+    </button>
   )
 }
