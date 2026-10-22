@@ -30,7 +30,9 @@ function PageShell({
   const body = (
     <>
       <h1 className={working ? "type-display-sm" : "type-display"}>{title}</h1>
-      <div className={working ? "mt-6" : "mt-10"}>{children}</div>
+      {/* Every state of an editorial page holds the same height, so the
+          footer stays put while one state replaces another. */}
+      <div className={working ? "mt-6" : "mt-10 min-h-[55dvh]"}>{children}</div>
     </>
   )
 
@@ -102,8 +104,7 @@ function ListSkeleton({
   return (
     <div
       aria-hidden="true"
-      // Tall enough that the footer stays below the fold while it waits.
-      className={cn("flex min-h-[55dvh] flex-col gap-3", className)}
+      className={cn("flex flex-col gap-3", className)}
       {...props}
     >
       {Array.from({ length: rows }, (_, index) => (
@@ -113,4 +114,25 @@ function ListSkeleton({
   )
 }
 
-export { ListSkeleton, PageShell, StatePanel }
+/** A first-load skeleton in the shape of a StatePanel: the usual answer. */
+function PanelSkeleton({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "grid max-w-160 justify-items-start gap-4 rounded-card border border-dashed border-border p-6",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="size-8 rounded-lg" />
+      <div className="grid w-full justify-items-start gap-2">
+        <Skeleton className="h-4 w-48 max-w-full" />
+        <Skeleton className="h-3.5 w-96 max-w-full" />
+      </div>
+      <Skeleton className="h-11 w-20 rounded-xl" />
+    </div>
+  )
+}
+
+export { ListSkeleton, PageShell, PanelSkeleton, StatePanel }

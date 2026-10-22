@@ -2628,13 +2628,16 @@
 ::view-transition-new(promo-strip) {
   animation: none;
 }
+/* The new page starts while the old one is still going, so there is never
+   a frame of empty paper between them; the old one is nearly gone by then,
+   so the two never read as one muddled page. */
 ::view-transition-old(.page-exit) {
-  animation: 120ms cubic-bezier(0.23, 1, 0.32, 1) both page-fade reverse;
+  animation: 100ms cubic-bezier(0.23, 1, 0.32, 1) both page-fade reverse;
 }
 ::view-transition-new(.page-enter) {
   animation:
-    200ms cubic-bezier(0.23, 1, 0.32, 1) 90ms both page-fade,
-    320ms cubic-bezier(0.23, 1, 0.32, 1) both page-rise;
+    180ms cubic-bezier(0.23, 1, 0.32, 1) 50ms both page-fade,
+    240ms cubic-bezier(0.23, 1, 0.32, 1) both page-rise;
 }
 @keyframes page-fade {
   from {

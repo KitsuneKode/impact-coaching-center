@@ -20,8 +20,14 @@ export function RouteProgress() {
   // the next page has arrived and the bar finishes.
   const [from, setFrom] = useState<string | null>(null)
   const latest = useRef(key)
+  const landed = useRef(key)
   useEffect(() => {
     latest.current = key
+    // The first-paint entrance (site-chrome.tsx) belongs to the page the
+    // visit landed on; a page reached by a click arrives by the page
+    // transition alone, however soon the click came.
+    if (key !== landed.current)
+      document.documentElement.removeAttribute("data-first-paint")
   }, [key])
   const timer = useRef(0)
 

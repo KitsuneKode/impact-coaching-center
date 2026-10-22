@@ -20,7 +20,11 @@ import { DeleteAccount } from "@/components/account/delete-account"
 import { DetailsCard } from "@/components/account/details-card"
 import { OrdersCard } from "@/components/account/orders-card"
 import { ButtonLink } from "@/components/ui/button"
-import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
+import {
+  PageShell,
+  PanelSkeleton,
+  StatePanel,
+} from "@/components/ui/page-shell"
 import { useViewer } from "@/hooks/use-viewer"
 
 const noSubscribe = () => () => {}
@@ -64,15 +68,8 @@ function Account() {
 
   if (viewer === undefined)
     return (
-      <PageShell
-        title={
-          <>
-            <span className="text-foreground">Your details.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
-      >
-        <ListSkeleton rows={3} className="max-w-160" />
+      <PageShell title={<span className="text-foreground">Your details.</span>}>
+        <PanelSkeleton />
       </PageShell>
     )
 
