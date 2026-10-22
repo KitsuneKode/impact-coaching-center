@@ -14,7 +14,7 @@ import { Button, ButtonLink } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
-import { campaignPhase, CAMPAIGN_KIND_LABEL } from "@/lib/campaigns"
+import { campaignPhase, CAMPAIGN_KIND_LABEL, kindsOf } from "@/lib/campaigns"
 
 const PHASE: Record<
   ReturnType<typeof campaignPhase>,
@@ -147,8 +147,10 @@ function Promotions() {
                       <Badge variant={phase.variant}>{phase.label}</Badge>
                     </div>
                     <p className="mbs-1 text-sm text-muted-foreground">
-                      {c.kinds.map((k) => CAMPAIGN_KIND_LABEL[k]).join(" + ")} ·{" "}
-                      {pagesLabel(c.routes)} · Priority {c.priority}
+                      {kindsOf(c)
+                        .map((k) => CAMPAIGN_KIND_LABEL[k])
+                        .join(" + ")}{" "}
+                      · {pagesLabel(c.routes)} · Priority {c.priority}
                     </p>
                     <Stats row={statsOf.get(c.id)} />
                     {from || until ? (

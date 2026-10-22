@@ -37,6 +37,7 @@ import {
   CAMPAIGN_LIMITS,
   checkCampaign,
   istInputToMs,
+  kindsOf,
   msToIstInput,
   type CampaignKind,
   type CampaignStatus,
@@ -207,7 +208,7 @@ export function PromotionEditor({ id }: { id?: string }) {
       image={campaign.image ? toStored(campaign.image) : null}
       initial={{
         name: campaign.name,
-        kinds: campaign.kinds,
+        kinds: kindsOf(campaign),
         tag: campaign.tag,
         headline: campaign.headline,
         body: campaign.body,

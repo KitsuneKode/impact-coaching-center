@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { api } from "@/convex/_generated/api"
 import { usePathname } from "@/i18n/navigation"
-import { isRested, wordsIn } from "@/lib/campaigns"
+import { isRested, kindsOf, wordsIn } from "@/lib/campaigns"
 
 /** The time, to the minute: queries never read the clock themselves. */
 export function useMinute() {
@@ -40,7 +40,8 @@ export function useLivePromos() {
   const rows = useMemo(
     () =>
       live?.flatMap((promo) =>
-        promo.kinds.map((kind) => ({ ...wordsIn(promo, locale), kind }))
+        // kindsOf: a backend not yet redeployed still sends a single kind.
+        kindsOf(promo).map((kind) => ({ ...wordsIn(promo, locale), kind }))
       ),
     [live, locale]
   )
