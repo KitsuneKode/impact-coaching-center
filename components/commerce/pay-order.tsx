@@ -274,7 +274,7 @@ function TestGateway({
         <DialogPrimitive.Backdrop data-promo-backdrop />
         <DialogPrimitive.Popup data-promo-popup className="bg-card">
           <div className="grid gap-4 p-6 sm:p-7">
-            <span className="justify-self-start rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold">
+            <span className="justify-self-start rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold text-ink">
               Test gateway
             </span>
             <DialogPrimitive.Title className="font-display text-2xl font-semibold tracking-[-0.02em]">

@@ -307,7 +307,7 @@ export default async function SuccessStoriesPage({
           ))}
           <li>
             <Reveal delay={publishedStories.length * 0.05} className="h-full">
-              <div className="flex h-full flex-col justify-between gap-6 rounded-[28px] bg-highlight p-7">
+              <div className="flex h-full flex-col justify-between gap-6 rounded-[28px] bg-highlight p-7 text-ink">
                 <div>
                   <p className="font-display text-xl font-semibold">
                     {t("shareTitle")}

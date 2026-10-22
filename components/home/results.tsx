@@ -203,7 +203,9 @@ function Who({
       {face}
       <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
         <span className="text-sm font-semibold">{name}</span>
-        <span className="text-sm text-muted-foreground">{role}</span>
+        <span data-trust-role className="text-sm">
+          {role}
+        </span>
       </span>
     </figcaption>
   )

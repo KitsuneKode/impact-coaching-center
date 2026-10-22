@@ -281,7 +281,7 @@ export default async function LibraryPage({
           </ul>
         ) : (
           <Reveal delay={0.06}>
-            <div className="mbs-10 flex flex-col items-start justify-between gap-6 rounded-[28px] bg-highlight p-7 md:flex-row md:items-center md:p-9">
+            <div className="mbs-10 flex flex-col items-start justify-between gap-6 rounded-[28px] bg-highlight p-7 text-ink md:flex-row md:items-center md:p-9">
               <p className="max-w-[52ch] text-lg text-pretty">
                 {t("libPlansPending")}
               </p>

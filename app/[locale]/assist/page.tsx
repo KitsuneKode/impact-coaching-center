@@ -140,7 +140,7 @@ export default async function AssistPage({
           </div>
         </Reveal>
         <Reveal delay={0.06} className="h-full">
-          <div className="h-full rounded-[28px] bg-highlight p-7 md:p-9">
+          <div className="h-full rounded-[28px] bg-highlight p-7 text-ink md:p-9">
             <IconClockHour4 aria-hidden size={28} stroke={1.5} />
             <h2 className="mbs-4 font-display text-2xl font-semibold tracking-[-0.02em]">
               {t("pending")}
@@ -149,7 +149,7 @@ export default async function AssistPage({
               {pending.map((item) => (
                 <li
                   key={item}
-                  className="border-bs border-[color-mix(in_oklch,var(--foreground)_14%,transparent)] pbs-3 pbe-3 first:border-bs-0 first:pbs-0"
+                  className="border-bs border-[color-mix(in_oklch,var(--ink-fixed)_14%,transparent)] pbs-3 pbe-3 first:border-bs-0 first:pbs-0"
                 >
                   {item}
                 </li>

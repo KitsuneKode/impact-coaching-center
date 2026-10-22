@@ -1606,7 +1606,7 @@
     font-weight: 600;
     letter-spacing: 0.02em;
     background-color: color-mix(in oklch, var(--primary) 12%, var(--card));
-    color: var(--primary);
+    color: var(--primary-ink);
   }
 
   /* The list and its preview: side by side when the area is wide enough,
@@ -1712,7 +1712,7 @@
   [data-notes-kind] {
     font-size: 0.8125rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-notes-lines] {
     margin-block-start: auto;
@@ -1782,7 +1782,7 @@
 
   [data-channel-icon] {
     background-color: var(--secondary);
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   @media (prefers-reduced-motion: no-preference) {
     [data-channel] [data-nudge] {
@@ -2223,7 +2223,7 @@
   }
   [data-finder-badge] {
     background-color: color-mix(in oklch, var(--primary) 12%, transparent);
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-finder-ring] circle:first-child {
     stroke: var(--secondary);
@@ -2283,7 +2283,7 @@
   }
   [data-finder-chip][aria-current] {
     background-color: color-mix(in oklch, var(--primary) 14%, transparent);
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-finder-chip]:focus-visible,
   [data-finder-next]:focus-visible,
@@ -2446,11 +2446,11 @@
   }
   @media (hover: hover) and (pointer: fine) {
     [data-faq] summary:hover {
-      color: var(--primary);
+      color: var(--primary-ink);
     }
     [data-faq]:not([open]) summary:hover [data-faq-icon] {
       background-color: color-mix(in oklch, var(--primary) 14%, var(--card));
-      color: var(--primary);
+      color: var(--primary-ink);
     }
   }
 }
@@ -2941,7 +2941,7 @@
   }
   [data-course-chip] svg {
     flex: none;
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-fit-label] {
     display: inline-flex;
@@ -3184,7 +3184,14 @@
   [data-featured] [data-trust-who] {
     background-color: color-mix(in oklch, white 70%, transparent);
   }
-  [data-featured] [data-trust-who] .text-muted-foreground {
+  [data-trust-role] {
+    color: var(--muted-foreground);
+  }
+  /* On the amber card the pill is pale in both themes, so its text is ink. */
+  [data-featured] [data-trust-who] {
+    color: var(--ink-fixed);
+  }
+  [data-featured] [data-trust-role] {
     color: color-mix(in oklch, var(--ink-fixed) 70%, transparent);
   }
   [data-trust-slip] {
@@ -3219,9 +3226,11 @@
     color: var(--muted-foreground);
   }
   /* Green means "verified" and nothing else on this site. */
+  /* The text leans toward the ink (toward the paper in dark mode), so the
+     small label clears 4.5:1 on its tint. */
   [data-trust-tag="verified"] {
     background-color: color-mix(in oklch, var(--verified) 12%, transparent);
-    color: var(--verified);
+    color: color-mix(in oklch, var(--verified), var(--foreground) 35%);
   }
   :is([data-trust-tag], [data-trust-slip], [data-trust-all]):focus-visible {
     outline: 2px solid var(--ring);

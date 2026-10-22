@@ -55,11 +55,11 @@ export default async function CalendarPage({
 
       <section className="container-page pbe-20">
         {upcoming.length === 0 ? (
-          <div className="grid gap-10 rounded-[32px] bg-highlight p-7 md:p-10 lg:grid-cols-12 lg:gap-14">
+          <div className="grid gap-10 rounded-[32px] bg-highlight p-7 text-ink md:p-10 lg:grid-cols-12 lg:gap-14">
             <div className="lg:col-span-6">
               <h2 className="font-display text-[clamp(1.5rem,1.2rem+1.4vw,2.25rem)] leading-tight font-semibold tracking-[-0.03em] text-balance">
                 {t("emptyTitle")}{" "}
-                <span className="text-[color-mix(in_oklch,var(--foreground)_78%,var(--highlight))]">
+                <span className="text-[color-mix(in_oklch,var(--ink-fixed)_78%,var(--highlight))]">
                   {t("emptyRest")}
                 </span>
               </h2>
@@ -82,7 +82,7 @@ export default async function CalendarPage({
                     target="_blank"
                     rel="noreferrer noopener"
                     data-row-card
-                    className="flex items-center justify-between gap-4 ps-5 pe-5 pbs-4 pbe-4"
+                    className="flex items-center justify-between gap-4 ps-5 pe-5 pbs-4 pbe-4 text-foreground"
                   >
                     <span className="grid">
                       <span className="font-semibold">

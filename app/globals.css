@@ -38,6 +38,10 @@
   --popover-foreground: var(--foreground);
 
   --primary: oklch(51.6% 0.188 261);
+  /* Blue as text or a thin mark. The same blue in light mode; in dark the
+     surfaces need a deep blue (white on it) and text a bright one (on the
+     dark ground), which no single blue gives both. */
+  --primary-ink: var(--primary);
   --primary-foreground: oklch(100% 0 none);
   /* the pressed blue, and the muted text that sits on a blue field */
   --primary-deep: oklch(42.1% 0.151 261.2);
@@ -144,9 +148,10 @@
   --surface: oklch(20% 0.042 265);
   --card: oklch(21.5% 0.043 265);
 
-  --primary: oklch(58.5% 0.185 260.5);
+  --primary: oklch(50.5% 0.18 261);
+  --primary-ink: oklch(74% 0.13 258);
   --primary-foreground: oklch(100% 0 none);
-  --primary-deep: oklch(50% 0.17 261);
+  --primary-deep: oklch(44% 0.16 261);
   --on-primary: oklch(94% 0.028 262.8);
 
   --secondary: oklch(26.5% 0.045 264);
@@ -630,7 +635,7 @@
     border-radius: 20px;
     background-color: color-mix(in oklch, var(--card) 97%, transparent);
     box-shadow:
-      0 0 0 0.5px color-mix(in oklch, var(--shade) 22%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--foreground) 9%, transparent),
       0 10px 24px -6px color-mix(in oklch, var(--shade) 14%, transparent);
   }
   [data-site-header][data-stuck] [data-site-bar-wrap] {
@@ -1189,6 +1194,13 @@ body :lang(as) {
     letter-spacing: 0;
   }
 }
+/* Blue text in dark mode takes the bright ink (--primary-ink), while
+   bg-primary keeps the deep blue that white text needs. */
+@layer utilities {
+  :root[data-theme="dark"] :is(.text-primary, .hover\:text-primary:hover) {
+    color: var(--primary-ink);
+  }
+}
 
 /*
  * The sign-in code boxes (components/ui/input-otp.tsx, after Kobra's): a
@@ -1472,7 +1484,7 @@ body :lang(as) {
   }
   [data-choice-tick] {
     display: none;
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-choice]:has(:checked) [data-choice-tick] {
     display: block;
@@ -1530,7 +1542,7 @@ body :lang(as) {
   }
   [data-menu-icon] {
     background-color: var(--secondary);
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-menu-all] {
     display: flex;
@@ -1541,7 +1553,7 @@ body :lang(as) {
     border-radius: 16px;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--primary);
+    color: var(--primary-ink);
     background-color: var(--secondary);
   }
   [data-menu-tile]:active,
@@ -1668,7 +1680,7 @@ body :lang(as) {
     block-size: 2rem;
     border-radius: 10px;
     background-color: var(--secondary);
-    color: var(--primary);
+    color: var(--primary-ink);
   }
   [data-hit] {
     background-color: color-mix(in oklch, var(--highlight) 45%, transparent);

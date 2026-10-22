@@ -52,15 +52,13 @@ export async function OrderSteps() {
       <p className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         <Link
           href="/refunds"
-          data-quiet-link
-          className="underline underline-offset-4"
+          className="text-muted-foreground underline decoration-foreground/30 underline-offset-4 hover:text-foreground"
         >
           {t("stepsRefunds")}
         </Link>
         <Link
           href="/shipping"
-          data-quiet-link
-          className="underline underline-offset-4"
+          className="text-muted-foreground underline decoration-foreground/30 underline-offset-4 hover:text-foreground"
         >
           {t("stepsShipping")}
         </Link>
