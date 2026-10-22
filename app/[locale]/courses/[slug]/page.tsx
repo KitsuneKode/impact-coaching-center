@@ -208,7 +208,7 @@ export default async function CoursePage({
       <section data-hero="blue" aria-labelledby="course-heading">
         <div data-hero-glow aria-hidden />
         <div aria-hidden className="h-(--header-height)" />
-        <div className="relative container-page grid gap-10 pbs-6 pbe-14 lg:grid-cols-12 lg:items-end lg:gap-14 lg:pbs-10 lg:pbe-20">
+        <div className="relative container-page grid gap-10 pbs-6 pbe-14 lg:grid-cols-12 lg:items-center lg:gap-14 lg:pbs-10 lg:pbe-20">
           <div className="lg:col-span-7">
             <nav aria-label={detail("breadcrumb")}>
               <ol className="flex flex-wrap items-center gap-1 text-sm text-on-primary">
@@ -257,10 +257,59 @@ export default async function CoursePage({
                 ))}
               </dl>
             ) : null}
+            {/* The course's own first lines from ClassPlus, so the blue holds
+                what a student came to read, beside the fee card. */}
+            {course.features.length ? (
+              <ul
+                data-rise
+                style={rise(0.2)}
+                className="mbs-8 grid max-w-[40rem] gap-x-6 gap-y-3 sm:grid-cols-2"
+              >
+                {course.features.slice(0, 4).map((feature) => (
+                  <li key={feature} className="flex items-start gap-2.5">
+                    <span className="mbs-0.5 grid size-5 flex-none place-items-center rounded-full bg-highlight text-ink">
+                      <IconCheck aria-hidden size={13} stroke={2.5} />
+                    </span>
+                    <span className="text-pretty">
+                      {phrase(splitFeature(feature).head)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {people.length ? (
+              <div
+                data-rise
+                style={rise(0.24)}
+                className="mbs-8 flex items-center gap-3"
+              >
+                <ul className="flex flex-none">
+                  {people.map((person, k) => (
+                    <li key={person.slug} className={k ? "-ms-2.5" : undefined}>
+                      <span className="relative block size-10 overflow-clip rounded-full bg-primary-deep ring-2 ring-primary">
+                        <Image
+                          src={person.portrait}
+                          alt=""
+                          fill
+                          sizes="40px"
+                          className="object-cover object-top"
+                        />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-pretty text-on-primary">
+                  <span className="font-semibold text-white">
+                    {t("taughtBy")}
+                  </span>{" "}
+                  {people.map((person) => person.name).join(", ")}
+                </p>
+              </div>
+            ) : null}
             {course.learners >= LEARNERS_WORTH_SHOWING ? (
               <p
                 data-rise
-                style={rise(0.22)}
+                style={rise(0.28)}
                 className="mbs-6 text-sm text-on-primary"
               >
                 <span className="tnum font-semibold text-white">
@@ -347,9 +396,11 @@ export default async function CoursePage({
                     {formatPhone(contact.phones[0])}
                   </a>
                 </div>
-                <p className="mbs-4 text-xs text-muted-foreground">
-                  {fees("note")}
-                </p>
+                {course.free ? null : (
+                  <p className="mbs-4 text-xs text-muted-foreground">
+                    {fees("note")}
+                  </p>
+                )}
               </div>
             </div>
           </div>
