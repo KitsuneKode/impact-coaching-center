@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react"
 import { convexConfigured } from "@/app/providers"
 import { InlineScript } from "@/components/site/inline-script"
 import { usePathname } from "@/i18n/navigation"
-import { matchesPath, wordsIn } from "@/lib/campaigns"
+import { showsOn, wordsIn } from "@/lib/campaigns"
 import type { LiveBar } from "@/lib/catalog-server"
 import {
   isAvailable,
@@ -37,7 +37,9 @@ function Strip({ initial }: { initial: LiveBar[] }) {
   const quiet = /^\/(checkout|account|login|register)(\/|$)/.test(path)
   const first = quiet
     ? undefined
-    : initial.find((c) => matchesPath(c.routes, path))
+    : // The page's exam is not known on the server, so an exam's bar
+      // arrives with the live query instead.
+      initial.find((c) => showsOn(c, path, null))
   const initialBar = useMemo(
     () => first && { ...wordsIn(first, locale), kind: "bar" as const },
     [first, locale]

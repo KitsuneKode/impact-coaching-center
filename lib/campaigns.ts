@@ -4,6 +4,15 @@
  * form and the server agree on every limit.
  */
 
+import { tracks } from "./brand"
+
+/**
+ * The exams a promotion can be aimed at: a page about a course, a book set,
+ * a free note or an exam guide names its exam, and a promotion for that
+ * exam shows there.
+ */
+export const CAMPAIGN_EXAMS: readonly string[] = tracks.map((t) => t.exam)
+
 export const CAMPAIGN_KINDS = ["bar", "banner", "modal", "reel"] as const
 export type CampaignKind = (typeof CAMPAIGN_KINDS)[number]
 
@@ -65,6 +74,8 @@ export type CampaignInput = {
   coupon: string
   reelIds: string[]
   routes: string[]
+  /** Exams whose pages it shows on, besides `routes`. */
+  exams?: string[]
   startsAt?: number
   endsAt?: number
   delaySeconds: number
@@ -104,6 +115,7 @@ export function checkCampaign(input: CampaignInput): Checked {
   const coupon = input.coupon.trim().toUpperCase()
   const reelIds = input.reelIds.map((id) => id.trim())
   const routes = input.routes.map((r) => r.trim()).filter(Boolean)
+  const exams = CAMPAIGN_EXAMS.filter((e) => input.exams?.includes(e))
 
   // Kept in the order the types are listed, whatever order they were picked.
   const kinds = CAMPAIGN_KINDS.filter((k) => input.kinds.includes(k))
@@ -167,6 +179,8 @@ export function checkCampaign(input: CampaignInput): Checked {
     !routes.every((r) => r.startsWith("/") && r.length <= L.route)
   )
     return { ok: false, field: "pages" }
+  if (exams.length !== (input.exams?.length ?? 0))
+    return { ok: false, field: "exams" }
 
   const { startsAt, endsAt } = input
   if (startsAt !== undefined && !Number.isFinite(startsAt))
@@ -197,6 +211,7 @@ export function checkCampaign(input: CampaignInput): Checked {
       coupon,
       reelIds: has("reel") ? reelIds : [],
       routes,
+      exams,
       startsAt,
       endsAt,
       delaySeconds: input.delaySeconds,
@@ -227,6 +242,22 @@ export function campaignPhase(
   if (c.startsAt !== undefined && now < c.startsAt) return "scheduled"
   if (c.endsAt !== undefined && now >= c.endsAt) return "ended"
   return "live"
+}
+
+/**
+ * Whether a promotion shows on a page: on every page when it names neither
+ * pages nor exams; otherwise on the pages it names and on any page about
+ * one of its exams.
+ */
+export function showsOn(
+  c: { routes: readonly string[]; exams?: readonly string[] },
+  path: string,
+  exam: string | null
+): boolean {
+  const exams = c.exams ?? []
+  if (c.routes.length === 0 && exams.length === 0) return true
+  if (c.routes.length > 0 && matchesPath(c.routes, path)) return true
+  return exam !== null && exams.includes(exam)
 }
 
 /** No pages listed means everywhere; "/" means the home page alone. */

@@ -17,6 +17,7 @@ import { examDates } from "@/lib/catalog-server"
 import { contactHref } from "@/lib/contact"
 import { examBySlug, exams, pick } from "@/lib/exams"
 import { alternatesFor, openGraphFor } from "@/lib/site"
+import { PageExam } from "@/components/site/page-exam"
 
 /* Dates come from the calendar, re-read hourly. */
 export const revalidate = 3600
@@ -78,6 +79,7 @@ export default async function ExamGuidePage({
 
   return (
     <main>
+      <PageExam exam={track.exam} />
       <PageHead
         trail={[{ label: t("exams"), href: "/exams" }, { label: name }]}
         title={name}

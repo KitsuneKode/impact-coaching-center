@@ -32,6 +32,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import {
+  CAMPAIGN_EXAMS,
   CAMPAIGN_KIND_LABEL,
   CAMPAIGN_KINDS,
   CAMPAIGN_LIMITS,
@@ -64,6 +65,7 @@ const MESSAGES: Record<string, string> = {
   code: "Use 3 to 24 capital letters, digits or dashes.",
   videos: `Add one to ${CAMPAIGN_LIMITS.reels} different YouTube videos for the reel.`,
   pages: `List up to ${CAMPAIGN_LIMITS.routes} pages, one per line, each starting with /.`,
+  exams: "Pick exams from the list.",
   start: "That start date is not valid.",
   end: "The end must be after the start.",
   delay: `Use a whole number of seconds from 0 to ${CAMPAIGN_LIMITS.delayMax}.`,
@@ -107,6 +109,7 @@ type Draft = {
   coupon: string
   videos: string[]
   routes: string
+  exams: string[]
   startsAt: string
   endsAt: string
   delaySeconds: string
@@ -129,6 +132,7 @@ const EMPTY: Draft = {
   coupon: "",
   videos: [],
   routes: "",
+  exams: [],
   startsAt: "",
   endsAt: "",
   delaySeconds: "0",
@@ -221,6 +225,7 @@ export function PromotionEditor({ id }: { id?: string }) {
         coupon: campaign.coupon,
         videos: campaign.reelIds.map((v) => `https://youtu.be/${v}`),
         routes: campaign.routes.join("\n"),
+        exams: campaign.exams ?? [],
         startsAt: msToIstInput(campaign.startsAt),
         endsAt: msToIstInput(campaign.endsAt),
         delaySeconds: `${campaign.delaySeconds}`,
@@ -300,6 +305,7 @@ function PromotionForm({
       coupon: draft.coupon.toUpperCase(),
       reelIds: videos.ids,
       routes: draft.routes.split(/\r?\n/),
+      exams: draft.exams,
       startsAt: istInputToMs(draft.startsAt),
       endsAt: istInputToMs(draft.endsAt),
       delaySeconds: Number(draft.delaySeconds),
@@ -637,7 +643,9 @@ function PromotionForm({
           <PagesPicker
             value={draft.routes}
             onChange={(routes) => set("routes", routes)}
-            error={errors.pages}
+            exams={draft.exams}
+            onExamsChange={(exams) => set("exams", exams)}
+            error={errors.pages ?? errors.exams}
           />
 
           <div className="grid gap-6 sm:grid-cols-2">
@@ -849,10 +857,16 @@ const SECTIONS = [
 const SECTION_PATHS = new Set<string>(SECTIONS.map(([path]) => path))
 
 /** "Courses, Books" for the list; single pages stay as their address. */
-export function pagesLabel(routes: readonly string[]) {
-  if (routes.length === 0) return "Every page"
+export function pagesLabel(
+  routes: readonly string[],
+  exams: readonly string[] = []
+) {
+  if (routes.length === 0 && exams.length === 0) return "Every page"
   const names = new Map<string, string>(SECTIONS)
-  return routes.map((route) => names.get(route) ?? route).join(", ")
+  return [
+    ...routes.map((route) => names.get(route) ?? route),
+    ...exams.map((exam) => `${exam} pages`),
+  ].join(", ")
 }
 
 /**
@@ -863,10 +877,14 @@ export function pagesLabel(routes: readonly string[]) {
 function PagesPicker({
   value,
   onChange,
+  exams,
+  onExamsChange,
   error,
 }: {
   value: string
   onChange: (routes: string) => void
+  exams: readonly string[]
+  onExamsChange: (exams: string[]) => void
   error?: string
 }) {
   const lines = value
@@ -887,9 +905,9 @@ function PagesPicker({
     <FieldSet data-invalid={!!error || undefined}>
       <FieldLegend variant="label">Where it shows</FieldLegend>
       <FieldDescription>
-        {lines.length === 0
-          ? "Every page. Tick sections to narrow it down."
-          : "Only the ticked sections, and every page inside them."}
+        {lines.length === 0 && exams.length === 0
+          ? "Every page. Tick sections or exams to narrow it down."
+          : "Only the ticked sections and the pages of the ticked exams."}
       </FieldDescription>
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
         {SECTIONS.map(([path, label]) => (
@@ -910,6 +928,33 @@ function PagesPicker({
           </Field>
         ))}
       </div>
+      <fieldset className="grid gap-2">
+        <legend className="mbe-2 text-sm font-medium">For an exam</legend>
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
+          {CAMPAIGN_EXAMS.map((exam) => (
+            <Field key={exam} orientation="horizontal" className="w-auto">
+              <Checkbox
+                id={`p-exam-${exam}`}
+                checked={exams.includes(exam)}
+                onCheckedChange={(checked) =>
+                  onExamsChange(
+                    CAMPAIGN_EXAMS.filter((e) =>
+                      e === exam ? checked : exams.includes(e)
+                    )
+                  )
+                }
+              />
+              <FieldLabel htmlFor={`p-exam-${exam}`} className="font-normal">
+                {exam}
+              </FieldLabel>
+            </Field>
+          ))}
+        </div>
+        <FieldDescription>
+          Its course pages, book sets, free notes and exam guide, wherever they
+          are.
+        </FieldDescription>
+      </fieldset>
       <Field>
         <FieldLabel htmlFor="p-routes-other">Other pages (optional)</FieldLabel>
         <Input
@@ -919,7 +964,7 @@ function PagesPicker({
             write(ticked, event.target.value.split(/[\s,]+/).filter(Boolean))
           }
           spellCheck={false}
-          placeholder="/courses/lakhya-2027"
+          placeholder="For example /courses/lakhya-2027"
           aria-invalid={!!error}
         />
         {error ? (

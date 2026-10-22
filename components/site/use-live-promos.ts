@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react"
 import { useLocale } from "next-intl"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
+import { usePageExam } from "@/components/site/page-exam"
 import { api } from "@/convex/_generated/api"
 import { usePathname } from "@/i18n/navigation"
 import { isRested, kindsOf, wordsIn } from "@/lib/campaigns"
@@ -28,11 +29,12 @@ export function useLivePromos() {
   const path = usePathname()
   const now = useMinute()
   const locale = useLocale()
+  const exam = usePageExam()
   // No promotions where someone is paying, signing in or in their account.
   const quiet = /^\/(checkout|account|login|register)(\/|$)/.test(path)
   const live = useQuery(
     api.campaigns.liveCampaigns,
-    now === null || quiet ? "skip" : { path, now }
+    now === null || quiet ? "skip" : { path, now, ...(exam ? { exam } : {}) }
   )
   // One row per place a campaign shows, so a campaign on the bar and in a
   // pop-up is found by each, and closing one leaves the other. Assamese

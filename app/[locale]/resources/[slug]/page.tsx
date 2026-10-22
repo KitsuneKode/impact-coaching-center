@@ -18,6 +18,7 @@ import {
   openGraphFor,
   siteUrl,
 } from "@/lib/site"
+import { PageExam } from "@/components/site/page-exam"
 
 /* Cached with the rest of the catalogue (lib/catalog-server.ts). */
 export const revalidate = 3600
@@ -106,6 +107,7 @@ export default async function ResourcePage({
 
   return (
     <main>
+      <PageExam exam={resource.exam} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

@@ -10,6 +10,7 @@ import {
   istInputToMs,
   matchesPath,
   msToIstInput,
+  showsOn,
   parseVideos,
   youtubeId,
   wordsIn,
@@ -167,6 +168,44 @@ describe("matchesPath", () => {
     expect(matchesPath(["/courses"], "/courses")).toBe(true)
     expect(matchesPath(["/courses"], "/courses/lakhya-2027")).toBe(true)
     expect(matchesPath(["/courses"], "/coursework")).toBe(false)
+  })
+})
+
+describe("showsOn", () => {
+  test("neither pages nor exams means everywhere", () => {
+    expect(showsOn({ routes: [] }, "/books", null)).toBe(true)
+    expect(showsOn({ routes: [], exams: [] }, "/books", "APSC")).toBe(true)
+  })
+  test("an exam's promotion shows on that exam's pages only", () => {
+    const c = { routes: [], exams: ["APSC"] }
+    expect(showsOn(c, "/courses/lakhya-2027", "APSC")).toBe(true)
+    expect(showsOn(c, "/courses/victor-9-0", "ADRE and Assam Police")).toBe(
+      false
+    )
+    expect(showsOn(c, "/courses", null)).toBe(false)
+  })
+  test("pages and exams add up", () => {
+    const c = { routes: ["/library"], exams: ["APSC"] }
+    expect(showsOn(c, "/library", null)).toBe(true)
+    expect(showsOn(c, "/books/apsc-mains-set", "APSC")).toBe(true)
+    expect(showsOn(c, "/blog", null)).toBe(false)
+  })
+})
+
+describe("checkCampaign exams", () => {
+  test("keeps known exams in the site's order", () => {
+    const r = checkCampaign({
+      ...base,
+      exams: ["Bank, SSC, Railway", "APSC"],
+    })
+    expect(r.ok && r.value.exams).toEqual(["APSC", "Bank, SSC, Railway"])
+  })
+  test("refuses an exam the site does not teach", () => {
+    expect(fail({ exams: ["UPSC"] })).toBe("exams")
+  })
+  test("an older campaign without exams saves as none", () => {
+    const r = checkCampaign(base)
+    expect(r.ok && r.value.exams).toEqual([])
   })
 })
 

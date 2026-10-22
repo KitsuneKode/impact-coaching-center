@@ -41,6 +41,7 @@ import {
   openGraphFor,
   siteUrl,
 } from "@/lib/site"
+import { PageExam } from "@/components/site/page-exam"
 
 /* Courses come from ClassPlus every few hours; a new one gets its page on
    first visit and every page refreshes within the quarter hour. */
@@ -202,6 +203,7 @@ export default async function CoursePage({
 
   return (
     <main>
+      <PageExam exam={course.track} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

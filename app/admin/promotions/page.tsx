@@ -150,7 +150,7 @@ function Promotions() {
                       {kindsOf(c)
                         .map((k) => CAMPAIGN_KIND_LABEL[k])
                         .join(" + ")}{" "}
-                      · {pagesLabel(c.routes)} · Priority {c.priority}
+                      · {pagesLabel(c.routes, c.exams)} · Priority {c.priority}
                     </p>
                     <Stats row={statsOf.get(c.id)} />
                     {from || until ? (

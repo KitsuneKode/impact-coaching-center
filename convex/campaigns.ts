@@ -4,7 +4,7 @@ import {
   checkCampaign,
   isLiveNow,
   kindsOf,
-  matchesPath,
+  showsOn,
   type CampaignInput,
 } from "../lib/campaigns"
 import { IMAGE_MAX_BYTES } from "../lib/catalog"
@@ -45,6 +45,7 @@ const FIELDS = {
   coupon: v.string(),
   reelIds: v.array(v.string()),
   routes: v.array(v.string()),
+  exams: v.optional(v.array(v.string())),
   startsAt: v.optional(v.number()),
   endsAt: v.optional(v.number()),
   delaySeconds: v.number(),
@@ -99,6 +100,7 @@ const fieldsOf = (c: Doc<"campaigns">) => ({
   coupon: c.coupon,
   reelIds: c.reelIds,
   routes: c.routes,
+  exams: c.exams ?? [],
   startsAt: c.startsAt,
   endsAt: c.endsAt,
   delaySeconds: c.delaySeconds,
@@ -144,7 +146,7 @@ export const adminCampaigns = query({
  * clock, so the browser passes the time in, rounded to the minute.
  */
 export const liveCampaigns = query({
-  args: { path: v.string(), now: v.number() },
+  args: { path: v.string(), now: v.number(), exam: v.optional(v.string()) },
   returns: v.array(PUBLIC_ROW),
   handler: async (ctx, args) => {
     const found = await ctx.db
@@ -153,7 +155,10 @@ export const liveCampaigns = query({
       .order("desc")
       .take(30)
     const live = found
-      .filter((c) => isLiveNow(c, args.now) && matchesPath(c.routes, args.path))
+      .filter(
+        (c) =>
+          isLiveNow(c, args.now) && showsOn(c, args.path, args.exam ?? null)
+      )
       .slice(0, LIVE_MAX)
     return Promise.all(
       live.map(async (c) => ({
@@ -184,7 +189,12 @@ export const liveCampaigns = query({
  */
 export const liveBars = query({
   args: { now: v.number() },
-  returns: v.array(PUBLIC_ROW.extend({ routes: v.array(v.string()) })),
+  returns: v.array(
+    PUBLIC_ROW.extend({
+      routes: v.array(v.string()),
+      exams: v.array(v.string()),
+    })
+  ),
   handler: async (ctx, args) => {
     const found = await ctx.db
       .query("campaigns")
@@ -211,6 +221,7 @@ export const liveBars = query({
         restDays: c.restDays,
         revision: c.revision,
         routes: c.routes,
+        exams: c.exams ?? [],
       }))
   },
 })

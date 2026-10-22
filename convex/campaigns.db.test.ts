@@ -252,6 +252,23 @@ describe("liveCampaigns", () => {
     expect(await ask(t, "/books", 1)).toHaveLength(0)
   })
 
+  test("an exam's promotion shows on that exam's pages, and on its own pages", async () => {
+    const t = convexTest(schema, modules)
+    await put(t, { exams: ["APSC"], routes: ["/library"] })
+    const on = (path: string, exam?: string) =>
+      t.query(api.campaigns.liveCampaigns, {
+        path,
+        now: 1,
+        ...(exam ? { exam } : {}),
+      })
+    expect(await on("/courses/lakhya-2027", "APSC")).toHaveLength(1)
+    expect(
+      await on("/courses/victor-9-0", "ADRE and Assam Police")
+    ).toHaveLength(0)
+    expect(await on("/courses")).toHaveLength(0)
+    expect(await on("/library")).toHaveLength(1)
+  })
+
   test("a campaign on several surfaces says so; an older single kind still reads", async () => {
     const t = convexTest(schema, modules)
     await put(t, { kinds: ["bar", "modal"] })

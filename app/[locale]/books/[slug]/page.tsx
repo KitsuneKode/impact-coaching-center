@@ -16,6 +16,7 @@ import {
   openGraphFor,
   siteUrl,
 } from "@/lib/site"
+import { PageExam } from "@/components/site/page-exam"
 import { OrderSteps } from "@/components/commerce/order-steps"
 
 /* Catalogue data refreshes when it changes (lib/catalog-server.ts); the
@@ -98,6 +99,7 @@ export default async function BundlePage({
 
   return (
     <main>
+      <PageExam exam={bundle.exam} />
       {bundle.sample ? null : (
         <script
           type="application/ld+json"

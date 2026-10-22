@@ -460,6 +460,8 @@ export default defineSchema({
     reelIds: v.array(v.string()),
     /** Paths it shows on; empty means everywhere. */
     routes: v.array(v.string()),
+    /** Exams whose pages it also shows on (lib/campaigns.ts showsOn). */
+    exams: v.optional(v.array(v.string())),
     startsAt: v.optional(v.number()),
     endsAt: v.optional(v.number()),
     delaySeconds: v.number(),
