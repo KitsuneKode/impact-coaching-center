@@ -66,7 +66,12 @@ import { api } from "@/convex/_generated/api"
 import type { InboxView } from "@/convex/leads"
 import { formatPhone } from "@/lib/brand"
 import { isDueIst } from "@/lib/ist"
-import { enquiryTracks } from "@/lib/leads"
+import {
+  enquiryTracks,
+  FRAGMENT_MATCHES_MAX,
+  FRAGMENT_SCAN_ROWS,
+  phoneFragment,
+} from "@/lib/leads"
 
 export type Lead = {
   id: string
@@ -558,6 +563,14 @@ export function LeadsTable({
             {selected > 0 ? `${selected} selected` : `${leads.length} loaded`}
           </p>
         </div>
+        {phoneFragment(search) ? (
+          <p className="text-sm text-muted-foreground">
+            Part of a number searches the latest{" "}
+            {FRAGMENT_SCAN_ROWS.toLocaleString("en-IN")} enquiries and shows up
+            to {FRAGMENT_MATCHES_MAX} matches. Type all ten digits to find
+            anyone.
+          </p>
+        ) : null}
 
         {/*
           Status as a row of filters rather than a dropdown. There are five, they

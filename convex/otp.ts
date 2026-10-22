@@ -271,7 +271,11 @@ export const claimOtpSend = internalMutation({
     // and two at once could pick the same row to delete.
     for (const { key, limit, windowMs } of checks)
       await consumeRateLimit(ctx, key, limit, windowMs)
-    const generation = (existing?.generation ?? 0) + 1
+    /* A new lease starts from the clock, not from 1. Erasing an account
+       deletes its lease, and a recreated one counting from 1 again would
+       hand out a generation a send still in flight holds: that stale send
+       could then commit over the fresh code. */
+    const generation = existing ? existing.generation + 1 : now
     const inflightUntil = now + SEND_LEASE_MS
     if (existing)
       await ctx.db.patch(existing._id, { generation, inflightUntil })

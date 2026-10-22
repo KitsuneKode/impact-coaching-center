@@ -21,7 +21,7 @@ import { ButtonAnchor } from "@/components/ui/button"
 import { PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
-import { useMinute } from "@/hooks/use-minute"
+import { QUARTER_HOUR, useClock, useMinute } from "@/hooks/use-minute"
 import { useViewer } from "@/hooks/use-viewer"
 import { brand, formatPhone } from "@/lib/brand"
 import { cn } from "@/lib/utils"
@@ -73,7 +73,10 @@ const today = (now: number) =>
   })
 
 function Home() {
+  // Labels tick by the minute; the queries move only every quarter hour,
+  // which their day-sized windows allow, rather than re-running each minute.
   const now = useMinute()
+  const asOf = useClock(QUARTER_HOUR)
   const viewer = useViewer()
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"
 
@@ -107,9 +110,9 @@ function Home() {
       {/* Work first: what is waiting and who to call sit side by side; the
           numbers that say how the week went follow at full width. */}
       <div className="grid items-start gap-3 xl:grid-cols-12">
-        <Queue now={now} />
-        <ToCall now={now} />
-        <Week now={now} />
+        <Queue now={now} asOf={asOf} />
+        <ToCall now={now} asOf={asOf} />
+        <Week asOf={asOf} />
       </div>
     </PageShell>
   )
@@ -166,8 +169,8 @@ type Need = {
 
 const QUEUE_SPAN = "xl:col-span-7"
 
-function Queue({ now }: { now: number }) {
-  const data = useQuery(api.dashboard.today, { now })
+function Queue({ now, asOf }: { now: number; asOf: number }) {
+  const data = useQuery(api.dashboard.today, { now: asOf })
 
   if (data === undefined)
     return (
@@ -359,8 +362,8 @@ function whatsappHref(phone: string, name: string, track?: string) {
 
 const CALL_SPAN = "xl:col-span-5"
 
-function ToCall({ now }: { now: number }) {
-  const data = useQuery(api.dashboard.today, { now })
+function ToCall({ now, asOf }: { now: number; asOf: number }) {
+  const data = useQuery(api.dashboard.today, { now: asOf })
   if (data === undefined)
     return (
       <Card title="Who to call first" className={CALL_SPAN}>
@@ -541,8 +544,8 @@ function firstCallText(hours: number | null) {
   return `${Math.round(hours / 24)} days`
 }
 
-function Week({ now }: { now: number }) {
-  const data = useQuery(api.dashboard.week, { now })
+function Week({ asOf }: { asOf: number }) {
+  const data = useQuery(api.dashboard.week, { now: asOf })
 
   if (data === undefined)
     return (

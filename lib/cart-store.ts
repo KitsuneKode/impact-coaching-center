@@ -151,6 +151,9 @@ export function useCartHydrated() {
  * effect below - and the mirror only applies what arrived *after* the merge
  * commits, because Convex publishes mutation results before query updates.
  */
+/** The server cart the mirror last applied, to fall back to on a refusal. */
+let lastServerLines: CartLine[] | null = null
+
 export function useCartSync() {
   const viewer = useViewer()
   const serverCart = useQuery(api.carts.myCart)
@@ -180,6 +183,7 @@ export function useCartSync() {
   useEffect(() => {
     if (!hydrated || viewer !== null) return
     mergedFor.current = null
+    lastServerLines = null
     if (useCart.getState().owner !== null) useCart.getState().clear()
   }, [hydrated, viewer])
 
@@ -209,6 +213,7 @@ export function useCartSync() {
   useEffect(() => {
     if (!hydrated || !viewerId || !serverCart) return
     if (!synced && useCart.getState().lines.length > 0) return
+    lastServerLines = serverCart.lines
     useCart.setState({ lines: serverCart.lines, owner: viewerId })
   }, [hydrated, viewerId, serverCart, synced])
 
@@ -230,9 +235,18 @@ export function useCartActions() {
     // A signed-in change is this account's line, never a guest's.
     if (useCart.getState().owner !== viewer.id)
       useCart.setState({ owner: viewer.id })
-    void setLine({ ...key, quantity }).catch(() => {
-      toast.error("Cart could not sync - check your connection.")
-    })
+    void setLine({ ...key, quantity })
+      .then((result) => {
+        if (result.ok) return
+        /* Refused, so the server cart - the one checkout orders - did not
+           change and will not re-emit. Showing the refused change would
+           promise a set the order will not contain. */
+        if (lastServerLines) useCart.setState({ lines: lastServerLines })
+        toast.error("That change could not be saved to your cart.")
+      })
+      .catch(() => {
+        toast.error("Cart could not sync - check your connection.")
+      })
   }
   const quantityOf = (key: LineKey) =>
     useCart.getState().lines.find((line) => same(line, key))?.quantity ?? 0

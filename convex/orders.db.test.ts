@@ -298,6 +298,9 @@ describe("the status machine", () => {
     expect(cancelled?.refundDueAt).toBeDefined()
     const set = await t.run((ctx) => ctx.db.get(bundleId))
     expect(set?.soldCount).toBe(3)
+    // The queue shows the debt, so the owner can find it and settle it.
+    const queue = await t.run((ctx) => readOrdersPage(ctx, owner, PAGE))
+    expect(queue.page[0]?.refundDue).toBe(true)
 
     // Marking it refunded clears the flag and does not unsell it twice.
     expect(
@@ -372,6 +375,8 @@ describe("the status machine", () => {
       undefined,
       { name: "", trackingNumber: "D123" },
       { name: "DTDC", trackingNumber: "  " },
+      { name: "D".repeat(61), trackingNumber: "D123" },
+      { name: "DTDC", trackingNumber: "1".repeat(41) },
     ]) {
       expect(
         await t.run((ctx) =>
@@ -421,6 +426,22 @@ describe("the status machine", () => {
           orderId: collection,
           status: "shipped",
           courier: { name: "DTDC", trackingNumber: "D1" },
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "fulfilment" })
+
+    // Packing is a parcel step: a collection packed would have no way on.
+    const paidCollection = await order(t, buyer.id, {
+      status: "paid",
+      fulfilment: "collection",
+      reference: "ORD-8",
+    })
+    expect(
+      await t.run((ctx) =>
+        applyStatusChange(ctx, staff, {
+          orderId: paidCollection,
+          status: "packed",
           expectedRevision: 0,
         })
       )

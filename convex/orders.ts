@@ -52,6 +52,20 @@ export async function allocateOrderReference(
   throw new Error("Could not allocate a fresh order reference; try again.")
 }
 
+/** Longer than any courier's name or consignment number. */
+const COURIER_NAME_MAX = 60
+const TRACKING_NUMBER_MAX = 40
+
+/** Courier details trimmed and bounded, or null when they will not do. */
+function cleanCourier(courier?: { name: string; trackingNumber: string }) {
+  const name = courier?.name.trim()
+  const trackingNumber = courier?.trackingNumber.trim()
+  if (!name || !trackingNumber) return null
+  if (name.length > COURIER_NAME_MAX) return null
+  if (trackingNumber.length > TRACKING_NUMBER_MAX) return null
+  return { name, trackingNumber }
+}
+
 /** What may follow what. */
 const TRANSITIONS: Record<string, readonly string[]> = {
   awaiting_payment: ["paid", "cancelled"],
@@ -111,6 +125,8 @@ const ORDER_ROW = v.object({
   buyerPhone: v.string(),
   /** The buyer deleted their account: no name or number to show or dial. */
   buyerDeleted: v.boolean(),
+  /** Paid, then cancelled: the owner owes a refund in Razorpay. */
+  refundDue: v.boolean(),
 })
 
 export const adminOrdersPage = query({
@@ -163,6 +179,7 @@ export async function readOrdersPage(
         buyerName: deleted ? "" : order.contact.name,
         buyerPhone: deleted ? "" : order.contact.phone,
         buyerDeleted: deleted,
+        refundDue: order.refundDueAt !== undefined,
       }
     })
   )
@@ -287,7 +304,9 @@ export async function applyStatusChange(
    * tracking number is a promise nobody can answer a question about.
    */
   if (
-    (args.status === "shipped" || args.status === "delivered") &&
+    (args.status === "packed" ||
+      args.status === "shipped" ||
+      args.status === "delivered") &&
     order.fulfilment !== "delivery"
   )
     return invalidInput("fulfilment")
@@ -299,10 +318,9 @@ export async function applyStatusChange(
 
   let courier = order.courier
   if (args.status === "shipped") {
-    const name = args.courier?.name.trim()
-    const trackingNumber = args.courier?.trackingNumber.trim()
-    if (!name || !trackingNumber) return invalidInput("courier")
-    courier = { name, trackingNumber }
+    const cleaned = cleanCourier(args.courier)
+    if (!cleaned) return invalidInput("courier")
+    courier = cleaned
   } else if (args.courier) {
     return invalidInput("courier")
   }
@@ -370,13 +388,13 @@ export async function applyCourierChange(
   if (order.status !== "shipped" && order.status !== "delivered")
     return invalidInput("status")
 
-  const name = args.courier.name.trim()
-  const trackingNumber = args.courier.trackingNumber.trim()
-  if (!name || !trackingNumber) return invalidInput("courier")
+  const courier = cleanCourier(args.courier)
+  if (!courier) return invalidInput("courier")
+  const { name, trackingNumber } = courier
 
   const revision = revisionOf(order) + 1
   await ctx.db.patch(args.orderId, {
-    courier: { name, trackingNumber },
+    courier,
     revision,
     updatedAt: Date.now(),
   })

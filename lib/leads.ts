@@ -67,6 +67,26 @@ export function toE164(input: string): E164 | null {
   return match ? (`+91${match[1]}` as E164) : null
 }
 
+/*
+ * A few digits of a number have no index to answer them, so the inbox walks
+ * the newest enquiries looking for them. Both bounds are stated in the inbox
+ * so a miss is never mistaken for "nobody has this number".
+ */
+/** Fewer digits than this match too many phones to be a lookup. */
+export const PHONE_FRAGMENT_MIN = 4
+/** Enquiries a fragment search reads at most, newest first. */
+export const FRAGMENT_SCAN_ROWS = 2000
+/** Matches a fragment search returns at most, in one page. */
+export const FRAGMENT_MATCHES_MAX = 50
+
+/** The digits of a search that is part of a number, or null. */
+export function phoneFragment(search: string): string | null {
+  const trimmed = search.trim()
+  if (!trimmed || /\p{L}/u.test(trimmed) || toE164(trimmed)) return null
+  const digits = trimmed.replace(/\D/g, "")
+  return digits.length >= PHONE_FRAGMENT_MIN ? digits : null
+}
+
 export function parseLead(input: Record<string, string>): ParseResult {
   const name = (input.name ?? "").trim()
   // Trimmed like the name: a pasted value with a trailing space otherwise

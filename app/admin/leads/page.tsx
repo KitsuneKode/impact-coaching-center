@@ -14,6 +14,7 @@ import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { InboxView } from "@/convex/leads"
+import { useIstDay } from "@/hooks/use-minute"
 import { useViewer } from "@/hooks/use-viewer"
 
 /** The follow-up queue. */
@@ -85,6 +86,7 @@ function Inbox() {
   const [track, setTrack] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebounced(search.trim(), 300)
+  const today = useIstDay()
 
   const {
     results: leads,
@@ -95,7 +97,7 @@ function Inbox() {
     // The server refuses non-staff anyway; skipping keeps a student who lands
     // here from spending a subscription on a queue they may not read.
     allowed === true
-      ? { view, track, search: debouncedSearch || undefined }
+      ? { view, track, search: debouncedSearch || undefined, now: today }
       : "skip",
     { initialNumItems: 25 }
   )

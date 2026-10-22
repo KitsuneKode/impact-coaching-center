@@ -346,6 +346,27 @@ describe("phone authentication through the installed plugin", () => {
       await h.persons.run((ctx) => ctx.db.query("otpSendLeases").collect())
     ).toHaveLength(0)
   })
+  test("a signed-in person cannot clear or swap their number through update-user", async () => {
+    const h = harness()
+    await h.send()
+    const signedIn = await h.verify()
+    expect(signedIn.status).toBe(200)
+    const cookie = (signedIn.headers.getSetCookie?.() ?? [])
+      .map((c) => c.split(";")[0])
+      .join("; ")
+    expect(cookie).not.toBe("")
+    for (const body of [
+      { phoneNumber: null },
+      { phoneNumber: "+919999999999" },
+      { phoneNumberVerified: false },
+      { name: "Renamed" },
+    ]) {
+      const response = await h.post("update-user", body, { cookie })
+      expect(response.status).toBe(403)
+    }
+    expect(h.db.user[0]?.phoneNumber).toBe("+919876543210")
+    expect(h.db.user[0]?.phoneNumberVerified).toBe(true)
+  })
   test("Person callback failure never issues a session", async () => {
     const h = harness()
     await h.send()

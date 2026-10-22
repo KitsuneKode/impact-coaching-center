@@ -29,7 +29,7 @@ import {
 import { NavUser } from "@/components/admin/nav-user"
 import { SidebarMenuBadge } from "@/components/ui/sidebar"
 import { api } from "@/convex/_generated/api"
-import { useMinute } from "@/hooks/use-minute"
+import { useIstDay } from "@/hooks/use-minute"
 import { agency, brand } from "@/lib/brand"
 import { useViewer } from "@/hooks/use-viewer"
 
@@ -44,7 +44,7 @@ export function AdminSidebar() {
    * implemented (KIT-46).
    */
   const counts = useQuery(api.orders.orderCounts)
-  const leads = useQuery(api.leads.leadCounts, { now: useMinute() })
+  const leads = useQuery(api.leads.leadCounts, { now: useIstDay() })
 
   return (
     <Sidebar collapsible="icon">

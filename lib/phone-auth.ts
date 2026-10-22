@@ -29,6 +29,14 @@ const BLOCKED_AUTH_PATHS = new Set([
   "/verify-password",
 ])
 
+/*
+ * Better Auth's generic profile route will clear or replace the phone
+ * number, and nothing here uses it: names live on the Person. An owner who
+ * cleared their only number would be locked out with no way back in, so
+ * the route is closed. A changed number is staff's job (docs/production.md).
+ */
+const PROFILE_PATHS = new Set(["/update-user", "/delete-user"])
+
 function isOutsideWhatsApp(path: string) {
   return BLOCKED_AUTH_PATHS.has(path) || path.startsWith("/reset-password/")
 }
@@ -127,6 +135,11 @@ export function phoneAuthOptions(delivery: {
       before: createAuthMiddleware(async (ctx) => {
         if (isOutsideWhatsApp(ctx.path)) {
           throw new APIError("FORBIDDEN", { message: WHATSAPP_ONLY })
+        }
+        if (PROFILE_PATHS.has(ctx.path)) {
+          throw new APIError("FORBIDDEN", {
+            message: "Phone changes require staff assistance.",
+          })
         }
         if (!ctx.path.startsWith("/phone-number/")) return
         // Reject before the plugin consumes the OTP or edits its account.

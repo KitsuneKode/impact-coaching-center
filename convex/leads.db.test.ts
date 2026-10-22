@@ -343,6 +343,46 @@ describe("working a lead", () => {
     expect(lead?.nextFollowUpAt).toBeUndefined()
   })
 
+  test("nothing new is written onto an erased account", async () => {
+    const { t, leadId, staff } = await setup()
+    await t.run((ctx) => ctx.db.patch(leadId, { deletedAt: Date.now() }))
+    const missing = { ok: false, reason: "missing-record" } as const
+    expect(
+      await t.run((ctx) =>
+        applyLeadStatus(ctx, staff, {
+          personId: leadId,
+          status: "contacted",
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual(missing)
+    expect(
+      await t.run((ctx) =>
+        appendLeadActivity(ctx, staff, {
+          personId: leadId,
+          kind: "note",
+          body: "Called back",
+        })
+      )
+    ).toEqual(missing)
+    expect(
+      await t.run((ctx) =>
+        applyFollowUp(ctx, staff, {
+          personId: leadId,
+          at: Date.now() + 86_400_000,
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual(missing)
+    const activities = await t.run((ctx) =>
+      ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) => q.eq("personId", leadId))
+        .collect()
+    )
+    expect(activities).toHaveLength(0)
+  })
+
   test("a missing lead is reported as missing, not as an error", async () => {
     const { t, leadId, staff } = await setup()
     await t.run((ctx) => ctx.db.delete(leadId))
@@ -614,7 +654,7 @@ describe("the queue's server-side filters", () => {
     expect(enrolled.page.map((row) => row.phone)).toEqual(["+919435260001"])
   })
 
-  test("a fragment page stops at numItems matches", async () => {
+  test("a fragment answer is every match up to the cap, not one short page", async () => {
     const t = convexTest(schema, modules)
     const staffId = await seed(t, "staff", { phone: "+919876500100" })
     const me = await viewer(t, staffId)
@@ -633,10 +673,12 @@ describe("the queue's server-side filters", () => {
         { view: "all", search: "943526" }
       )
     )
-    // Flat and done, queue order kept: the third match is simply not read.
+    // Flat and done, queue order kept, and the third match is not hidden
+    // behind a page of two that claims to be the end.
     expect(result.page.map((row) => row.phone)).toEqual([
       "+919435261120",
       "+919435261110",
+      "+919435261100",
     ])
     expect(result.isDone).toBe(true)
   })

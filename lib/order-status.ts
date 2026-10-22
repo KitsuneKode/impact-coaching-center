@@ -14,12 +14,14 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
 /**
  * What a staff member may move this order to next. The fulfilment route
  * decides which forward move exists: parcels ship, collections get picked
- * up. The server enforces the same split (convex/orders.ts).
+ * up. The server enforces the same split (convex/orders.ts). A cancelled
+ * order only moves on when it was paid for: the owner records the refund.
  */
 export function nextStatuses(
   status: string,
   isOwner: boolean,
-  fulfilment: "delivery" | "collection"
+  fulfilment: "delivery" | "collection",
+  refundDue = false
 ): string[] {
   const moves = (() => {
     switch (status) {
@@ -40,6 +42,8 @@ export function nextStatuses(
       case "delivered":
       case "collected":
         return ["refunded"]
+      case "cancelled":
+        return refundDue ? ["refunded"] : []
       default:
         return []
     }

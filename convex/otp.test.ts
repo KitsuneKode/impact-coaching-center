@@ -323,6 +323,29 @@ describe("claimOtpSend", () => {
     expect(lease?.codeHash).toBe(current)
   })
 
+  test("a send in flight when its lease was deleted cannot commit over the next one", async () => {
+    const t = convexTest(schema, modules)
+    const first = await t.mutation(claim, { phone: PHONE })
+    if (!first.ok) throw new Error("expected a claim")
+    // Erasing the account deletes the lease while that send is still out.
+    await t.run(async (ctx) => {
+      const row = await ctx.db.query("otpSendLeases").unique()
+      if (row) await ctx.db.delete(row._id)
+    })
+    wait(1)
+    const second = await t.mutation(claim, { phone: PHONE })
+    if (!second.ok) throw new Error("expected a claim")
+    expect(second.generation).not.toBe(first.generation)
+    expect(
+      await t.mutation(internal.otp.commitOtpCode, {
+        phone: PHONE,
+        generation: first.generation,
+        codeHash: "b".repeat(64),
+        codeExpiresAt: Date.now() + 60_000,
+      })
+    ).toBe("lost")
+  })
+
   test("verify accepts one code once, then nothing", async () => {
     const t = convexTest(schema, modules)
     const claimed = await t.mutation(claim, { phone: PHONE })

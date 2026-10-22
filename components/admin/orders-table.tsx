@@ -88,6 +88,7 @@ export type OrderRow = {
   buyerName: string
   buyerPhone: string
   buyerDeleted: boolean
+  refundDue: boolean
 }
 
 /** The filter row, grouped by the question being asked. */
@@ -643,7 +644,12 @@ function OrderRows({
   /** Offered once the order is on its way - for fixing a mistyped number. */
   onCourier?: () => void
 }) {
-  const moves = nextStatuses(order.status, isOwner, order.fulfilment)
+  const moves = nextStatuses(
+    order.status,
+    isOwner,
+    order.fulfilment,
+    order.refundDue
+  )
 
   return (
     <>
@@ -711,7 +717,7 @@ function OrderRows({
           {formatPaise(order.totalPaise)}
         </TableCell>
         <TableCell>
-          <OrderStatusBadge status={order.status} />
+          <OrderStatusBadge status={order.status} refundDue={order.refundDue} />
         </TableCell>
         <TableCell>
           <time
@@ -917,7 +923,12 @@ function OrderCard({
   onMove: (status: string) => void
   onCourier?: () => void
 }) {
-  const moves = nextStatuses(order.status, isOwner, order.fulfilment)
+  const moves = nextStatuses(
+    order.status,
+    isOwner,
+    order.fulfilment,
+    order.refundDue
+  )
 
   return (
     <div
@@ -937,7 +948,7 @@ function OrderCard({
           {order.seen ? null : (
             <span className="text-xs text-muted-foreground">new</span>
           )}
-          <OrderStatusBadge status={order.status} />
+          <OrderStatusBadge status={order.status} refundDue={order.refundDue} />
         </div>
       </div>
       {order.receiptNumber ? (

@@ -31,7 +31,13 @@ import { recordAudit } from "./audit"
 import { upsertPersonByPhone } from "./persons"
 import { LEAD_STATUS } from "./schema"
 import { endOfTodayIst } from "../lib/ist"
-import { enquiryTracks, toE164 } from "../lib/leads"
+import {
+  enquiryTracks,
+  FRAGMENT_MATCHES_MAX,
+  FRAGMENT_SCAN_ROWS,
+  PHONE_FRAGMENT_MIN,
+  toE164,
+} from "../lib/leads"
 
 /** The inbox projection. Never the whole Person document. */
 const INBOX_ROW = v.object({
@@ -136,16 +142,6 @@ function viewExpr(
     : inViewExpr
 }
 
-/** Fewer digits than this match too many phones to be a lookup. */
-const PHONE_FRAGMENT_MIN = 4
-
-/**
- * A phone fragment has no index to answer it, so the queue order is walked
- * in bounded chunks: at most this many pages of 200 persons.
- */
-/** People a phone-fragment search reads at most, newest enquiry first. */
-const FRAGMENT_SCAN_ROWS = 2000
-
 /** One page of the queue. */
 export async function readInboxPage(
   ctx: Pick<QueryCtx, "db">,
@@ -216,8 +212,10 @@ export async function readInboxPage(
     if (digits.length < PHONE_FRAGMENT_MIN)
       return { page: [], isDone: true, continueCursor: "" }
     /* Streamed, not paginated: Convex allows one .paginate() per query,
-       and a second page threw. Stops at a page of matches or the scan
-       bound, whichever comes first. */
+       and a second page threw. A cursor would have to name where the scan
+       stopped rather than a row, so the answer is one flat page of up to
+       FRAGMENT_MATCHES_MAX, whatever page size was asked for: a page of 25
+       marked done would hide the 26th match. The inbox states both bounds. */
     const matches: Doc<"persons">[] = []
     let scanned = 0
     for await (const person of ctx.db
@@ -228,13 +226,11 @@ export async function readInboxPage(
       if (person.phone.includes(digits)) matches.push(person)
       scanned += 1
       if (
-        matches.length >= paginationOpts.numItems ||
+        matches.length >= FRAGMENT_MATCHES_MAX ||
         scanned >= FRAGMENT_SCAN_ROWS
       )
         break
     }
-    /* A fragment answer is one flat page: a cursor would have to name where
-       the scan stopped rather than a row, so no continueCursor is kept. */
     return { page: matches.map(toRow), isDone: true, continueCursor: "" }
   }
 
@@ -260,16 +256,21 @@ export const inboxPage = query({
     view: v.optional(INBOX_VIEW),
     track: v.optional(v.string()),
     search: v.optional(v.string()),
+    // "Due" depends on today; the clock comes from the caller, refreshed,
+    // because time alone never re-runs a subscribed query.
+    now: v.number(),
   },
   returns: paginated(INBOX_ROW),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { page: [], isDone: true, continueCursor: "" }
-    return readInboxPage(ctx, staff.value, args.paginationOpts, {
-      view: args.view,
-      track: args.track,
-      search: args.search,
-    })
+    return readInboxPage(
+      ctx,
+      staff.value,
+      args.paginationOpts,
+      { view: args.view, track: args.track, search: args.search },
+      args.now
+    )
   },
 })
 
@@ -558,7 +559,8 @@ export async function applyLeadStatus(
 ) {
   if (!isStaff(viewer)) return forbidden
   const person = await ctx.db.get(args.personId)
-  if (!person) return missingRecord
+  // An erased account's row is a tombstone: nothing new is written onto it.
+  if (!person || person.deletedAt) return missingRecord
   const conflict = checkRevision(person, args.expectedRevision)
   if (conflict) return conflict
   if (person.leadStatus === args.status)
@@ -606,7 +608,8 @@ export async function appendLeadActivity(
 ) {
   if (!isStaff(viewer)) return forbidden
   const person = await ctx.db.get(args.personId)
-  if (!person) return missingRecord
+  // An erased account's row is a tombstone: nothing new is written onto it.
+  if (!person || person.deletedAt) return missingRecord
   const body = args.body?.trim()
   if (args.kind === "note" && !body) return invalidInput("body")
   if (body && body.length > NOTE_MAX) return invalidInput("body")
@@ -649,7 +652,8 @@ export async function applyFollowUp(
 ) {
   if (!isStaff(viewer)) return forbidden
   const person = await ctx.db.get(args.personId)
-  if (!person) return missingRecord
+  // An erased account's row is a tombstone: nothing new is written onto it.
+  if (!person || person.deletedAt) return missingRecord
   const conflict = checkRevision(person, args.expectedRevision)
   if (conflict) return conflict
   if (
