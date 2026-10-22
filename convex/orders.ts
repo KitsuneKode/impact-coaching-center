@@ -488,8 +488,11 @@ export const myReceipt = query({
       .withIndex("by_reference", (q) => q.eq("reference", args.reference))
       .first()
     if (!order?.receiptNumber || !order.payment?.paidAt) return null
-    const staff = viewer.value.role === "owner" || viewer.value.role === "staff"
-    if (order.personId !== viewer.value.id && !staff) return null
+    /* Someone else's receipt carries their number and address: staff may
+       read it only on a session young enough for staff work, the same
+       test every other staff read applies. */
+    if (order.personId !== viewer.value.id && !(await requireStaff(ctx)).ok)
+      return null
     // Frozen at payment; orders paid before that existed read the settings.
     const settings = order.seller ? null : await readSettings(ctx)
     const seller = order.seller ?? {

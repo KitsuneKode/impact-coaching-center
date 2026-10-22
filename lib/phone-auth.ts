@@ -13,33 +13,28 @@ import { toE164 } from "./leads"
  */
 const REFUSAL_MESSAGES = SEND_REFUSALS
 
-const BLOCKED_AUTH_PATHS = new Set([
-  "/sign-in/phone-number",
-  "/phone-number/request-password-reset",
-  "/phone-number/reset-password",
-  "/sign-in/email",
-  "/sign-up/email",
-  "/sign-in/social",
-  "/change-email",
-  "/send-verification-email",
-  "/verify-email",
-  "/request-password-reset",
-  "/reset-password",
-  "/change-password",
-  "/verify-password",
-])
-
 /*
- * Better Auth's generic profile route will clear or replace the phone
- * number, and nothing here uses it: names live on the Person. An owner who
- * cleared their only number would be locked out with no way back in, so
- * the route is closed. A changed number is staff's job (docs/production.md).
+ * Better Auth serves forty-odd routes: email and password, social sign-in,
+ * account linking, profile edits. This site uses a handful. Every other
+ * route is closed, so one added by a library upgrade arrives closed too.
+ * The dangerous ones are those that edit the auth user: its verified phone
+ * number is the whole of a person's identity here (convex/persons.ts
+ * findVerifiedPerson), and roles hang off that. `/update-user` would clear
+ * or replace it, which locked an owner out for good. A changed number is
+ * staff's job (docs/production.md).
  */
-const PROFILE_PATHS = new Set(["/update-user", "/delete-user"])
-
-function isOutsideWhatsApp(path: string) {
-  return BLOCKED_AUTH_PATHS.has(path) || path.startsWith("/reset-password/")
-}
+const OPEN_AUTH_PATHS = new Set([
+  "/phone-number/send-otp",
+  "/phone-number/verify",
+  "/get-session",
+  "/sign-out",
+  // Convex: the browser's token, and the keys Convex checks it against.
+  "/convex/token",
+  "/convex/jwks",
+  "/convex/.well-known/openid-configuration",
+  "/ok",
+  "/error",
+])
 
 export type OtpSendRefusal = keyof typeof REFUSAL_MESSAGES
 
@@ -133,13 +128,8 @@ export function phoneAuthOptions(delivery: {
   return {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        if (isOutsideWhatsApp(ctx.path)) {
+        if (!OPEN_AUTH_PATHS.has(ctx.path)) {
           throw new APIError("FORBIDDEN", { message: WHATSAPP_ONLY })
-        }
-        if (PROFILE_PATHS.has(ctx.path)) {
-          throw new APIError("FORBIDDEN", {
-            message: "Phone changes require staff assistance.",
-          })
         }
         if (!ctx.path.startsWith("/phone-number/")) return
         // Reject before the plugin consumes the OTP or edits its account.

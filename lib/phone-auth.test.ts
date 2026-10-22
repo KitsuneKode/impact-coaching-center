@@ -93,6 +93,7 @@ function harness() {
     )
   }
   return {
+    auth,
     db,
     persons,
     request,
@@ -328,6 +329,13 @@ describe("phone authentication through the installed plugin", () => {
       "change-password",
       "change-email",
       "sign-in/social",
+      "update-user",
+      "update-session",
+      "delete-user",
+      "link-social",
+      "unlink-account",
+      "revoke-sessions",
+      "verify-password",
     ]) {
       const response = await h.post(path, {
         phoneNumber: "+919876543210",
@@ -366,6 +374,16 @@ describe("phone authentication through the installed plugin", () => {
     }
     expect(h.db.user[0]?.phoneNumber).toBe("+919876543210")
     expect(h.db.user[0]?.phoneNumberVerified).toBe(true)
+
+    // The routes the site does use stay open to the same session.
+    const session = await h.auth.handler(
+      new Request("http://localhost:3000/api/auth/get-session", {
+        headers: { cookie },
+      })
+    )
+    expect(session.status).toBe(200)
+    expect((await session.json())?.user?.phoneNumber).toBe("+919876543210")
+    expect((await h.post("sign-out", {}, { cookie })).status).toBe(200)
   })
   test("Person callback failure never issues a session", async () => {
     const h = harness()
