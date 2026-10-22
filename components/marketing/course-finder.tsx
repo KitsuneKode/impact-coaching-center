@@ -8,12 +8,14 @@ import {
   IconCheck,
   IconCompass,
   IconRefresh,
+  IconX,
 } from "@tabler/icons-react"
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
 import { useTranslations } from "next-intl"
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react"
 
 import { BatchTicket } from "@/components/home/batch-ticket"
+import { DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { Link } from "@/i18n/navigation"
 import { contactHref } from "@/lib/contact"
 import {
@@ -42,7 +44,9 @@ const KEYS = "ABCD"
 
 /**
  * Four question cards, then the course that fits, shown as the site's batch
- * ticket with the reasons it was picked. A tap answers and moves on; keys A
+ * ticket with the reasons it was picked. It lives in a dialog over the
+ * course list (course-board.tsx), which holds the answers, so they sort the
+ * list and are still there next time. A tap answers and moves on; keys A
  * to D answer, Enter goes on, and Back keeps every answer. The card glides
  * to each question's height.
  */
@@ -52,7 +56,9 @@ export function CourseFinder({
   today,
   day = [],
   total,
+  answers,
   onAnswers,
+  onShowMatches,
 }: {
   courses: Course[]
   /** Track slug to the exam's name in this language. */
@@ -62,15 +68,20 @@ export function CourseFinder({
   day?: DayBatch[]
   /** How many courses the list below holds. */
   total?: number
+  answers: FinderAnswers
   /** Every answer as it is given, so the list below can re-sort. */
-  onAnswers?: (answers: FinderAnswers) => void
+  onAnswers: (answers: FinderAnswers) => void
+  /** Close the finder and show the list, best fit first. */
+  onShowMatches: () => void
 }) {
   const t = useTranslations("Finder")
   const board = useTranslations("Board")
   const id = useId()
   const reduce = useReducedMotion()
-  const [step, setStep] = useState(0)
-  const [answers, setAnswers] = useState<FinderAnswers>({})
+  // Opened with every answer given, it goes straight to the result.
+  const [step, setStep] = useState(() =>
+    STEPS.every(({ key }) => answers[key]) ? STEPS.length : 0
+  )
   const [direction, setDirection] = useState(1)
   const done = step === STEPS.length
 
@@ -101,7 +112,7 @@ export function CourseFinder({
   }
 
   function answer(key: StepKey, value: string, advance: boolean) {
-    setAnswers((current) => ({ ...current, [key]: value }))
+    onAnswers({ ...answers, [key]: value })
     // A tap answers and moves on after a beat, so the choice is seen.
     if (advance) window.setTimeout(() => go(step + 1), reduce ? 0 : 220)
   }
@@ -134,14 +145,6 @@ export function CourseFinder({
     return () => node?.removeEventListener("keydown", listener)
   }, [])
 
-  const report = useRef(onAnswers)
-  useEffect(() => {
-    report.current = onAnswers
-  })
-  useEffect(() => {
-    report.current?.(answers)
-  }, [answers])
-
   const examOf = Object.fromEntries(
     Object.entries(exams).map(([slug, value]) => [slug, value.exam])
   )
@@ -172,221 +175,201 @@ export function CourseFinder({
       }
 
   return (
-    <section
-      aria-labelledby={`${id}-kicker`}
-      id="finder"
-      data-finder
-      className="container-page scroll-mt-28 pbe-20"
-    >
-      <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
-        <div className="lg:col-span-4">
-          <p id={`${id}-kicker`} className="type-label">
-            {t("kicker")}
-          </p>
-          <h2 className="type-display mbs-3 max-w-[16ch] text-balance">
-            {t("title")}
-          </h2>
-        </div>
+    <div data-finder-card ref={card}>
+      <header className="flex items-center gap-3">
+        <span
+          data-finder-badge
+          className="grid size-9 place-items-center rounded-xl"
+        >
+          <IconCompass aria-hidden size={18} stroke={1.75} />
+        </span>
+        <DialogTitle className="font-semibold">{t("label")}</DialogTitle>
+        <span className="ms-auto flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="tnum" aria-live="polite">
+            {t("progress", {
+              n: Math.min(answered.length, STEPS.length),
+              total: STEPS.length,
+            })}
+          </span>
+          <ProgressRing value={answered.length / STEPS.length} />
+        </span>
+        <DialogClose
+          aria-label={t("close")}
+          className="-me-1.5 grid size-10 flex-none place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <IconX aria-hidden size={18} stroke={2} />
+        </DialogClose>
+      </header>
 
-        <div className="lg:col-span-8">
-          <div data-finder-card ref={card}>
-            <header className="flex items-center gap-3">
-              <span
-                data-finder-badge
-                className="grid size-9 place-items-center rounded-xl"
+      {answered.length && !done ? (
+        <ul data-finder-trail className="mbs-4 flex flex-wrap gap-2">
+          {answered.map(({ key }) => {
+            const index = STEPS.findIndex((s) => s.key === key)
+            const label = t(`a.${key}.${answers[key]}`)
+            return (
+              <li key={key}>
+                <button
+                  type="button"
+                  data-finder-chip
+                  aria-current={index === step || undefined}
+                  aria-label={t("change", { answer: label })}
+                  onClick={() => go(index)}
+                >
+                  {label}
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+
+      <div data-finder-body style={{ height }} className="mbs-5">
+        <div ref={inner}>
+          <AnimatePresence mode="wait" initial={false}>
+            {done ? (
+              <m.div
+                key="result"
+                {...motion}
+                transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
               >
-                <IconCompass aria-hidden size={18} stroke={1.75} />
-              </span>
-              <span className="font-semibold">{t("label")}</span>
-              <span className="ms-auto flex items-center gap-2 text-sm text-muted-foreground">
-                <span className="tnum" aria-live="polite">
-                  {t("progress", {
-                    n: Math.min(answered.length, STEPS.length),
-                    total: STEPS.length,
-                  })}
-                </span>
-                <ProgressRing value={answered.length / STEPS.length} />
-              </span>
-            </header>
-
-            {answered.length && !done ? (
-              <ul data-finder-trail className="mbs-4 flex flex-wrap gap-2">
-                {answered.map(({ key }) => {
-                  const index = STEPS.findIndex((s) => s.key === key)
-                  const label = t(`a.${key}.${answers[key]}`)
-                  return (
-                    <li key={key}>
-                      <button
-                        type="button"
-                        data-finder-chip
-                        aria-current={index === step || undefined}
-                        aria-label={t("change", { answer: label })}
-                        onClick={() => go(index)}
-                      >
-                        {label}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            ) : null}
-
-            <div data-finder-body style={{ height }} className="mbs-5">
-              <div ref={inner}>
-                <AnimatePresence mode="wait" initial={false}>
-                  {done ? (
-                    <m.div
-                      key="result"
-                      {...motion}
-                      transition={{ duration: 0.24, ease: [0.23, 1, 0.32, 1] }}
-                    >
-                      <h3
-                        ref={focusOnMount}
-                        tabIndex={-1}
-                        className="font-display text-xl font-semibold outline-none"
-                      >
-                        {best ? t("best") : t("none")}
-                      </h3>
-                      {best ? (
-                        <div className="mbs-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:items-center">
-                          <BatchTicket
-                            course={best.course as Course}
-                            today={today}
-                            className="max-w-[420px]"
-                          />
-                          <ul className="grid gap-2 text-sm">
-                            {best.reasons.map((reason) => (
-                              <li
-                                key={reason}
-                                className="flex items-center gap-2"
-                              >
-                                <IconCheck
-                                  aria-hidden
-                                  size={16}
-                                  stroke={2.25}
-                                  className="flex-none text-primary"
-                                />
-                                {t(`why.${reason}`, { exam: examLabel ?? "" })}
-                              </li>
-                            ))}
-                            {answers.mode === "app" ? (
-                              <li className="text-muted-foreground">
-                                {t("appNote")}
-                              </li>
-                            ) : null}
-                          </ul>
-                        </div>
-                      ) : null}
-
-                      <div className="mbs-6 flex flex-wrap items-center gap-3">
-                        {best ? (
-                          <Link
-                            href={`/courses/${best.course.slug}`}
-                            data-cta="amber"
-                            data-press
-                            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
-                          >
-                            {t("see")}
-                            <IconArrowRight
-                              data-nudge
-                              aria-hidden
-                              size={18}
-                              stroke={2}
-                            />
-                          </Link>
-                        ) : null}
-                        <a
-                          href={contactHref({
-                            kind: "finder",
-                            answers: answersInEnglish(answers),
-                            courseName: best?.course.short,
-                          })}
-                          target="_blank"
-                          rel="noreferrer"
-                          data-finder-ghost
-                          data-press
-                        >
-                          <IconBrandWhatsapp
-                            aria-hidden
-                            size={18}
-                            stroke={1.75}
-                          />
-                          {t("ask")}
-                        </a>
-                        <button
-                          type="button"
-                          data-finder-ghost
-                          data-press
-                          onClick={() => {
-                            setAnswers({})
-                            go(0)
-                          }}
-                        >
-                          <IconRefresh aria-hidden size={18} stroke={1.75} />
-                          {t("again")}
-                        </button>
-                      </div>
-
-                      {total ? (
-                        <a
-                          href="#all-courses"
-                          data-press
-                          className="mbs-6 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"
-                        >
-                          {board("seeAll", { count: total })}
-                          <IconArrowDown aria-hidden size={18} stroke={2} />
-                        </a>
-                      ) : null}
-                    </m.div>
-                  ) : (
-                    <Question
-                      key={STEPS[step]!.key}
-                      day={STEPS[step]!.key === "time" ? day : undefined}
-                      id={id}
-                      stepKey={STEPS[step]!.key}
-                      options={STEPS[step]!.options}
-                      value={answers[STEPS[step]!.key]}
-                      focusOnMount={focusOnMount}
-                      motion={motion}
-                      onAnswer={(value, advance) =>
-                        answer(STEPS[step]!.key, value, advance)
-                      }
+                <h3
+                  ref={focusOnMount}
+                  tabIndex={-1}
+                  className="font-display text-xl font-semibold outline-none"
+                >
+                  {best ? t("best") : t("none")}
+                </h3>
+                {best ? (
+                  <div className="mbs-5 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] md:items-center">
+                    <BatchTicket
+                      course={best.course as Course}
+                      today={today}
+                      className="max-w-[420px]"
                     />
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
+                    <ul className="grid gap-2 text-sm">
+                      {best.reasons.map((reason) => (
+                        <li key={reason} className="flex items-center gap-2">
+                          <IconCheck
+                            aria-hidden
+                            size={16}
+                            stroke={2.25}
+                            className="flex-none text-primary"
+                          />
+                          {t(`why.${reason}`, { exam: examLabel ?? "" })}
+                        </li>
+                      ))}
+                      {answers.mode === "app" ? (
+                        <li className="text-muted-foreground">
+                          {t("appNote")}
+                        </li>
+                      ) : null}
+                    </ul>
+                  </div>
+                ) : null}
 
-            {!done ? (
-              <footer className="mbs-6 flex items-center gap-3">
-                {step > 0 ? (
+                <div className="mbs-6 flex flex-wrap items-center gap-3">
+                  {best ? (
+                    <Link
+                      href={`/courses/${best.course.slug}`}
+                      data-cta="amber"
+                      data-press
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
+                    >
+                      {t("see")}
+                      <IconArrowRight
+                        data-nudge
+                        aria-hidden
+                        size={18}
+                        stroke={2}
+                      />
+                    </Link>
+                  ) : null}
+                  <a
+                    href={contactHref({
+                      kind: "finder",
+                      answers: answersInEnglish(answers),
+                      courseName: best?.course.short,
+                    })}
+                    target="_blank"
+                    rel="noreferrer"
+                    data-finder-ghost
+                    data-press
+                  >
+                    <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
+                    {t("ask")}
+                  </a>
                   <button
                     type="button"
                     data-finder-ghost
                     data-press
-                    onClick={() => go(step - 1)}
+                    onClick={() => {
+                      onAnswers({})
+                      go(0)
+                    }}
                   >
-                    <IconArrowLeft aria-hidden size={18} stroke={1.75} />
-                    {t("back")}
+                    <IconRefresh aria-hidden size={18} stroke={1.75} />
+                    {t("again")}
+                  </button>
+                </div>
+
+                {total ? (
+                  <button
+                    type="button"
+                    data-press
+                    onClick={onShowMatches}
+                    className="mbs-6 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"
+                  >
+                    {board("seeAll", { count: total })}
+                    <IconArrowDown aria-hidden size={18} stroke={2} />
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  data-finder-next
-                  data-press
-                  disabled={!answers[STEPS[step]!.key]}
-                  onClick={() => go(step + 1)}
-                  className="ms-auto"
-                >
-                  {step === STEPS.length - 1 ? t("finish") : t("next")}
-                  <kbd aria-hidden>↵</kbd>
-                </button>
-              </footer>
-            ) : null}
-          </div>
+              </m.div>
+            ) : (
+              <Question
+                key={STEPS[step]!.key}
+                day={STEPS[step]!.key === "time" ? day : undefined}
+                id={id}
+                stepKey={STEPS[step]!.key}
+                options={STEPS[step]!.options}
+                value={answers[STEPS[step]!.key]}
+                focusOnMount={focusOnMount}
+                motion={motion}
+                onAnswer={(value, advance) =>
+                  answer(STEPS[step]!.key, value, advance)
+                }
+              />
+            )}
+          </AnimatePresence>
         </div>
       </div>
-    </section>
+
+      {!done ? (
+        <footer className="mbs-6 flex items-center gap-3">
+          {step > 0 ? (
+            <button
+              type="button"
+              data-finder-ghost
+              data-press
+              onClick={() => go(step - 1)}
+            >
+              <IconArrowLeft aria-hidden size={18} stroke={1.75} />
+              {t("back")}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            data-finder-next
+            data-press
+            disabled={!answers[STEPS[step]!.key]}
+            onClick={() => go(step + 1)}
+            className="ms-auto"
+          >
+            {step === STEPS.length - 1 ? t("finish") : t("next")}
+            <kbd aria-hidden>↵</kbd>
+          </button>
+        </footer>
+      ) : null}
+    </div>
   )
 }
 

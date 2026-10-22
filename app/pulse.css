@@ -2230,6 +2230,57 @@
     background-color: color-mix(in oklch, var(--primary) 12%, transparent);
     color: var(--primary-ink);
   }
+
+  /* Above the course list: the finder in one line, or the answers given. */
+  [data-finder-strip] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.875rem 1.25rem;
+    margin-block-end: 1.5rem;
+    padding: 1rem 1rem 1rem 1.125rem;
+    border-radius: 24px;
+    background-color: var(--card);
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 6%, transparent),
+      0 14px 30px -24px color-mix(in oklch, var(--shade) 45%, transparent);
+  }
+  [data-finder-strip][data-answered] {
+    align-items: flex-start;
+  }
+  [data-finder-answer] {
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+  @media (width < 40rem) {
+    /* The button takes the full width under the words. */
+    [data-finder-strip] > :last-child {
+      inline-size: 100%;
+    }
+    [data-finder-strip] > :last-child > [data-finder-next] {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+
+  /* On a phone the finder is a sheet from the bottom edge, the thumb's
+     reach, scrolling inside itself when a question runs long. */
+  [data-finder-dialog] [data-finder-card] {
+    max-block-size: calc(100dvh - 2rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  @media (width < 40rem) {
+    [data-finder-dialog] [data-finder-card] {
+      max-block-size: 92dvh;
+      border-end-start-radius: 0;
+      border-end-end-radius: 0;
+      padding-block-end: calc(1.25rem + env(safe-area-inset-bottom));
+    }
+  }
   [data-finder-ring] circle:first-child {
     stroke: var(--secondary);
   }

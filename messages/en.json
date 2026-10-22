@@ -862,7 +862,11 @@
     "ask": "Ask about it on WhatsApp",
     "appNote": "Every course is also live and recorded on the ICT app.",
     "none": "We could not match a course this time. Ask ICT on WhatsApp and they will suggest one.",
-    "homeLink": "Not sure which? Find your course in four questions"
+    "homeLink": "Not sure which? Find your course in four questions",
+    "stripNote": "Four questions, about a minute. Your answers sort the courses below.",
+    "start": "Find my course",
+    "editAnswers": "Change answers",
+    "close": "Close the course finder"
   },
   "Teachers": {
     "title": "Teachers",

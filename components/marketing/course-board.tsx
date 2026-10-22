@@ -1,13 +1,24 @@
 "use client"
 
-import { IconSparkles, IconX } from "@tabler/icons-react"
+import {
+  IconAdjustmentsHorizontal,
+  IconArrowRight,
+  IconCompass,
+  IconSparkles,
+  IconX,
+} from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 
 import { CourseFinder } from "@/components/marketing/course-finder"
+import {
+  rememberAnswers,
+  useFinderAnswers,
+} from "@/components/marketing/finder-memory"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import type { Span } from "@/lib/batch-time"
-import { type FinderAnswers, rankAll } from "@/lib/course-finder"
+import { rankAll } from "@/lib/course-finder"
 import type { Course } from "@/lib/courses"
 
 /** The exam alone scores 10; a good fit matches something more. */
@@ -34,10 +45,12 @@ type Group = {
 }
 
 /**
- * The finder and every course under it. Untouched, the list goes exam by
- * exam; once the finder has an answer, the same cards line up best fit
- * first, with why, and courses for other exams stay at the end instead of
- * disappearing. The exam filter narrows either view.
+ * Every course, with the finder a step away. Untouched, the list goes exam
+ * by exam under a slim strip offering the finder; the finder opens in a
+ * dialog (a sheet on phones), and once answered the same cards line up
+ * best fit first, with why, and the strip shows the answers to change or
+ * clear. Answers are kept on this device. Courses for other exams stay at
+ * the end instead of disappearing; the exam filter narrows either view.
  */
 export function CourseBoard({
   finder,
@@ -57,9 +70,38 @@ export function CourseBoard({
 }) {
   const t = useTranslations("Board")
   const why = useTranslations("Finder")
-  const [answers, setAnswers] = useState<FinderAnswers>({})
+  const answers = useFinderAnswers()
+  const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState("all")
   const sorted = Object.values(answers).some(Boolean)
+
+  // Links to /courses#finder (the menu, the home page) open it.
+  useEffect(() => {
+    const check = () => {
+      if (window.location.hash === "#finder") setOpen(true)
+    }
+    const first = window.setTimeout(check)
+    window.addEventListener("hashchange", check)
+    return () => {
+      window.clearTimeout(first)
+      window.removeEventListener("hashchange", check)
+    }
+  }, [])
+  const close = (next: boolean) => {
+    setOpen(next)
+    if (!next && window.location.hash === "#finder")
+      window.history.replaceState(
+        window.history.state,
+        "",
+        window.location.pathname + window.location.search
+      )
+  }
+  const showMatches = () => {
+    close(false)
+    document
+      .getElementById("all-courses")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
 
   const examOf = Object.fromEntries(
     Object.entries(exams).map(([slug, value]) => [slug, value.exam])
@@ -81,20 +123,108 @@ export function CourseBoard({
 
   return (
     <>
-      <CourseFinder
-        courses={finder}
-        exams={exams}
-        today={today}
-        day={day}
-        total={total}
-        onAnswers={setAnswers}
-      />
-
+      <Dialog open={open} onOpenChange={close}>
+        <DialogContent
+          showCloseButton={false}
+          data-finder-dialog
+          // A sheet from the bottom edge on a phone, centred above that.
+          className="gap-0 bg-transparent p-0 ring-0 max-sm:top-auto max-sm:bottom-0 max-sm:max-w-full max-sm:translate-y-0 sm:max-w-[40rem] max-sm:data-open:slide-in-from-bottom-8"
+        >
+          <CourseFinder
+            courses={finder}
+            exams={exams}
+            today={today}
+            day={day}
+            total={total}
+            answers={answers}
+            onAnswers={rememberAnswers}
+            onShowMatches={showMatches}
+          />
+        </DialogContent>
+      </Dialog>
       <section
         id="all-courses"
         aria-labelledby="all-courses-heading"
         className="container-page scroll-mt-28 pbe-20"
       >
+        {/* The finder, offered in one line; answered, the answers. */}
+        <div
+          id="finder"
+          data-finder-strip
+          data-answered={sorted || undefined}
+          className="scroll-mt-40"
+        >
+          <span
+            data-finder-badge
+            className="grid size-11 flex-none place-items-center rounded-2xl"
+          >
+            {sorted ? (
+              <IconSparkles aria-hidden size={20} stroke={1.75} />
+            ) : (
+              <IconCompass aria-hidden size={20} stroke={1.75} />
+            )}
+          </span>
+          {sorted ? (
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{t("sorted")}</p>
+              <ul className="mbs-2 flex flex-wrap gap-1.5">
+                {(["exam", "stage", "time", "mode"] as const).map((key) =>
+                  answers[key] ? (
+                    <li key={key} data-finder-answer>
+                      {why(`a.${key}.${answers[key]}`)}
+                    </li>
+                  ) : null
+                )}
+              </ul>
+            </div>
+          ) : (
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">{why("kicker")}</p>
+              <p className="text-sm text-pretty text-muted-foreground">
+                {why("stripNote")}
+              </p>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {sorted ? (
+              <>
+                <button
+                  type="button"
+                  data-finder-ghost
+                  data-press
+                  onClick={() => setOpen(true)}
+                >
+                  <IconAdjustmentsHorizontal
+                    aria-hidden
+                    size={18}
+                    stroke={1.75}
+                  />
+                  {why("editAnswers")}
+                </button>
+                <button
+                  type="button"
+                  data-press
+                  onClick={() => rememberAnswers({})}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <IconX aria-hidden size={16} stroke={2} />
+                  {t("byExam")}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                data-finder-next
+                data-press
+                onClick={() => setOpen(true)}
+              >
+                {why("start")}
+                <IconArrowRight aria-hidden size={18} stroke={2} />
+              </button>
+            )}
+          </div>
+        </div>
+
         <div
           data-board-bar
           className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-2 p-1.5"
@@ -130,27 +260,6 @@ export function CourseBoard({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          {sorted ? (
-            <p className="flex items-center gap-2 text-sm font-medium">
-              <IconSparkles
-                aria-hidden
-                size={16}
-                stroke={1.75}
-                className="text-primary"
-              />
-              <span className="max-sm:hidden">{t("sorted")}</span>
-              <span className="sm:hidden">{t("best")}</span>
-              <button
-                type="button"
-                data-press
-                onClick={() => setAnswers({})}
-                className="inline-flex min-h-9 items-center gap-1 rounded-full px-3 text-muted-foreground hover:text-foreground"
-              >
-                <IconX aria-hidden size={14} stroke={2} />
-                {t("byExam")}
-              </button>
-            </p>
-          ) : null}
         </div>
 
         {sorted ? (
