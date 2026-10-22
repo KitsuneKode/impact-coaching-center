@@ -10,6 +10,17 @@ export type CampaignKind = (typeof CAMPAIGN_KINDS)[number]
 export const CAMPAIGN_STATUSES = ["draft", "live", "paused"] as const
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number]
 
+/**
+ * Where a campaign shows. One campaign may run on several at once (a bar
+ * pointing at the pop-up's offer); older rows stored a single `kind`.
+ */
+export function kindsOf(c: {
+  kind?: CampaignKind
+  kinds?: readonly CampaignKind[]
+}): CampaignKind[] {
+  return c.kinds?.length ? [...c.kinds] : c.kind ? [c.kind] : []
+}
+
 export const CAMPAIGN_KIND_LABEL: Record<CampaignKind, string> = {
   bar: "Announcement bar",
   banner: "End-of-page banner",
@@ -44,7 +55,8 @@ export type CampaignInput = {
   name: string
   /** Assamese wording for /as pages; English shows where it is absent. */
   as?: CampaignWords
-  kind: CampaignKind
+  /** Every place it shows, at least one. */
+  kinds: CampaignKind[]
   tag: string
   headline: string
   body: string
@@ -93,13 +105,21 @@ export function checkCampaign(input: CampaignInput): Checked {
   const reelIds = input.reelIds.map((id) => id.trim())
   const routes = input.routes.map((r) => r.trim()).filter(Boolean)
 
-  if (!CAMPAIGN_KINDS.includes(input.kind)) return { ok: false, field: "type" }
+  // Kept in the order the types are listed, whatever order they were picked.
+  const kinds = CAMPAIGN_KINDS.filter((k) => input.kinds.includes(k))
+  if (
+    kinds.length < 1 ||
+    kinds.length !== input.kinds.length ||
+    !input.kinds.every((k) => CAMPAIGN_KINDS.includes(k))
+  )
+    return { ok: false, field: "type" }
+  const has = (kind: CampaignKind) => kinds.includes(kind)
   if (name.length < 1 || name.length > L.name)
     return { ok: false, field: "name" }
   if (tag.length > L.tag) return { ok: false, field: "label" }
   if (headline.length < 1 || headline.length > L.headline)
     return { ok: false, field: "headline" }
-  const needsBody = input.kind === "banner" || input.kind === "modal"
+  const needsBody = has("banner") || has("modal")
   if (body.length > L.body || (needsBody && body.length < 1))
     return { ok: false, field: "message" }
   if (cta.length > L.cta || cta.length < 1)
@@ -130,7 +150,7 @@ export function checkCampaign(input: CampaignInput): Checked {
     }
   }
 
-  if (input.kind === "reel") {
+  if (has("reel")) {
     if (reelIds.length < 1 || reelIds.length > L.reels)
       return { ok: false, field: "videos" }
     if (
@@ -168,14 +188,14 @@ export function checkCampaign(input: CampaignInput): Checked {
     value: {
       name,
       as,
-      kind: input.kind,
+      kinds,
       tag,
       headline,
       body,
       cta,
       href: cta ? href : "",
       coupon,
-      reelIds: input.kind === "reel" ? reelIds : [],
+      reelIds: has("reel") ? reelIds : [],
       routes,
       startsAt,
       endsAt,

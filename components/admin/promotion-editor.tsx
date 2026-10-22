@@ -1,6 +1,6 @@
 "use client"
 
-import { IconLock, IconSearch } from "@tabler/icons-react"
+import { IconCheck, IconLock, IconSearch } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 import { useRouter } from "next/navigation"
 import { useState, type FormEvent, type ReactNode } from "react"
@@ -13,6 +13,7 @@ import {
   type StoredImage,
 } from "@/components/admin/catalog-fields"
 import { refreshSite } from "@/app/admin/refresh-site"
+import { readVideoRows, VideoRows } from "@/components/admin/video-rows"
 import { PromoBanner, PromoCard, PromoReel } from "@/components/site/promos"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
@@ -37,7 +38,6 @@ import {
   checkCampaign,
   istInputToMs,
   msToIstInput,
-  parseVideos,
   type CampaignKind,
   type CampaignStatus,
 } from "@/lib/campaigns"
@@ -52,7 +52,7 @@ const REFUSALS: Record<string, string> = {
 
 /** What the form calls each field the check or the server can name. */
 const MESSAGES: Record<string, string> = {
-  type: "Pick a type.",
+  type: "Pick at least one place for it to show.",
   name: `Give it a name of up to ${CAMPAIGN_LIMITS.name} characters.`,
   label: `Keep the label to ${CAMPAIGN_LIMITS.tag} characters.`,
   headline: `Write a headline of up to ${CAMPAIGN_LIMITS.headline} characters.`,
@@ -61,7 +61,7 @@ const MESSAGES: Record<string, string> = {
   link: "Use a link that starts with / or https://.",
   image: "Upload a JPG, PNG or WebP image under 8 MB.",
   code: "Use 3 to 24 capital letters, digits or dashes.",
-  videos: `Add one to ${CAMPAIGN_LIMITS.reels} different YouTube links, one per line. Only a reel has videos.`,
+  videos: `Add one to ${CAMPAIGN_LIMITS.reels} different YouTube videos for the reel.`,
   pages: `List up to ${CAMPAIGN_LIMITS.routes} pages, one per line, each starting with /.`,
   start: "That start date is not valid.",
   end: "The end must be after the start.",
@@ -83,9 +83,17 @@ const KIND_HINT: Record<CampaignKind, string> = {
   reel: "A row of YouTube Shorts near the end of the page.",
 }
 
+/** What the place picker calls each type: where it sits on the page. */
+const KIND_PLACE: Record<CampaignKind, string> = {
+  bar: "Above the header",
+  banner: "End of the page",
+  modal: "After reading",
+  reel: "End of the page",
+}
+
 type Draft = {
   name: string
-  kind: CampaignKind
+  kinds: CampaignKind[]
   tag: string
   headline: string
   body: string
@@ -96,7 +104,7 @@ type Draft = {
   asCta: string
   href: string
   coupon: string
-  videos: string
+  videos: string[]
   routes: string
   startsAt: string
   endsAt: string
@@ -107,7 +115,7 @@ type Draft = {
 
 const EMPTY: Draft = {
   name: "",
-  kind: "bar",
+  kinds: ["bar"],
   tag: "",
   headline: "",
   body: "",
@@ -118,7 +126,7 @@ const EMPTY: Draft = {
   asCta: "",
   href: "",
   coupon: "",
-  videos: "",
+  videos: [],
   routes: "",
   startsAt: "",
   endsAt: "",
@@ -199,7 +207,7 @@ export function PromotionEditor({ id }: { id?: string }) {
       image={campaign.image ? toStored(campaign.image) : null}
       initial={{
         name: campaign.name,
-        kind: campaign.kind,
+        kinds: campaign.kinds,
         tag: campaign.tag,
         headline: campaign.headline,
         body: campaign.body,
@@ -210,7 +218,7 @@ export function PromotionEditor({ id }: { id?: string }) {
         asCta: campaign.as?.cta ?? "",
         href: campaign.href,
         coupon: campaign.coupon,
-        videos: campaign.reelIds.map((v) => `https://youtu.be/${v}`).join("\n"),
+        videos: campaign.reelIds.map((v) => `https://youtu.be/${v}`),
         routes: campaign.routes.join("\n"),
         startsAt: msToIstInput(campaign.startsAt),
         endsAt: msToIstInput(campaign.endsAt),
@@ -254,20 +262,29 @@ function PromotionForm({
   const bad = (name: string) => ({
     "data-invalid": errors[name] ? true : undefined,
   })
-  const videos = parseVideos(draft.videos)
-  const withImage = draft.kind === "banner" || draft.kind === "modal"
+  const has = (kind: CampaignKind) => draft.kinds.includes(kind)
+  const toggle = (kind: CampaignKind) =>
+    set(
+      "kinds",
+      has(kind) ? draft.kinds.filter((k) => k !== kind) : [...draft.kinds, kind]
+    )
+  const videos = readVideoRows(has("reel") ? draft.videos : [])
+  const withImage = has("banner") || has("modal")
 
   async function onSave(event: FormEvent) {
     event.preventDefault()
     setErrors({})
     setFormError(null)
-    if (videos.bad.length > 0) {
-      setErrors({ videos: `Not a YouTube link: ${videos.bad[0]}` })
+    const problem = videos.problems.findIndex(Boolean)
+    if (problem >= 0) {
+      setErrors({
+        videos: `Video ${problem + 1}: ${videos.problems[problem]}.`,
+      })
       return
     }
     const checked = checkCampaign({
       name: draft.name,
-      kind: draft.kind,
+      kinds: draft.kinds,
       tag: draft.tag,
       headline: draft.headline,
       body: draft.body,
@@ -351,7 +368,7 @@ function PromotionForm({
   }
 
   const preview = {
-    kind: draft.kind,
+    kind: draft.kinds[0] ?? "bar",
     tag: draft.tag.trim(),
     headline: draft.headline.trim() || "Your headline goes here.",
     body: draft.body.trim(),
@@ -370,31 +387,45 @@ function PromotionForm({
         className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_28rem]"
       >
         <FieldGroup className="max-w-2xl">
-          <Field {...bad("type")}>
-            <FieldLabel htmlFor="p-kind-bar">Type</FieldLabel>
-            <fieldset className="flex flex-wrap gap-2">
-              <legend className="sr-only">Type</legend>
+          <FieldSet data-invalid={!!errors.type || undefined}>
+            <FieldLegend variant="label">Show it as</FieldLegend>
+            <FieldDescription>
+              Pick one or several. They share the words below; each shows them
+              its own way.
+            </FieldDescription>
+            <div className="grid gap-2 sm:grid-cols-2">
               {CAMPAIGN_KINDS.map((k) => (
                 <label
                   key={k}
-                  className="inline-flex min-h-11 cursor-pointer items-center rounded-control border border-input bg-card px-3.5 text-sm has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
+                  className="group relative grid cursor-pointer content-start gap-1 rounded-[16px] bg-card p-4 pe-12 shadow-[0_0_0_1px_var(--border)] transition-[box-shadow,background-color] duration-150 has-[:checked]:bg-primary/[0.04] has-[:checked]:shadow-[0_0_0_2px_var(--primary)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
                 >
                   <input
                     id={`p-kind-${k}`}
-                    type="radio"
-                    name="kind"
+                    type="checkbox"
+                    name="kinds"
                     value={k}
-                    checked={draft.kind === k}
-                    onChange={() => set("kind", k)}
+                    checked={has(k)}
+                    onChange={() => toggle(k)}
                     className="sr-only"
                   />
-                  {CAMPAIGN_KIND_LABEL[k]}
+                  <span
+                    aria-hidden
+                    className="absolute end-4 top-4 grid size-5 place-items-center rounded-full text-transparent shadow-[0_0_0_1.5px_var(--border)] group-has-[:checked]:bg-primary group-has-[:checked]:text-primary-foreground group-has-[:checked]:shadow-none"
+                  >
+                    <IconCheck size={13} stroke={3} />
+                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {KIND_PLACE[k]}
+                  </span>
+                  <span className="font-medium">{CAMPAIGN_KIND_LABEL[k]}</span>
+                  <span className="text-sm text-pretty text-muted-foreground">
+                    {KIND_HINT[k]}
+                  </span>
                 </label>
               ))}
-            </fieldset>
-            <FieldDescription>{KIND_HINT[draft.kind]}</FieldDescription>
+            </div>
             <FieldError>{errors.type}</FieldError>
-          </Field>
+          </FieldSet>
 
           <Field {...bad("name")}>
             <FieldLabel htmlFor="p-name">Name</FieldLabel>
@@ -563,27 +594,21 @@ function PromotionForm({
             </Field>
           ) : null}
 
-          {draft.kind === "reel" ? (
-            <Field {...bad("videos")}>
-              <FieldLabel htmlFor="p-videos">YouTube videos</FieldLabel>
-              <Textarea
-                id="p-videos"
-                value={draft.videos}
-                onChange={(e) => set("videos", e.target.value)}
-                aria-invalid={!!errors.videos}
-                rows={4}
-                spellCheck={false}
-                placeholder={"https://youtube.com/shorts/…\nhttps://youtu.be/…"}
+          {has("reel") ? (
+            <FieldSet data-invalid={!!errors.videos || undefined}>
+              <FieldLegend variant="label">Videos for the reel</FieldLegend>
+              <FieldDescription>
+                Paste a YouTube link: Shorts, watch and youtu.be links all work.
+                The reel plays them in this order.
+              </FieldDescription>
+              <VideoRows
+                rows={draft.videos}
+                onChange={(rows) => set("videos", rows)}
+                max={CAMPAIGN_LIMITS.reels}
+                invalid={!!errors.videos}
               />
-              {errors.videos ? (
-                <FieldError>{errors.videos}</FieldError>
-              ) : (
-                <FieldDescription>
-                  One per line. Shorts, watch links and youtu.be links all work.
-                  {videos.ids.length > 0 && ` ${videos.ids.length} found.`}
-                </FieldDescription>
-              )}
-            </Field>
+              <FieldError>{errors.videos}</FieldError>
+            </FieldSet>
           ) : null}
 
           <Field {...bad("code")}>
@@ -638,7 +663,7 @@ function PromotionForm({
           </div>
 
           <div className="grid gap-6 sm:grid-cols-3">
-            <Field {...bad("delay")}>
+            <Field {...bad("delay")} hidden={!has("modal")}>
               <FieldLabel htmlFor="p-delay">Pop-up waits (seconds)</FieldLabel>
               <Input
                 id="p-delay"
@@ -742,42 +767,58 @@ function PromotionForm({
           className="xl:sticky xl:inset-bs-20 xl:self-start"
         >
           <p className="mbe-3 text-sm font-medium">Preview</p>
-          <div
-            data-promo-preview
-            className="overflow-clip rounded-2xl bg-background ring-1 ring-border"
-          >
-            {draft.kind === "bar" ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-foreground ps-4 pe-4 pbs-3 pbe-3 text-sm text-white">
-                {preview.tag ? (
-                  <span className="font-semibold text-highlight">
-                    {preview.tag}
-                  </span>
-                ) : null}
-                <span className="font-semibold">{preview.headline}</span>
-                {preview.cta ? (
-                  <span className="ms-auto text-highlight">{preview.cta}</span>
-                ) : null}
-              </div>
-            ) : draft.kind === "modal" ? (
-              <div className="grid place-items-center bg-[color-mix(in_oklch,var(--foreground)_55%,transparent)] p-6">
-                <PromoCard
-                  promo={preview}
-                  close={(label) => (
-                    <span className="inline-flex h-12 items-center rounded-full px-5 font-semibold">
-                      {label}
-                    </span>
+          <div className="grid gap-5">
+            {draft.kinds.length === 0 ? (
+              <p className="rounded-2xl p-6 text-sm text-muted-foreground ring-1 ring-border">
+                Pick where it shows to see it here.
+              </p>
+            ) : null}
+            {CAMPAIGN_KINDS.filter(has).map((kind) => (
+              <figure key={kind} className="grid gap-2">
+                <figcaption className="text-xs font-medium text-muted-foreground">
+                  {CAMPAIGN_KIND_LABEL[kind]}
+                </figcaption>
+                <div
+                  data-promo-preview
+                  className="overflow-clip rounded-2xl bg-background ring-1 ring-border"
+                >
+                  {kind === "bar" ? (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-foreground ps-4 pe-4 pbs-3 pbe-3 text-sm text-white">
+                      {preview.tag ? (
+                        <span className="font-semibold text-highlight">
+                          {preview.tag}
+                        </span>
+                      ) : null}
+                      <span className="font-semibold">{preview.headline}</span>
+                      {preview.cta ? (
+                        <span className="ms-auto text-highlight">
+                          {preview.cta}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : kind === "modal" ? (
+                    <div className="grid place-items-center bg-[color-mix(in_oklch,var(--foreground)_55%,transparent)] p-6">
+                      <PromoCard
+                        promo={{ ...preview, kind }}
+                        close={(label) => (
+                          <span className="inline-flex h-12 items-center rounded-full px-5 font-semibold">
+                            {label}
+                          </span>
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="pbs-6">
+                      {kind === "banner" ? (
+                        <PromoBanner promo={{ ...preview, kind }} />
+                      ) : (
+                        <PromoReel promo={{ ...preview, kind }} />
+                      )}
+                    </div>
                   )}
-                />
-              </div>
-            ) : (
-              <div className="pbs-6">
-                {draft.kind === "banner" ? (
-                  <PromoBanner promo={preview} />
-                ) : (
-                  <PromoReel promo={preview} />
-                )}
-              </div>
-            )}
+                </div>
+              </figure>
+            ))}
           </div>
           <p className="mbs-3 text-sm text-muted-foreground">
             The same pieces the site uses. On a phone they stack.

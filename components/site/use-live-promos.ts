@@ -34,9 +34,14 @@ export function useLivePromos() {
     api.campaigns.liveCampaigns,
     now === null || quiet ? "skip" : { path, now }
   )
-  // Assamese pages read the Assamese wording where the editor wrote one.
+  // One row per place a campaign shows, so a campaign on the bar and in a
+  // pop-up is found by each, and closing one leaves the other. Assamese
+  // pages read the Assamese wording where the editor wrote one.
   const rows = useMemo(
-    () => live?.map((promo) => wordsIn(promo, locale)),
+    () =>
+      live?.flatMap((promo) =>
+        promo.kinds.map((kind) => ({ ...wordsIn(promo, locale), kind }))
+      ),
     [live, locale]
   )
   return { rows, now }
@@ -46,9 +51,9 @@ export type LivePromo = NonNullable<
   ReturnType<typeof useLivePromos>["rows"]
 >[number]
 
-/** One key per campaign revision, so an edited promotion shows again. */
-export const storeKey = (promo: Pick<LivePromo, "id" | "revision">) =>
-  `ict-promo:${promo.id}:${promo.revision}`
+/** One key per place and revision, so an edited promotion shows again. */
+export const storeKey = (promo: Pick<LivePromo, "id" | "revision" | "kind">) =>
+  `ict-promo:${promo.id}:${promo.kind}:${promo.revision}`
 
 /** When this visitor last closed it; storage can be blocked, so never assumed. */
 export function closedAt(key: string): number | null {

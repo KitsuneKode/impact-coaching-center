@@ -147,8 +147,8 @@ function Promotions() {
                       <Badge variant={phase.variant}>{phase.label}</Badge>
                     </div>
                     <p className="mbs-1 text-sm text-muted-foreground">
-                      {CAMPAIGN_KIND_LABEL[c.kind]} · {pagesLabel(c.routes)} ·
-                      Priority {c.priority}
+                      {c.kinds.map((k) => CAMPAIGN_KIND_LABEL[k]).join(" + ")} ·{" "}
+                      {pagesLabel(c.routes)} · Priority {c.priority}
                     </p>
                     <Stats row={statsOf.get(c.id)} />
                     {from || until ? (

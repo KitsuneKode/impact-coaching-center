@@ -33,7 +33,7 @@ async function viewer(
 
 const bar: CampaignInput = {
   name: "Free workshop",
-  kind: "bar",
+  kinds: ["bar"],
   tag: "New batch",
   headline: "Start with a free workshop.",
   body: "",
@@ -121,6 +121,32 @@ describe("saveCampaign", () => {
       })
     )
     expect(good.ok && good.revision).toBe(1)
+  })
+
+  test("saving an older single-kind row moves it to the list", async () => {
+    const t = convexTest(schema, modules)
+    const o = await owner(t)
+    const id = await t.run((ctx) =>
+      ctx.db.insert("campaigns", {
+        ...bar,
+        kinds: undefined,
+        kind: "modal",
+        body: "Two days.",
+        status: "draft",
+        revision: 0,
+        updatedAt: 0,
+      })
+    )
+    await t.run((ctx) =>
+      applySaveCampaign(ctx, o, {
+        id,
+        expectedRevision: 0,
+        fields: { ...bar, kinds: ["modal", "bar"], body: "Two days." },
+      })
+    )
+    const doc = await t.run((ctx) => ctx.db.get(id))
+    expect(doc?.kinds).toEqual(["bar", "modal"])
+    expect(doc?.kind).toBeUndefined()
   })
 })
 
@@ -224,6 +250,27 @@ describe("liveCampaigns", () => {
     await put(t, { routes: ["/courses"] })
     expect(await ask(t, "/courses/lakhya-2027", 1)).toHaveLength(1)
     expect(await ask(t, "/books", 1)).toHaveLength(0)
+  })
+
+  test("a campaign on several surfaces says so; an older single kind still reads", async () => {
+    const t = convexTest(schema, modules)
+    await put(t, { kinds: ["bar", "modal"] })
+    await t.run((ctx) =>
+      ctx.db.insert("campaigns", {
+        ...bar,
+        kinds: undefined,
+        kind: "reel",
+        reelIds: ["dQw4w9WgXcQ"],
+        status: "live",
+        revision: 0,
+        updatedAt: 0,
+        priority: 1,
+      })
+    )
+    const rows = await ask(t, "/", 1)
+    expect(rows.map((r) => r.kinds)).toEqual([["bar", "modal"], ["reel"]])
+    const bars = await t.query(api.campaigns.liveBars, { now: 1 })
+    expect(bars).toHaveLength(1)
   })
 
   test("highest priority first, and at most six", async () => {

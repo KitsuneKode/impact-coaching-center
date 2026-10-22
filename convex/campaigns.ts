@@ -3,6 +3,7 @@ import { type Infer, v } from "convex/values"
 import {
   checkCampaign,
   isLiveNow,
+  kindsOf,
   matchesPath,
   type CampaignInput,
 } from "../lib/campaigns"
@@ -34,7 +35,7 @@ import { CAMPAIGN_KIND, CAMPAIGN_STATUS, CAMPAIGN_WORDS } from "./schema"
 const FIELDS = {
   name: v.string(),
   as: v.optional(CAMPAIGN_WORDS),
-  kind: CAMPAIGN_KIND,
+  kinds: v.array(CAMPAIGN_KIND),
   tag: v.string(),
   headline: v.string(),
   body: v.string(),
@@ -65,7 +66,7 @@ const ROW = v.object({
 /** What a visitor's browser gets: the words and the rules, nothing internal. */
 const PUBLIC_ROW = v.object({
   id: v.id("campaigns"),
-  kind: CAMPAIGN_KIND,
+  kinds: v.array(CAMPAIGN_KIND),
   tag: v.string(),
   headline: v.string(),
   body: v.string(),
@@ -88,7 +89,7 @@ const LIVE_MAX = 6
 const fieldsOf = (c: Doc<"campaigns">) => ({
   name: c.name,
   as: c.as,
-  kind: c.kind,
+  kinds: kindsOf(c),
   tag: c.tag,
   headline: c.headline,
   body: c.body,
@@ -156,7 +157,7 @@ export const liveCampaigns = query({
     return Promise.all(
       live.map(async (c) => ({
         id: c._id,
-        kind: c.kind,
+        kinds: kindsOf(c),
         tag: c.tag,
         headline: c.headline,
         body: c.body,
@@ -190,11 +191,11 @@ export const liveBars = query({
       .order("desc")
       .take(30)
     return found
-      .filter((c) => c.kind === "bar" && isLiveNow(c, args.now))
+      .filter((c) => kindsOf(c).includes("bar") && isLiveNow(c, args.now))
       .slice(0, LIVE_MAX)
       .map((c) => ({
         id: c._id,
-        kind: c.kind,
+        kinds: kindsOf(c),
         tag: c.tag,
         headline: c.headline,
         body: c.body,
@@ -296,6 +297,7 @@ export async function applySaveCampaign(
   const revision = current.revision + 1
   await ctx.db.patch(args.id, {
     ...checked.value,
+    kind: undefined,
     image: args.image,
     revision,
     updatedAt: now,

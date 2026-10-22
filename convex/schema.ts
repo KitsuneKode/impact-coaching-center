@@ -443,7 +443,9 @@ export default defineSchema({
   /** Promotions the owner (or a granted staff member) runs on the site. */
   campaigns: defineTable({
     name: v.string(),
-    kind: CAMPAIGN_KIND,
+    /** Where it shows; older rows have only `kind`. Read with kindsOf. */
+    kinds: v.optional(v.array(CAMPAIGN_KIND)),
+    kind: v.optional(CAMPAIGN_KIND),
     status: CAMPAIGN_STATUS,
     tag: v.string(),
     headline: v.string(),

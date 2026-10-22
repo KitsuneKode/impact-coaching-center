@@ -6,6 +6,7 @@ import {
   isLiveNow,
   isRested,
   isSafeHref,
+  kindsOf,
   istInputToMs,
   matchesPath,
   msToIstInput,
@@ -17,7 +18,7 @@ import {
 
 const base: CampaignInput = {
   name: "Free workshop",
-  kind: "bar",
+  kinds: ["bar"],
   tag: "New batch",
   headline: "Start with a free workshop.",
   body: "",
@@ -51,9 +52,34 @@ describe("checkCampaign", () => {
   })
 
   test("a banner and a pop-up need a message; a bar does not", () => {
-    expect(fail({ kind: "banner", body: "" })).toBe("message")
-    expect(fail({ kind: "modal", body: "" })).toBe("message")
-    expect(fail({ kind: "bar", body: "" })).toBeNull()
+    expect(fail({ kinds: ["banner"], body: "" })).toBe("message")
+    expect(fail({ kinds: ["modal"], body: "" })).toBe("message")
+    expect(fail({ kinds: ["bar"], body: "" })).toBeNull()
+  })
+
+  test("one campaign can show in several places at once", () => {
+    const id = "dQw4w9WgXcQ"
+    const r = checkCampaign({
+      ...base,
+      kinds: ["reel", "bar", "modal"],
+      body: "Two days, on the app.",
+      reelIds: [id],
+    })
+    expect(r.ok && r.value.kinds).toEqual(["bar", "modal", "reel"])
+    expect(r.ok && r.value.reelIds).toEqual([id])
+    expect(fail({ kinds: [] })).toBe("type")
+    expect(fail({ kinds: ["bar", "bar"] })).toBe("type")
+    expect(fail({ kinds: ["bar", "modal"], body: "" })).toBe("message")
+    expect(fail({ kinds: ["bar", "reel"], reelIds: [] })).toBe("videos")
+  })
+
+  test("an older row with a single kind reads as that one place", () => {
+    expect(kindsOf({ kind: "modal" })).toEqual(["modal"])
+    expect(kindsOf({ kind: "modal", kinds: ["bar", "reel"] })).toEqual([
+      "bar",
+      "reel",
+    ])
+    expect(kindsOf({})).toEqual([])
   })
 
   test("links stay on the site or go to https", () => {
@@ -74,11 +100,11 @@ describe("checkCampaign", () => {
 
   test("a reel needs one to eight distinct YouTube ids", () => {
     const id = "iMTV56lmQpQ"
-    expect(fail({ kind: "reel", reelIds: [] })).toBe("videos")
-    expect(fail({ kind: "reel", reelIds: ["short"] })).toBe("videos")
-    expect(fail({ kind: "reel", reelIds: [id, id] })).toBe("videos")
-    expect(fail({ kind: "reel", reelIds: [id] })).toBeNull()
-    expect(fail({ kind: "bar", reelIds: [id] })).toBe("videos")
+    expect(fail({ kinds: ["reel"], reelIds: [] })).toBe("videos")
+    expect(fail({ kinds: ["reel"], reelIds: ["short"] })).toBe("videos")
+    expect(fail({ kinds: ["reel"], reelIds: [id, id] })).toBe("videos")
+    expect(fail({ kinds: ["reel"], reelIds: [id] })).toBeNull()
+    expect(fail({ kinds: ["bar"], reelIds: [id] })).toBe("videos")
   })
 
   test("pages are paths, at most ten", () => {

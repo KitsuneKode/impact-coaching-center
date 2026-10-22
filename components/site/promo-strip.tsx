@@ -2,7 +2,7 @@
 
 import { IconArrowRight, IconX } from "@tabler/icons-react"
 import { useLocale, useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { InlineScript } from "@/components/site/inline-script"
@@ -38,10 +38,12 @@ function Strip({ initial }: { initial: LiveBar[] }) {
   const first = quiet
     ? undefined
     : initial.find((c) => matchesPath(c.routes, path))
+  const initialBar = useMemo(
+    () => first && { ...wordsIn(first, locale), kind: "bar" as const },
+    [first, locale]
+  )
   const bar =
-    rows === undefined
-      ? first && wordsIn(first, locale)
-      : rows.find((c) => c.kind === "bar")
+    rows === undefined ? initialBar : rows.find((c) => c.kind === "bar")
   const key = bar ? storeKey(bar) : null
   const hidden =
     !bar || closed === key || (now !== null && !isAvailable(bar, now))
