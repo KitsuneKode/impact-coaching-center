@@ -259,35 +259,44 @@ export function PromoBanner({
 export function PromoReel({
   promo,
   onAction,
+  bare = false,
 }: {
   promo: Promo
   onAction?: () => void
+  /** The banner above already says it: the videos alone, no repeat. */
+  bare?: boolean
 }) {
   const t = useTranslations("Promos")
   return (
     <section
-      aria-label={promo.tag || t("label")}
+      aria-label={bare ? promo.headline : promo.tag || t("label")}
       className="container-page pbe-16"
     >
       <div className="rounded-[32px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-9">
-        {promo.tag ? (
+        {bare ? null : promo.tag ? (
           <span className="text-sm font-semibold text-primary">
             {promo.tag}
           </span>
         ) : null}
-        <p className="mbs-2 font-display text-[clamp(1.5rem,1.1rem+1.6vw,2.25rem)] leading-tight font-semibold tracking-[-0.03em] text-balance">
-          {promo.headline}
-        </p>
-        {promo.body ? (
-          <p className="mbs-2 max-w-[56ch] text-muted-foreground">
-            {promo.body}
-          </p>
-        ) : null}
-        <EndsIn
-          endsAt={promo.endsAt}
-          className="mbs-2 block text-sm font-semibold text-primary"
-        />
-        <ul className="mbs-6 grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] gap-3">
+        {bare ? null : (
+          <>
+            <p className="mbs-2 font-display text-[clamp(1.5rem,1.1rem+1.6vw,2.25rem)] leading-tight font-semibold tracking-[-0.03em] text-balance">
+              {promo.headline}
+            </p>
+            {promo.body ? (
+              <p className="mbs-2 max-w-[56ch] text-muted-foreground">
+                {promo.body}
+              </p>
+            ) : null}
+            <EndsIn
+              endsAt={promo.endsAt}
+              className="mbs-2 block text-sm font-semibold text-primary"
+            />
+          </>
+        )}
+        <ul
+          className={`${bare ? "" : "mbs-6 "}grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] gap-3`}
+        >
           {promo.reelIds.map((id, i) => (
             <li key={id}>
               <VideoDialog
@@ -323,7 +332,7 @@ export function PromoReel({
             </li>
           ))}
         </ul>
-        {promo.cta ? (
+        {promo.cta && !bare ? (
           <a
             href={promo.href || "#"}
             {...external(promo.href)}

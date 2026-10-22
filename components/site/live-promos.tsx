@@ -85,7 +85,12 @@ function Live() {
     )
   const banner = open("banner")
   const reel = rows.find((row) => row.kind === "reel")
-  const modal = open("modal")
+  // One promotion says its piece once a page: under its own banner the reel
+  // is just the videos, and its pop-up waits while the banner is showing
+  // (it would open at the page end, on top of that same banner).
+  const reelUnderBanner = Boolean(banner && reel && reel.id === banner.id)
+  const candidate = open("modal")
+  const modal = candidate && candidate.id === banner?.id ? undefined : candidate
 
   const close = (row: LivePromo) => {
     rememberClosed(storeKey(row))
@@ -113,6 +118,7 @@ function Live() {
         <Seen key={storeKey(reel)} onSeen={() => track(reel, "view")}>
           <PromoReel
             promo={toPromo(reel)}
+            bare={reelUnderBanner}
             onAction={() => track(reel, "click")}
           />
         </Seen>
