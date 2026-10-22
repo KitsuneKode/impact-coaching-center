@@ -81,6 +81,8 @@ export type Resource = {
   pages: number
   description: string
   sample?: boolean
+  /** When it went up (ms); newest first. */
+  addedAt?: number
 }
 
 export type EditionInput = {

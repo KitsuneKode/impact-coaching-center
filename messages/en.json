@@ -363,6 +363,15 @@
     "guestsWatch": "Watch the session"
   },
   "Shop": {
+    "filterLanguage": "Language",
+    "langEn": "English",
+    "langAs": "অসমীয়া",
+    "newFile": "New",
+    "showMore": "Show {count} more",
+    "shownOf": "{shown} of {total}",
+    "resultsFor": "Results for “{query}”",
+    "searchingAll": "Searching every folder",
+    "everyFileCount": "{count, plural, one {# file} other {# files}}",
     "sampleNotOnSale": "Sample set: not on sale yet",
     "checkoutNote": "Sign in with your number to place the order, then pay by UPI, card or net banking through Razorpay.",
     "buyPay": "Pay by UPI, card or net banking, through Razorpay",

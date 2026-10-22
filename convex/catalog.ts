@@ -67,7 +67,12 @@ const RESOURCE = v.object({
   pages: v.number(),
   description: v.string(),
   sample: v.boolean(),
+  /** When it went up, for newest-first and the "New" tag. */
+  addedAt: v.number(),
 })
+
+/** The free shelf's ceiling; the page lists 24 at a time inside a folder. */
+const PUBLIC_RESOURCES_MAX = 1000
 
 /** The shelf shows covers only; sample pages load on the bundle page. */
 async function toBook(
@@ -155,7 +160,8 @@ export const resources = query({
     const rows = await ctx.db
       .query("resources")
       .withIndex("by_published", (q) => q.eq("published", true))
-      .take(300)
+      .order("desc")
+      .take(PUBLIC_RESOURCES_MAX)
     return rows.map((r) => ({
       slug: r.slug,
       title: r.title,
@@ -166,6 +172,7 @@ export const resources = query({
       pages: r.pdf?.pages || r.pageImages.length || (r.sample ? 6 : 0),
       description: r.description,
       sample: r.sample ?? false,
+      addedAt: r._creationTime,
     }))
   },
 })

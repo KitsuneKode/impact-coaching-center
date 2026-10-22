@@ -1591,6 +1591,24 @@
     }
   }
 
+  /* While searching, a folder with nothing matching steps back. */
+  [data-notes-folder][data-none] {
+    opacity: 0.45;
+  }
+  /* A file up in the last three weeks. */
+  [data-notes-new] {
+    display: inline-block;
+    margin-inline-start: 0.5rem;
+    padding: 0.0625rem 0.5rem;
+    border-radius: 999px;
+    vertical-align: 0.125em;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background-color: color-mix(in oklch, var(--primary) 12%, var(--card));
+    color: var(--primary);
+  }
+
   /* The list and its preview: side by side when the area is wide enough,
      otherwise the chosen file opens in place under its row. */
   [data-notes-body] {

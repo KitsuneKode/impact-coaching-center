@@ -2,11 +2,11 @@ import {
   IconArrowRight,
   IconBrandYoutube,
   IconFileText,
+  IconPlus,
 } from "@tabler/icons-react"
 import type { Metadata } from "next"
 import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { Suspense } from "react"
 
 import { NotesBrowser } from "@/components/commerce/notes-browser"
 import { SampleNotice } from "@/components/commerce/shop-shell"
@@ -52,6 +52,7 @@ export default async function ResourcesPage({
     liveCourses(),
   ])
   const t = await getTranslations("ResourcesPage")
+  const shop = await getTranslations("Shop")
   const pulse = await getTranslations("Pulse")
   const nav = await getTranslations("Nav")
   const { phrase } = await contentFor(locale)
@@ -73,10 +74,7 @@ export default async function ResourcesPage({
 
       <section aria-label={t("title")} className="container-page pbe-20">
         {resources.length ? (
-          /* The browser reads the URL; this keeps the rest of the page static. */
-          <Suspense fallback={<div className="min-h-96" />}>
-            <NotesBrowser resources={resources} />
-          </Suspense>
+          <NotesBrowser resources={resources} />
         ) : (
           <StatePanel
             icon={<IconFileText stroke={1.75} />}
@@ -97,27 +95,41 @@ export default async function ResourcesPage({
             {t("everyFile")}
           </h2>
           <p className="mbs-2 text-muted-foreground">{t("everyFileNote")}</p>
-          <div className="mbs-8 grid gap-8 md:grid-cols-3">
-            {[...new Set(resources.map((r) => r.exam))].map((exam) => (
-              <div key={exam}>
-                <h3 className="font-semibold">{phrase(exam)}</h3>
-                <ul className="mbs-3 grid gap-1">
-                  {resources
-                    .filter((r) => r.exam === exam)
-                    .map((r) => (
-                      <li key={r.slug}>
-                        <Link
-                          href={`/resources/${r.slug}`}
-                          lang={r.language === "as" ? "as-IN" : undefined}
-                          className="block py-1.5 text-pretty text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-                        >
-                          {r.title}
-                          <span className="text-xs"> · {phrase(r.kind)}</span>
-                        </Link>
-                      </li>
-                    ))}
+          {/* One closed list per exam: every link is in the page for
+              search engines, without a wall of hundreds for people. */}
+          <div data-every-file className="mbs-8 max-w-3xl">
+            {[...Map.groupBy(resources, (r) => r.exam)].map(([exam, files]) => (
+              <details key={exam} data-faq>
+                <summary className="flex cursor-pointer items-center justify-between gap-6 py-4 font-semibold">
+                  <span>
+                    {phrase(exam)}
+                    <span className="tnum ms-2 text-sm font-normal text-muted-foreground">
+                      {shop("everyFileCount", { count: files.length })}
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden
+                    data-faq-icon
+                    className="grid size-8 flex-none place-items-center rounded-full"
+                  >
+                    <IconPlus size={16} stroke={2} />
+                  </span>
+                </summary>
+                <ul className="grid gap-x-8 pbe-5 sm:grid-cols-2">
+                  {files.map((r) => (
+                    <li key={r.slug}>
+                      <Link
+                        href={`/resources/${r.slug}`}
+                        lang={r.language === "as" ? "as-IN" : undefined}
+                        className="block py-1.5 text-pretty text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                      >
+                        {r.title}
+                        <span className="text-xs"> · {phrase(r.kind)}</span>
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
-              </div>
+              </details>
             ))}
           </div>
         </section>

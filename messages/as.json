@@ -563,6 +563,15 @@
     "guestsWatch": "অধিৱেশনটো চাওক"
   },
   "Shop": {
+    "filterLanguage": "ভাষা",
+    "langEn": "ইংৰাজী",
+    "langAs": "অসমীয়া",
+    "newFile": "নতুন",
+    "showMore": "আৰু {count}টা চাওক",
+    "shownOf": "{total}টাৰ {shown}টা",
+    "resultsFor": "“{query}”ৰ ফলাফল",
+    "searchingAll": "সকলো ফ'ল্ডাৰত বিচৰা হৈছে",
+    "everyFileCount": "{count, plural, other {{count}টা ফাইল}}",
     "sampleNotOnSale": "নমুনা সংকলন: এতিয়াও বিক্ৰী হোৱা নাই",
     "checkoutNote": "অৰ্ডাৰ দিবলৈ নিজৰ নম্বৰেৰে ছাইন ইন কৰক, তাৰ পিছত Razorpayৰ জৰিয়তে UPI, কাৰ্ড বা নেট বেংকিঙেৰে পৰিশোধ কৰক।",
     "buyPay": "Razorpayৰ জৰিয়তে UPI, কাৰ্ড বা নেট বেংকিঙেৰে পৰিশোধ",
