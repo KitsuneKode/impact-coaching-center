@@ -3339,3 +3339,52 @@
     }
   }
 }
+
+/* The printed set beside the question papers (components/commerce/
+   paper-books.tsx): below the shelf on a phone, in the corner on wider
+   screens. It eases in a beat after the folder opens, so it reads as a
+   suggestion rather than an interruption. */
+@layer components {
+  [data-paper-books] {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    max-inline-size: 26rem;
+    margin-block-start: 2rem;
+    padding: 1rem;
+    border-radius: 22px;
+    background-color: var(--card);
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent),
+      0 22px 40px -24px color-mix(in oklch, var(--shade) 35%, transparent);
+  }
+  @media (width >= 48rem) {
+    [data-paper-books] {
+      position: fixed;
+      z-index: 40;
+      inset-inline-end: 1.25rem;
+      inset-block-end: 1.25rem;
+      inline-size: 22rem;
+      margin: 0;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-paper-books] {
+      transition:
+        opacity 0.24s var(--ease-out-strong) 0.4s,
+        translate 0.24s var(--ease-out-strong) 0.4s;
+      @starting-style {
+        opacity: 0;
+        translate: 0 8px;
+      }
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-paper-books] {
+      transition: opacity 0.2s ease 0.4s;
+      @starting-style {
+        opacity: 0;
+      }
+    }
+  }
+}

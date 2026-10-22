@@ -7,8 +7,10 @@ import {
 import type { Metadata } from "next"
 import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
+import { Suspense } from "react"
 
 import { NotesBrowser } from "@/components/commerce/notes-browser"
+import { PaperBooks, type PaperSet } from "@/components/commerce/paper-books"
 import { SampleNotice } from "@/components/commerce/shop-shell"
 import { Reveal } from "@/components/motion/reveal"
 import { PageHead } from "@/components/site/page-head"
@@ -16,7 +18,12 @@ import { StatePanel } from "@/components/ui/page-shell"
 import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { links } from "@/lib/brand"
-import { onlySamples, publishedResources } from "@/lib/catalog-server"
+import { inLanguage, type Language, lowestPrice } from "@/lib/catalog"
+import {
+  onlySamples,
+  publishedBundles,
+  publishedResources,
+} from "@/lib/catalog-server"
 import { liveCourses } from "@/lib/courses-server"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 
@@ -47,9 +54,10 @@ export default async function ResourcesPage({
 }: PageProps<"/[locale]/resources">) {
   const { locale } = await params
   setRequestLocale(locale)
-  const [resources, courses] = await Promise.all([
+  const [resources, courses, bundles] = await Promise.all([
     publishedResources(),
     liveCourses(),
+    publishedBundles(),
   ])
   const t = await getTranslations("ResourcesPage")
   const shop = await getTranslations("Shop")
@@ -57,6 +65,33 @@ export default async function ResourcesPage({
   const nav = await getTranslations("Nav")
   const { phrase } = await contentFor(locale)
   const free = courses.filter((course) => course.free && course.track)
+  // The printed sets the question-paper folders point to: on sale only.
+  const language = locale as Language
+  const paperSets: PaperSet[] = bundles
+    .filter((bundle) => !bundle.sample)
+    .map((bundle) => {
+      const editions = bundle.books.map(
+        (book) =>
+          book.editions[language] ?? book.editions.en ?? book.editions.as
+      )
+      const lead = editions[0]
+      return {
+        slug: bundle.slug,
+        exam: bundle.exam,
+        examLabel: phrase(bundle.exam),
+        title: inLanguage(bundle.title, language),
+        books: bundle.books.length,
+        pricePaise: lowestPrice(bundle),
+        papers: bundle.books.some((book) =>
+          /paper/i.test(book.editions.en?.title ?? "")
+        ),
+        cover: {
+          title: lead?.title ?? inLanguage(bundle.title, language),
+          subtitle: lead?.subtitle,
+          picture: lead?.cover ?? null,
+        },
+      }
+    })
 
   return (
     <main>
@@ -74,7 +109,14 @@ export default async function ResourcesPage({
 
       <section aria-label={t("title")} className="container-page pbe-20">
         {resources.length ? (
-          <NotesBrowser resources={resources} />
+          <>
+            <NotesBrowser resources={resources} />
+            {paperSets.length ? (
+              <Suspense>
+                <PaperBooks sets={paperSets} />
+              </Suspense>
+            ) : null}
+          </>
         ) : (
           <StatePanel
             icon={<IconFileText stroke={1.75} />}

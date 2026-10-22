@@ -481,7 +481,9 @@
     "insideSet": "What's in the set",
     "placeholderSet": "A placeholder set and price, to show how a set page works.",
     "setOf": "{set}, {language}",
-    "addSetAria": "Add the {set} of {title} to your cart"
+    "addSetAria": "Add the {set} of {title} to your cart",
+    "paperBooks": "Printed books for {exam}",
+    "paperBooksHide": "Hide the book suggestion"
   },
   "Library": {
     "claim": "A place to actually study.",

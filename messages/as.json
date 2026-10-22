@@ -681,7 +681,9 @@
     "insideSet": "সংকলনত কি আছে",
     "placeholderSet": "এই সংকলন আৰু মূল্য নমুনা মাত্ৰ, পৃষ্ঠাটোৱে কেনেকৈ কাম কৰে দেখুৱাবলৈ।",
     "setOf": "{set}, {language}",
-    "addSetAria": "{title} ৰ {set} কাৰ্টত যোগ কৰক"
+    "addSetAria": "{title} ৰ {set} কাৰ্টত যোগ কৰক",
+    "paperBooks": "{exam}ৰ বাবে ছপা কিতাপ",
+    "paperBooksHide": "কিতাপৰ পৰামৰ্শ লুকুৱাওক"
   },
   "Library": {
     "claim": "পঢ়াৰ বাবে এটা প্ৰকৃত ঠাই।",
