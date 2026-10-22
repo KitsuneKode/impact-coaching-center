@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api"
 
 import type { Post, PostCard } from "./blog"
 import { daysBefore, todayIst, type ExamDate } from "./calendar"
-import type { PublicBundle, Resource } from "./catalog"
+import type { Picture, PublicBundle, Resource } from "./catalog"
 import { clientEnv } from "./env.client"
 
 export type PublicCourse = FunctionReturnType<typeof api.courses.list>[number]
@@ -46,6 +46,12 @@ const cachedBundle = cachedRead(
 const cachedResources = cachedRead(
   (): Promise<Resource[]> => fetchQuery(api.catalog.resources),
   ["resources"],
+  { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
+)
+const cachedResourceCover = cachedRead(
+  (slug: string): Promise<Picture | null> =>
+    fetchQuery(api.catalog.resourceCover, { slug }),
+  ["resource-cover"],
   { revalidate: CATALOG_SECONDS, tags: ["catalog"] }
 )
 const cachedPosts = cachedRead(
@@ -94,6 +100,18 @@ export const publishedResources = cache(async (): Promise<Resource[]> =>
 export const publishedResource = cache(
   async (slug: string): Promise<Resource | null> =>
     (await publishedResources()).find((r) => r.slug === slug) ?? null
+)
+
+/** A published resource's first page, its public preview; null without one. */
+export const publishedResourceCover = cache(
+  async (slug: string): Promise<Picture | null> => {
+    if (!configured()) return null
+    try {
+      return await cachedResourceCover(slug)
+    } catch {
+      return null
+    }
+  }
 )
 
 export const publishedPosts = cache(async (): Promise<PostCard[]> =>

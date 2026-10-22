@@ -1,5 +1,6 @@
 import { IconArrowRight, IconFileText } from "@tabler/icons-react"
 import type { Metadata } from "next"
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
@@ -8,7 +9,11 @@ import { PageHead } from "@/components/site/page-head"
 import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { brand, tracks } from "@/lib/brand"
-import { publishedResource, publishedResources } from "@/lib/catalog-server"
+import {
+  publishedResource,
+  publishedResourceCover,
+  publishedResources,
+} from "@/lib/catalog-server"
 import { lineup } from "@/lib/courses"
 import { liveCourses } from "@/lib/courses-server"
 import {
@@ -33,7 +38,10 @@ export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/resources/[slug]">): Promise<Metadata> {
   const { slug, locale } = await params
-  const resource = await publishedResource(slug)
+  const [resource, cover] = await Promise.all([
+    publishedResource(slug),
+    publishedResourceCover(slug),
+  ])
   if (!resource) return { title: "Not found" }
   const t = await getTranslations({ locale, namespace: "ResourcesPage" })
   const { phrase } = await contentFor(locale)
@@ -50,7 +58,14 @@ export async function generateMetadata({
     title,
     description,
     alternates: alternatesFor(path, locale),
-    openGraph: openGraphFor(path, title, description, locale),
+    // The note's own first page, so a link shared in WhatsApp shows it.
+    openGraph: openGraphFor(
+      path,
+      title,
+      description,
+      locale,
+      cover ? { url: cover.url, alt: resource.title } : undefined
+    ),
     ...(resource.sample ? { robots: { index: false, follow: true } } : {}),
   }
 }
@@ -65,10 +80,11 @@ export default async function ResourcePage({
 }: PageProps<"/[locale]/resources/[slug]">) {
   const { slug, locale } = await params
   setRequestLocale(locale)
-  const [resource, resources, courses] = await Promise.all([
+  const [resource, resources, courses, cover] = await Promise.all([
     publishedResource(slug),
     publishedResources(),
     liveCourses(),
+    publishedResourceCover(slug),
   ])
   if (!resource) notFound()
   const t = await getTranslations("ResourcesPage")
@@ -153,12 +169,28 @@ export default async function ResourcePage({
               lines={10}
               className="absolute inset-0 translate-x-4 translate-y-4 -rotate-3 opacity-60"
             />
-            <PaperPage
-              running={resource.title}
-              heading={resource.title}
-              lines={16}
-              className="absolute inset-0 rotate-1"
-            />
+            {cover ? (
+              // Page one itself; the sheet behind keeps the stack.
+              <span className="absolute inset-0 rotate-1 overflow-clip rounded-[2px] bg-white shadow-[0_18px_40px_-18px_color-mix(in_oklch,var(--foreground)_45%,transparent)]">
+                <Image
+                  src={cover.url}
+                  alt=""
+                  fill
+                  sizes="20rem"
+                  priority
+                  placeholder={cover.blurDataUrl ? "blur" : "empty"}
+                  blurDataURL={cover.blurDataUrl}
+                  className="object-cover object-top"
+                />
+              </span>
+            ) : (
+              <PaperPage
+                running={resource.title}
+                heading={resource.title}
+                lines={16}
+                className="absolute inset-0 rotate-1"
+              />
+            )}
           </div>
         </div>
 

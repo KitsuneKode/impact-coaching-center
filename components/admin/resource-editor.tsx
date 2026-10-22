@@ -64,6 +64,8 @@ type Draft = {
   description: string
   pageImages: StoredImage[]
   pdf: StoredPdf | null
+  /** The PDF's page one, made on upload: the public preview. */
+  cover: StoredImage | null
 }
 
 const EMPTY: Draft = {
@@ -75,10 +77,15 @@ const EMPTY: Draft = {
   description: "",
   pageImages: [],
   pdf: null,
+  cover: null,
 }
 
 const snapshot = (draft: Draft) =>
-  JSON.stringify({ ...draft, pageImages: draft.pageImages.map((p) => p.id) })
+  JSON.stringify({
+    ...draft,
+    pageImages: draft.pageImages.map((p) => p.id),
+    cover: draft.cover?.id ?? null,
+  })
 
 /** Owner-only: create a resource, or edit the one at `id`. */
 export function ResourceEditor({ id }: { id?: string }) {
@@ -127,6 +134,7 @@ export function ResourceEditor({ id }: { id?: string }) {
         description: resource.description,
         pageImages: resource.pageImages.map(toStored),
         pdf: resource.pdf ?? null,
+        cover: resource.cover ? toStored(resource.cover) : null,
       }}
     />
   )
@@ -193,6 +201,7 @@ function ResourceForm({
         fields: checked.value,
         pageImages: draft.pageImages.map((p) => p.id),
         pdf: draft.pdf,
+        cover: draft.cover?.id ?? null,
       })
       if (!result.ok) {
         if (result.reason === "invalid-input" && result.field)
@@ -366,6 +375,8 @@ function ResourceForm({
             <PdfField
               value={draft.pdf}
               onChange={(next) => set("pdf", next)}
+              cover={draft.cover}
+              onCoverChange={(next) => set("cover", next)}
               onBusyChange={(on) => setUploading((n) => n + (on ? 1 : -1))}
             />
             <FieldError>{errors.pdf}</FieldError>

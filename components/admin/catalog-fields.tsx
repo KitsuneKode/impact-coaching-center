@@ -12,7 +12,7 @@ import {
 import { useUploadFile } from "@convex-dev/r2/react"
 import { useMutation, useQuery } from "convex/react"
 import Image from "next/image"
-import { useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -293,8 +293,24 @@ export function PageImagesField({
   const input = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState(0)
   const [rendering, setRendering] = useState(false)
+  // Pages of a PDF done so far, while one is being turned into images.
+  const [progress, setProgress] = useState<{
+    done: number
+    total: number
+  } | null>(null)
+  const stopper = useRef<AbortController | null>(null)
+  const alive = useRef(true)
   const id = useId()
   const room = max - value.length
+
+  // Leaving the editor stops a PDF mid-way rather than rendering on unseen.
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+      stopper.current?.abort()
+    }
+  }, [])
 
   async function uploadFiles(files: File[]) {
     setPending(files.length)
@@ -317,35 +333,64 @@ export function PageImagesField({
     await uploadFiles(files.slice(0, room))
   }
 
-  /** A PDF becomes page images in the browser; only the images are stored. */
+  /**
+   * A PDF becomes page images in the browser; only the images are stored.
+   * One page at a time: page n uploads while page n+1 renders, so a long PDF
+   * never sits in memory whole. Stopping keeps the pages already done.
+   */
   async function pickPdf(file: File | undefined) {
     if (!file) return
     if (file.type !== "application/pdf") {
       toast.error(`${file.name} is not a PDF.`)
       return
     }
+    const controller = new AbortController()
+    stopper.current = controller
     setRendering(true)
     onBusyChange(true)
+    const added: StoredImage[] = []
+    let failed = false
     try {
-      const { renderPdfPages } = await import("@/lib/pdf-pages")
-      const pages = await renderPdfPages(file, room)
-      if (!pages.length) {
-        toast.error("That PDF has no pages.")
-        return
+      const { pdfPageImages } = await import("@/lib/pdf-pages")
+      let inflight: Promise<void> = Promise.resolve()
+      for await (const page of pdfPageImages(file, room, controller.signal)) {
+        await inflight
+        if (failed || controller.signal.aborted) break
+        setProgress({ done: page.number - 1, total: page.total })
+        inflight = upload(page.file).then((stored) => {
+          if (stored) added.push(stored)
+          else failed = true
+        })
       }
-      setRendering(false)
-      toast.success(
-        `${pages.length} page${pages.length === 1 ? "" : "s"} rendered - uploading.`
-      )
-      await uploadFiles(pages)
-      return
-    } catch {
+      await inflight
+      if (controller.signal.aborted) {
+        if (added.length) toast(`Stopped. Kept the first ${added.length}.`)
+      } else if (failed)
+        toast.error(
+          `Kept the first ${added.length} pages; the next did not upload. Add the rest as images, or remove these and try the PDF again.`
+        )
+      else if (!added.length) toast.error("That PDF has no pages.")
+      else
+        toast.success(
+          `${added.length} page${added.length === 1 ? "" : "s"} added.`
+        )
+    } catch (error) {
       toast.error(
-        "Could not read that PDF. Export the pages as images instead."
+        (error as Error | null)?.name === "PdfLockedError"
+          ? "That PDF is password-protected. Save a copy without the password and try again."
+          : "Could not read that PDF. Export the pages as images instead."
       )
     } finally {
-      setRendering(false)
-      onBusyChange(false)
+      stopper.current = null
+      if (alive.current) {
+        setRendering(false)
+        setProgress(null)
+        onBusyChange(false)
+        if (added.length) onChange([...value, ...added])
+      } else {
+        // The editor closed: nothing will save these, so take them back.
+        for (const image of added) release(image)
+      }
     }
   }
 
@@ -434,7 +479,9 @@ export function PageImagesField({
           icon={IconFileImport}
           title={
             rendering
-              ? "Reading the PDF…"
+              ? progress
+                ? `Page ${progress.done + 1} of ${progress.total}…`
+                : "Reading the PDF…"
               : pending > 0
                 ? `Uploading ${pending} page${pending === 1 ? "" : "s"}…`
                 : "Drop page images or a PDF, or choose them"
@@ -450,6 +497,28 @@ export function PageImagesField({
         >
           {pending > 0 || rendering ? <Spinner className="mbs-1" /> : null}
         </Dropzone>
+      ) : null}
+      {rendering ? (
+        <div className="flex flex-wrap items-center gap-3" aria-live="polite">
+          {progress ? (
+            <div className="h-1.5 min-w-40 flex-1 overflow-clip rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-200"
+                style={{
+                  width: `${Math.round((progress.done / progress.total) * 100)}%`,
+                }}
+              />
+            </div>
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => stopper.current?.abort()}
+          >
+            Stop
+          </Button>
+        </div>
       ) : null}
       <input
         ref={input}
@@ -513,14 +582,21 @@ const megabytes = (bytes: number) =>
 export function PdfField({
   value,
   onChange,
+  cover,
+  onCoverChange,
   onBusyChange,
 }: {
   value: StoredPdf | null
   onChange: (next: StoredPdf | null) => void
+  /** Page one as an image: the public preview, made here on upload. */
+  cover: StoredImage | null
+  onCoverChange: (next: StoredImage | null) => void
   onBusyChange: (busy: boolean) => void
 }) {
   const ready = useQuery(api.files.r2Ready)
   const upload = useUploadFile(api.files)
+  const uploadImage = useImageUpload()
+  const release = useReleaseUpload()
   const input = useRef<HTMLInputElement>(null)
   const [progress, setProgress] = useState<number | null>(null)
   const id = useId()
@@ -546,17 +622,31 @@ export function PdfField({
     onBusyChange(true)
     setProgress(0)
     try {
-      const { pdfPageCount } = await import("@/lib/pdf-pages")
-      const pages = await pdfPageCount(file)
+      // One read gives the page count and page one, before the upload.
+      const { inspectPdf } = await import("@/lib/pdf-pages")
+      const inspected = await inspectPdf(file)
       const key = await upload(file, {
         onProgress: ({ loaded, total }) =>
           setProgress(total ? Math.round((loaded / total) * 100) : null),
       })
-      onChange({ key, pages, bytes: file.size, name: file.name })
+      // A preview that fails to render or upload costs the preview only.
+      const preview = inspected.cover
+        ? await uploadImage(inspected.cover)
+        : null
+      release(cover)
+      onCoverChange(preview)
+      onChange({
+        key,
+        pages: inspected.pages,
+        bytes: file.size,
+        name: file.name,
+      })
       toast.success(`${file.name} uploaded`)
-    } catch {
+    } catch (error) {
       toast.error(
-        `${file.name} did not upload. Check the connection and retry.`
+        (error as Error | null)?.name === "PdfLockedError"
+          ? `${file.name} is password-protected. Save a copy without the password and upload that.`
+          : `${file.name} did not upload. Check the connection and retry.`
       )
     } finally {
       setProgress(null)
@@ -575,11 +665,17 @@ export function PdfField({
           disabled={progress !== null}
           className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-card p-3"
         >
-          <IconFileTypePdf
-            stroke={1.5}
-            className="size-8 text-destructive"
-            aria-hidden
-          />
+          {cover?.url ? (
+            <span className="relative block h-14 w-10 flex-none overflow-clip rounded-[2px] ring-1 ring-border">
+              <Thumb src={cover.url} alt="Page one, the public preview" />
+            </span>
+          ) : (
+            <IconFileTypePdf
+              stroke={1.5}
+              className="size-8 text-destructive"
+              aria-hidden
+            />
+          )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{value.name}</p>
             <p className="tnum text-xs text-muted-foreground">
@@ -601,7 +697,11 @@ export function PdfField({
             variant="ghost"
             size="sm"
             disabled={progress !== null}
-            onClick={() => onChange(null)}
+            onClick={() => {
+              release(cover)
+              onCoverChange(null)
+              onChange(null)
+            }}
           >
             Remove
           </Button>

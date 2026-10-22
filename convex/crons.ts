@@ -26,4 +26,12 @@ crons.cron(
   {}
 )
 
+// PDFs uploaded to R2 but never saved to a resource. 03:00 in India.
+crons.cron(
+  "sweep unclaimed documents",
+  "30 21 * * 0",
+  internal.files.sweepDocuments,
+  {}
+)
+
 export default crons

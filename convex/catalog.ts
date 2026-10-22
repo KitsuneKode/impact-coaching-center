@@ -178,6 +178,24 @@ export const resources = query({
 })
 
 /**
+ * A published resource's first page, public on purpose: the preview on its
+ * page and in its link card. Page images stand in where there is no PDF.
+ * The rest of the document stays behind the gate below.
+ */
+export const resourceCover = query({
+  args: { slug: v.string() },
+  returns: v.union(PICTURE, v.null()),
+  handler: async (ctx, args) => {
+    const resource = await ctx.db
+      .query("resources")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first()
+    if (!resource?.published) return null
+    return pictureOf(ctx, resource.cover ?? resource.pageImages[0])
+  },
+})
+
+/**
  * Open a resource: the gate. Only a verified Person gets the page images, and
  * the first open is recorded once on their activity trail. Storage URLs are
  * signed but not short-lived; the gate is the verification, not the URL.

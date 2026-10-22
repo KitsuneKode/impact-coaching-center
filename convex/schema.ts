@@ -386,6 +386,11 @@ export default defineSchema({
     pageImages: v.array(v.id("_storage")),
     /** The original PDF in R2 (convex/files.ts), read page by page in the browser. */
     pdf: v.optional(PDF_DOCUMENT),
+    /**
+     * The PDF's first page as an image, rendered when it is uploaded: the
+     * public preview on the note's page and in its link card.
+     */
+    cover: v.optional(v.id("_storage")),
     published: v.boolean(),
     sample: v.optional(v.boolean()),
     revision: v.number(),

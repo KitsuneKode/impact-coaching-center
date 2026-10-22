@@ -150,8 +150,10 @@ async function filesInUse(ctx: MutationCtx, except?: Owner) {
       if (!mine("bundles", bundle._id) && bundle.cover) used.add(bundle.cover)
     }),
     scan(ctx.db.query("resources"), (resource) => {
-      if (!mine("resources", resource._id))
+      if (!mine("resources", resource._id)) {
         for (const id of resource.pageImages) used.add(id)
+        if (resource.cover) used.add(resource.cover)
+      }
     }),
     /* Files other areas own: never this module's to delete. */
     scan(ctx.db.query("courses"), (course) => {
@@ -852,6 +854,10 @@ export const adminResource = query({
       revision: v.number(),
       pageImages: v.array(v.object({ id: v.id("_storage"), picture: PICTURE })),
       pdf: v.optional(PDF_DOCUMENT),
+      cover: v.union(
+        v.object({ id: v.id("_storage"), picture: PICTURE }),
+        v.null()
+      ),
     }),
     v.null()
   ),
@@ -860,7 +866,10 @@ export const adminResource = query({
     const id = ctx.db.normalizeId("resources", args.id)
     const r = id && (await ctx.db.get(id))
     if (!r) return null
-    const pictures = await picturesOf(ctx, r.pageImages)
+    const [pictures, cover] = await Promise.all([
+      picturesOf(ctx, r.pageImages),
+      pictureOf(ctx, r.cover),
+    ])
     return {
       id: r._id,
       slug: r.slug,
@@ -877,6 +886,7 @@ export const adminResource = query({
           ? r.pageImages.map((id, i) => ({ id, picture: pictures[i]! }))
           : [],
       pdf: r.pdf,
+      cover: r.cover && cover ? { id: r.cover, picture: cover } : null,
     }
   },
 })
@@ -889,6 +899,8 @@ export const saveResource = mutation({
     pageImages: v.optional(v.array(v.id("_storage"))),
     /** A PDF uploaded to R2, or null to remove the current one. */
     pdf: v.optional(v.union(PDF_DOCUMENT, v.null())),
+    /** The PDF's first page as an image, or null to remove it. */
+    cover: v.optional(v.union(v.id("_storage"), v.null())),
   },
   returns: mutationResult({ id: v.id("resources"), revision: v.number() }),
   handler: async (ctx, args) => {
@@ -907,6 +919,7 @@ export async function applySaveResource(
     fields: ResourceInput
     pageImages?: StorageId[]
     pdf?: Infer<typeof PDF_DOCUMENT> | null
+    cover?: StorageId | null
   }
 ) {
   if (!canEdit(viewer)) return forbidden
@@ -920,6 +933,8 @@ export async function applySaveResource(
     return invalidInput("pages")
   if (args.pdf && !(await pdfUploaded(ctx, args.pdf)))
     return invalidInput("pdf")
+  if (args.cover && !(await allImages(ctx, [args.cover])))
+    return invalidInput("cover")
   if (await slugTaken(ctx, "resources", checked.value.slug, args.id))
     return invalidInput("slug-taken")
 
@@ -929,6 +944,7 @@ export async function applySaveResource(
       ...checked.value,
       pageImages: args.pageImages ?? [],
       ...(args.pdf ? { pdf: args.pdf } : {}),
+      ...(args.cover ? { cover: args.cover } : {}),
       published: false,
       revision: 0,
       updatedAt: now,
@@ -963,12 +979,18 @@ export async function applySaveResource(
       table: "resources",
       id: args.id,
     })
+  if (args.cover !== undefined && current.cover && current.cover !== args.cover)
+    await dropReplaced(ctx, [current.cover], [], {
+      table: "resources",
+      id: args.id,
+    })
 
   const revision = current.revision + 1
   await ctx.db.patch(args.id, {
     ...checked.value,
     ...(args.pageImages ? { pageImages: args.pageImages } : {}),
     ...(args.pdf !== undefined ? { pdf: args.pdf ?? undefined } : {}),
+    ...(args.cover !== undefined ? { cover: args.cover ?? undefined } : {}),
     sample: false,
     revision,
     updatedAt: now,
