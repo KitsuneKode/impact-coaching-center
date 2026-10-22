@@ -2,6 +2,7 @@
 
 import { IconReceipt } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
+import { useTranslations } from "next-intl"
 import Link from "next/link"
 
 import { OrderStatusBadge } from "@/components/admin/order-status"
@@ -18,6 +19,7 @@ import { formatPaise } from "@/lib/money"
  */
 export function OrdersCard() {
   const orders = useQuery(api.orders.myOrders)
+  const shop = useTranslations("Shop")
 
   /* Loading shows the section's shape rather than nothing appearing after
      the rest of the page has already painted. */
@@ -78,7 +80,11 @@ export function OrdersCard() {
               </time>
               {" · "}
               {order.lines
-                .map((line) => `${line.title} × ${line.quantity}`)
+                // Two lines of one set differ only by language, so say it.
+                .map(
+                  (line) =>
+                    `${line.title} (${shop(line.language === "as" ? "assameseSet" : "englishSet")}) × ${line.quantity}`
+                )
                 .join(", ")}
               {" · "}
               <span className="tnum">{formatPaise(order.totalPaise)}</span>
