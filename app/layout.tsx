@@ -59,7 +59,9 @@ export const metadata: Metadata = {
     "Assam Police coaching Lakhimpur",
     "Impact Career Tutorials",
   ],
-  alternates: { canonical: "/" },
+  // No canonical here: it would reach the account, checkout, admin and
+  // receipt pages, telling search engines each of them is the home page.
+  // Public pages set their own (app/[locale]/layout.tsx and each page).
   openGraph: openGraphFor(
     "/",
     "Crack APSC from North Lakhimpur",
