@@ -25,8 +25,11 @@ function CartSync() {
 /** The cart sheet, reachable from every page under /books. */
 export function ShopShell({ children }: { children: ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false)
+  // One function for the life of the shell, so opening the cart does not
+  // re-render every "Add" button that reads it.
+  const [openCart] = useState(() => () => setCartOpen(true))
   return (
-    <OpenCart.Provider value={() => setCartOpen(true)}>
+    <OpenCart.Provider value={openCart}>
       {children}
       {convexConfigured ? (
         <>

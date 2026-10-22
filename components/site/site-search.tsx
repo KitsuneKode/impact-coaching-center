@@ -15,7 +15,14 @@ import {
   IconX,
 } from "@tabler/icons-react"
 import { useLocale, useTranslations } from "next-intl"
-import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import {
+  Fragment,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import {
   Command,
@@ -159,28 +166,6 @@ export function SiteSearch({
   }, [query, kind])
 
   useEffect(() => {
-    if (variant !== "header") return
-    function onKeyDown(event: KeyboardEvent) {
-      const typing = (event.target as Element | null)?.closest(
-        "input, textarea, select, [contenteditable='true']"
-      )
-      if (
-        (event.key === "k" && (event.metaKey || event.ctrlKey)) ||
-        (event.key === "/" && !typing)
-      ) {
-        // Browsers bind Ctrl+K to the address bar, so this has to claim it.
-        event.preventDefault()
-        setOpen((previous) => {
-          if (previous) setQuery("")
-          return !previous
-        })
-      }
-    }
-    document.addEventListener("keydown", onKeyDown)
-    return () => document.removeEventListener("keydown", onKeyDown)
-  }, [variant])
-
-  useEffect(() => {
     if (!open || items) return
     let live = true
     loadIndex(locale).then(
@@ -314,6 +299,27 @@ export function SiteSearch({
       setKind("all")
     }
   }
+
+  // The shortcut opens and closes the box the same way a click does.
+  const onShortcut = useEffectEvent(() => toggle(!open))
+  useEffect(() => {
+    if (variant !== "header") return
+    function onKeyDown(event: KeyboardEvent) {
+      const typing = (event.target as Element | null)?.closest(
+        "input, textarea, select, [contenteditable='true']"
+      )
+      if (
+        (event.key === "k" && (event.metaKey || event.ctrlKey)) ||
+        (event.key === "/" && !typing)
+      ) {
+        // Browsers bind Ctrl+K to the address bar, so this has to claim it.
+        event.preventDefault()
+        onShortcut()
+      }
+    }
+    document.addEventListener("keydown", onKeyDown)
+    return () => document.removeEventListener("keydown", onKeyDown)
+  }, [variant])
 
   return (
     <>

@@ -34,13 +34,16 @@ function bothLanguages(entry: Entry): Entry[] {
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   /* Convex may be absent at build time; the static list still ships. */
-  const posts = await publishedPosts().catch(() => [])
   // The shop and notes pages are noindex while they hold only samples, so
   // they join the sitemap with the first real set or note.
-  const bundles = await publishedBundles().catch(() => [])
-  const resources = await publishedResources().catch(() => [])
+  const [posts, bundles, resources, live] = await Promise.all([
+    publishedPosts().catch(() => []),
+    publishedBundles().catch(() => []),
+    publishedResources().catch(() => []),
+    liveCourses().catch(() => []),
+  ])
   const realSets = bundles.filter((bundle) => !bundle.sample)
-  const courses = (await liveCourses().catch(() => []))
+  const courses = live
     .filter((course) => course.track)
     .map((course) => ({
       url: `${siteUrl}/courses/${course.slug}`,

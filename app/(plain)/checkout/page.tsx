@@ -8,7 +8,7 @@ import {
 } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 import Link from "next/link"
-import { useId, useRef, useState } from "react"
+import { useId, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { Button, ButtonLink } from "@/components/ui/button"
@@ -174,7 +174,7 @@ function CheckoutForm() {
   const [paid, setPaid] = useState(false)
   /* One key per attempt-set: a double-click or a retried submission comes
      back with the same order rather than minting a second. */
-  const idempotencyKey = useRef(crypto.randomUUID())
+  const [idempotencyKey] = useState(() => crypto.randomUUID())
   const errorId = useId()
 
   const rows = lines.flatMap((line) => {
@@ -241,7 +241,7 @@ function CheckoutForm() {
                 pin: address.pin,
               }
             : undefined,
-        idempotencyKey: idempotencyKey.current,
+        idempotencyKey: idempotencyKey,
       })
       if (result.ok) {
         track({ name: "order_placed", fulfilment })
