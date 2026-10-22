@@ -64,6 +64,31 @@ function contentSecurityPolicy(): string {
 
 const isDev = process.env.NODE_ENV === "development"
 
+/** Wrong guesses at an address, and the page each one means. */
+const guessed = [
+  ["/blogs", "/blog"],
+  ["/blogs/:slug", "/blog/:slug"],
+  ["/news", "/blog"],
+  ["/articles", "/blog"],
+  ["/teacher", "/teachers"],
+  ["/teacher/:slug", "/teachers#:slug"],
+  ["/teachers/:slug", "/teachers#:slug"],
+  ["/faculty", "/teachers"],
+  ["/faculty/:slug", "/teachers#:slug"],
+  ["/course", "/courses"],
+  ["/course/:slug", "/courses/:slug"],
+  ["/book", "/books"],
+  ["/shop", "/books"],
+  ["/store", "/books"],
+  ["/notes", "/resources"],
+  ["/free-notes", "/resources"],
+  ["/results", "/success-stories"],
+  ["/toppers", "/success-stories"],
+  ["/reviews", "/success-stories"],
+  ["/scholarship", "/assist"],
+  ["/contact-us", "/contact"],
+] as const
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -125,6 +150,15 @@ const nextConfig: NextConfig = {
     return [
       { source: "/sign-in", destination: "/login", permanent: true },
       { source: "/sign-up", destination: "/register", permanent: true },
+      // Addresses people guess or remember wrong land on the real page, in
+      // either language; a teacher's name lands on their row.
+      ...guessed.flatMap(([from, to]) =>
+        ["", "/as"].map((locale) => ({
+          source: `${locale}${from}`,
+          destination: `${locale}${to}`,
+          permanent: true,
+        }))
+      ),
     ]
   },
 

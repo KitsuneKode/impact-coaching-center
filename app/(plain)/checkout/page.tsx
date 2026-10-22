@@ -202,6 +202,9 @@ function CheckoutForm() {
           reference: result.reference,
           totalPaise: result.totalPaise,
         })
+        // The pay step is a shorter page: start it at the top, where Pay is,
+        // not at the footer the long form had scrolled to.
+        requestAnimationFrame(() => window.scrollTo({ top: 0 }))
       } else {
         setError(
           result.reason === "rate-limited"
