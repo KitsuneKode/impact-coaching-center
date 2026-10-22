@@ -1,11 +1,12 @@
 import { convexTest } from "convex-test"
-import { describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, setSystemTime, test } from "bun:test"
 
 import { internal } from "./_generated/api"
 import schema from "./schema"
 import {
   NEW_NUMBERS_PER_IP_HOUR,
   OTP_ATTEMPTS,
+  RESEND_GAP_MS,
   SENDS_PER_DAY_GLOBAL,
   SENDS_PER_IP_HOUR,
   SENDS_PER_PHONE_10_MIN,
@@ -23,14 +24,23 @@ const claim = internal.otp.claimOtpSend
 const release = internal.otp.releaseOtpSend
 const PHONE = "9876543210"
 
+/** Moves the clock on, as a person waiting out the resend gap would. */
+function wait(ms: number) {
+  setSystemTime(new Date(Date.now() + ms))
+}
+afterEach(() => setSystemTime())
+
+/** A delivered send, then the resend gap waited out, as the screen enforces. */
 async function finishSend(
   t: ReturnType<typeof convexTest>,
   phone: string,
   ip?: string
 ) {
   const result = await t.mutation(claim, { phone, ip })
-  if (result.ok)
+  if (result.ok) {
     await t.mutation(release, { phone, generation: result.generation })
+    wait(RESEND_GAP_MS + 1)
+  }
   return result
 }
 
@@ -114,8 +124,7 @@ describe("claimOtpSend", () => {
   test("a number WhatsApp could not reach is refused with the reason", async () => {
     const t = convexTest(schema, modules)
     await t.mutation(internal.otp.markUndeliverable, {
-      phones: ["+919876543210"],
-      code: 131026,
+      failures: [{ phones: ["+919876543210"], code: 131026 }],
     })
     expect(await finishSend(t, PHONE)).toEqual({
       ok: false,
@@ -190,6 +199,64 @@ describe("claimOtpSend", () => {
     // last call - failing closed can only ever refuse more, never fewer.
     const phoneRow = rows.find((r) => r.key.startsWith("otp:phone:10m:"))
     expect(phoneRow?.count).toBe(SENDS_PER_PHONE_10_MIN)
+  })
+
+  test("a second code to one number waits 30 seconds, and the wait spends nothing", async () => {
+    const t = convexTest(schema, modules)
+    const first = await t.mutation(claim, { phone: PHONE })
+    if (!first.ok) throw new Error("first send refused")
+    await t.mutation(release, { phone: PHONE, generation: first.generation })
+    const spent = async () =>
+      (await t.run((ctx) => ctx.db.query("rateLimits").collect())).find((r) =>
+        r.key.startsWith("otp:phone:10m:")
+      )?.count
+    expect(await t.mutation(claim, { phone: PHONE })).toEqual({
+      ok: false,
+      reason: "too_soon",
+    })
+    expect(await spent()).toBe(1)
+    wait(RESEND_GAP_MS + 1)
+    expect(await t.mutation(claim, { phone: PHONE })).toMatchObject({
+      ok: true,
+    })
+  })
+
+  test("a code WhatsApp failed to deliver can be asked for again at once", async () => {
+    const t = convexTest(schema, modules)
+    const first = await t.mutation(claim, { phone: PHONE })
+    if (!first.ok) throw new Error("first send refused")
+    await t.mutation(internal.otp.commitOtpCode, {
+      phone: PHONE,
+      generation: first.generation,
+      codeHash: "b".repeat(64),
+      codeExpiresAt: Date.now() + 60_000,
+    })
+    await t.mutation(internal.otp.abortOtpCode, {
+      phone: PHONE,
+      generation: first.generation,
+    })
+    expect(await t.mutation(claim, { phone: PHONE })).toMatchObject({
+      ok: true,
+    })
+  })
+
+  test("a refusal by the deployment's cap leaves the number's own allowance alone", async () => {
+    const t = convexTest(schema, modules)
+    await t.run((ctx) =>
+      ctx.db.insert("rateLimits", {
+        key: "otp:global:day",
+        count: SENDS_PER_DAY_GLOBAL,
+        windowStart: Date.now(),
+      })
+    )
+    for (let n = 0; n < 3; n++)
+      expect(await finishSend(t, PHONE, "203.0.113.9")).toEqual({
+        ok: false,
+        reason: "deployment",
+      })
+    const rows = await t.run((ctx) => ctx.db.query("rateLimits").collect())
+    // Only the full global row: no phone or address bucket was spent.
+    expect(rows.map((row) => row.key)).toEqual(["otp:global:day"])
   })
 
   test("an overlapping claim keeps the live code and does not spend again", async () => {

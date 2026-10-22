@@ -63,6 +63,8 @@ const SOURCE = v.object({
 
 /** Covers larger than this are not a course card. */
 const COVER_MAX_BYTES = 4 * 1024 * 1024
+/** Poster downloads in flight at once during a sync. */
+const COVER_DOWNLOADS_AT_ONCE = 6
 
 /** Pages of the full list we will read; ICT has 27 courses in Oct 2026. */
 const LIST_PAGES_MAX = 10
@@ -118,22 +120,32 @@ export const sync = internalAction({
       internal.courses.coverSources,
       {}
     )
+    /* New or changed posters only, a few downloads at a time: in parallel
+       the sync takes as long as its slowest batch, not the sum of them. */
+    const wanted = rows.filter(
+      (row) => row.imageUrl && known[row.classplusId] !== row.imageUrl
+    )
     const covers: { classplusId: number; cover: Id<"_storage"> }[] = []
-    for (const row of rows) {
-      if (!row.imageUrl || known[row.classplusId] === row.imageUrl) continue
-      try {
-        const image = await fetch(row.imageUrl)
-        const type = image.headers.get("content-type") ?? ""
-        if (!image.ok || !type.startsWith("image/")) continue
-        const blob = await image.blob()
-        if (blob.size > COVER_MAX_BYTES) continue
-        covers.push({
-          classplusId: row.classplusId,
-          cover: await ctx.storage.store(blob),
+    for (let i = 0; i < wanted.length; i += COVER_DOWNLOADS_AT_ONCE) {
+      const batch = await Promise.all(
+        wanted.slice(i, i + COVER_DOWNLOADS_AT_ONCE).map(async (row) => {
+          try {
+            const image = await fetch(row.imageUrl!)
+            const type = image.headers.get("content-type") ?? ""
+            if (!image.ok || !type.startsWith("image/")) return null
+            const blob = await image.blob()
+            if (blob.size > COVER_MAX_BYTES) return null
+            return {
+              classplusId: row.classplusId,
+              cover: await ctx.storage.store(blob),
+            }
+          } catch {
+            // Keep the old cover; the next sync tries again.
+            return null
+          }
         })
-      } catch {
-        // Keep the old cover; the next sync tries again.
-      }
+      )
+      for (const cover of batch) if (cover) covers.push(cover)
     }
 
     await ctx.runMutation(internal.courses.applySync, {
@@ -200,41 +212,57 @@ export const applySync = internalMutation({
     let added = 0
     let changed = 0
 
+    /* The mirror is a few dozen rows: one scan answers "do we have it?",
+       "is this slug taken?" and "which went missing?", where a lookup per
+       course read the table once per row and then again at the end. */
+    // Streamed whole, not capped: a course left unread would be inserted
+    // twice or marked gone. The mirror is ClassPlus's few dozen courses.
+    const all: Doc<"courses">[] = []
+    for await (const course of ctx.db.query("courses")) all.push(course)
+    const byId = new Map(all.map((course) => [course.classplusId, course]))
+    const slugs = new Set(all.map((course) => course.slug))
+    const writes: Promise<unknown>[] = []
+
     for (const { classplusId, slug, ...source } of args.rows) {
       seen.add(classplusId)
       const cover = covers.get(classplusId)
-      const existing = await ctx.db
-        .query("courses")
-        .withIndex("by_classplusId", (q) => q.eq("classplusId", classplusId))
-        .first()
+      const existing = byId.get(classplusId)
       if (!existing) {
-        await ctx.db.insert("courses", {
-          classplusId,
-          // A slug another course already holds gets the id appended.
-          slug: (await slugFree(ctx, slug)) ? slug : `${slug}-${classplusId}`,
-          source,
-          cover,
-          // Older batches ICT no longer shows on its storefront arrive kept
-          // but off the site; the admin can show any of them.
-          local: { hidden: source.listed === false },
-          syncedAt: now,
-          revision: 0,
-        })
+        // A slug another course already holds gets the id appended; taken
+        // here, so two new courses in one sync cannot both claim it.
+        const free = slugs.has(slug) ? `${slug}-${classplusId}` : slug
+        slugs.add(free)
+        writes.push(
+          ctx.db.insert("courses", {
+            classplusId,
+            slug: free,
+            source,
+            cover,
+            // Older batches ICT no longer shows on its storefront arrive kept
+            // but off the site; the admin can show any of them.
+            local: { hidden: source.listed === false },
+            syncedAt: now,
+            revision: 0,
+          })
+        )
         added += 1
         changes.push({ classplusId, name: source.name, kind: "added" })
         continue
       }
-      if (cover && existing.cover) await ctx.storage.delete(existing.cover)
+      if (cover && existing.cover)
+        writes.push(ctx.storage.delete(existing.cover))
       const fields = changedFields(existing.source, source)
       const differs = !quietOnly(existing.source, source) || cover !== undefined
       // The slug never changes once a page has been published under it.
-      await ctx.db.patch(existing._id, {
-        source,
-        ...(cover ? { cover } : {}),
-        syncedAt: now,
-        missingSince: undefined,
-        ...(differs ? { revision: existing.revision + 1 } : {}),
-      })
+      writes.push(
+        ctx.db.patch(existing._id, {
+          source,
+          ...(cover ? { cover } : {}),
+          syncedAt: now,
+          missingSince: undefined,
+          ...(differs ? { revision: existing.revision + 1 } : {}),
+        })
+      )
       if (existing.missingSince) {
         changed += 1
         changes.push({ classplusId, name: source.name, kind: "back" })
@@ -250,9 +278,9 @@ export const applySync = internalMutation({
     }
 
     let missing = 0
-    for await (const course of ctx.db.query("courses")) {
+    for (const course of all) {
       if (seen.has(course.classplusId) || course.missingSince) continue
-      await ctx.db.patch(course._id, { missingSince: now })
+      writes.push(ctx.db.patch(course._id, { missingSince: now }))
       missing += 1
       changes.push({
         classplusId: course.classplusId,
@@ -260,6 +288,7 @@ export const applySync = internalMutation({
         kind: "gone",
       })
     }
+    await Promise.all(writes)
 
     await ctx.db.insert("courseSyncs", {
       trigger: args.trigger,
@@ -282,13 +311,6 @@ export const applySync = internalMutation({
     return null
   },
 })
-
-async function slugFree(ctx: Pick<QueryCtx, "db">, slug: string) {
-  return !(await ctx.db
-    .query("courses")
-    .withIndex("by_slug", (q) => q.eq("slug", slug))
-    .first())
-}
 
 export const recordFailure = internalMutation({
   args: { trigger: TRIGGER, error: v.string() },
@@ -549,23 +571,24 @@ export const saveLocal = mutation({
     const revision = course.revision + 1
     await ctx.db.patch(args.id, { local, revision })
     // One lead course per exam: featuring this one stands the others down.
-    if (local.featured)
-      for await (const other of ctx.db.query("courses")) {
+    if (local.featured) {
+      const others: Doc<"courses">[] = []
+      for await (const other of ctx.db.query("courses"))
         if (
-          other._id === course._id ||
-          !other.local.featured ||
-          courseTrack({
-            track: other.local.track,
-            name: other.source.name,
-            category: other.source.category,
-          }) !== exam
+          other._id !== course._id &&
+          other.local.track === local.track &&
+          other.local.featured
         )
-          continue
-        await ctx.db.patch(other._id, {
-          local: { ...other.local, featured: undefined },
-          revision: other.revision + 1,
-        })
-      }
+          others.push(other)
+      await Promise.all(
+        others.map((other) =>
+          ctx.db.patch(other._id, {
+            local: { ...other.local, featured: undefined },
+            revision: other.revision + 1,
+          })
+        )
+      )
+    }
     await recordAudit(ctx, editor.value, {
       action: "save",
       entity: "course",

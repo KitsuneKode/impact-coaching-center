@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, setSystemTime, test } from "bun:test"
 import { betterAuth } from "better-auth/minimal"
 import { memoryAdapter, type MemoryDB } from "better-auth/adapters/memory"
 import { convexTest } from "convex-test"
 
 import { internal } from "../convex/_generated/api"
 import schema from "../convex/schema"
+import { RESEND_GAP_MS } from "../convex/otp"
 import { phoneAuthOptions } from "./phone-auth"
 
 const TEST_SECRET = "test-only-secret-not-used-outside-this-memory-adapter"
@@ -78,11 +79,15 @@ function harness() {
   async function request(path: string, body: Record<string, unknown>) {
     return post(`phone-number/${path}`, body)
   }
-  async function post(path: string, body: Record<string, unknown>) {
+  async function post(
+    path: string,
+    body: Record<string, unknown>,
+    headers: Record<string, string> = {}
+  ) {
     return auth.handler(
       new Request(`http://localhost:3000/api/auth/${path}`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...headers },
         body: JSON.stringify(body),
       })
     )
@@ -122,7 +127,46 @@ function harness() {
   }
 }
 
+/** The 30 seconds the sign-in screen and the server make a resend wait. */
+function waitOutResendGap() {
+  setSystemTime(new Date(Date.now() + RESEND_GAP_MS + 1))
+}
+
 describe("phone authentication through the installed plugin", () => {
+  afterEach(() => {
+    setSystemTime()
+    delete process.env.AUTH_PROXY_SECRET
+  })
+
+  test("a resend inside 30 seconds is refused, and the first code still works", async () => {
+    const h = harness()
+    await h.send()
+    const res = await h.send()
+    expect(res.status).toBe(429)
+    expect(await res.text()).toContain("Wait 30 seconds")
+    expect((await h.verify()).status).toBe(200)
+  })
+
+  test("with the proxy secret set, only requests the site forwarded get a code", async () => {
+    process.env.AUTH_PROXY_SECRET = "a-long-shared-proxy-secret"
+    const h = harness()
+    const direct = await h.post("phone-number/send-otp", {
+      phoneNumber: "+919876543210",
+    })
+    expect(direct.status).toBe(403)
+    expect(h.codes()).toHaveLength(0)
+    const forwarded = await h.post(
+      "phone-number/send-otp",
+      { phoneNumber: "+919876543210" },
+      {
+        "x-ict-proxy-key": "a-long-shared-proxy-secret",
+        "x-ict-client-ip": "203.0.113.7",
+      }
+    )
+    expect(forwarded.status).toBe(200)
+    expect(h.lastThrottle()?.ip).toBe("203.0.113.7")
+  })
+
   test("all accepted formats share one auth identity and one Person", async () => {
     const h = harness()
     for (const phone of ["98765 43210", "+919876543210", "09876543210"]) {
@@ -176,6 +220,7 @@ describe("phone authentication through the installed plugin", () => {
   test("a sequential resend leaves one live code", async () => {
     const h = harness()
     await h.send()
+    waitOutResendGap()
     await h.send()
     // One row, so which code is accepted cannot depend on createdAt ties.
     expect(h.db.verification).toHaveLength(1)
@@ -185,6 +230,7 @@ describe("phone authentication through the installed plugin", () => {
     const h = harness()
     await h.send()
     const superseded = h.lastCode()
+    waitOutResendGap()
     await h.send()
     expect((await h.verify(undefined, { code: superseded })).status).not.toBe(
       200

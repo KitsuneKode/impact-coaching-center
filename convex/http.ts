@@ -126,8 +126,9 @@ http.route({
     } catch {
       return new Response(null, { status: 400 })
     }
-    for (const { phones, code } of undeliverableFrom(payload))
-      await ctx.runMutation(internal.otp.markUndeliverable, { phones, code })
+    const failures = undeliverableFrom(payload)
+    if (failures.length)
+      await ctx.runMutation(internal.otp.markUndeliverable, { failures })
     return new Response(null, { status: 200 })
   }),
 })

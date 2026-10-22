@@ -381,13 +381,21 @@ export async function countSales(
   order: Doc<"orders">,
   sign: 1 | -1 = 1
 ) {
-  for (const line of order.lines) {
-    const bundle = await ctx.db.get(line.bundleId as Id<"bundles">)
-    if (bundle)
-      await ctx.db.patch(bundle._id, {
-        soldCount: Math.max(0, bundle.soldCount + sign * line.quantity),
-      })
-  }
+  /* One set can sit on two lines (English and Assamese). Summed per set
+     first: two parallel read-then-writes of one row would each read the
+     same count and the second would overwrite the first. */
+  const copies = new Map<Id<"bundles">, number>()
+  for (const line of order.lines)
+    copies.set(line.bundleId, (copies.get(line.bundleId) ?? 0) + line.quantity)
+  await Promise.all(
+    [...copies].map(async ([bundleId, quantity]) => {
+      const bundle = await ctx.db.get(bundleId)
+      if (bundle)
+        await ctx.db.patch(bundle._id, {
+          soldCount: Math.max(0, bundle.soldCount + sign * quantity),
+        })
+    })
+  )
 }
 
 const SETTLE_ARGS = {

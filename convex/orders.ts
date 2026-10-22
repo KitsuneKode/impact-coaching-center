@@ -536,21 +536,23 @@ export const expireUnpaid = internalMutation({
           .lt("placedAt", now - UNPAID_EXPIRY_MS)
       )
       .take(EXPIRE_BATCH)
-    for (const order of stale) {
-      await ctx.db.patch(order._id, {
-        status: "cancelled",
-        expiredAt: now,
-        updatedAt: now,
-        revision: (order.revision ?? 0) + 1,
-      })
-      await ctx.db.insert("activities", {
-        personId: order.personId,
-        kind: "order_status",
-        body: `Order ${order.reference} expired unpaid after three days.`,
-        from: "awaiting_payment",
-        to: "cancelled",
-      })
-    }
+    await Promise.all(
+      stale.flatMap((order) => [
+        ctx.db.patch(order._id, {
+          status: "cancelled",
+          expiredAt: now,
+          updatedAt: now,
+          revision: (order.revision ?? 0) + 1,
+        }),
+        ctx.db.insert("activities", {
+          personId: order.personId,
+          kind: "order_status",
+          body: `Order ${order.reference} expired unpaid after three days.`,
+          from: "awaiting_payment",
+          to: "cancelled",
+        }),
+      ])
+    )
     // More than one batch left: carry on in a fresh transaction.
     if (stale.length === EXPIRE_BATCH)
       await ctx.scheduler.runAfter(0, internal.orders.expireUnpaid, { now })

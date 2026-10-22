@@ -20,24 +20,29 @@ export const daily = internalMutation({
   returns: v.null(),
   handler: async (ctx) => {
     const now = Date.now()
-    const undeliverable = await ctx.db
-      .query("otpUndeliverable")
-      .withIndex("by_at", (q) => q.lt("at", now - UNDELIVERABLE_FOR_MS))
-      .take(BATCH)
-    const limits = await ctx.db
-      .query("rateLimits")
-      .withIndex("by_windowStart", (q) =>
-        q.lt("windowStart", now - RATE_LIMIT_STALE_AFTER)
+    const [undeliverable, limits, events] = await Promise.all([
+      ctx.db
+        .query("otpUndeliverable")
+        .withIndex("by_at", (q) => q.lt("at", now - UNDELIVERABLE_FOR_MS))
+        .take(BATCH),
+      ctx.db
+        .query("rateLimits")
+        .withIndex("by_windowStart", (q) =>
+          q.lt("windowStart", now - RATE_LIMIT_STALE_AFTER)
+        )
+        .take(BATCH),
+      ctx.db
+        .query("paymentEvents")
+        .withIndex("by_creation_time", (q) =>
+          q.lt("_creationTime", now - PAYMENT_EVENTS_KEPT)
+        )
+        .take(BATCH),
+    ])
+    await Promise.all(
+      [...undeliverable, ...limits, ...events].map((row) =>
+        ctx.db.delete(row._id)
       )
-      .take(BATCH)
-    const events = await ctx.db
-      .query("paymentEvents")
-      .withIndex("by_creation_time", (q) =>
-        q.lt("_creationTime", now - PAYMENT_EVENTS_KEPT)
-      )
-      .take(BATCH)
-    for (const row of [...undeliverable, ...limits, ...events])
-      await ctx.db.delete(row._id)
+    )
     if ([undeliverable, limits, events].some((rows) => rows.length === BATCH))
       await ctx.scheduler.runAfter(0, internal.cleanup.daily, {})
     return null

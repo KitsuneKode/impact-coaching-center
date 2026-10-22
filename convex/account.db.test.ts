@@ -188,6 +188,23 @@ describe("account deletion and unpaid orders", () => {
     const carts = await t.run((ctx) => ctx.db.query("carts").collect())
     expect(carts).toHaveLength(0)
   })
+
+  test("the name given with each enquiry goes with the account", async () => {
+    const { t, id, viewer } = await setup()
+    await t.run((ctx) =>
+      ctx.db.insert("enquiries", {
+        personId: id,
+        channel: "website",
+        name: "Anjali's brother",
+        referrer: "https://facebook.com/",
+      })
+    )
+    await t.run((ctx) => eraseAccount(ctx, viewer, "DELETE"))
+    const [kept] = await t.run((ctx) => ctx.db.query("enquiries").collect())
+    expect(kept?.name).toBeUndefined()
+    expect(kept?.referrer).toBeUndefined()
+    expect(kept?.channel).toBe("website")
+  })
 })
 
 describe("onboarding questionnaire", () => {

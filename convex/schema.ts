@@ -618,5 +618,7 @@ export default defineSchema({
     codeHash: v.optional(v.string()),
     codeExpiresAt: v.optional(v.number()),
     attempts: v.number(),
+    /** No new code before this (epoch ms): set when one was delivered. */
+    resendAfter: v.optional(v.number()),
   }).index("by_phone", ["phone"]),
 })

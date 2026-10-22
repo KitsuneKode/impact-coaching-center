@@ -1,7 +1,7 @@
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
-import { SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
+import { SEND_FROM_SITE, SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
 import { secretsMatch } from "./env"
 import { parseClientAddress } from "./client-address"
 import { toE164 } from "./leads"
@@ -155,11 +155,19 @@ export function phoneAuthOptions(delivery: {
              shared secret (lib/auth-server.ts); otherwise the forwarded
              chain, which may only name that server. */
           const proxySecret = process.env.AUTH_PROXY_SECRET
-          const vouched =
+          const fromOurSite = Boolean(
             proxySecret &&
             secretsMatch(header("x-ict-proxy-key") ?? "", proxySecret)
-              ? parseClientAddress(header("x-ict-client-ip"))
-              : null
+          )
+          /* With the secret set, codes are only sent for requests our site
+             forwarded. A script calling the Convex address directly would
+             otherwise choose the address its ceilings are counted against,
+             and step around any check the site adds in front. */
+          if (proxySecret && !fromOurSite)
+            throw new APIError("FORBIDDEN", { message: SEND_FROM_SITE })
+          const vouched = fromOurSite
+            ? parseClientAddress(header("x-ict-client-ip"))
+            : null
           const ip = vouched ?? parseClientAddress(header("x-forwarded-for"))
           const decision = await delivery.claim({ phone, ip })
           if (!decision.ok) {

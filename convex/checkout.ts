@@ -139,31 +139,37 @@ export async function placeOrderAs(
   const sets = cartLines.reduce((n, line) => n + line.quantity, 0)
   if (sets > ORDER_SETS_MAX) return invalidInput("quantity")
 
-  const lines = []
-  for (const line of cartLines) {
-    const bundle = await ctx.db
-      .query("bundles")
-      .withIndex("by_slug", (q) => q.eq("slug", line.slug))
-      .first()
-    const variant = bundle?.variants[line.language]
-    // Unpublished, switched off or demo-only bundles cannot be sold.
-    if (!bundle || !bundle.published || bundle.sample || !variant?.available)
-      return invalidInput("items")
-    const books = await Promise.all(bundle.bookIds.map((id) => ctx.db.get(id)))
-    const titles = books.map((book) => book?.editions[line.language]?.title)
-    // A set missing a book in this language is not the set on the page.
-    if (titles.length === 0 || titles.some((title) => !title))
-      return invalidInput("items")
-    lines.push({
-      bundleId: bundle._id,
-      slug: bundle.slug,
-      title: bundle.title.en,
-      language: line.language,
-      books: titles as string[],
-      quantity: line.quantity,
-      unitPaise: variant.pricePaise,
+  /* Every line's set and its books are read together; a line that cannot
+     be sold comes back null and refuses the whole order. */
+  const priced = await Promise.all(
+    cartLines.map(async (line) => {
+      const bundle = await ctx.db
+        .query("bundles")
+        .withIndex("by_slug", (q) => q.eq("slug", line.slug))
+        .first()
+      const variant = bundle?.variants[line.language]
+      // Unpublished, switched off or demo-only bundles cannot be sold.
+      if (!bundle || !bundle.published || bundle.sample || !variant?.available)
+        return null
+      const books = await Promise.all(
+        bundle.bookIds.map((id) => ctx.db.get(id))
+      )
+      const titles = books.map((book) => book?.editions[line.language]?.title)
+      // A set missing a book in this language is not the set on the page.
+      if (titles.length === 0 || titles.some((title) => !title)) return null
+      return {
+        bundleId: bundle._id,
+        slug: bundle.slug,
+        title: bundle.title.en,
+        language: line.language,
+        books: titles as string[],
+        quantity: line.quantity,
+        unitPaise: variant.pricePaise,
+      }
     })
-  }
+  )
+  if (priced.some((line) => line === null)) return invalidInput("items")
+  const lines = priced.filter((line) => line !== null)
   const itemsPaise = lines.reduce(
     (sum, line) => sum + line.unitPaise * line.quantity,
     0

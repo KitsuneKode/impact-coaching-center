@@ -97,23 +97,40 @@ export async function readToday(ctx: QueryCtx, viewer: Viewer, now: number) {
   const endOfToday = endOfTodayIst(now)
   const startOfToday = endOfToday - DAY
 
-  // The same counts the sidebar badge shows, so the two never disagree.
-  const counts = await readLeadCounts(ctx, viewer, now)
-
-  const uncalled = await ctx.db
-    .query("persons")
-    .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
-      q.eq("leadStatus", "new")
-    )
-    .take(TO_CALL_MAX)
-  const due = (
-    await ctx.db
-      .query("persons")
-      .withIndex("by_nextFollowUpAt", (q) =>
-        q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfToday)
-      )
-      .take(200)
-  ).filter((p) => !p.deletedAt && p.leadStatus && OPEN.has(p.leadStatus))
+  // Every read on this screen is independent: they run together.
+  const [counts, uncalled, followUps, paid, packed, ready, unpaid, owed, sync] =
+    await Promise.all([
+      // The same counts the sidebar badge shows, so the two never disagree.
+      readLeadCounts(ctx, viewer, now),
+      ctx.db
+        .query("persons")
+        .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
+          q.eq("leadStatus", "new")
+        )
+        .take(TO_CALL_MAX),
+      ctx.db
+        .query("persons")
+        .withIndex("by_nextFollowUpAt", (q) =>
+          q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfToday)
+        )
+        .take(200),
+      ordersIn(ctx, "paid"),
+      ordersIn(ctx, "packed"),
+      ordersIn(ctx, "ready_for_collection"),
+      ordersIn(ctx, "awaiting_payment"),
+      viewer.role === "owner"
+        ? ctx.db
+            .query("orders")
+            .withIndex("by_refundDueAt", (q) => q.gt("refundDueAt", 0))
+            .take(COUNT_CAP)
+        : null,
+      hasGrant(viewer, "catalog")
+        ? ctx.db.query("courseSyncs").order("desc").first()
+        : null,
+    ])
+  const due = followUps.filter(
+    (p) => !p.deletedAt && p.leadStatus && OPEN.has(p.leadStatus)
+  )
   const overdue = due.filter((p) => p.nextFollowUpAt! < startOfToday)
 
   // Overdue first, then due today, then the longest-waiting new enquiries.
@@ -144,25 +161,9 @@ export async function readToday(ctx: QueryCtx, viewer: Viewer, now: number) {
       at,
     }))
 
-  const paid = await ordersIn(ctx, "paid")
-  const packed = await ordersIn(ctx, "packed")
-  const ready = await ordersIn(ctx, "ready_for_collection")
-  const unpaid = await ordersIn(ctx, "awaiting_payment")
-
-  let refundsDue: number | undefined
-  if (viewer.role === "owner") {
-    const owed = await ctx.db
-      .query("orders")
-      .withIndex("by_refundDueAt", (q) => q.gt("refundDueAt", 0))
-      .take(COUNT_CAP)
-    refundsDue = owed.length
-  }
-
-  let syncFailedAt: number | undefined
-  if (hasGrant(viewer, "catalog")) {
-    const last = await ctx.db.query("courseSyncs").order("desc").first()
-    if (last?.status === "failed") syncFailedAt = last._creationTime
-  }
+  const refundsDue = owed?.length
+  const syncFailedAt =
+    sync?.status === "failed" ? sync._creationTime : undefined
 
   return {
     uncalled: {
@@ -259,54 +260,74 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
   const weekAgo = now - 7 * DAY
   const twoWeeksAgo = now - 14 * DAY
 
-  const fortnight = await ctx.db
-    .query("enquiries")
-    .withIndex("by_creation_time", (q) => q.gt("_creationTime", twoWeeksAgo))
-    .take(WINDOW_CAP + 1)
-  const thisWeek = fortnight.filter((e) => e._creationTime > weekAgo)
+  /* One read per source, all at once. The month's enquiries also answer
+     the fortnight's counts, so enquiries are read once, not twice. */
+  const [month, moves, orders, tapRows] = await Promise.all([
+    ctx.db
+      .query("enquiries")
+      .withIndex("by_creation_time", (q) =>
+        q.gt("_creationTime", now - 30 * DAY)
+      )
+      .take(WINDOW_CAP + 1),
+    ctx.db
+      .query("activities")
+      .withIndex("by_creation_time", (q) => q.gt("_creationTime", twoWeeksAgo))
+      .take(WINDOW_CAP * 3),
+    canSeeSales(viewer)
+      ? // Placed up to three weeks ago covers anything paid in the fortnight.
+        ctx.db
+          .query("orders")
+          .withIndex("by_placedAt", (q) => q.gt("placedAt", now - 21 * DAY))
+          .take(WINDOW_CAP)
+      : null,
+    Promise.all(
+      Array.from({ length: 7 }, (_, i) => indiaDay(now - i * DAY)).map((day) =>
+        ctx.db
+          .query("contactTaps")
+          .withIndex("by_day_and_kind_and_page_and_source", (q) =>
+            q.eq("day", day)
+          )
+          .take(300)
+      )
+    ).then((days) => days.flat()),
+  ])
+  const thisWeek = month.filter((e) => e._creationTime > weekAgo)
+  const lastWeek = month.filter(
+    (e) => e._creationTime > twoWeeksAgo && e._creationTime <= weekAgo
+  )
 
   /* First call: for each person who enquired this week, the first time
-     somebody at ICT called, noted or moved them after that enquiry. */
+     somebody at ICT called, noted or moved them after that enquiry. The
+     index orders a person's rows by time, so the range does the filtering. */
   const firstOf = new Map<Id<"persons">, number>()
   for (const enquiry of thisWeek)
     if (!firstOf.has(enquiry.personId))
       firstOf.set(enquiry.personId, enquiry._creationTime)
-  const waits: number[] = []
-  let waiting = 0
-  for (const [personId, at] of [...firstOf].slice(0, FIRST_CALL_SAMPLE)) {
-    const contact = await ctx.db
-      .query("activities")
-      .withIndex("by_person", (q) => q.eq("personId", personId))
-      .filter((q) =>
-        q.and(
-          q.gt(q.field("_creationTime"), at),
-          q.neq(q.field("actorId"), undefined)
+  const contacts = await Promise.all(
+    [...firstOf].slice(0, FIRST_CALL_SAMPLE).map(async ([personId, at]) => {
+      const after = await ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) =>
+          q.eq("personId", personId).gt("_creationTime", at)
         )
+        .take(20)
+      const first = after.find(
+        (row) => row.actorId !== undefined && CONTACT_KINDS.has(row.kind)
       )
-      .take(20)
-    const first = contact.find((row) => CONTACT_KINDS.has(row.kind))
-    if (first) waits.push(first._creationTime - at)
-    else waiting += 1
-  }
-  waits.sort((a, b) => a - b)
+      return first ? first._creationTime - at : null
+    })
+  )
+  const waits = contacts.filter((wait) => wait !== null).sort((a, b) => a - b)
+  const waiting = contacts.length - waits.length
   const median = waits.length ? waits[Math.floor(waits.length / 2)]! : null
 
   /* Enrolments: when staff moved somebody to enrolled. */
-  const moves = await ctx.db
-    .query("activities")
-    .withIndex("by_creation_time", (q) => q.gt("_creationTime", twoWeeksAgo))
-    .take(WINDOW_CAP * 3)
   const enrolments = moves.filter(
     (a) => a.kind === "status_change" && a.to === "enrolled"
   )
 
   let sales
-  if (canSeeSales(viewer)) {
-    // Placed up to three weeks ago covers anything paid in the fortnight.
-    const orders = await ctx.db
-      .query("orders")
-      .withIndex("by_placedAt", (q) => q.gt("placedAt", now - 21 * DAY))
-      .take(WINDOW_CAP)
+  if (orders) {
     let thisWeekPaise = 0
     let lastWeekPaise = 0
     let count = 0
@@ -321,43 +342,31 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
     sales = { thisWeekPaise, lastWeekPaise, orders: count }
   }
 
-  const tapRows = (
-    await Promise.all(
-      Array.from({ length: 7 }, (_, i) => indiaDay(now - i * DAY)).map((day) =>
-        ctx.db
-          .query("contactTaps")
-          .withIndex("by_day_and_kind_and_page_and_source", (q) =>
-            q.eq("day", day)
-          )
-          .take(300)
-      )
-    )
-  ).flat()
   const taps = { whatsapp: 0, call: 0 }
   for (const row of tapRows) taps[row.kind] += row.count
 
   /* The month: sources, pages and stages, one row per person. */
-  const month = await ctx.db
-    .query("enquiries")
-    .withIndex("by_creation_time", (q) => q.gt("_creationTime", now - 30 * DAY))
-    .take(WINDOW_CAP + 1)
   const firstEnquiry = new Map<Id<"persons">, Doc<"enquiries">>()
   for (const enquiry of month)
     if (!firstEnquiry.has(enquiry.personId))
       firstEnquiry.set(enquiry.personId, enquiry)
+  const people = await Promise.all(
+    [...firstEnquiry.keys()].map((id) => ctx.db.get(id))
+  )
   const sources = new Map<string, { people: number; enrolled: number }>()
   const pages = new Map<string, number>()
   const stages = { new: 0, contacted: 0, interested: 0, enrolled: 0, lost: 0 }
-  for (const [personId, enquiry] of firstEnquiry) {
-    const person = await ctx.db.get(personId)
+  for (const person of people) {
     if (!person || person.deletedAt) continue
+    const enquiry = firstEnquiry.get(person._id)!
     const status = person.leadStatus
     if (status && (STAGES as readonly string[]).includes(status))
       stages[status] += 1
-    const row = sources.get(sourceOf(enquiry)) ?? { people: 0, enrolled: 0 }
+    const source = sourceOf(enquiry)
+    const row = sources.get(source) ?? { people: 0, enrolled: 0 }
     row.people += 1
     if (status === "enrolled") row.enrolled += 1
-    sources.set(sourceOf(enquiry), row)
+    sources.set(source, row)
     if (enquiry.page) {
       const page = enquiry.page.split(/[?#]/)[0]!
       pages.set(page, (pages.get(page) ?? 0) + 1)
@@ -367,8 +376,8 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
   return {
     enquiries: {
       thisWeek: thisWeek.length,
-      lastWeek: fortnight.length - thisWeek.length,
-      capped: fortnight.length > WINDOW_CAP,
+      lastWeek: lastWeek.length,
+      capped: month.length > WINDOW_CAP,
     },
     firstCall: {
       medianHours: median === null ? null : median / (60 * 60 * 1000),

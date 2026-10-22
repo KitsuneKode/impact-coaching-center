@@ -40,9 +40,11 @@ async function withClientAddress(request: Request): Promise<Request> {
     request.headers.get("x-real-ip") ??
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
   // The address alone keys Better Auth's coarse per-address limiter; only
-  // the secret makes the OTP ceilings (lib/phone-auth.ts) trust it.
+  // the secret makes the OTP ceilings (lib/phone-auth.ts) trust it. The key
+  // goes on every request, address or not: with the secret set, Convex sends
+  // no code for a request that lacks it.
   if (ip) headers.set("x-ict-client-ip", ip)
-  if (secret && ip) headers.set("x-ict-proxy-key", secret)
+  if (secret) headers.set("x-ict-proxy-key", secret)
   const body =
     request.method === "GET" || request.method === "HEAD"
       ? undefined

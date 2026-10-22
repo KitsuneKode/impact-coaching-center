@@ -47,75 +47,96 @@ export async function eraseAccount(
   const person = await ctx.db.get(viewer.id)
   if (!person) return invalidInput("person")
 
-  const orders = await ctx.db
-    .query("orders")
-    .withIndex("by_personId_and_placedAt", (q) => q.eq("personId", person._id))
-    .collect()
+  // Everything that names this Person, read together.
+  const [orders, cart, opens, activities, enquiries, leases, undeliverable] =
+    await Promise.all([
+      ctx.db
+        .query("orders")
+        .withIndex("by_personId_and_placedAt", (q) =>
+          q.eq("personId", person._id)
+        )
+        .collect(),
+      ctx.db
+        .query("carts")
+        .withIndex("by_person", (q) => q.eq("personId", person._id))
+        .first(),
+      ctx.db
+        .query("resourceOpens")
+        .withIndex("by_personId_and_resourceId", (q) =>
+          q.eq("personId", person._id)
+        )
+        .collect(),
+      ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) => q.eq("personId", person._id))
+        .collect(),
+      ctx.db
+        .query("enquiries")
+        .withIndex("by_person", (q) => q.eq("personId", person._id))
+        .collect(),
+      /* Collect rather than `unique()`: a duplicated lease must not throw
+         and leave the erasure half-done - delete every row for the number. */
+      ctx.db
+        .query("otpSendLeases")
+        .withIndex("by_phone", (q) => q.eq("phone", person.phone))
+        .collect(),
+      ctx.db
+        .query("otpUndeliverable")
+        .withIndex("by_phone", (q) => q.eq("phone", person.phone))
+        .first(),
+    ])
   if (orders.some((order) => LIVE_ORDER.has(order.status)))
     return invalidInput("orders-in-progress")
 
   const now = Date.now()
-
-  // Orders stay for the books' sake; who and where they went do not. One
-  // still awaiting payment is cancelled (not expired), so a payment that
-  // arrives later is flagged for a refund instead of reviving it.
-  for (const order of orders)
-    await ctx.db.patch(order._id, {
-      address: undefined,
-      contact: { name: "", phone: "" },
-      updatedAt: now,
-      ...(order.status === "awaiting_payment"
-        ? { status: "cancelled" as const, revision: (order.revision ?? 0) + 1 }
-        : {}),
-    })
-
-  const cart = await ctx.db
-    .query("carts")
-    .withIndex("by_person", (q) => q.eq("personId", person._id))
-    .first()
-  if (cart) await ctx.db.delete(cart._id)
-  const opens = await ctx.db
-    .query("resourceOpens")
-    .withIndex("by_personId_and_resourceId", (q) =>
-      q.eq("personId", person._id)
-    )
-    .collect()
-  for (const open of opens) await ctx.db.delete(open._id)
-  const undeliverable = await ctx.db
-    .query("otpUndeliverable")
-    .withIndex("by_phone", (q) => q.eq("phone", person.phone))
-    .first()
-  if (undeliverable) await ctx.db.delete(undeliverable._id)
-
-  const activities = await ctx.db
-    .query("activities")
-    .withIndex("by_person", (q) => q.eq("personId", person._id))
-    .collect()
-  for (const row of activities)
-    if (row.body || row.track || row.timing)
-      await ctx.db.patch(row._id, {
-        body: undefined,
-        track: undefined,
-        timing: undefined,
+  await Promise.all([
+    // Orders stay for the books' sake; who and where they went do not. One
+    // still awaiting payment is cancelled (not expired), so a payment that
+    // arrives later is flagged for a refund instead of reviving it.
+    ...orders.map((order) =>
+      ctx.db.patch(order._id, {
+        address: undefined,
+        contact: { name: "", phone: "" },
+        updatedAt: now,
+        ...(order.status === "awaiting_payment"
+          ? {
+              status: "cancelled" as const,
+              revision: (order.revision ?? 0) + 1,
+            }
+          : {}),
       })
-
-  await ctx.db.replace(person._id, {
-    // Unique per tombstone, never a valid E.164 number, so `by_phone` can
-    // neither match it nor collide when the number signs up again.
-    phone: `deleted:${person._id}`,
-    name: "",
-    role: "student",
-    source: person.source,
-    deletedAt: now,
-    updatedAt: now,
-    revision: (person.revision ?? 0) + 1,
-  })
-  const enquiries = await ctx.db
-    .query("enquiries")
-    .withIndex("by_person", (q) => q.eq("personId", person._id))
-    .collect()
-  for (const row of enquiries)
-    if (row.referrer) await ctx.db.patch(row._id, { referrer: undefined })
+    ),
+    // Free text and names go; who did what, and when, stays.
+    ...activities
+      .filter((row) => row.body || row.track || row.timing)
+      .map((row) =>
+        ctx.db.patch(row._id, {
+          body: undefined,
+          track: undefined,
+          timing: undefined,
+        })
+      ),
+    ...enquiries
+      .filter((row) => row.referrer || row.name)
+      .map((row) =>
+        ctx.db.patch(row._id, { referrer: undefined, name: undefined })
+      ),
+    ...(cart ? [ctx.db.delete(cart._id)] : []),
+    ...opens.map((open) => ctx.db.delete(open._id)),
+    ...leases.map((lease) => ctx.db.delete(lease._id)),
+    ...(undeliverable ? [ctx.db.delete(undeliverable._id)] : []),
+    ctx.db.replace(person._id, {
+      // Unique per tombstone, never a valid E.164 number, so `by_phone` can
+      // neither match it nor collide when the number signs up again.
+      phone: `deleted:${person._id}`,
+      name: "",
+      role: "student",
+      source: person.source,
+      deletedAt: now,
+      updatedAt: now,
+      revision: (person.revision ?? 0) + 1,
+    }),
+  ])
   await recordAudit(
     ctx,
     { id: person._id },
@@ -126,14 +147,6 @@ export async function eraseAccount(
       summary: "Account erased by its owner.",
     }
   )
-
-  /* Collect rather than `unique()`: a duplicated lease must not throw and
-     leave the erasure half-done - delete every row for the number. */
-  const leases = await ctx.db
-    .query("otpSendLeases")
-    .withIndex("by_phone", (q) => q.eq("phone", person.phone))
-    .collect()
-  for (const lease of leases) await ctx.db.delete(lease._id)
 
   return { ok: true as const, phone: person.phone }
 }

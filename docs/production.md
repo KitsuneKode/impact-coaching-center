@@ -108,15 +108,15 @@ API with an approved **copy-code authentication template**
 when it is chosen without its settings, so a misconfiguration shows at once
 rather than as silent missing codes.
 
-| Variable                   | Purpose                                                                                                                              |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `WHATSAPP_ACCESS_TOKEN`    | A permanent system-user token with `whatsapp_business_messaging`                                                                     |
-| `WHATSAPP_PHONE_NUMBER_ID` | The ID of ICT's new sending number (not the number itself)                                                                           |
-| `WHATSAPP_OTP_TEMPLATE`    | The approved template's name; defaults to `verification_code`                                                                        |
-| `WHATSAPP_OTP_LANGUAGE`    | The template's language code; defaults to `en`                                                                                       |
-| `WHATSAPP_APP_SECRET`      | The Meta app's secret; signs the status webhook                                                                                      |
-| `WHATSAPP_VERIFY_TOKEN`    | Any long random string; Meta sends it back to verify the webhook                                                                     |
-| `AUTH_PROXY_SECRET`        | Any long random string, set on Convex AND the site host: lets sign-in limits see each visitor's address instead of the site server's |
+| Variable                   | Purpose                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WHATSAPP_ACCESS_TOKEN`    | A permanent system-user token with `whatsapp_business_messaging`                                                                                                                                                                                                                                          |
+| `WHATSAPP_PHONE_NUMBER_ID` | The ID of ICT's new sending number (not the number itself)                                                                                                                                                                                                                                                |
+| `WHATSAPP_OTP_TEMPLATE`    | The approved template's name; defaults to `verification_code`                                                                                                                                                                                                                                             |
+| `WHATSAPP_OTP_LANGUAGE`    | The template's language code; defaults to `en`                                                                                                                                                                                                                                                            |
+| `WHATSAPP_APP_SECRET`      | The Meta app's secret; signs the status webhook                                                                                                                                                                                                                                                           |
+| `WHATSAPP_VERIFY_TOKEN`    | Any long random string; Meta sends it back to verify the webhook                                                                                                                                                                                                                                          |
+| `AUTH_PROXY_SECRET`        | Any long random string, set on Convex AND the site host, the same value: lets sign-in limits see each visitor's address instead of the site server's, and makes Convex refuse code requests that did not come through the site. Set it on the site first: on Convex alone, every code request is refused. |
 
 **Webhook:** in the Meta app, subscribe the WhatsApp Business Account's
 `messages` field to `https://<deployment>.convex.site/whatsapp/webhook` with

@@ -5,10 +5,15 @@ import { toE164 } from "../lib/leads"
 import type { Doc } from "./_generated/dataModel"
 import type { MutationCtx } from "./_generated/server"
 import { internalMutation } from "./_generated/server"
-import { consumeRateLimit } from "./persons"
+import { consumeRateLimit, rateLimitAllows } from "./persons"
 
 /** Which ceiling refused a send, or null when none did. */
-export type SendRefusal = "phone" | "address" | "deployment" | "not_whatsapp"
+export type SendRefusal =
+  | "phone"
+  | "address"
+  | "deployment"
+  | "not_whatsapp"
+  | "too_soon"
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
@@ -32,6 +37,13 @@ export const UNDELIVERABLE_FOR_MS = 30 * 24 * 60 * 60_000
 /** Global daily ceiling. Every send is a billed message once WhatsApp lands. */
 export const SENDS_PER_DAY_GLOBAL = 500
 
+/**
+ * The least time between two delivered codes to one number, matching the
+ * sign-in screen's "Send again in 30s". Without it a script can land three
+ * WhatsApp messages on somebody else's phone within seconds.
+ */
+export const RESEND_GAP_MS = 30_000
+
 /** How long a send may stay in flight before another request may take over. */
 export const SEND_LEASE_MS = 20_000
 
@@ -45,7 +57,8 @@ const sendRefusal = v.union(
   v.literal("phone"),
   v.literal("address"),
   v.literal("deployment"),
-  v.literal("not_whatsapp")
+  v.literal("not_whatsapp"),
+  v.literal("too_soon")
 )
 
 /**
@@ -72,9 +85,11 @@ async function leaseByPhone(ctx: MutationCtx, phone: string) {
   const discardsANewerOrEqualGeneration = rows.some(
     (row) => row._id !== keep._id && row.generation >= keep.generation
   )
-  for (const extra of rows) {
-    if (extra._id !== keep._id) await ctx.db.delete(extra._id)
-  }
+  await Promise.all(
+    rows
+      .filter((extra) => extra._id !== keep._id)
+      .map((extra) => ctx.db.delete(extra._id))
+  )
   if (!discardsANewerOrEqualGeneration) return keep
   const generation = maxGeneration + 1
   await ctx.db.patch(keep._id, { generation })
@@ -117,25 +132,32 @@ async function askedRecently(ctx: MutationCtx, key: string, now: number) {
  * on WhatsApp). Later sends to them are refused for UNDELIVERABLE_FOR_MS.
  */
 export const markUndeliverable = internalMutation({
-  args: { phones: v.array(v.string()), code: v.number() },
+  args: {
+    /** One entry per failed status in a webhook, delivered together. */
+    failures: v.array(
+      v.object({ phones: v.array(v.string()), code: v.number() })
+    ),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
     const now = Date.now()
-    for (const raw of args.phones.slice(0, 50)) {
-      const phone = toE164(raw)
-      if (!phone) continue
-      const row = await ctx.db
-        .query("otpUndeliverable")
-        .withIndex("by_phone", (q) => q.eq("phone", phone))
-        .first()
-      if (row) await ctx.db.patch(row._id, { at: now, code: args.code })
-      else
-        await ctx.db.insert("otpUndeliverable", {
-          phone,
-          code: args.code,
-          at: now,
-        })
-    }
+    // The same number can fail twice in one webhook; the last code wins.
+    const codes = new Map<string, number>()
+    for (const { phones, code } of args.failures.slice(0, 50))
+      for (const raw of phones.slice(0, 50)) {
+        const phone = toE164(raw)
+        if (phone) codes.set(phone, code)
+      }
+    await Promise.all(
+      [...codes].map(async ([phone, code]) => {
+        const row = await ctx.db
+          .query("otpUndeliverable")
+          .withIndex("by_phone", (q) => q.eq("phone", phone))
+          .first()
+        if (row) await ctx.db.patch(row._id, { at: now, code })
+        else await ctx.db.insert("otpUndeliverable", { phone, code, at: now })
+      })
+    )
     return null
   },
 })
@@ -154,6 +176,8 @@ export const claimOtpSend = internalMutation({
     const existing = await leaseByPhone(ctx, phone)
     if (existing && existing.inflightUntil > now)
       return { ok: false as const, reason: "inflight" as const }
+    if (existing?.resendAfter && existing.resendAfter > now)
+      return { ok: false as const, reason: "too_soon" as const }
     // WhatsApp already told us it cannot reach this number: refuse before
     // spending anything, and say why.
     const undeliverable = await ctx.db
@@ -231,10 +255,22 @@ export const claimOtpSend = internalMutation({
         refusal: "deployment",
       },
     ]
-    for (const { key, limit, windowMs, refusal } of checks) {
-      if (!(await consumeRateLimit(ctx, key, limit, windowMs)))
-        return { ok: false as const, reason: refusal }
-    }
+    /* Every ceiling is checked before any is spent: a refusal by the
+       deployment's daily cap must not also use up this number's own
+       allowance, or a person retrying during an outage locks themselves
+       out for ten minutes once it is over. One transaction, so nothing can
+       slip in between the check and the spend. */
+    const verdicts = await Promise.all(
+      checks.map((check) =>
+        rateLimitAllows(ctx, check.key, check.limit, check.windowMs)
+      )
+    )
+    const refused = checks.find((_, i) => !verdicts[i])
+    if (refused) return { ok: false as const, reason: refused.refusal }
+    // In turn, not in parallel: each spend also prunes a few stale rows,
+    // and two at once could pick the same row to delete.
+    for (const { key, limit, windowMs } of checks)
+      await consumeRateLimit(ctx, key, limit, windowMs)
     const generation = (existing?.generation ?? 0) + 1
     const inflightUntil = now + SEND_LEASE_MS
     if (existing)
@@ -287,7 +323,10 @@ export const releaseOtpSend = internalMutation({
     if (!phone) return null
     const row = await leaseByPhone(ctx, phone)
     if (!row || row.generation !== args.generation) return null
-    await ctx.db.patch(row._id, { inflightUntil: 0 })
+    await ctx.db.patch(row._id, {
+      inflightUntil: 0,
+      resendAfter: Date.now() + RESEND_GAP_MS,
+    })
     return null
   },
 })

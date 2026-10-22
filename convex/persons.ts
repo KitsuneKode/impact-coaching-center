@@ -151,6 +151,24 @@ export async function consumeRateLimit(
   return true
 }
 
+/**
+ * Whether one more call fits under `limit`, without spending it. Callers
+ * with several ceilings check them all first and spend only when every one
+ * allows, so a refusal by the last never uses up the first.
+ */
+export async function rateLimitAllows(
+  ctx: MutationCtx,
+  key: string,
+  limit: number,
+  windowMs: number
+) {
+  const row = await ctx.db
+    .query("rateLimits")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first()
+  return !row || Date.now() - row.windowStart >= windowMs || row.count < limit
+}
+
 /** Raised when a caller exceeds a public submission ceiling. */
 /**
  * Better Auth's per-address limiter (convex/auth.ts), on the same indexed

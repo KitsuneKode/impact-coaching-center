@@ -105,12 +105,14 @@ async function pdfUploaded(ctx: MutationCtx, pdf: Infer<typeof PDF_DOCUMENT>) {
 
 /** Every id is an uploaded image of a sensible size, and none repeats. */
 async function allImages(ctx: MutationCtx, ids: readonly StorageId[]) {
-  for (const id of ids) {
-    const file = await ctx.db.system.get("_storage", id)
-    if (!file?.contentType?.startsWith("image/")) return false
-    if (file.size > IMAGE_MAX_BYTES) return false
-  }
-  return new Set(ids).size === ids.length
+  if (new Set(ids).size !== ids.length) return false
+  const files = await Promise.all(
+    ids.map((id) => ctx.db.system.get("_storage", id))
+  )
+  return files.every(
+    (file) =>
+      file?.contentType?.startsWith("image/") && file.size <= IMAGE_MAX_BYTES
+  )
 }
 
 function bookFiles(book: Pick<Doc<"books">, "editions">): StorageId[] {
@@ -124,31 +126,47 @@ function bookFiles(book: Pick<Doc<"books">, "editions">): StorageId[] {
 type Owner = { table: "books" | "bundles" | "resources"; id: string }
 
 /**
- * Whether a record other than `except` still points at this file. Admin-only
- * and over small tables, so the scan streams rather than collecting.
+ * The files some record other than `except` points at, read once. Each
+ * table is streamed once in parallel, so dropping 300 replaced page images
+ * costs one pass over the catalogue rather than one pass per image. Admin-
+ * only and over small tables, so streaming beats an index per file field.
  */
-async function referencedElsewhere(
-  ctx: MutationCtx,
-  id: StorageId,
-  except?: Owner
-) {
-  const skip = (table: Owner["table"], docId: string) =>
+async function filesInUse(ctx: MutationCtx, except?: Owner) {
+  const used = new Set<StorageId>()
+  /* A post can embed an image anywhere in its Markdown, so post bodies are
+     searched per file rather than parsed into ids. */
+  const bodies: string[] = []
+  const mine = (table: Owner["table"], docId: string) =>
     except?.table === table && except.id === docId
-  for await (const book of ctx.db.query("books"))
-    if (!skip("books", book._id) && bookFiles(book).includes(id)) return true
-  for await (const bundle of ctx.db.query("bundles"))
-    if (!skip("bundles", bundle._id) && bundle.cover === id) return true
-  for await (const resource of ctx.db.query("resources"))
-    if (!skip("resources", resource._id) && resource.pageImages.includes(id))
-      return true
-  /* Files other areas own: never this module's to delete. */
-  for await (const course of ctx.db.query("courses"))
-    if (course.cover === id) return true
-  for await (const post of ctx.db.query("posts"))
-    if (post.cover === id || post.body.includes(id)) return true
-  for await (const campaign of ctx.db.query("campaigns"))
-    if (campaign.image === id) return true
-  return false
+  const scan = async <T>(rows: AsyncIterable<T>, each: (row: T) => void) => {
+    for await (const row of rows) each(row)
+  }
+  await Promise.all([
+    scan(ctx.db.query("books"), (book) => {
+      if (!mine("books", book._id))
+        for (const id of bookFiles(book)) used.add(id)
+    }),
+    scan(ctx.db.query("bundles"), (bundle) => {
+      if (!mine("bundles", bundle._id) && bundle.cover) used.add(bundle.cover)
+    }),
+    scan(ctx.db.query("resources"), (resource) => {
+      if (!mine("resources", resource._id))
+        for (const id of resource.pageImages) used.add(id)
+    }),
+    /* Files other areas own: never this module's to delete. */
+    scan(ctx.db.query("courses"), (course) => {
+      if (course.cover) used.add(course.cover)
+    }),
+    scan(ctx.db.query("posts"), (post) => {
+      if (post.cover) used.add(post.cover)
+      bodies.push(post.body)
+    }),
+    scan(ctx.db.query("campaigns"), (campaign) => {
+      if (campaign.image) used.add(campaign.image)
+    }),
+  ])
+  return (id: StorageId) =>
+    used.has(id) || bodies.some((body) => body.includes(id))
 }
 
 /** Delete a file and its size record. */
@@ -169,9 +187,12 @@ async function dropReplaced(
   except: Owner
 ) {
   const kept = new Set(after)
-  for (const id of before)
-    if (!kept.has(id) && !(await referencedElsewhere(ctx, id, except)))
-      await deleteFile(ctx, id)
+  const dropped = before.filter((id) => !kept.has(id))
+  if (dropped.length === 0) return
+  const inUse = await filesInUse(ctx, except)
+  await Promise.all(
+    dropped.filter((id) => !inUse(id)).map((id) => deleteFile(ctx, id))
+  )
 }
 
 /** A slug is taken only when a different row holds it. */
@@ -249,7 +270,7 @@ export const discardUpload = mutation({
 
 /** The discard itself, split out so it can be tested without a session. */
 export async function applyDiscardUpload(ctx: MutationCtx, id: StorageId) {
-  if (await referencedElsewhere(ctx, id)) return invalidInput("image")
+  if ((await filesInUse(ctx))(id)) return invalidInput("image")
   await deleteFile(ctx, id)
   return { ok: true as const }
 }
@@ -346,19 +367,34 @@ export const adminBook = query({
           })
         )
       ).filter((row) => row !== null)
-    const editions: Record<string, Infer<typeof ADMIN_EDITION>> = {}
-    for (const language of LANGUAGES) {
-      const edition = book.editions[language]
-      if (!edition) continue
-      editions[language] = {
-        title: edition.title,
-        subtitle: edition.subtitle,
-        edition: edition.edition,
-        pages: edition.pages,
-        cover: (await withIds(edition.cover ? [edition.cover] : []))[0] ?? null,
-        samplePages: await withIds(edition.samplePages),
-      }
-    }
+    // Both languages, and each one's cover and pages, load together.
+    const editions = Object.fromEntries(
+      await Promise.all(
+        LANGUAGES.flatMap((language) => {
+          const edition = book.editions[language]
+          if (!edition) return []
+          return [
+            (async () => {
+              const [cover, samplePages] = await Promise.all([
+                withIds(edition.cover ? [edition.cover] : []),
+                withIds(edition.samplePages),
+              ])
+              return [
+                language,
+                {
+                  title: edition.title,
+                  subtitle: edition.subtitle,
+                  edition: edition.edition,
+                  pages: edition.pages,
+                  cover: cover[0] ?? null,
+                  samplePages,
+                },
+              ] as const
+            })(),
+          ]
+        })
+      )
+    ) as Record<string, Infer<typeof ADMIN_EDITION>>
     return {
       id: book._id,
       slug: book.slug,
@@ -614,8 +650,8 @@ export async function applySaveBundle(
     new Set(args.bookIds).size !== args.bookIds.length
   )
     return invalidInput("books")
-  for (const bookId of args.bookIds)
-    if (!(await ctx.db.get(bookId))) return invalidInput("books")
+  const books = await Promise.all(args.bookIds.map((id) => ctx.db.get(id)))
+  if (books.some((book) => !book)) return invalidInput("books")
   if (args.cover && !(await allImages(ctx, [args.cover])))
     return invalidInput("cover")
   if (await slugTaken(ctx, "bundles", checked.value.slug, args.id))
