@@ -3,7 +3,7 @@
 import { IconLoader2, IconTrash } from "@tabler/icons-react"
 import { useMutation } from "convex/react"
 import { useRouter } from "next/navigation"
-import { useId, useState } from "react"
+import { useId, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -29,7 +29,10 @@ import {
 } from "@/components/ui/input-otp"
 import { api } from "@/convex/_generated/api"
 import { resetAnalytics } from "@/lib/analytics"
+import { Turnstile } from "@/components/marketing/turnstile"
 import { authClient } from "@/lib/auth-client"
+import { publicEnv } from "@/lib/public-env"
+import { HUMAN_CHECK_HEADER } from "@/lib/turnstile"
 import { formatPhone } from "@/lib/brand"
 import { CODE_LENGTH } from "@/lib/phone-auth-flow"
 
@@ -65,6 +68,9 @@ export function DeleteAccount({
   const [code, setCode] = useState("")
   const [pending, setPending] = useState<"send" | "delete" | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // The same Turnstile check as sign-in: this asks for a code too.
+  const humanToken = useRef("")
+  const [humanEpoch, setHumanEpoch] = useState(0)
   const router = useRouter()
 
   if (role !== "student")
@@ -81,10 +87,12 @@ export function DeleteAccount({
     setPending("send")
     setError(null)
     try {
-      const result = await authClient.phoneNumber.sendOtp({
-        phoneNumber: phone,
-      })
+      const result = await authClient.phoneNumber.sendOtp(
+        { phoneNumber: phone },
+        { headers: { [HUMAN_CHECK_HEADER]: humanToken.current } }
+      )
       if (result.error) {
+        setHumanEpoch((epoch) => epoch + 1)
         setError(result.error.message ?? "Couldn't send a code. Try again.")
         return
       }
@@ -187,6 +195,17 @@ export function DeleteAccount({
                 to{" "}
                 <span className="tnum font-medium">{formatPhone(phone)}</span>.
               </p>
+              {publicEnv.turnstileSiteKey ? (
+                <div className="mbs-4">
+                  <Turnstile
+                    siteKey={publicEnv.turnstileSiteKey}
+                    resetKey={humanEpoch}
+                    onToken={(token) => {
+                      humanToken.current = token
+                    }}
+                  />
+                </div>
+              ) : null}
               {error ? (
                 <FieldError className="mbs-3">{error}</FieldError>
               ) : null}

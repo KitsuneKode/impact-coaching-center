@@ -18,12 +18,17 @@ export const SEND_REFUSALS = {
 export const SEND_FROM_SITE =
   "Ask for your code on the ICT website, then enter it there."
 
+/** The Turnstile check on a code request failed or never finished. */
+export const HUMAN_CHECK =
+  "The security check didn't finish. Wait a moment for it to complete, then try again."
+
 export const WHATSAPP_ONLY =
   "Sign-in is a WhatsApp code to your mobile number. There is no email or password sign-in."
 
 export const SPEAKABLE_SERVER_MESSAGES: ReadonlySet<string> = new Set([
   ...Object.values(SEND_REFUSALS),
   SEND_FROM_SITE,
+  HUMAN_CHECK,
   WHATSAPP_ONLY,
 ])
 

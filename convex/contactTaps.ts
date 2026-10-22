@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 
 import { mutation } from "./_generated/server"
+import { consumeRateLimit } from "./persons"
 
 /** India's date for a moment, as YYYY-MM-DD. */
 export function indiaDay(at: number) {
@@ -16,6 +17,9 @@ const tidy = (text: string, max: number) =>
 /** Distinct page and source pairs one day keeps; ICT's site has far fewer. */
 const ROWS_PER_DAY = 300
 
+/** Taps counted per kind per minute, far above real visitors. */
+const TAPS_PER_MINUTE = 120
+
 /**
  * Count one tap on a WhatsApp or phone link. Anonymous on purpose: it adds
  * one to the day's total for that page and source, nothing else. A flood can
@@ -29,6 +33,16 @@ export const record = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    // A ceiling per kind, so a script cannot inflate the counts at will.
+    if (
+      !(await consumeRateLimit(
+        ctx,
+        `taps:${args.kind}`,
+        TAPS_PER_MINUTE,
+        60_000
+      ))
+    )
+      return null
     const day = indiaDay(Date.now())
     let page = tidy(args.page.split("?")[0] ?? "/", 120)
     let source = tidy(args.source, 60)

@@ -311,3 +311,21 @@ describe("the promotions grant", () => {
     expect(made.ok).toBe(true)
   })
 })
+
+describe("counting a promotion's views and clicks", () => {
+  test("a script hammering the counter stops moving it past the ceiling", async () => {
+    const t = convexTest(schema, modules)
+    const id = await t.run((ctx) =>
+      ctx.db.insert("campaigns", {
+        ...bar,
+        status: "live",
+        revision: 0,
+        updatedAt: 0,
+      })
+    )
+    for (let i = 0; i < 125; i++)
+      await t.mutation(api.campaigns.track, { id, event: "click" })
+    const stats = await t.run((ctx) => ctx.db.query("campaignStats").collect())
+    expect(stats[0]?.clicks).toBe(120)
+  })
+})

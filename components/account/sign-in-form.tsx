@@ -24,7 +24,10 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp"
+import { Turnstile } from "@/components/marketing/turnstile"
 import { authClient } from "@/lib/auth-client"
+import { publicEnv } from "@/lib/public-env"
+import { HUMAN_CHECK_HEADER } from "@/lib/turnstile"
 import { TERMS_VERSION } from "@/lib/terms"
 import { nationalMobileDraft, toE164 } from "@/lib/leads"
 import {
@@ -48,9 +51,17 @@ export function SignInForm({
   // One flow per mounted form. It owns every request, so a late answer for a
   // number that has since been edited, or for a form that has gone, is dropped
   // instead of moving the wrong number into the code step.
+  // Each code request carries a fresh Turnstile token; the server checks it
+  // before Convex is asked (lib/auth-server.ts). A token works once.
+  const [humanToken] = useState(tokenBox)
+  const [humanEpoch, setHumanEpoch] = useState(0)
   const [flow] = useState(() =>
     createPhoneAuthFlow({
-      send: (phoneNumber) => authClient.phoneNumber.sendOtp({ phoneNumber }),
+      send: (phoneNumber) =>
+        authClient.phoneNumber.sendOtp(
+          { phoneNumber },
+          { headers: { [HUMAN_CHECK_HEADER]: humanToken.get() } }
+        ),
       verify: (input) => authClient.phoneNumber.verify(input),
     })
   )
@@ -114,8 +125,16 @@ export function SignInForm({
     try {
       localStorage.setItem(TERMS_KEY, TERMS_VERSION)
     } catch {}
-    void flow.send()
+    void flow.send().finally(() => setHumanEpoch((epoch) => epoch + 1))
   }
+
+  const humanCheck = publicEnv.turnstileSiteKey ? (
+    <Turnstile
+      siteKey={publicEnv.turnstileSiteKey}
+      resetKey={humanEpoch}
+      onToken={humanToken.set}
+    />
+  ) : null
 
   /*
    * Hand over to the name step rather than redirecting here, after the
@@ -202,6 +221,7 @@ export function SignInForm({
             )}
           </Field>
 
+          {humanCheck}
           <Field orientation="horizontal">
             <Button type="submit" size="md" disabled={busy && !accepted}>
               {accepted ? (
@@ -335,6 +355,7 @@ export function SignInForm({
           </div>
         </Field>
 
+        {humanCheck}
         <Field>
           <Button type="submit" size="md" disabled={busy && !accepted}>
             {busy ? (
@@ -353,6 +374,17 @@ export function SignInForm({
       </FieldGroup>
     </form>
   )
+}
+
+/** The widget's latest token, read when a request goes out. */
+function tokenBox() {
+  let token = ""
+  return {
+    get: () => token,
+    set: (next: string) => {
+      token = next
+    },
+  }
 }
 
 /** This device's record of the terms version its visitor agreed to. */

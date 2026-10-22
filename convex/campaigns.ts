@@ -22,6 +22,7 @@ import {
 } from "./authz"
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
+import { consumeRateLimit } from "./persons"
 import { revalidateSite } from "./site"
 import { PICTURE, pictureOf } from "./images"
 import { CAMPAIGN_KIND, CAMPAIGN_STATUS, CAMPAIGN_WORDS } from "./schema"
@@ -370,12 +371,26 @@ const COUNTER = { view: "views", click: "clicks", close: "closes" } as const
  * contact taps: it adds one to that day's total and nothing else. The
  * browser sends each view once per visit.
  */
+/** Per promotion and event: far above a coaching centre's real traffic. */
+const PROMO_EVENTS_PER_MINUTE = 120
+
 export const track = mutation({
   args: { id: v.id("campaigns"), event: EVENT },
   returns: v.null(),
   handler: async (ctx, args) => {
     const campaign = await ctx.db.get(args.id)
     if (!campaign || campaign.status !== "live") return null
+    // Anyone can call this; past the ceiling a script stops moving the
+    // numbers the owner judges a promotion by.
+    if (
+      !(await consumeRateLimit(
+        ctx,
+        `promo:${args.id}:${args.event}`,
+        PROMO_EVENTS_PER_MINUTE,
+        60_000
+      ))
+    )
+      return null
     const day = indiaDay(Date.now())
     const field = COUNTER[args.event]
     const row = await ctx.db
