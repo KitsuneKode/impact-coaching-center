@@ -795,7 +795,7 @@
     "notNow": "Not now",
     "close": "Close",
     "label": "Offer",
-    "ends": "Ends {when}"
+    "ends": "{unit, select, day {Ends in {n, plural, one {# day} other {# days}}} hour {Ends in {n, plural, one {# hour} other {# hours}}} other {Ends soon}}"
   },
   "Finder": {
     "kicker": "Not sure which course?",

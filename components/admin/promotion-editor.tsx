@@ -378,6 +378,8 @@ function PromotionForm({
     coupon: draft.coupon.trim().toUpperCase(),
     reelIds: videos.ids,
     image: withImage && image?.url ? { url: image.url } : null,
+    // So the owner sees the "Ends in 3 days" line visitors will.
+    endsAt: istInputToMs(draft.endsAt),
   }
 
   return (

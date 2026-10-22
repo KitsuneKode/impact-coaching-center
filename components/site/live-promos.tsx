@@ -57,6 +57,7 @@ const toPromo = (row: LivePromo): Promo => ({
   coupon: row.coupon,
   reelIds: row.reelIds,
   image: row.image,
+  endsAt: row.endsAt,
 })
 
 /**
@@ -198,7 +199,9 @@ function TimedPopup({
 
     const end =
       document.querySelector("[data-page-end]") ??
-      document.querySelector("footer")
+      // The site's footer, not the first <footer>: cards and the course
+      // finder have their own, high on the page.
+      document.querySelector("[data-site-footer]")
     // "Mostly in view" against the smaller of the element and the screen: on
     // a phone the footer is taller than the screen and never 60% visible.
     const watcher = new IntersectionObserver(
@@ -269,6 +272,9 @@ function TimedPopup({
               acted.current = true
               onAction()
               setOpen(false)
+              // Setting `open` ourselves skips onOpenChange, so remember the
+              // click here: its rest days apply after a click as after a close.
+              onDone()
             }}
             title={(text) => (
               <DialogPrimitive.Title className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-balance">

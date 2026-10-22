@@ -12,6 +12,7 @@ import Image from "next/image"
 import { useState, type ReactNode } from "react"
 
 import { VideoDialog } from "@/components/marketing/video-dialog"
+import { useMinute } from "@/components/site/use-live-promos"
 
 /** A promotion as the site shows it; the live query and the admin preview both produce this. */
 export type Promo = {
@@ -24,6 +25,31 @@ export type Promo = {
   coupon: string
   reelIds: readonly string[]
   image: { url: string; blurDataUrl?: string } | null
+  /** When it switches itself off; the last week reads as a deadline. */
+  endsAt?: number
+}
+
+const HOUR_MS = 3_600_000
+const DAY_MS = 24 * HOUR_MS
+
+/**
+ * "Ends in 3 days", in the visitor's language, once a promotion is in its
+ * last week. Counted here rather than with Intl.RelativeTimeFormat: Chrome
+ * ships no Assamese for it and would say "in 3 days" on the Assamese site.
+ */
+function EndsIn({ endsAt, className }: { endsAt?: number; className: string }) {
+  const t = useTranslations("Promos")
+  const now = useMinute()
+  if (!endsAt || now === null || endsAt <= now || endsAt - now > 7 * DAY_MS)
+    return null
+  const left = endsAt - now
+  const [unit, n] =
+    left >= DAY_MS
+      ? ["day", Math.round(left / DAY_MS)]
+      : left >= HOUR_MS
+        ? ["hour", Math.round(left / HOUR_MS)]
+        : ["soon", 0]
+  return <span className={className}>{t("ends", { unit, n })}</span>
 }
 
 const external = (href: string) =>
@@ -107,6 +133,10 @@ export function PromoCard({
             {promo.tag}
           </span>
         ) : null}
+        <EndsIn
+          endsAt={promo.endsAt}
+          className="-mbs-2 text-sm font-semibold text-primary"
+        />
         {title ? (
           title(promo.headline)
         ) : (
@@ -184,6 +214,10 @@ export function PromoBanner({
           {promo.body ? (
             <p className="mbs-3 max-w-[56ch] text-white/75">{promo.body}</p>
           ) : null}
+          <EndsIn
+            endsAt={promo.endsAt}
+            className="mbs-3 block text-sm font-semibold text-highlight"
+          />
           <div className="mbs-6 flex flex-wrap items-center gap-3">
             {promo.cta ? (
               <a
@@ -249,6 +283,10 @@ export function PromoReel({
             {promo.body}
           </p>
         ) : null}
+        <EndsIn
+          endsAt={promo.endsAt}
+          className="mbs-2 block text-sm font-semibold text-primary"
+        />
         <ul className="mbs-6 grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] gap-3">
           {promo.reelIds.map((id, i) => (
             <li key={id}>
@@ -256,6 +294,8 @@ export function PromoReel({
                 id={id}
                 title={`${promo.headline} (${i + 1})`}
                 vertical
+                // A play is the reel's click: the videos are the offer.
+                onClick={onAction}
                 className="group block w-full"
               >
                 <span className="relative block aspect-[9/16] overflow-clip rounded-[20px] bg-ink">

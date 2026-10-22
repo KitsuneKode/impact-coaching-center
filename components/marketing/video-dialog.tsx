@@ -30,7 +30,7 @@ export function VideoDialog({
   label?: string | null
   className?: string
   children: ReactNode
-} & Pick<ComponentProps<"button">, "onPointerEnter" | "onFocus">) {
+} & Pick<ComponentProps<"button">, "onPointerEnter" | "onFocus" | "onClick">) {
   const [open, setOpen] = useState(false)
   /*
    * An iframe is focusable, so without this the player takes focus the moment
