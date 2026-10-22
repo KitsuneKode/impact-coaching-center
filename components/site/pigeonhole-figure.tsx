@@ -49,6 +49,7 @@ export function PigeonholeFigure({
 }) {
   const stage = useRef<HTMLDivElement>(null)
   const readout = useRef<HTMLSpanElement>(null)
+  const tip = useRef<HTMLSpanElement>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -168,8 +169,35 @@ export function PigeonholeFigure({
       const href = HOLES[i]?.href
       if (href) router.push(`${prefix}${href === "/" ? "" : href}` || "/")
     }
+    // A label over the pigeonhole under the pointer: mouse and trackpad
+    // only (a tap opens the page at once), written straight to the DOM.
+    const fine = matchMedia("(hover: hover) and (pointer: fine)")
+    const card = root.closest("figure")
+    const label = tip.current
+    const point = (event: PointerEvent, i: number | null) => {
+      if (!label || !card || !fine.matches) return
+      const href = i === null ? undefined : HOLES[i]?.href
+      const el = (event.target as Element | null)?.closest("[data-opening]")
+      if (!href || !el || i === null) {
+        delete label.dataset.on
+        return
+      }
+      const box = el.getBoundingClientRect()
+      const frame = card.getBoundingClientRect()
+      const first = !("on" in label.dataset)
+      label.textContent = names[i] ?? ""
+      // Appearing, it lands in place; once showing, it glides between holes.
+      if (first) label.dataset.instant = ""
+      else delete label.dataset.instant
+      label.style.translate = `${(box.left + box.width / 2 - frame.left).toFixed(1)}px ${(box.top - frame.top).toFixed(1)}px`
+      label.dataset.on = ""
+    }
+    const onLeave = () => {
+      if (label) delete label.dataset.on
+    }
     const onMove = (event: PointerEvent) => {
       const i = holeOf(event)
+      point(event, i)
       // Any hover takes over from the tour, even on the pigeonhole it is at.
       if (i !== null && (i !== active || touring)) steer(i)
     }
@@ -201,6 +229,7 @@ export function PigeonholeFigure({
     )
     seen.observe(root)
     root.addEventListener("pointermove", onMove)
+    root.addEventListener("pointerleave", onLeave)
     root.addEventListener("click", onClick)
     root.addEventListener("pointerdown", onDown)
     window.addEventListener("pointerup", onUp)
@@ -215,6 +244,7 @@ export function PigeonholeFigure({
       cancelAnimationFrame(frame)
       window.clearTimeout(idle)
       root.removeEventListener("pointermove", onMove)
+      root.removeEventListener("pointerleave", onLeave)
       root.removeEventListener("click", onClick)
       root.removeEventListener("pointerdown", onDown)
       window.removeEventListener("pointerup", onUp)
@@ -243,6 +273,7 @@ export function PigeonholeFigure({
         }
         dangerouslySetInnerHTML={{ __html: PIGEONHOLES_SVG }}
       />
+      <span ref={tip} data-pigeon-tip aria-hidden />
       <div className="mbs-2 flex items-end justify-between gap-4 text-xs text-muted-foreground">
         <span className="hidden sm:inline">{labels.hint}</span>
         <span
