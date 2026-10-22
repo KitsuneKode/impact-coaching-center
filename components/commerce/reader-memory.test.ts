@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, test } from "bun:test"
 
 import {
   documentId,
+  parseProgress,
+  progressSnapshot,
   rememberedNotes,
   rememberedPage,
   rememberNotes,
   rememberPage,
+  rememberProgress,
 } from "./reader-memory"
 
 /** A Map behind the Storage interface; `full` makes every write throw. */
@@ -105,5 +108,31 @@ describe("remembered notes", () => {
     rememberNotes("doc", [bookmark(1)])
     rememberNotes("doc", [])
     expect(storage.getItem("ict-reader:notes:doc")).toBeNull()
+  })
+})
+
+describe("reading progress", () => {
+  test("records a note's page and total by slug", () => {
+    rememberProgress("rbi-notes", 4, 12)
+    expect(parseProgress(progressSnapshot())["rbi-notes"]).toMatchObject({
+      page: 4,
+      total: 12,
+    })
+  })
+
+  test("drops entries that are not whole pages", () => {
+    const raw = JSON.stringify({
+      good: { page: 1, total: 3, at: 1 },
+      bad: { page: "x", total: 3, at: 1 },
+      none: null,
+    })
+    expect(Object.keys(parseProgress(raw))).toEqual(["good"])
+    expect(parseProgress("not json")).toEqual({})
+  })
+
+  test("keeps the 40 most recent notes", () => {
+    for (let i = 0; i < 45; i++) rememberProgress(`note-${i}`, 1, 5)
+    const kept = parseProgress(progressSnapshot())
+    expect(Object.keys(kept)).toHaveLength(40)
   })
 })

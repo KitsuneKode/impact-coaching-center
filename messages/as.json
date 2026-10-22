@@ -683,7 +683,9 @@
     "setOf": "{set}, {language}",
     "addSetAria": "{title} ৰ {set} কাৰ্টত যোগ কৰক",
     "paperBooks": "{exam}ৰ বাবে ছপা কিতাপ",
-    "paperBooksHide": "কিতাপৰ পৰামৰ্শ লুকুৱাওক"
+    "paperBooksHide": "কিতাপৰ পৰামৰ্শ লুকুৱাওক",
+    "continueReading": "পঢ়া আগবঢ়াওক",
+    "readProgress": "পৃষ্ঠা {page} / {total}"
   },
   "Library": {
     "claim": "পঢ়াৰ বাবে এটা প্ৰকৃত ঠাই।",
@@ -995,7 +997,12 @@
     "notNow": "এতিয়া নহয়",
     "close": "বন্ধ কৰক",
     "label": "অফাৰ",
-    "ends": "{unit, select, day {{n} দিনত শেষ হ'ব} hour {{n} ঘণ্টাত শেষ হ'ব} other {অলপ সময়ৰ পিছত শেষ হ'ব}}"
+    "ends": "{unit, select, day {{n} দিনত শেষ হ'ব} hour {{n} ঘণ্টাত শেষ হ'ব} other {অলপ সময়ৰ পিছত শেষ হ'ব}}",
+    "reelPlay": "ভিডিঅ' {n} চাওক: {title}",
+    "reelPosition": "ভিডিঅ' {n} / {total}",
+    "reelNext": "পিছৰ ভিডিঅ'",
+    "reelPrevious": "আগৰ ভিডিঅ'",
+    "watchOnYouTube": "YouTubeত চাওক"
   },
   "Finder": {
     "kicker": "কোনটো পাঠ্যক্ৰম ল’ব, নিশ্চিত নহয়নে?",
@@ -1220,7 +1227,6 @@
   },
   "Reader": {
     "book": "কিতাপ",
-    "pages": "পৃষ্ঠা",
     "scroll": "স্ক্ৰ'ল",
     "howToRead": "কেনেকৈ পঢ়িব",
     "close": "পঢ়া বন্ধ কৰক",

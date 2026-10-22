@@ -101,3 +101,87 @@ export function rememberNotes(id: string, notes: BookPreviewAnnotation[]) {
   }
   return write(`${PREFIX}notes:${id}`, notes)
 }
+
+/*
+ * Progress per note, by slug, for the notes list: "Page 5 of 12" and a
+ * Continue button. One small record, the 40 most recent kept.
+ */
+const PROGRESS = `${PREFIX}progress`
+/** Fired in this tab when progress changes; `storage` covers other tabs. */
+const PROGRESS_EVENT = "ict-reader-progress"
+
+export type ReadingProgress = Record<
+  string,
+  { page: number; total: number; at: number }
+>
+
+export function parseProgress(raw: string): ReadingProgress {
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {}
+    const out: ReadingProgress = {}
+    for (const [slug, entry] of Object.entries(value)) {
+      const { page, total, at } = (entry ?? {}) as Record<string, unknown>
+      if (
+        Number.isInteger(page) &&
+        Number.isInteger(total) &&
+        typeof at === "number" &&
+        (page as number) >= 0 &&
+        (total as number) > 0
+      )
+        out[slug] = { page: page as number, total: total as number, at }
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+export function rememberProgress(slug: string, page: number, total: number) {
+  if (!slug || !(total > 0)) return
+  let raw = ""
+  try {
+    raw = localStorage.getItem(PROGRESS) ?? ""
+  } catch {
+    return
+  }
+  const all = parseProgress(raw)
+  all[slug] = { page, total, at: Date.now() }
+  const kept = Object.fromEntries(
+    Object.entries(all)
+      .toSorted(([, a], [, b]) => b.at - a.at)
+      .slice(0, RECENT_MAX)
+  )
+  if (write(PROGRESS, kept) && typeof window !== "undefined")
+    window.dispatchEvent(new Event(PROGRESS_EVENT))
+}
+
+/** The stored progress as a string: a stable snapshot for useSyncExternalStore. */
+export function progressSnapshot(): string {
+  try {
+    return localStorage.getItem(PROGRESS) ?? ""
+  } catch {
+    return ""
+  }
+}
+
+export function subscribeProgress(onChange: () => void) {
+  window.addEventListener("storage", onChange)
+  window.addEventListener(PROGRESS_EVENT, onChange)
+  return () => {
+    window.removeEventListener("storage", onChange)
+    window.removeEventListener(PROGRESS_EVENT, onChange)
+  }
+}
+
+/** Book or Scroll, as this device last chose. */
+const MODE = `${PREFIX}mode`
+
+export function rememberedMode(): string | null {
+  const mode = read(MODE)
+  return typeof mode === "string" ? mode : null
+}
+
+export function rememberMode(mode: string) {
+  write(MODE, mode)
+}

@@ -11,7 +11,7 @@ import { useTranslations } from "next-intl"
 import Image from "next/image"
 import { useState, type ReactNode } from "react"
 
-import { VideoDialog } from "@/components/marketing/video-dialog"
+import { ReelViewer } from "@/components/site/reel-viewer"
 import { useMinute } from "@/components/site/use-live-promos"
 
 /** A promotion as the site shows it; the live query and the admin preview both produce this. */
@@ -267,10 +267,11 @@ export function PromoReel({
   bare?: boolean
 }) {
   const t = useTranslations("Promos")
+  const [playing, setPlaying] = useState<number | null>(null)
   return (
     <section
       aria-label={bare ? promo.headline : promo.tag || t("label")}
-      className="container-page pbe-16"
+      className="container-page overflow-x-clip pbe-16"
     >
       <div className="rounded-[32px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-9">
         {bare ? null : promo.tag ? (
@@ -294,25 +295,32 @@ export function PromoReel({
             />
           </>
         )}
+        {/* Phones: a row to swipe through, as in Shorts. Wider: a grid. */}
         <ul
-          className={`${bare ? "" : "mbs-6 "}grid grid-cols-[repeat(auto-fill,minmax(min(100%,9rem),12rem))] gap-3`}
+          className={`${bare ? "" : "mbs-6 "}-mx-6 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-6 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(9rem,12rem))] md:overflow-visible md:px-0`}
         >
           {promo.reelIds.map((id, i) => (
-            <li key={id}>
-              <VideoDialog
-                id={id}
-                title={`${promo.headline} (${i + 1})`}
-                vertical
-                // A play is the reel's click: the videos are the offer.
-                onClick={onAction}
-                className="group block w-full"
+            <li
+              key={id}
+              className="w-[40%] max-w-48 flex-none snap-start md:w-auto md:max-w-none"
+            >
+              <button
+                type="button"
+                data-press
+                onClick={() => {
+                  setPlaying(i)
+                  // A play is the reel's click: the videos are the offer.
+                  onAction?.()
+                }}
+                aria-label={t("reelPlay", { n: i + 1, title: promo.headline })}
+                className="group block w-full cursor-pointer"
               >
                 <span className="relative block aspect-[9/16] overflow-clip rounded-[20px] bg-ink">
                   <Image
                     src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
                     alt=""
                     fill
-                    sizes="12rem"
+                    sizes="(min-width: 768px) 12rem, 40vw"
                     className="object-cover"
                   />
                   <span className="absolute inset-0 grid place-items-center">
@@ -328,10 +336,22 @@ export function PromoReel({
                     </span>
                   </span>
                 </span>
-              </VideoDialog>
+              </button>
             </li>
           ))}
         </ul>
+        <ReelViewer
+          ids={promo.reelIds}
+          index={playing}
+          onIndexChange={setPlaying}
+          onClose={() => setPlaying(null)}
+          title={promo.headline}
+          cta={
+            promo.cta
+              ? { label: promo.cta, href: promo.href, onClick: onAction }
+              : undefined
+          }
+        />
         {promo.cta && !bare ? (
           <a
             href={promo.href || "#"}

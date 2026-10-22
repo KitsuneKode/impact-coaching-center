@@ -51,11 +51,11 @@ export function VideoDialog({
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Backdrop className="fixed inset-0 z-70 bg-black/70 backdrop-blur-sm transition-opacity duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup
           initialFocus={closeRef}
           className={cn(
-            "fixed inset-bs-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
+            "fixed inset-bs-1/2 left-1/2 z-71 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
             "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
             "data-ending-style:scale-95 data-ending-style:opacity-0",
             "data-starting-style:scale-95 data-starting-style:opacity-0",

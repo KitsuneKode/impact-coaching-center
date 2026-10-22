@@ -483,7 +483,9 @@
     "setOf": "{set}, {language}",
     "addSetAria": "Add the {set} of {title} to your cart",
     "paperBooks": "Printed books for {exam}",
-    "paperBooksHide": "Hide the book suggestion"
+    "paperBooksHide": "Hide the book suggestion",
+    "continueReading": "Continue reading",
+    "readProgress": "Page {page} of {total}"
   },
   "Library": {
     "claim": "A place to actually study.",
@@ -795,7 +797,12 @@
     "notNow": "Not now",
     "close": "Close",
     "label": "Offer",
-    "ends": "{unit, select, day {Ends in {n, plural, one {# day} other {# days}}} hour {Ends in {n, plural, one {# hour} other {# hours}}} other {Ends soon}}"
+    "ends": "{unit, select, day {Ends in {n, plural, one {# day} other {# days}}} hour {Ends in {n, plural, one {# hour} other {# hours}}} other {Ends soon}}",
+    "reelPlay": "Play video {n}: {title}",
+    "reelPosition": "Video {n} of {total}",
+    "reelNext": "Next video",
+    "reelPrevious": "Previous video",
+    "watchOnYouTube": "Watch on YouTube"
   },
   "Finder": {
     "kicker": "Not sure which course?",
@@ -1020,7 +1027,6 @@
   },
   "Reader": {
     "book": "Book",
-    "pages": "Pages",
     "scroll": "Scroll",
     "howToRead": "How to read",
     "close": "Close the reader",

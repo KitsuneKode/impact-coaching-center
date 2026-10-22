@@ -16,11 +16,17 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   ViewTransition,
 } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { PageViewer } from "@/components/commerce/lazy-page-viewer"
+import {
+  parseProgress,
+  progressSnapshot,
+  subscribeProgress,
+} from "@/components/commerce/reader-memory"
 import { useOpenResource } from "@/components/commerce/use-open-resource"
 import { Folder } from "@/components/home/folder"
 import { Spinner } from "@/components/ui/spinner"
@@ -187,14 +193,31 @@ function Shelf({
     void reader.open(linked.slug)
   })
 
-  const meta = (r: Resource) =>
-    [
+  // Where this device stopped in each note; empty on the server.
+  const progressRaw = useSyncExternalStore(
+    subscribeProgress,
+    progressSnapshot,
+    () => ""
+  )
+  const progress = useMemo(() => parseProgress(progressRaw), [progressRaw])
+  /** Started and not finished: worth a Continue. */
+  const midway = (r: Resource) => {
+    const p = progress[r.slug]
+    return p && p.page > 0 && p.page < p.total - 1 ? p : null
+  }
+
+  const meta = (r: Resource) => {
+    const p = midway(r)
+    return [
       needle ? phrase(r.kind) : null,
       phrase(r.exam),
-      t("pages", { count: r.pages }),
+      p
+        ? t("readProgress", { page: p.page + 1, total: p.total })
+        : t("pages", { count: r.pages }),
     ]
       .filter(Boolean)
       .join(" · ")
+  }
   const isNew = (r: Resource) =>
     r.addedAt !== undefined && now - r.addedAt < NEW_FOR_MS
 
@@ -225,7 +248,7 @@ function Shelf({
           </>
         ) : reader.signedIn ? (
           <>
-            {pulse("readFree")}
+            {midway(r) ? t("continueReading") : pulse("readFree")}
             <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
           </>
         ) : (
@@ -493,6 +516,7 @@ function Shelf({
           pages={reader.opened.pages}
           pdfUrl={reader.opened.pdfUrl}
           pageCount={reader.opened.pageCount}
+          progressSlug={reader.opened.slug}
           sharePath={`${locale === "en" ? "" : `/${locale}`}/resources/${reader.opened.slug}`}
         />
       ) : null}

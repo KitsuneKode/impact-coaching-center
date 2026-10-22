@@ -21,21 +21,24 @@ import {
 } from "@/components/book-preview"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { curlEngine } from "@/components/book-preview/engines/curl-engine.meta"
-import { pdfEngine } from "@/components/book-preview/engines/pdf-engine.meta"
+import { scrollEngine } from "@/components/book-preview/engines/scroll-engine.meta"
 import { PaperPage } from "@/components/commerce/paper-page"
 import {
   documentId,
   rememberedNotes,
   rememberedPage,
+  rememberedMode,
+  rememberMode,
   rememberNotes,
   rememberPage,
+  rememberProgress,
 } from "@/components/commerce/reader-memory"
 import { track } from "@/lib/analytics"
 
 /** A page image when there is one, otherwise a placeholder sheet. */
 export type ViewerPage = { heading?: string; src?: string }
 
-const ENGINES = [pageEngine, curlEngine, pdfEngine]
+const ENGINES = [pageEngine, curlEngine, scrollEngine]
 
 /**
  * The site's one reader, for book samples and free notes alike: the kitsu-lab
@@ -60,6 +63,7 @@ export function PageViewer({
   startAt,
   marks = false,
   sharePath,
+  progressSlug,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -75,6 +79,8 @@ export function PageViewer({
   marks?: boolean
   /** The public page to share, locale prefix included, e.g. /as/resources/x. */
   sharePath?: string
+  /** The note's slug, so the notes list can show "Page 5 of 12" and Continue. */
+  progressSlug?: string
 }) {
   const t = useTranslations("Reader")
   const popup = useRef<HTMLDivElement>(null)
@@ -125,20 +131,25 @@ export function PageViewer({
       toast(t("copyThis"), { description: link })
     }
   }
-  // Two ways to read, named for what they do: turn pages like a book, or
-  // flip flat pages (scroll, for a PDF).
-  const views = (
-    pdfUrl
-      ? [
-          ["curl", t("book")],
-          ["pdf", t("scroll")],
-        ]
-      : [
-          ["curl", t("book")],
-          ["page", t("pages")],
-        ]
-  ) as [BookPreviewMode, string][]
-  const [mode, setMode] = useState<BookPreviewMode>("curl")
+  // Two ways to read, for PDFs and page images alike: turn pages like a
+  // book, or scroll down them like a long document. The scroll engine keeps
+  // only the pages near the screen rendered, so length costs no memory.
+  const views: [BookPreviewMode, string][] = [
+    ["curl", t("book")],
+    ["scroll", t("scroll")],
+  ]
+  // Book by default, for the feel of a real book; Scroll once a reader
+  // has chosen it, on this device.
+  const [mode, setModeState] = useState<BookPreviewMode>(() => {
+    const kept = rememberedMode()
+    return views.some(([value]) => value === kept)
+      ? (kept as BookPreviewMode)
+      : "curl"
+  })
+  const setMode = (next: BookPreviewMode) => {
+    setModeState(next)
+    rememberMode(next)
+  }
   const other = views.find(([value]) => value !== mode)
 
   // The PDF engine mounts a beat after the dialog, so the initial focus may
@@ -283,7 +294,12 @@ export function PageViewer({
                       warned.current = true
                       toast.error(t("notesNotKept"))
                     },
-                    onPageChange: (page: number) => rememberPage(id, page),
+                    onPageChange: (page: number) => {
+                      rememberPage(id, page)
+                      const total = pageCount ?? pages?.length ?? 0
+                      if (progressSlug)
+                        rememberProgress(progressSlug, page, total)
+                    },
                   }
                 : {})}
               defaultPageIndex={firstPage}
