@@ -610,6 +610,8 @@
     }
   },
   "Pulse": {
+    "trustAll": "Every result",
+    "trustBoard": "Also on the lists",
     "heroLabel": "Introduction",
     "heroLead": "Coaching for",
     "heroWords": "APSC.|ADRE.|Assam Police.|banking.|SSC.|Railway.",
@@ -652,7 +654,7 @@
     "faqLede": "What students ask before they join. If yours is not here, ask us; ICT replies on WhatsApp.",
     "faqAsk": "Ask on WhatsApp",
     "trustHeading": "Prepared at ICT. On the merit list.",
-    "trustLede": "Two officers on the APSC CCE 2022 list, a story ICT published, and students who filmed what the classes were like. Every one can be checked.",
+    "trustLede": "Officers on the APSC CCE 2022 merit list and a selection ICT published. Each one links to where it can be checked.",
     "trustCheck": "Check the official list",
     "trustStudents": "Students who filmed their review",
     "trustStoryLine": "His story, as ICT published it on its channel.",
