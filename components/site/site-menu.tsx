@@ -9,7 +9,8 @@ import {
 import { AnimatePresence, useReducedMotion } from "motion/react"
 import * as m from "motion/react-m"
 import { useTranslations } from "next-intl"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { createPortal } from "react-dom"
 
 import { AccountMenu } from "@/components/account/account-menu"
 import { LocaleSwitch } from "@/components/i18n/locale-switch"
@@ -20,9 +21,11 @@ import { NAV_MENUS } from "./nav-links"
 const ease = [0.23, 1, 0.32, 1] as const
 
 /**
- * The phone and tablet menu. The panel hangs from the sticky header, so it
- * sits directly beneath it wherever the page is scrolled. Page scroll locks
- * while it is open, Escape closes it, and focus cycles inside.
+ * The phone and tablet menu: one paper sheet over the whole screen, under
+ * the header bar, so no page shows above, beside or below it however the
+ * header has shrunk (the sheet lives on <body>; inside the header it would
+ * take the floating bar's box). Page scroll locks while it is open, Escape
+ * closes it, and focus cycles inside.
  */
 export function SiteMenu({ phone }: { phone: string }) {
   const t = useTranslations("Nav")
@@ -32,6 +35,12 @@ export function SiteMenu({ phone }: { phone: string }) {
   const path = usePathname()
   const reduce = useReducedMotion()
   const button = useRef<HTMLButtonElement>(null)
+  // The sheet goes on <body>, which exists only once the page is hydrated.
+  const hydrated = useSyncExternalStore(
+    noop,
+    () => true,
+    () => false
+  )
   const panel = useRef<HTMLElement>(null)
 
   // A new page closes the menu.
@@ -51,6 +60,9 @@ export function SiteMenu({ phone }: { phone: string }) {
     const root = document.documentElement
     const previous = root.style.overflow
     root.style.overflow = "hidden"
+    // The header drops its over-the-hero white, and the strip comes back,
+    // while the sheet is behind them (app/globals.css).
+    root.dataset.menuOpen = ""
     panel.current?.querySelector<HTMLElement>("a")?.focus()
 
     const desktop = window.matchMedia("(min-width: 64rem)")
@@ -82,6 +94,7 @@ export function SiteMenu({ phone }: { phone: string }) {
     window.addEventListener("keydown", onKey, true)
     return () => {
       root.style.overflow = previous
+      delete root.dataset.menuOpen
       desktop.removeEventListener("change", onWide)
       window.removeEventListener("keydown", onKey, true)
     }
@@ -119,101 +132,101 @@ export function SiteMenu({ phone }: { phone: string }) {
           </AnimatePresence>
         </span>
       </button>
-      <AnimatePresence initial={false}>
-        {open ? (
-          <>
-            <m.div
-              aria-hidden
-              onClick={close}
-              className="absolute inset-x-0 inset-bs-full z-40 h-dvh bg-foreground/40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: 0.2, ease } }}
-              exit={{ opacity: 0, transition: { duration: 0.14 } }}
-            />
-            <m.nav
-              ref={panel}
-              id="site-menu"
-              aria-label={t("menu")}
-              className="absolute inset-x-0 inset-bs-full z-50 max-h-[calc(100dvh-76px-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-background text-foreground"
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-                transition: { duration: 0.2, ease },
-              }}
-              exit={{ opacity: 0, transition: { duration: 0.14 } }}
-            >
-              {/* Each section, then its own pages as chips: "APSC books"
+      {hydrated &&
+        createPortal(
+          <AnimatePresence initial={false}>
+            {open ? (
+              <m.nav
+                ref={panel}
+                id="site-menu"
+                aria-label={t("menu")}
+                className="fixed inset-0 z-[45] overflow-y-auto overscroll-contain bg-background pbs-[calc(var(--strip-height)+var(--header-height))] pbe-[env(safe-area-inset-bottom)] text-foreground"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { duration: 0.18, ease } }}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              >
+                <m.div
+                  initial={reduce ? false : { transform: "translateY(-8px)" }}
+                  animate={{
+                    transform: "translateY(0px)",
+                    transition: { duration: 0.22, ease },
+                  }}
+                >
+                  {/* Each section, then its own pages as chips: "APSC books"
                   is one tap, the same groups as the desktop panels. */}
-              <ul>
-                {NAV_MENUS.map((menu) => (
-                  <li
-                    key={menu.key}
-                    className="border-b border-border px-5 pbs-4 pbe-4"
-                  >
-                    <Link
-                      href={menu.href}
+                  <ul>
+                    {NAV_MENUS.map((menu) => (
+                      <li
+                        key={menu.key}
+                        className="border-b border-border px-5 pbs-4 pbe-4"
+                      >
+                        <Link
+                          href={menu.href}
+                          onClick={() => setOpen(false)}
+                          className="flex min-h-11 items-center justify-between font-display text-xl font-semibold"
+                        >
+                          {menu.key === "ict" ? menus("ict") : t(menu.key)}
+                          <IconArrowRight
+                            aria-hidden
+                            size={18}
+                            stroke={2}
+                            className="text-muted-foreground"
+                          />
+                        </Link>
+                        <ul className="mbs-2 flex flex-wrap gap-2">
+                          {menu.items.map((item) => (
+                            <li key={item.key}>
+                              <Link
+                                href={item.href}
+                                onClick={() => setOpen(false)}
+                                data-press
+                                className="inline-flex min-h-10 items-center rounded-full bg-secondary px-3.5 text-sm font-medium"
+                              >
+                                {menus(`${item.key}.title`)}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center gap-2 px-5 pbs-5">
+                    <LocaleSwitch />
+                    <AccountMenu />
+                  </div>
+                  <div className="grid gap-3 p-5 sm:grid-cols-2">
+                    <a
+                      href={contactHref({ kind: "workshop" })}
+                      target="_blank"
+                      rel="noreferrer noopener"
                       onClick={() => setOpen(false)}
-                      className="flex min-h-11 items-center justify-between font-display text-xl font-semibold"
+                      className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground transition-transform duration-150 ease-out-strong active:scale-[0.97]"
                     >
-                      {menu.key === "ict" ? menus("ict") : t(menu.key)}
+                      {offer("cta")}
                       <IconArrowRight
                         aria-hidden
                         size={18}
                         stroke={2}
-                        className="text-muted-foreground"
+                        className="transition-transform duration-200 ease-out group-hover:translate-x-0.5"
                       />
-                    </Link>
-                    <ul className="mbs-2 flex flex-wrap gap-2">
-                      {menu.items.map((item) => (
-                        <li key={item.key}>
-                          <Link
-                            href={item.href}
-                            onClick={() => setOpen(false)}
-                            data-press
-                            className="inline-flex min-h-10 items-center rounded-full bg-secondary px-3.5 text-sm font-medium"
-                          >
-                            {menus(`${item.key}.title`)}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex items-center gap-2 px-5 pbs-5">
-                <LocaleSwitch />
-                <AccountMenu />
-              </div>
-              <div className="grid gap-3 p-5 sm:grid-cols-2">
-                <a
-                  href={contactHref({ kind: "workshop" })}
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  onClick={() => setOpen(false)}
-                  className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-foreground transition-transform duration-150 ease-out-strong active:scale-[0.97]"
-                >
-                  {offer("cta")}
-                  <IconArrowRight
-                    aria-hidden
-                    size={18}
-                    stroke={2}
-                    className="transition-transform duration-200 ease-out group-hover:translate-x-0.5"
-                  />
-                </a>
-                <a
-                  href={contactHref({ kind: "call" })}
-                  onClick={() => setOpen(false)}
-                  className="tnum inline-flex h-12 items-center justify-center gap-2 rounded-full font-semibold shadow-[inset_0_0_0_1.5px_var(--border)]"
-                >
-                  <IconPhone aria-hidden size={18} stroke={1.75} />
-                  {t("callNumber", { phone })}
-                </a>
-              </div>
-            </m.nav>
-          </>
-        ) : null}
-      </AnimatePresence>
+                    </a>
+                    <a
+                      href={contactHref({ kind: "call" })}
+                      onClick={() => setOpen(false)}
+                      className="tnum inline-flex h-12 items-center justify-center gap-2 rounded-full font-semibold shadow-[inset_0_0_0_1.5px_var(--border)]"
+                    >
+                      <IconPhone aria-hidden size={18} stroke={1.75} />
+                      {t("callNumber", { phone })}
+                    </a>
+                  </div>
+                </m.div>
+              </m.nav>
+            ) : null}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   )
 }
+
+const noop = () => () => {}

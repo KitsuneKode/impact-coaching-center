@@ -594,10 +594,11 @@
   /* Reading down, the promo strip folds up and the header rises into its
      place; any scroll up brings the strip back (hooks/use-headroom.ts
      writes data-chrome). The header itself never leaves. */
-  :root[data-chrome="hidden"] [data-promo-strip] {
+  :root[data-chrome="hidden"]:not([data-menu-open]) [data-promo-strip] {
     translate: 0 -100%;
   }
-  :root[data-chrome="hidden"] [data-site-header][data-stuck] {
+  :root[data-chrome="hidden"]:not([data-menu-open])
+    [data-site-header][data-stuck] {
     translate: 0 calc(-1 * var(--strip-height) - 6px);
   }
   @media (prefers-reduced-motion: no-preference) {
@@ -784,7 +785,8 @@
   }
 
   /* Over a blue hero, before it sticks: white text, lifted off the photos. */
-  :root:has([data-hero="blue"]) [data-site-header]:not([data-stuck]) {
+  :root:has([data-hero="blue"]):not([data-menu-open])
+    [data-site-header]:not([data-stuck]) {
     color: oklch(100% 0 none);
 
     & [data-site-nav] [data-slot="navigation-menu-list"] {
@@ -811,7 +813,7 @@
     }
   }
   @media (hover: hover) and (pointer: fine) {
-    :root:has([data-hero="blue"])
+    :root:has([data-hero="blue"]):not([data-menu-open])
       [data-site-header]:not([data-stuck])
       [data-site-trigger]:hover {
       color: oklch(100% 0 none);
