@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 
 import { readingMinutes } from "../lib/article"
+import { excerptFrom } from "../lib/blog"
 import type { Id } from "./_generated/dataModel"
 import { mutation, query, type QueryCtx } from "./_generated/server"
 import { PICTURE, pictureOf } from "./images"
@@ -53,7 +54,7 @@ export async function readPublishedPosts(
     rows.map(async (row) => ({
       slug: row.slug,
       title: row.title,
-      excerpt: row.excerpt,
+      excerpt: row.excerpt || excerptFrom(row.body),
       language: row.language ?? "en",
       publishedAt: row.publishedAt,
       updatedAt: row.updatedAt,
@@ -77,7 +78,7 @@ export async function readPublishedPost(
   return {
     slug: row.slug,
     title: row.title,
-    excerpt: row.excerpt,
+    excerpt: row.excerpt || excerptFrom(row.body),
     language: row.language ?? "en",
     body: row.body,
     publishedAt: row.publishedAt,

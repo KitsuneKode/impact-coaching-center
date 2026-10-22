@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test"
 
-import { checkPost, ownLanguageFirst, type PostInput } from "./blog"
+import {
+  checkPost,
+  excerptFrom,
+  ownLanguageFirst,
+  type PostInput,
+} from "./blog"
 
 const post: PostInput = {
   slug: "prelims-dates",
@@ -38,5 +43,33 @@ describe("post language", () => {
       "b",
       "d",
     ])
+  })
+})
+
+describe("an excerpt nobody wrote", () => {
+  test("is the first paragraph of prose, Markdown removed", () => {
+    expect(
+      excerptFrom(
+        "# Heading\n\n![cover](x.png)\n\nThe **APSC** prelims test [general studies](/gs) and `CSAT`.\n\nMore."
+      )
+    ).toBe("The APSC prelims test general studies and CSAT.")
+  })
+
+  test("is cut on a word, near what search results show", () => {
+    const long = "word ".repeat(80).trim()
+    const excerpt = excerptFrom(long)
+    expect(excerpt.length).toBeLessThanOrEqual(181)
+    expect(excerpt.endsWith("word…")).toBe(true)
+  })
+
+  test("is empty when the body has no prose yet", () => {
+    expect(excerptFrom("")).toBe("")
+    expect(excerptFrom("## Only a heading")).toBe("")
+  })
+
+  test("reads Assamese as well", () => {
+    expect(excerptFrom("এপিএছচি প্ৰিলিমছৰ বাবে প্ৰস্তুতি।")).toBe(
+      "এপিএছচি প্ৰিলিমছৰ বাবে প্ৰস্তুতি।"
+    )
   })
 })

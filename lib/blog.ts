@@ -66,6 +66,38 @@ export function checkPost(input: PostInput): Result<PostInput> {
   return { ok: true, value }
 }
 
+/** About what a search result shows of a description before it cuts. */
+const AUTO_EXCERPT_MAX = 180
+
+/**
+ * The excerpt a post has when nobody wrote one: its first paragraph of
+ * prose, Markdown removed, cut on a word near what search results show.
+ * Worked out on reading, not stored, so it follows later edits to the body
+ * until the owner writes an excerpt of their own.
+ */
+export function excerptFrom(body: string): string {
+  const paragraph = body
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .find(
+      (block) =>
+        block !== "" &&
+        !/^(#|!\[|<|\||```|---|\* \* \*|https?:\/\/\S+$)/.test(block)
+    )
+  if (!paragraph) return ""
+  const text = tidy(
+    paragraph
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/^\s*(?:[-*+]|\d+\.|>)\s+/gm, "")
+      .replace(/[*_`~]+/g, "")
+  )
+  if (text.length <= AUTO_EXCERPT_MAX) return text
+  const cut = text.slice(0, AUTO_EXCERPT_MAX)
+  const space = cut.lastIndexOf(" ")
+  return `${(space > AUTO_EXCERPT_MAX / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:.\u0964-]+$/, "")}…`
+}
+
 /** Posts in the reader's language first, each group keeping its order. */
 export function ownLanguageFirst<T extends { language?: PostLanguage }>(
   posts: T[],

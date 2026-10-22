@@ -46,6 +46,7 @@ import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import {
   checkPost,
+  excerptFrom,
   POST_BODY_MAX,
   POST_EXCERPT_MAX,
   type PostLanguage,
@@ -155,6 +156,8 @@ function PostForm({
   const [saved, setSaved] = useState(() => snapshot(initial))
   const [revision, setRevision] = useState(loadedRevision)
   const [slugTouched, setSlugTouched] = useState(Boolean(id))
+  // A new post follows its title's script until a language is chosen.
+  const [languageTouched, setLanguageTouched] = useState(Boolean(id))
   const [tab, setTab] = useState("write")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formError, setFormError] = useState<string | null>(null)
@@ -221,6 +224,9 @@ function PostForm({
       [key]: value,
       ...(key === "title" && !slugTouched
         ? { slug: slugify(value as string) }
+        : {}),
+      ...(key === "title" && !languageTouched
+        ? { language: ASSAMESE_SCRIPT.test(value as string) ? "as" : "en" }
         : {}),
     }))
 
@@ -313,9 +319,11 @@ function PostForm({
             <FieldLabel htmlFor="post-language">Written in</FieldLabel>
             <Select
               value={draft.language}
-              onValueChange={(next) =>
-                next && set("language", next as PostLanguage)
-              }
+              onValueChange={(next) => {
+                if (!next) return
+                setLanguageTouched(true)
+                set("language", next as PostLanguage)
+              }}
               items={LANGUAGE_ITEMS}
             >
               <SelectTrigger id="post-language" className="w-full sm:w-72">
@@ -351,8 +359,9 @@ function PostForm({
               <FieldError>{errors.slug}</FieldError>
             ) : (
               <FieldDescription>
-                /blog/{draft.slug || "…"}. Changing it breaks links already
-                shared.
+                {!draft.slug && draft.title.trim() && !slugify(draft.title)
+                  ? "An Assamese title has no letters a web address can use: type a few English words, like apsc-prelims-tips."
+                  : `/blog/${draft.slug || "…"}. Changing it breaks links already shared.`}
               </FieldDescription>
             )}
           </Field>
@@ -363,6 +372,7 @@ function PostForm({
               lang={draft.language}
               rows={3}
               value={draft.excerpt}
+              placeholder={excerptFrom(draft.body)}
               onChange={(e) => set("excerpt", e.target.value)}
               aria-invalid={!!errors.excerpt}
             />
@@ -370,7 +380,8 @@ function PostForm({
               <FieldError>{errors.excerpt}</FieldError>
             ) : (
               <FieldDescription>
-                The line under the title on /blog and in search results.{" "}
+                The line under the title on /blog and in search results. Left
+                empty, the post&apos;s first lines are used, as shown.{" "}
                 {POST_EXCERPT_MAX} characters at most.
               </FieldDescription>
             )}
@@ -582,6 +593,9 @@ function PostForm({
     </Shell>
   )
 }
+
+/** Bengali-Assamese letters: a title in them is an Assamese post. */
+const ASSAMESE_SCRIPT = /[\u0980-\u09FF]/
 
 /** The server's field names, mapped onto this form's inputs. */
 function fieldOf(field: string) {
