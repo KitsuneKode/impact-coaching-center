@@ -19,12 +19,18 @@ export const authComponent = createClient<DataModel>(components.betterAuth)
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   /**
-   * Resolved before the plugin is constructed. Fail-closed means refusing to
-   * build the auth instance at all when the transport is not explicitly local
-   * or is not implemented yet.
+   * Fail-closed for sending only: with no usable transport, a code request is
+   * refused before any code is stored, while sessions, sign-out and the
+   * Convex token keep working. Refusing to build the instance at all made
+   * every page's session check a 500.
    */
   const siteUrl = process.env.CONVEX_SITE_URL
-  const transport = chooseTransport(process.env.OTP_TRANSPORT, siteUrl)
+  let transport: ReturnType<typeof chooseTransport> | null = null
+  try {
+    transport = chooseTransport(process.env.OTP_TRANSPORT, siteUrl)
+  } catch (error) {
+    console.error(`[auth] sign-in codes are off: ${(error as Error).message}`)
+  }
   const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET
   if (!secret)
     throw new Error(
@@ -38,10 +44,15 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   const phone = phoneAuthOptions({
     secret,
     // Awaited deliberately.
-    send: (target) => sendOtp(transport, target),
+    send: (target) => {
+      if (!transport) throw new Error("No OTP transport on this deployment.")
+      return sendOtp(transport, target)
+    },
     // Ceilings and the per-phone lease are one mutation. The hash is computed
     // here, in the action, so the raw code is never a mutation argument.
     claim: async ({ phone, ip }) => {
+      if (!transport)
+        return { ok: false as const, reason: "deployment" as const }
       return await requireMutation().runMutation(internal.otp.claimOtpSend, {
         phone,
         ip: ip ?? undefined,
