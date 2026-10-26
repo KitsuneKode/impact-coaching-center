@@ -173,7 +173,7 @@ Nothing below has been run. Each step changes a provider account.
 6. **Turnstile.** Cloudflare → Turnstile → add site for the production
    domain, managed mode. Copy the site key and secret into step 5.
 7. **Vercel build command** (Production): `npx convex deploy --cmd 'bun run
-build'`. Check Project → Settings → Functions shows region `dub1` after the
+   build'`. Check Project → Settings → Functions shows region `dub1` after the
    first deploy.
 8. **Tidy dev.** `npx convex env remove DEV_DEPLOYMENT_NAME` on
    `peaceful-emu-861` (unused, see the table above).

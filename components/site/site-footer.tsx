@@ -29,6 +29,9 @@ const external = { target: "_blank", rel: "noreferrer noopener" } as const
 
 type Item = { label: string; href: string; out?: boolean }
 
+/** Pages are prerendered, so the year is the build's; every deploy refreshes it. */
+const BUILT_YEAR = new Date().getFullYear()
+
 /**
  * The big footer: brand, two proof seals, the address, four link columns and
  * a wordmark that catches the mouse. Styles in globals.css, "Site footer".
@@ -38,7 +41,7 @@ export function SiteFooter() {
   const nav = useTranslations("Nav")
   const offer = useTranslations("Offer")
   const content = useContent()
-  const year = new Date().getFullYear()
+  const year = BUILT_YEAR
 
   const columns: { head: string; items: Item[] }[] = [
     {

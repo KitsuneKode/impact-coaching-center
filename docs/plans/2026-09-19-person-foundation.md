@@ -406,7 +406,8 @@ export type LeadField = "name" | "phone" | "course" | "timing"
 export type FieldErrors = Partial<Record<LeadField, string>>
 
 export type ParseResult =
-  { ok: true; lead: Lead } | { ok: false; errors: FieldErrors }
+  | { ok: true; lead: Lead }
+  | { ok: false; errors: FieldErrors }
 
 /** Indian mobile numbers start 6-9 and are ten digits. */
 const MOBILE = /^[6-9]\d{9}$/

@@ -195,14 +195,21 @@ export function useCartSync() {
     const { lines, owner } = useCart.getState()
     const foreign = owner !== null && owner !== viewerId
     // From here these lines are this person's, merged or not.
-    useCart.setState({ lines: foreign ? [] : lines, owner: viewerId })
-    mergeCart({ lines: foreign ? [] : lines })
-      .then((result) => {
-        if (!result.ok) toast.error("Your saved cart could not be merged.")
-      })
-      .catch(() => {
-        toast.error("Your saved cart could not be merged.")
-      })
+    const guest = foreign ? [] : lines
+    useCart.setState({ lines: guest, owner: viewerId })
+    /* The server cart replaces these lines next, so a failed merge offers
+       the snapshot again rather than dropping it. */
+    const attempt = () =>
+      mergeCart({ lines: guest })
+        .then((result) => {
+          if (!result.ok) throw new Error("refused")
+        })
+        .catch(() => {
+          toast.error("Your saved cart could not be added.", {
+            action: { label: "Try again", onClick: () => void attempt() },
+          })
+        })
+    attempt()
       /* Synced either way: a failed merge keeps the server cart, which is
          what checkout orders from anyway - refusing to proceed would only
          strand a shopper whose server cart was already correct. */

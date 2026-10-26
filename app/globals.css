@@ -263,13 +263,8 @@
     background-color: var(--background);
     color: var(--foreground);
     font-family:
-      var(--font-sans),
-      var(--font-as),
-      system-ui,
-      -apple-system,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
+      var(--font-sans), var(--font-as), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
   }
 
   .font-as {
