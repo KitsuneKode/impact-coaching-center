@@ -659,6 +659,18 @@ export default defineSchema({
    * Taps on WhatsApp and phone links, as daily totals per page and source.
    * No person, no number: just which pages and campaigns bring contact.
    */
+  /**
+   * Website visits as daily totals per source (Google, Facebook, direct...),
+   * counted once per browser session. No person, page or address: just which
+   * channels bring people, to set beside the enquiries they turn into.
+   */
+  visits: defineTable({
+    /** India date, e.g. "2026-10-27". */
+    day: v.string(),
+    source: v.string(),
+    count: v.number(),
+  }).index("by_day_and_source", ["day", "source"]),
+
   contactTaps: defineTable({
     /** India date, e.g. "2026-10-13". */
     day: v.string(),

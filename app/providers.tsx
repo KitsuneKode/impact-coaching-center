@@ -61,9 +61,27 @@ const loadFeatures = () =>
 /** Notes where this visit came from, once, on the page it landed on. */
 function VisitSource() {
   useEffect(() => {
-    visitAttribution()
+    const visit = visitAttribution()
     if (!convex) return
     const client = convex
+    /* One visit per browser session, counted for its source on the admin
+       overview. Staff working in the admin are not visitors. */
+    const counted = "ict-visit-counted"
+    try {
+      if (
+        !sessionStorage.getItem(counted) &&
+        !/^\/(admin|account|checkout|receipt)(\/|$)/.test(
+          window.location.pathname
+        )
+      ) {
+        sessionStorage.setItem(counted, "1")
+        void client
+          .mutation(api.visits.record, { source: visit.utmSource })
+          .catch(() => {})
+      }
+    } catch {
+      /* storage blocked: the visit goes uncounted */
+    }
     /*
      * Count taps on WhatsApp and phone links: most of ICT's enquiries start
      * there, and nothing else records them. Anonymous daily totals per page

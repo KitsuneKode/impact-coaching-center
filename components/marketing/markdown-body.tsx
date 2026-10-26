@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -94,10 +95,25 @@ export function MarkdownBody({
 }) {
   // Rendering is in document order, so the nth heading takes the nth id.
   let next = 0
-  const idFor = () => headings?.[next++]?.id
+  /* Each heading carries a "#" link to itself, shown on hover or focus, so a
+     reader can share the section; its name is the section's own title. */
+  const heading = (Tag: "h2" | "h3") =>
+    function Anchored({ children }: { children?: ReactNode }) {
+      const h = headings?.[next++]
+      return (
+        <Tag id={h?.id}>
+          {children}
+          {h ? (
+            <a href={`#${h.id}`} data-heading-anchor aria-label={h.text}>
+              #
+            </a>
+          ) : null}
+        </Tag>
+      )
+    }
   const components: Components = {
-    h2: ({ children }) => <h2 id={idFor()}>{children}</h2>,
-    h3: ({ children }) => <h3 id={idFor()}>{children}</h3>,
+    h2: heading("h2"),
+    h3: heading("h3"),
     img: ({ src, alt, title }) =>
       typeof src === "string" ? (
         <figure data-post-figure>

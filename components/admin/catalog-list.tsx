@@ -101,14 +101,14 @@ export function CatalogList({
     <PageShell
       density="working"
       title={<span className="text-foreground">{title}</span>}
+      actions={
+        <ButtonLink href={newHref} size="md">
+          <IconPlus stroke={1.75} aria-hidden />
+          New {noun}
+        </ButtonLink>
+      }
     >
       <div className="grid gap-6">
-        <div>
-          <ButtonLink href={newHref} size="md">
-            <IconPlus stroke={1.75} aria-hidden />
-            New {noun}
-          </ButtonLink>
-        </div>
         {rows.length === 0 ? (
           empty
         ) : (

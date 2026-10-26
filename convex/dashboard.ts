@@ -232,6 +232,14 @@ export const week = query({
         })
       ),
       pages: v.array(v.object({ page: v.string(), people: v.number() })),
+      /** Last 30 days: website visits per source, and how many enquired. */
+      visits: v.array(
+        v.object({
+          source: v.string(),
+          visits: v.number(),
+          enquired: v.number(),
+        })
+      ),
       /** Where last 30 days' enquirers are now. */
       stages: v.object({
         new: v.number(),
@@ -256,7 +264,7 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
 
   /* One read per source, all at once. The month's enquiries also answer
      the fortnight's counts, so enquiries are read once, not twice. */
-  const [month, moves, orders, tapRows] = await Promise.all([
+  const [month, moves, orders, tapRows, visitRows] = await Promise.all([
     ctx.db
       .query("enquiries")
       .withIndex("by_creation_time", (q) =>
@@ -282,6 +290,15 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
             q.eq("day", day)
           )
           .take(300)
+      )
+    ).then((days) => days.flat()),
+    // A handful of sources a day: thirty days is a few hundred rows at most.
+    Promise.all(
+      Array.from({ length: 30 }, (_, i) => indiaDay(now - i * DAY)).map((day) =>
+        ctx.db
+          .query("visits")
+          .withIndex("by_day_and_source", (q) => q.eq("day", day))
+          .take(20)
       )
     ).then((days) => days.flat()),
   ])
@@ -367,6 +384,20 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
     }
   }
 
+  /* Visits beside the website enquiries they became: the enquiry keeps the
+     visit's first-touch source in utm.source (lib/attribution.ts). */
+  const visits = new Map<string, { visits: number; enquired: number }>()
+  for (const row of visitRows) {
+    const entry = visits.get(row.source) ?? { visits: 0, enquired: 0 }
+    entry.visits += row.count
+    visits.set(row.source, entry)
+  }
+  for (const enquiry of firstEnquiry.values()) {
+    const source = enquiry.channel === "website" ? enquiry.utm?.source : null
+    const entry = source ? visits.get(source.toLowerCase()) : undefined
+    if (entry) entry.enquired += 1
+  }
+
   return {
     enquiries: {
       thisWeek: thisWeek.length,
@@ -391,6 +422,9 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
       .map(([page, people]) => ({ page, people }))
       .sort((a, b) => b.people - a.people)
       .slice(0, 5),
+    visits: [...visits]
+      .map(([source, row]) => ({ source, ...row }))
+      .sort((a, b) => b.visits - a.visits),
     stages,
     capped: month.length > WINDOW_CAP,
   }

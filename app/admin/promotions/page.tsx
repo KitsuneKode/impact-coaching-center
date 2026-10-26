@@ -106,19 +106,15 @@ function Promotions() {
     <PageShell
       density="working"
       title={<span className="text-foreground">Promotions.</span>}
+      description="Bars, banners, pop-ups and video reels. Pausing is how one stops; nothing is deleted."
+      actions={
+        <ButtonLink href="/admin/promotions/new" size="md">
+          <IconPlus stroke={1.75} aria-hidden />
+          New promotion
+        </ButtonLink>
+      }
     >
       <div className="grid gap-6">
-        <div className="flex flex-wrap items-center gap-4">
-          <ButtonLink href="/admin/promotions/new" size="md">
-            <IconPlus stroke={1.75} aria-hidden />
-            New promotion
-          </ButtonLink>
-          <p className="text-sm text-muted-foreground">
-            Bars, banners, pop-ups and video reels. Pausing is how one stops;
-            nothing is deleted.
-          </p>
-        </div>
-
         {list.rows.length === 0 ? (
           <StatePanel
             icon={<IconSpeakerphone stroke={1.75} />}

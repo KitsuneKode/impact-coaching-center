@@ -507,6 +507,8 @@ const SOURCE_NAMES: Record<string, string> = {
   "phone call": "Phone call",
   referral: "Referral",
   other: "Other",
+  chatgpt: "ChatGPT",
+  direct: "Direct or typed",
   "website, direct": "Website, direct",
 }
 const sourceName = (source: string) => SOURCE_NAMES[source] ?? source
@@ -544,6 +546,7 @@ function Week({ asOf }: { asOf: number }) {
   const people = STAGES.reduce((n, [key]) => n + data.stages[key], 0)
   const topSource = Math.max(1, ...data.sources.map((row) => row.people))
   const topPage = Math.max(1, ...data.pages.map((row) => row.people))
+  const topVisits = Math.max(1, ...data.visits.map((row) => row.visits))
 
   return (
     <>
@@ -760,6 +763,70 @@ function Week({ asOf }: { asOf: number }) {
                 </div>
               ) : null}
             </div>
+
+            {data.visits.length ? (
+              <div className="grid content-start gap-3">
+                <h3 className="text-sm font-medium">
+                  Website visits, and how many enquired
+                </h3>
+                <table className="w-full text-sm">
+                  <caption className="sr-only">
+                    Website visits in the last 30 days by where they came from,
+                    with the enquiries each source brought
+                  </caption>
+                  <thead>
+                    <tr className="text-xs text-muted-foreground">
+                      <th className="pbe-1 text-start font-normal">From</th>
+                      <th className="pe-4 pbe-1 text-end font-normal">
+                        Visits
+                      </th>
+                      <th className="pe-4 pbe-1 text-end font-normal">
+                        Enquired
+                      </th>
+                      <th className="pbe-1 text-end font-normal">Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.visits.map((row) => (
+                      <tr key={row.source}>
+                        <th
+                          scope="row"
+                          className="w-full py-1.5 pe-4 text-start font-normal"
+                        >
+                          {sourceName(row.source)}
+                          <span
+                            aria-hidden
+                            className="mbs-1.5 block h-1.5 rounded-full bg-primary/25"
+                            style={{
+                              width: `${(row.visits / topVisits) * 100}%`,
+                            }}
+                          />
+                        </th>
+                        <td className="tnum py-1.5 pe-4 text-end align-top font-medium">
+                          {count(row.visits)}
+                        </td>
+                        <td className="tnum py-1.5 pe-4 text-end align-top">
+                          {count(row.enquired)}
+                        </td>
+                        <td className="tnum py-1.5 text-end align-top whitespace-nowrap text-muted-foreground">
+                          {/* Visits are counted from launch; older
+                              enquiries can outnumber them at first. */}
+                          {percent(
+                            Math.min(row.enquired, row.visits),
+                            row.visits
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-xs text-muted-foreground">
+                  One visit per browser session. Tag links you share with
+                  ?utm_source=whatsapp (or facebook, instagram, youtube) so they
+                  count under the right name.
+                </p>
+              </div>
+            ) : null}
 
             {data.capped ? (
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">

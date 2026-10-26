@@ -460,7 +460,7 @@ export function LeadsTable({
     <OpenLeadContext.Provider value={onOpen}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <InputGroup className="w-full max-w-xs">
+          <InputGroup className="w-full sm:max-w-xs">
             <InputGroupAddon className="ps-3">
               <IconSearch
                 stroke={1.75}
@@ -487,7 +487,7 @@ export function LeadsTable({
             items={TRACK_ITEMS}
           >
             <SelectTrigger
-              className="h-11 w-44 rounded-control px-3 text-[0.9375rem]"
+              className="w-full sm:w-44"
               aria-label="Filter by exam"
             >
               <SelectValue />
@@ -584,7 +584,7 @@ export function LeadsTable({
             table.setPageIndex(0)
           }}
           aria-label="Filter by status"
-          className="flex-wrap"
+          className="-mx-5 scrollbar-none flex-nowrap overflow-x-auto px-5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
         >
           {STATUS_FILTERS.map((option) => (
             <ToggleGroupItem key={option.value} value={option.value}>

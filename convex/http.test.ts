@@ -26,7 +26,7 @@ afterEach(() => {
 describe("server-to-server enquiry route", () => {
   const lead = {
     name: "Rituparna",
-    phone: "98765 43210",
+    phone: "98123 45670",
     track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }

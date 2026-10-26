@@ -41,6 +41,7 @@ import type * as persons from "../persons.js";
 import type * as profile from "../profile.js";
 import type * as settings from "../settings.js";
 import type * as site from "../site.js";
+import type * as visits from "../visits.js";
 
 import type {
   ApiFromModules,
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   profile: typeof profile;
   settings: typeof settings;
   site: typeof site;
+  visits: typeof visits;
 }>;
 
 /**

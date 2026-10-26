@@ -60,8 +60,8 @@ describe("the overview", () => {
   test("the week counts enquiries, not people: one phone, two children", async () => {
     const t = convexTest(schema, modules)
     const desk = await staff(t)
-    await enquire(t, "+919876543210", "Riya")
-    await enquire(t, "+919876543210", "Arjun")
+    await enquire(t, "+919812345670", "Riya")
+    await enquire(t, "+919812345670", "Arjun")
     await enquire(t, "+919876543211", "Bikash")
     const week = await t.run((ctx) => readWeek(ctx, desk, Date.now() + 1000))
     expect(week.enquiries).toMatchObject({ thisWeek: 3, lastWeek: 0 })
@@ -105,5 +105,30 @@ describe("the overview", () => {
       ["Newest", "new"],
     ])
     expect(today.followUps.overdue).toBe(1)
+  })
+})
+
+describe("website visits by source", () => {
+  test("visits count per source per day, and enquiries made from them are set beside them", async () => {
+    const t = convexTest(schema, modules)
+    const desk = await staff(t)
+    const { api } = await import("./_generated/api")
+    for (let i = 0; i < 3; i++)
+      await t.mutation(api.visits.record, { source: "google" })
+    await t.mutation(api.visits.record, { source: "facebook" })
+    await t.mutation(internal.persons.recordEnquiry, {
+      phone: "+919811111111",
+      name: "Asha",
+      track: enquiryTracks[0]!,
+      timing: enquiryTimings[0]!,
+      utmSource: "google",
+    })
+    const week = await t.run((ctx) => readWeek(ctx, desk, Date.now() + 1000))
+    expect(week.visits).toEqual([
+      { source: "google", visits: 3, enquired: 1 },
+      { source: "facebook", visits: 1, enquired: 0 },
+    ])
+    const rows = await t.run((ctx) => ctx.db.query("visits").take(10))
+    expect(rows).toHaveLength(2)
   })
 })

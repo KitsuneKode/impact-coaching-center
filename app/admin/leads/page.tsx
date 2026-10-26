@@ -165,10 +165,8 @@ function Inbox() {
       density="working"
       /* No count in the heading. */
       title={<span className="text-foreground">Enquiries.</span>}
+      actions={<AddEnquiry onCreated={(id) => setOpenId(id)} />}
     >
-      <div className="mbe-4 flex justify-end">
-        <AddEnquiry onCreated={(id) => setOpenId(id)} />
-      </div>
       <LeadsTable
         leads={leads}
         canLoadMore={status === "CanLoadMore"}

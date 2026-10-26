@@ -532,6 +532,14 @@
   }
 }
 
+/* A row that scrolls sideways on a phone without showing a scrollbar. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility container-page {
   margin-inline: auto;
   width: 100%;

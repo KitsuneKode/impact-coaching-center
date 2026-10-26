@@ -488,3 +488,22 @@
     margin-block-start: 0;
   }
 }
+
+/* The section link beside a post heading (components/marketing/markdown-body). */
+[data-heading-anchor] {
+  margin-inline-start: 0.4em;
+  color: var(--muted-foreground);
+  font-weight: 400;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+:is(h2, h3):hover > [data-heading-anchor],
+[data-heading-anchor]:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  [data-heading-anchor] {
+    opacity: 0.45;
+  }
+}

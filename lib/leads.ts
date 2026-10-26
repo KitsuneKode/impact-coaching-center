@@ -43,6 +43,15 @@ export type ParseResult =
 const MOBILE = /^(?:\+?91)?0?([6-9]\d{9})$/
 
 /**
+ * Numbers nobody answers: the form's own placeholder, or two digits at most
+ * (9999999999, 9898989898). Typed to get past the form, never a person.
+ */
+export function unownedNumber(e164: string) {
+  const national = e164.slice(-10)
+  return national === "9876543210" || new Set(national).size <= 2
+}
+
+/**
  * Digits a mobile field is allowed to show: ten, national, nothing else.
  *
  * A pasted country code or trunk zero is unwrapped first. Anything past ten
@@ -103,6 +112,8 @@ export function parseLead(input: Record<string, string>): ParseResult {
   }
   if (!phone) {
     errors.phone = "Enter a 10-digit mobile number."
+  } else if (unownedNumber(phone)) {
+    errors.phone = "Enter your own mobile number, so ICT can call you back."
   }
   if (!enquiryTracks.includes(track as (typeof enquiryTracks)[number])) {
     errors.track = "Pick an exam."
