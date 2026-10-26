@@ -56,7 +56,7 @@ function StaffGate({ phone }: { phone?: string }) {
           ICT staff
         </p>
         <h1 className="mbs-2 font-display text-2xl font-semibold tracking-[-0.02em]">
-          {phone ? "This account isn't staff" : "Sign in to the admin"}
+          {phone ? "This account isn't staff" : "Log in to the admin"}
         </h1>
         <p className="mbs-3 text-sm text-pretty text-muted-foreground">
           {phone

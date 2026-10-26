@@ -393,7 +393,7 @@
     "searchingAll": "Searching every folder",
     "everyFileCount": "{count, plural, one {# file} other {# files}}",
     "sampleNotOnSale": "Sample set: not on sale yet",
-    "checkoutNote": "Sign in with your number to place the order, then pay by UPI, card or net banking through Razorpay.",
+    "checkoutNote": "Log in with your number to place the order, then pay by UPI, card or net banking through Razorpay.",
     "buyPay": "Pay by UPI, card or net banking, through Razorpay",
     "buyGet": "Delivered to your door, or collect free at the centre",
     "stepsHeading": "How ordering works.",
@@ -634,7 +634,6 @@
     "ticketStarted": "Started",
     "ticketStarts": "Starts",
     "ticketNew": "New",
-    "ticketBatch": "batch",
     "marquee": "APSC|ADRE|Assam Police|Banking|SSC|Railway NTPC|Warrior mocks|Brahmastra|Astra Series|Axom Dhwani",
     "stackLead": "Three exams.",
     "stackRest": "One classroom.",
@@ -791,7 +790,12 @@
     "searchFilter": "Show only",
     "searchRecent": "Recent",
     "searchForget": "Remove “{query}” from recent",
-    "searchAsk": "Ask ICT on WhatsApp"
+    "searchAsk": "Ask ICT on WhatsApp",
+    "heroProofOfficers": "2 officers on the APSC CCE 2022 list",
+    "heroProofYoutube": "16.2K learning with us on YouTube",
+    "heroProofLabel": "Proof you can check",
+    "ticketOpen": "Open",
+    "ticketEnrolling": "Enrolling now"
   },
   "Promos": {
     "code": "Code",

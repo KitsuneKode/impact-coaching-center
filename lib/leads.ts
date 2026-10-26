@@ -90,7 +90,7 @@ export function phoneFragment(search: string): string | null {
 export function parseLead(input: Record<string, string>): ParseResult {
   const name = (input.name ?? "").trim()
   // Trimmed like the name: a pasted value with a trailing space otherwise
-  // fails with "Please pick an exam." after the user did pick one.
+  // fails with "Pick an exam." after the user did pick one.
   const track = (input.track ?? "").trim()
   const timing = (input.timing ?? "").trim()
   const phone = toE164(input.phone ?? "")
@@ -102,13 +102,13 @@ export function parseLead(input: Record<string, string>): ParseResult {
     errors.name = "Name must be 80 characters or fewer."
   }
   if (!phone) {
-    errors.phone = "Please enter a 10 digit mobile number."
+    errors.phone = "Enter a 10-digit mobile number."
   }
   if (!enquiryTracks.includes(track as (typeof enquiryTracks)[number])) {
-    errors.track = "Please pick an exam."
+    errors.track = "Pick an exam."
   }
   if (!enquiryTimings.includes(timing as (typeof enquiryTimings)[number])) {
-    errors.timing = "Please pick a time of day."
+    errors.timing = "Pick a time of day."
   }
 
   // `!phone` is not redundant with the error check: it is what narrows

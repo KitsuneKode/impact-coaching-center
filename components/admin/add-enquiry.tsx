@@ -74,7 +74,7 @@ function fieldMessage(field: string | undefined) {
     case "name":
       return "Give their name."
     case "phone":
-      return "A 10 digit mobile number."
+      return "Enter a 10-digit mobile number."
     case "track":
       return "Pick one of the listed exams."
     case "note":

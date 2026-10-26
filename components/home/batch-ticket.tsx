@@ -57,12 +57,20 @@ export function BatchTicket({
                   : t("ticketStarts")
                 : t("ticketNew")}
             </span>
-            <span className="font-display text-2xl leading-none font-semibold">
-              {starts ? starts.day : null}
-              <span className="block text-sm">
-                {starts ? starts.month : t("ticketBatch")}
+            {starts ? (
+              <span className="font-display text-2xl leading-none font-semibold">
+                {starts.day}
+                <span className="block text-sm">{starts.month}</span>
               </span>
-            </span>
+            ) : (
+              /* No start date entered yet: say it is open, not a lone "batch". */
+              <span className="font-display text-2xl leading-none font-semibold">
+                {t("ticketOpen")}
+                <span className="mbs-1.5 block font-sans text-xs font-medium text-muted-foreground">
+                  {t("ticketEnrolling")}
+                </span>
+              </span>
+            )}
           </span>
           <span className="p-5 ps-6">
             <span className="block text-xs font-semibold text-muted-foreground">

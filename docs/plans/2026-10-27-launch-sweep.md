@@ -7,19 +7,20 @@ the end.
 ## 0. Finish what was in flight
 
 - [x] Legacy orders migrate to the v2 shape (`convex/migrations.ts`), run locally
-- [ ] Order flow (paid-only orders, receipts, courier tracking, bulk moves,
+- [x] Order flow (paid-only orders, receipts, courier tracking, bulk moves,
       labels, WhatsApp outbox): click through checkout → pay → admin queue →
       ship → buyer timeline, then commit
-- [ ] Write ADR-0005 (orders exist only once paid); the schema cites it
+- [x] Write ADR-0005 (orders exist only once paid); the schema cites it
 
 ## 1. Broken or unknown (msg 7)
 
-- [ ] Production build + `bun run smoke` on :3010
-- [ ] Every public and admin route: no console errors, no 500s, no hydration warnings
-- [ ] Recheck the 22 Oct backend review on this branch (P1 erasure vs sign-in,
+- [x] Production build + `bun run smoke` on :3010
+- [x] Every public and admin route: no console errors, no 500s, no hydration warnings
+- [x] Recheck the 22 Oct backend review on this branch (P1 erasure vs sign-in,
       the 17 smaller items); fix what's still open
-- [ ] Env and config audit: what fails silently when a key is missing
-- [ ] Package versions: update all, fix what breaks, note anything held back
+- [x] Env and config audit: what fails silently when a key is missing
+      (payments off → WhatsApp ordering; no OTP transport → sends refused, pages fine)
+- [x] Package versions: update all, fix what breaks, note anything held back
 
 ## 2. Marketing landing and trust (msg 5)
 

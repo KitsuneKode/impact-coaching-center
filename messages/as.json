@@ -834,7 +834,6 @@
     "ticketStarted": "আৰম্ভ হৈছে",
     "ticketStarts": "আৰম্ভ হ'ব",
     "ticketNew": "নতুন",
-    "ticketBatch": "বেটচ",
     "marquee": "APSC|ADRE|অসম আৰক্ষী|বেংক|SSC|ৰেলৱে NTPC|Warrior মক|Brahmastra|Astra Series|Axom Dhwani",
     "stackLead": "তিনিটা পৰীক্ষা।",
     "stackRest": "এটাই শ্ৰেণীকোঠা।",
@@ -991,7 +990,12 @@
     "searchFilter": "কেৱল দেখুৱাওক",
     "searchRecent": "শেহতীয়া",
     "searchForget": "শেহতীয়াৰ পৰা “{query}” আঁতৰাওক",
-    "searchAsk": "WhatsAppত ICTক সোধক"
+    "searchAsk": "WhatsAppত ICTক সোধক",
+    "heroProofOfficers": "APSC CCE 2022ৰ তালিকাত ICTৰ দুজন বিষয়া",
+    "heroProofYoutube": "YouTubeত 16.2K শিক্ষাৰ্থী",
+    "heroProofLabel": "পৰীক্ষা কৰিব পৰা প্ৰমাণ",
+    "ticketOpen": "খোলা",
+    "ticketEnrolling": "নামভৰ্তি চলিছে"
   },
   "Promos": {
     "code": "ক'ড",

@@ -31,7 +31,7 @@ function SharedReceipt({ token }: { token: string }) {
           description="Check that the whole link was copied. Signed in, your receipts are with your orders."
           action={
             <ButtonLink href="/account" className="mbs-6">
-              Sign in to your orders
+              Log in to see your orders
             </ButtonLink>
           }
         />

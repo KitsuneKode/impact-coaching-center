@@ -108,7 +108,7 @@ export function ReceiptView({
             Print or save as PDF
           </button>
           <ButtonLink href="/account" variant="ghost">
-            {shared ? "Sign in to follow the order" : "Your orders"}
+            {shared ? "Log in to follow the order" : "Your orders"}
           </ButtonLink>
         </div>
 

@@ -107,7 +107,7 @@ export function SignInForm({
    */
   function checkPhone(value: string) {
     const ok = Boolean(toE164(value))
-    setPhoneError(ok ? null : "Please enter a 10 digit mobile number.")
+    setPhoneError(ok ? null : "Enter a 10-digit mobile number.")
     return ok
   }
 

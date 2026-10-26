@@ -58,7 +58,7 @@ const REFUSED: Record<string, string> = {
   declined: "The payment didn't go through and nothing was charged. Try again.",
   gateway:
     "The payment service didn't answer and nothing was charged. Wait a moment and try again.",
-  anonymous: "Your session ended. Sign in again to pay.",
+  anonymous: "Your session ended. Log in again to pay.",
   "missing-record": "Your cart changed. Check it and press Pay again.",
 }
 const refusedText = (reason: string) =>

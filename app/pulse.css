@@ -13,6 +13,18 @@
     background-color: var(--primary);
     color: oklch(100% 0 none);
   }
+  /* Laptops and up: the hero is the first screen, the exam marquee just
+     showing under it, so the page reads as having more below. */
+  @media (width >= 64rem) {
+    [data-hero="blue"] {
+      display: flex;
+      flex-direction: column;
+      min-block-size: clamp(36rem, 100svh - 7.5rem, 60rem);
+    }
+    [data-hero-body] {
+      flex: 1;
+    }
+  }
   [data-hero-glow] {
     position: absolute;
     /* A fixed offset, not a share of the hero's height: the hero settles a

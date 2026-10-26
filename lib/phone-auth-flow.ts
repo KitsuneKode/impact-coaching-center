@@ -39,14 +39,15 @@ export const CODE_LENGTH = 6
  */
 export const PHONE_AUTH_MESSAGES: Record<string, string> = {
   INVALID_PHONE_NUMBER: "Enter a valid Indian mobile number.",
-  INVALID_OTP: "That code isn't right. Please try again.",
+  INVALID_OTP:
+    "That code isn't right. Check the WhatsApp message and enter it again.",
   OTP_EXPIRED: "That code has expired. Request a new one.",
   OTP_NOT_FOUND: "Ask for a code first.",
   TOO_MANY_ATTEMPTS: "Too many attempts. Request a new code in a few minutes.",
   PHONE_NUMBER_CANNOT_BE_UPDATED:
     "To change your number, call or WhatsApp ICT.",
   SEND_OTP_NOT_IMPLEMENTED:
-    "Log in isn't available right now. Please call or WhatsApp ICT.",
+    "Logging in isn't available right now. Call or WhatsApp ICT.",
 }
 
 // A thrown failure (offline, a dropped request) never comes back as {error},

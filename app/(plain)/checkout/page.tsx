@@ -101,11 +101,11 @@ function Checkout() {
       >
         <StatePanel
           icon={<IconLock stroke={1.75} />}
-          title="Sign in to place the order"
+          title="Log in to place the order"
           description="Your cart stays on this device and carries over once you're in. New here? Signing in with your number creates the account."
           action={
             <ButtonLink href="/login?next=/checkout" className="mbs-6">
-              Sign in with your number
+              Log in with your number
             </ButtonLink>
           }
         />
@@ -228,7 +228,7 @@ function CheckoutForm() {
           result.reason === "rate-limited"
             ? "Too many tries just now. Wait a few minutes and try again."
             : result.reason === "anonymous"
-              ? "Your session ended. Sign in again to pay."
+              ? "Your session ended. Log in again to pay."
               : result.reason === "invalid-input"
                 ? (REFUSED_FIELD[result.field ?? ""] ??
                   "Check your details and try again.")

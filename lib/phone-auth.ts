@@ -218,7 +218,7 @@ export function phoneAuthOptions(delivery: {
             : undefined
           if (!phone || generation === undefined)
             throw new APIError("INTERNAL_SERVER_ERROR", {
-              message: "Could not start verification. Please try again.",
+              message: "Couldn't start logging you in. Try again.",
             })
           const committed = await delivery.commit({
             phone,

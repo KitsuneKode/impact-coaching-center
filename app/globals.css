@@ -267,6 +267,19 @@
       Roboto, sans-serif;
   }
 
+  /* Headings break into even lines; running text never leaves one word
+     alone on the last line. Classes and utilities still override both. */
+  :is(h1, h2, h3, h4) {
+    text-wrap: balance;
+  }
+  :is(p, li, dd, blockquote, figcaption) {
+    text-wrap: pretty;
+  }
+  /* Opening quotes hang outside the text edge where the browser can. */
+  blockquote {
+    hanging-punctuation: first;
+  }
+
   .font-as {
     font-family: var(--font-as), ui-sans-serif, system-ui, sans-serif;
   }
@@ -277,7 +290,9 @@
    * looser leading, no negative tracking, and headings a step smaller, since
    * Bengali-script glyphs sit larger than Latin at the same size.
    */
-  :lang(as) {
+  /* On the element carrying lang only, so children inherit. As `:lang(as)`
+     it matched every span and reset the leading and face a heading set. */
+  [lang|="as"] {
     font-family: var(--font-as), var(--font-sans), system-ui, sans-serif;
     line-height: 1.7;
   }
@@ -1189,6 +1204,16 @@ body :lang(as) {
 @layer utilities {
   :lang(as) :is(.font-display, h1, h2, h3, [class*="tracking-"]) {
     letter-spacing: 0;
+  }
+  /* Matras and conjuncts stack above and below the line: Latin display
+     leading (1.0-1.1) makes Assamese headline lines touch. */
+  :lang(as) :is(.font-display, h1, h2, h3) {
+    line-height: 1.24;
+  }
+  /* Heading measures are set in `ch`, the width of a Latin "0"; Assamese
+     words run wider, so a 14ch headline broke a word to a line. */
+  :lang(as) :is(h1, h2, h3)[class*="max-w-["] {
+    max-inline-size: 16em;
   }
 }
 /* Blue text in dark mode takes the bright ink (--primary-ink), while
