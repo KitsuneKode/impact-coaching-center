@@ -13,6 +13,10 @@ import Link from "next/link"
 import { useId, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import {
+  OrderOnWhatsApp,
+  useShopMode,
+} from "@/components/commerce/order-on-whatsapp"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
   Field,
@@ -148,6 +152,7 @@ function CheckoutForm() {
     Partial<Record<AddressField, string>>
   >({})
   const [paid, setPaid] = useState<Paid | null>(null)
+  const whatsapp = useShopMode() === "whatsapp"
   const [pending, setPending] = useState<Id<"checkouts"> | null>(null)
   const errorId = useId()
 
@@ -532,27 +537,43 @@ function CheckoutForm() {
                 </dd>
               </div>
             </dl>
-            <PayButton
-              amountPaise={shownTotal}
-              prepare={prepare}
-              onPaid={(result) => {
-                setPaid(result)
-                requestAnimationFrame(() => window.scrollTo({ top: 0 }))
-              }}
-              onPending={setPending}
-              disabled={rows.length === 0 || missing.length > 0}
-            />
-            <p
-              id={errorId}
-              role="alert"
-              className="text-sm text-destructive empty:hidden"
-            >
-              {error}
-            </p>
-            <FieldDescription className="text-center">
-              UPI, cards or net banking, through Razorpay. Your cart stays here
-              until the payment goes through.
-            </FieldDescription>
+            {whatsapp ? (
+              <>
+                <OrderOnWhatsApp
+                  size="lg"
+                  className="w-full rounded-full"
+                  sets={rows.map((row) => `${row.title} × ${row.quantity}`)}
+                />
+                <FieldDescription className="text-center">
+                  Online payment opens soon. Until then ICT confirms the total
+                  and how to pay on WhatsApp.
+                </FieldDescription>
+              </>
+            ) : (
+              <>
+                <PayButton
+                  amountPaise={shownTotal}
+                  prepare={prepare}
+                  onPaid={(result) => {
+                    setPaid(result)
+                    requestAnimationFrame(() => window.scrollTo({ top: 0 }))
+                  }}
+                  onPending={setPending}
+                  disabled={rows.length === 0 || missing.length > 0}
+                />
+                <p
+                  id={errorId}
+                  role="alert"
+                  className="text-sm text-destructive empty:hidden"
+                >
+                  {error}
+                </p>
+                <FieldDescription className="text-center">
+                  UPI, cards or net banking, through Razorpay. Your cart stays
+                  here until the payment goes through.
+                </FieldDescription>
+              </>
+            )}
           </aside>
         </div>
       )}

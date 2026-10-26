@@ -21,6 +21,7 @@ import {
   action,
   internalMutation,
   internalQuery,
+  query,
   type MutationCtx,
 } from "./_generated/server"
 import { queueMessage } from "./messages"
@@ -71,6 +72,20 @@ function provider() {
     process.env.CONVEX_SITE_URL
   )
 }
+
+/**
+ * How the shop takes orders right now: online through the gateway, or on
+ * WhatsApp while payments are off (no keys yet, or switched off).
+ */
+export const shopMode = query({
+  args: {},
+  returns: v.union(v.literal("online"), v.literal("whatsapp")),
+  handler: async () => {
+    const mode = provider()
+    if (mode === "simulated") return "online" as const
+    return mode === "razorpay" && razorpayAuth() ? "online" : "whatsapp"
+  },
+})
 
 function razorpayAuth() {
   const id = process.env.RAZORPAY_KEY_ID

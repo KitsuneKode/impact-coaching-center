@@ -207,4 +207,14 @@ describe("contactHref exact copy", () => {
   test("call", () => {
     expect(contactHref({ kind: "call" })).toBe("tel:+918638061175")
   })
+
+  test("a books order lists every set", () => {
+    const href = contactHref({
+      kind: "books",
+      sets: ["APSC Set, English set × 1", "SSC Set, Assamese set × 2"],
+    })
+    const text = decodeURIComponent(href)
+    expect(text).toContain("APSC Set, English set × 1")
+    expect(text).toContain("SSC Set, Assamese set × 2")
+  })
 })

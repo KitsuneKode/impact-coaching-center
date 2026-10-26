@@ -485,7 +485,10 @@
     "paperBooks": "Printed books for {exam}",
     "paperBooksHide": "Hide the book suggestion",
     "continueReading": "Continue reading",
-    "readProgress": "Page {page} of {total}"
+    "readProgress": "Page {page} of {total}",
+    "orderOnWhatsApp": "Order on WhatsApp",
+    "whatsappOrderNote": "Online payment opens soon. Until then ICT confirms the total and how to pay on WhatsApp.",
+    "buyWhatsApp": "Ordered on WhatsApp; ICT confirms the total and payment"
   },
   "Library": {
     "claim": "A place to actually study.",

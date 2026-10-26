@@ -685,7 +685,10 @@
     "paperBooks": "{exam}ৰ বাবে ছপা কিতাপ",
     "paperBooksHide": "কিতাপৰ পৰামৰ্শ লুকুৱাওক",
     "continueReading": "পঢ়া আগবঢ়াওক",
-    "readProgress": "পৃষ্ঠা {page} / {total}"
+    "readProgress": "পৃষ্ঠা {page} / {total}",
+    "orderOnWhatsApp": "হোৱাটছএপত অৰ্ডাৰ কৰক",
+    "whatsappOrderNote": "অনলাইন পৰিশোধ সোনকালে আৰম্ভ হ'ব। তেতিয়ালৈকে ICT-এ হোৱাটছএপত মুঠ দাম আৰু পৰিশোধৰ উপায় জনাব।",
+    "buyWhatsApp": "হোৱাটছএপত অৰ্ডাৰ; ICT-এ মুঠ দাম আৰু পৰিশোধ নিশ্চিত কৰে"
   },
   "Library": {
     "claim": "পঢ়াৰ বাবে এটা প্ৰকৃত ঠাই।",

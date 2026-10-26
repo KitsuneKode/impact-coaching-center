@@ -19,6 +19,10 @@ import {
 } from "react"
 
 import { AddToCart } from "@/components/commerce/add-to-cart"
+import {
+  OrderOnWhatsApp,
+  useShopMode,
+} from "@/components/commerce/order-on-whatsapp"
 import { PageViewer } from "@/components/commerce/lazy-page-viewer"
 import type { ViewerPage } from "@/components/commerce/page-viewer"
 import { ShopCartButton, useOpenCart } from "@/components/commerce/shop-shell"
@@ -65,6 +69,7 @@ export function SetView({
   const t = useTranslations("Shop")
   const pulse = useTranslations("Pulse")
   const openCart = useOpenCart()
+  const whatsapp = useShopMode() === "whatsapp"
   const [language, setLanguage] = useState<Language>(() =>
     bundle.variants[initialLanguage].available
       ? initialLanguage
@@ -170,7 +175,15 @@ export function SetView({
                 </span>
               </p>
               <div className="mbs-5">
-                {variant.available && !bundle.sample ? (
+                {variant.available && !bundle.sample && whatsapp ? (
+                  <OrderOnWhatsApp
+                    sets={[
+                      `${t("setOf", { set: title, language: setName(language) })} × 1`,
+                    ]}
+                    size="lg"
+                    className="w-full rounded-full"
+                  />
+                ) : variant.available && !bundle.sample ? (
                   <AddToCart
                     slug={bundle.slug}
                     language={language}
@@ -197,7 +210,7 @@ export function SetView({
                     stroke={1.75}
                     className="flex-none text-verified"
                   />
-                  {t("buyPay")}
+                  {whatsapp ? t("buyWhatsApp") : t("buyPay")}
                 </li>
                 <li className="flex items-center gap-2.5">
                   <IconTruckDelivery

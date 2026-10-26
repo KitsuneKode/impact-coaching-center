@@ -1,13 +1,19 @@
 "use client"
 
-import { IconCheck, IconShoppingBagPlus } from "@tabler/icons-react"
+import {
+  IconBrandWhatsapp,
+  IconCheck,
+  IconShoppingBagPlus,
+} from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { useShopMode } from "@/components/commerce/order-on-whatsapp"
 import { useOpenCartIfShop } from "@/components/commerce/shop-shell"
 import { track } from "@/lib/analytics"
+import { contactHref } from "@/lib/contact"
 import { useCartActions } from "@/lib/cart-store"
 import { LANGUAGES, type Language, type PublicBundle } from "@/lib/catalog"
 import { formatPaise } from "@/lib/money"
@@ -34,6 +40,7 @@ export function SetBuy({
   const openCart = useOpenCartIfShop()
   const router = useRouter()
   const [added, setAdded] = useState<Language | null>(null)
+  const whatsapp = useShopMode() === "whatsapp"
 
   const buy = (language: Language) => {
     // At the cap nothing goes in; the cart has already said why.
@@ -87,6 +94,39 @@ export function SetBuy({
             </span>
           )
         const done = added === language
+        // Payments off: the same price, ordered on WhatsApp.
+        if (whatsapp)
+          return (
+            <a
+              key={language}
+              href={contactHref({
+                kind: "books",
+                sets: [t("setOf", { set: title, language: name }) + " × 1"],
+              })}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-set-price
+              data-press
+              aria-label={`${t("orderOnWhatsApp")}: ${name}, ${title}`}
+              className="tnum inline-flex min-w-0 items-center justify-between gap-2 rounded-2xl ps-3.5 pe-2.5 pbs-2 pbe-2 text-start sm:gap-3 sm:ps-4 sm:pe-3"
+            >
+              <span className="flex min-w-0 flex-col">
+                <span className="text-xs whitespace-nowrap text-muted-foreground">
+                  {name}
+                </span>
+                <span className="font-display text-lg font-semibold">
+                  {formatPaise(variant.pricePaise)}
+                </span>
+              </span>
+              <span
+                aria-hidden
+                data-set-add
+                className="grid size-8 flex-none place-items-center rounded-full sm:size-9"
+              >
+                <IconBrandWhatsapp size={17} stroke={1.75} />
+              </span>
+            </a>
+          )
         return (
           <button
             key={language}

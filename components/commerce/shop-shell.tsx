@@ -7,6 +7,7 @@ import { createContext, useContext, useState, type ReactNode } from "react"
 import { convexConfigured } from "@/app/providers"
 import { CartButton, CartSheet } from "@/components/commerce/cart-sheet"
 import { useCartSync } from "@/lib/cart-store"
+import { useShopMode } from "@/components/commerce/order-on-whatsapp"
 
 const OpenCart = createContext<(() => void) | null>(null)
 
@@ -43,7 +44,10 @@ export function ShopShell({ children }: { children: ReactNode }) {
 
 /** The cart button, wired to the shop's sheet. */
 export function ShopCartButton() {
-  return <CartButton onOpen={useOpenCart()} />
+  const onOpen = useOpenCart()
+  // Ordering on WhatsApp: nothing goes in a cart, so there is none to show.
+  if (useShopMode() === "whatsapp") return null
+  return <CartButton onOpen={onOpen} />
 }
 
 /** Said plainly while the catalogue is placeholder titles. */
