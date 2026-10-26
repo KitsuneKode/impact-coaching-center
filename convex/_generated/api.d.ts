@@ -31,6 +31,8 @@ import type * as files from "../files.js";
 import type * as http from "../http.js";
 import type * as images from "../images.js";
 import type * as leads from "../leads.js";
+import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as orders from "../orders.js";
 import type * as otp from "../otp.js";
 import type * as payments from "../payments.js";
@@ -70,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   images: typeof images;
   leads: typeof leads;
+  messages: typeof messages;
+  migrations: typeof migrations;
   orders: typeof orders;
   otp: typeof otp;
   payments: typeof payments;

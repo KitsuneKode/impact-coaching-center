@@ -20,7 +20,6 @@ import { mutation, type MutationCtx } from "./_generated/server"
  */
 const LIVE_ORDER: ReadonlySet<Doc<"orders">["status"]> = new Set([
   "paid",
-  "packed",
   "shipped",
   "ready_for_collection",
 ])
@@ -51,71 +50,87 @@ export async function eraseAccount(
   if (!person) return invalidInput("person")
 
   // Everything that names this Person, read together.
-  const [orders, cart, opens, activities, enquiries, leases, undeliverable] =
-    await Promise.all([
-      ctx.db
-        .query("orders")
-        .withIndex("by_personId_and_placedAt", (q) =>
-          q.eq("personId", person._id)
-        )
-        .collect(),
-      ctx.db
-        .query("carts")
-        .withIndex("by_person", (q) => q.eq("personId", person._id))
-        .first(),
-      ctx.db
-        .query("resourceOpens")
-        .withIndex("by_personId_and_resourceId", (q) =>
-          q.eq("personId", person._id)
-        )
-        .take(ERASE_ROWS_MAX + 1),
-      ctx.db
-        .query("activities")
-        .withIndex("by_person", (q) => q.eq("personId", person._id))
-        .take(ERASE_ROWS_MAX + 1),
-      ctx.db
-        .query("enquiries")
-        .withIndex("by_person", (q) => q.eq("personId", person._id))
-        .take(ERASE_ROWS_MAX + 1),
-      /* Collect rather than `unique()`: a duplicated lease must not throw
+  const [
+    orders,
+    cart,
+    opens,
+    activities,
+    enquiries,
+    leases,
+    undeliverable,
+    checkouts,
+  ] = await Promise.all([
+    ctx.db
+      .query("orders")
+      .withIndex("by_personId_and_placedAt", (q) =>
+        q.eq("personId", person._id)
+      )
+      .collect(),
+    ctx.db
+      .query("carts")
+      .withIndex("by_person", (q) => q.eq("personId", person._id))
+      .first(),
+    ctx.db
+      .query("resourceOpens")
+      .withIndex("by_personId_and_resourceId", (q) =>
+        q.eq("personId", person._id)
+      )
+      .take(ERASE_ROWS_MAX + 1),
+    ctx.db
+      .query("activities")
+      .withIndex("by_person", (q) => q.eq("personId", person._id))
+      .take(ERASE_ROWS_MAX + 1),
+    ctx.db
+      .query("enquiries")
+      .withIndex("by_person", (q) => q.eq("personId", person._id))
+      .take(ERASE_ROWS_MAX + 1),
+    /* Collect rather than `unique()`: a duplicated lease must not throw
          and leave the erasure half-done - delete every row for the number. */
-      ctx.db
-        .query("otpSendLeases")
-        .withIndex("by_phone", (q) => q.eq("phone", person.phone))
-        .collect(),
-      ctx.db
-        .query("otpUndeliverable")
-        .withIndex("by_phone", (q) => q.eq("phone", person.phone))
-        .first(),
-    ])
+    ctx.db
+      .query("otpSendLeases")
+      .withIndex("by_phone", (q) => q.eq("phone", person.phone))
+      .collect(),
+    ctx.db
+      .query("otpUndeliverable")
+      .withIndex("by_phone", (q) => q.eq("phone", person.phone))
+      .first(),
+    // Attempts carry a name and an address; the orders keep what counts.
+    Promise.all(
+      (["open", "paid", "replaced"] as const).map((status) =>
+        ctx.db
+          .query("checkouts")
+          .withIndex("by_personId_and_status", (q) =>
+            q.eq("personId", person._id).eq("status", status)
+          )
+          .take(ERASE_ROWS_MAX + 1)
+      )
+    ).then((rows) => rows.flat()),
+  ])
   if (orders.some((order) => LIVE_ORDER.has(order.status)))
     return invalidInput("orders-in-progress")
   /* One transaction has a write ceiling. A history this long is refused
      whole, saying so, rather than failing the same way on every retry;
      staff erase it with the owner's help. */
   if (
-    [opens, activities, enquiries].some((rows) => rows.length > ERASE_ROWS_MAX)
+    [opens, activities, enquiries, checkouts].some(
+      (rows) => rows.length > ERASE_ROWS_MAX
+    )
   )
     return invalidInput("history-too-long")
 
   const now = Date.now()
   await Promise.all([
-    // Orders stay for the books' sake; who and where they went do not. One
-    // still awaiting payment is cancelled (not expired), so a payment that
-    // arrives later is flagged for a refund instead of reviving it.
+    // Orders stay for the books' sake; who and where they went do not.
     ...orders.map((order) =>
       ctx.db.patch(order._id, {
         address: undefined,
         contact: { name: "", phone: "" },
         updatedAt: now,
-        ...(order.status === "awaiting_payment"
-          ? {
-              status: "cancelled" as const,
-              revision: (order.revision ?? 0) + 1,
-            }
-          : {}),
       })
     ),
+    /* An attempt deleted mid-payment makes no order if the money still
+       arrives; the payment is logged for the owner to refund instead. */
+    ...checkouts.map((row) => ctx.db.delete(row._id)),
     // Free text and names go; who did what, and when, stays.
     ...activities
       .filter((row) => row.body || row.track || row.timing)

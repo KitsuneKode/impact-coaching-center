@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { CommandHint } from "@/components/admin/command-menu"
-import { labelForPath } from "@/components/admin/nav"
+import { sectionForPath } from "@/components/admin/nav"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,8 +19,13 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 /** The admin's own header: where you are, and how to get around. */
 export function AdminHeader() {
   const pathname = usePathname()
-  const label = labelForPath(pathname)
+  const section = sectionForPath(pathname)
   const atRoot = pathname === "/admin"
+  // One level below a section: an order, a post, the labels sheet.
+  const leaf =
+    section && pathname !== section.href
+      ? leafLabel(pathname.slice(section.href.length + 1).split("/")[0])
+      : null
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -32,7 +37,7 @@ export function AdminHeader() {
         />
         <Breadcrumb>
           <BreadcrumbList>
-            {atRoot || !label ? (
+            {atRoot || !section ? (
               <BreadcrumbItem>
                 <BreadcrumbPage>Admin</BreadcrumbPage>
               </BreadcrumbItem>
@@ -44,9 +49,25 @@ export function AdminHeader() {
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{label}</BreadcrumbPage>
-                </BreadcrumbItem>
+                {leaf ? (
+                  <>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink render={<Link href={section.href} />}>
+                        {section.label}
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem className="min-w-0">
+                      <BreadcrumbPage className="truncate">
+                        {leaf}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                ) : (
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{section.label}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                )}
               </>
             )}
           </BreadcrumbList>
@@ -57,4 +78,14 @@ export function AdminHeader() {
       </div>
     </header>
   )
+}
+
+/** A path segment as a crumb: references stay as typed, words get a capital. */
+function leafLabel(segment: string) {
+  const text = decodeURIComponent(segment)
+  if (/^ICT-/i.test(text)) return text.toUpperCase()
+  if (text === "new") return "New"
+  if (/^[a-z]+$/.test(text)) return text[0].toUpperCase() + text.slice(1)
+  // Convex ids and slugs: the page's own title names it.
+  return "Details"
 }

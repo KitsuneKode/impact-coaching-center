@@ -1,24 +1,25 @@
 import { v } from "convex/values"
 
 import { invalidInput, REFUSAL, viewerPerson, type Viewer } from "./authz"
-import { clearCart } from "./carts"
-import { mutation, type MutationCtx } from "./_generated/server"
-import { allocateOrderReference } from "./orders"
+import type { Id } from "./_generated/dataModel"
+import { mutation, type MutationCtx, query } from "./_generated/server"
 import { deliversTo, ORDER_SETS_MAX } from "../lib/catalog"
 import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
 import { readSettings } from "./settings"
 
 /**
- * Checkout. The server prices the order from published bundles, the shop
- * settings and the shopper's server-side cart; the browser sends neither
- * titles nor paise. An order lands as `awaiting_payment`; only a verified
- * Razorpay payment moves it to `paid`.
+ * Checkout (ADR-0005). "Pay" freezes the server cart at today's prices into
+ * a checkout attempt; Razorpay then takes the money for it, and only a
+ * captured payment turns it into an order (payments.ts). Nothing here
+ * empties the cart or shows staff anything: an unpaid attempt is invisible.
  */
 
-/** A shopper checking out more often than this is not a shopper. */
-const ORDERS_PER_PERSON_HOUR = 10
+/** A shopper starting more payments than this is not a shopper. */
+const ATTEMPTS_PER_PERSON_HOUR = 20
 const HOUR = 60 * 60 * 1000
+/** An attempt older than this is priced afresh rather than reused. */
+const REUSE_FOR_MS = 24 * HOUR
 
 /** Trimmed, non-empty, short enough for a courier label. */
 function cleanAddressField(value: string | undefined, max: number) {
@@ -34,34 +35,27 @@ function validateAddress(address: {
   district?: string
   pin: string
 }) {
-  const line1 = cleanAddressField(address.line1, 200)
-  const city = cleanAddressField(address.city, 100)
-  // Optional, but capped like the rest: an unbounded field would sit on the
-  // order and in every staff page that lists it.
-  const line2 = cleanAddressField(address.line2, 200) ?? undefined
-  const district = cleanAddressField(address.district, 100) ?? undefined
   if ((address.line2?.trim().length ?? 0) > 200) return null
   if ((address.district?.trim().length ?? 0) > 100) return null
+  const line1 = cleanAddressField(address.line1, 200)
+  const city = cleanAddressField(address.city, 100)
+  const line2 = cleanAddressField(address.line2, 200) ?? undefined
+  const district = cleanAddressField(address.district, 100) ?? undefined
   const pin = address.pin.trim()
   if (!line1 || !city) return null
   if (!/^\d{6}$/.test(pin)) return null
   return { line1, line2, city, district, pin }
 }
 
-export const placeOrder = mutation({
+export const beginCheckout = mutation({
   args: {
     fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
     address: v.optional(ADDRESS),
-    /**
-     * Generated once per checkout attempt client-side, so a double-click or
-     * a retried request acknowledges the same order instead of minting two.
-     */
-    idempotencyKey: v.string(),
   },
   returns: v.union(
     v.object({
       ok: v.literal(true),
-      reference: v.string(),
+      checkoutId: v.id("checkouts"),
       totalPaise: v.number(),
     }),
     REFUSAL
@@ -69,12 +63,12 @@ export const placeOrder = mutation({
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
     if (!viewer.ok) return viewer
-    return placeOrderAs(ctx, viewer.value, args)
+    return beginCheckoutAs(ctx, viewer.value, args)
   },
 })
 
 /** The mutation body, split out so it can be tested without a session. */
-export async function placeOrderAs(
+export async function beginCheckoutAs(
   ctx: MutationCtx,
   viewer: Viewer,
   args: {
@@ -86,34 +80,8 @@ export async function placeOrderAs(
       district?: string
       pin: string
     }
-    idempotencyKey: string
   }
 ) {
-  if (!args.idempotencyKey || args.idempotencyKey.length > 80)
-    return invalidInput("idempotencyKey")
-  /*
-   * Idempotency before the rate limit: a retry is not a new order, so it
-   * must not spend from the new-orders budget - it would turn "did that go
-   * through?" into a rate-limit refusal when the order exists. Distinct
-   * keys still hit the ceiling below, so a flood of real attempts costs.
-   */
-  const prior = await ctx.db
-    .query("orders")
-    .withIndex("by_idempotencyKey", (q) =>
-      q.eq("idempotencyKey", args.idempotencyKey)
-    )
-    .first()
-  if (prior) {
-    /* The key belongs to somebody else's order: refuse rather than hand
-       back a reference that is not theirs to see. */
-    if (prior.personId !== viewer.id) return invalidInput("idempotencyKey")
-    return {
-      ok: true as const,
-      reference: prior.reference,
-      totalPaise: prior.totalPaise,
-    }
-  }
-
   if (args.fulfilment === "collection" && args.address !== undefined)
     return invalidInput("address")
   const address =
@@ -124,8 +92,8 @@ export async function placeOrderAs(
   // Collection is open to anyone; parcels only go within Assam.
   if (address && !deliversTo(address.pin)) return invalidInput("pin-area")
 
-  /* The cart on the server is the order; what the client displayed is
-     advice, not evidence. */
+  /* The cart on the server is what gets paid for; what the browser showed
+     is advice, not evidence. */
   const cart = await ctx.db
     .query("carts")
     .withIndex("by_person", (q) => q.eq("personId", viewer.id))
@@ -135,18 +103,11 @@ export async function placeOrderAs(
   const sets = cartLines.reduce((n, line) => n + line.quantity, 0)
   if (sets > ORDER_SETS_MAX) return invalidInput("quantity")
 
-  /* Spent only once the request is well formed: a mistyped PIN or an
-     empty cart is fixed and resent, not counted as another order. */
-  const allowed = await consumeRateLimit(
-    ctx,
-    `order:person:${viewer.id}`,
-    ORDERS_PER_PERSON_HOUR,
-    HOUR
-  )
-  if (!allowed) return { ok: false as const, reason: "rate-limited" as const }
+  const person = await ctx.db.get(viewer.id)
+  if (!person?.name.trim()) return invalidInput("name")
 
   /* Every line's set and its books are read together; a line that cannot
-     be sold comes back null and refuses the whole order. */
+     be sold comes back null and refuses the whole attempt. */
   const priced = await Promise.all(
     cartLines.map(async (line) => {
       const bundle = await ctx.db
@@ -154,7 +115,7 @@ export async function placeOrderAs(
         .withIndex("by_slug", (q) => q.eq("slug", line.slug))
         .first()
       const variant = bundle?.variants[line.language]
-      // Unpublished, switched off or demo-only bundles cannot be sold.
+      // Unpublished, switched off or demo-only sets cannot be sold.
       if (!bundle || !bundle.published || bundle.sample || !variant?.available)
         return null
       const books = await Promise.all(
@@ -184,34 +145,116 @@ export async function placeOrderAs(
   const deliveryPaise =
     args.fulfilment === "delivery" ? settings.shippingPaise : 0
   const totalPaise = itemsPaise + deliveryPaise
+  const contact = { name: person.name.trim(), phone: person.phone }
+  const signature = JSON.stringify([
+    args.fulfilment,
+    address ?? null,
+    contact,
+    lines.map((l) => [l.bundleId, l.language, l.quantity, l.unitPaise]),
+    deliveryPaise,
+  ])
 
-  const person = await ctx.db.get(viewer.id)
-  if (!person?.name.trim()) return invalidInput("name")
+  /* Pressing Pay again on the same cart (a closed window, a declined card,
+     a second tab) reuses the attempt and its Razorpay order, whose amount
+     cannot change. Anything else replaces it. */
+  const now = Date.now()
+  const open = await ctx.db
+    .query("checkouts")
+    .withIndex("by_personId_and_status", (q) =>
+      q.eq("personId", viewer.id).eq("status", "open")
+    )
+    .take(10)
+  const reusable = open.find(
+    (row) => row.signature === signature && now - row.updatedAt < REUSE_FOR_MS
+  )
+  if (reusable) {
+    await ctx.db.patch(reusable._id, { updatedAt: now })
+    return { ok: true as const, checkoutId: reusable._id, totalPaise }
+  }
 
-  const reference = await allocateOrderReference(ctx)
-  await ctx.db.insert("orders", {
+  /* Spent only on a new attempt that is well formed: a mistyped PIN is
+     fixed and resent, and a retry of the same cart is free. */
+  const allowed = await consumeRateLimit(
+    ctx,
+    `checkout:person:${viewer.id}`,
+    ATTEMPTS_PER_PERSON_HOUR,
+    HOUR
+  )
+  if (!allowed) return { ok: false as const, reason: "rate-limited" as const }
+
+  // Kept, not deleted: a payment already under way on one still counts.
+  await Promise.all(
+    open.map((row) =>
+      ctx.db.patch(row._id, { status: "replaced", updatedAt: now })
+    )
+  )
+  const checkoutId = await ctx.db.insert("checkouts", {
     personId: viewer.id,
-    reference,
-    status: "awaiting_payment",
+    status: "open",
     fulfilment: args.fulfilment,
-    contact: { name: person.name.trim(), phone: person.phone },
+    contact,
     lines,
     itemsPaise,
     deliveryPaise,
     totalPaise,
     address,
-    idempotencyKey: args.idempotencyKey,
-    placedAt: Date.now(),
-    revision: 0,
+    signature,
+    updatedAt: now,
   })
+  return { ok: true as const, checkoutId, totalPaise }
+}
 
-  await ctx.db.insert("activities", {
-    personId: viewer.id,
-    kind: "order_placed",
-    body: `Order ${reference} placed: ${lines.reduce((n, l) => n + l.quantity, 0)} set(s) · ₹${Math.round(totalPaise / 100)} · ${args.fulfilment}`,
-    actorId: viewer.id,
+/**
+ * Where one of the viewer's attempts stands, live: the page waiting on a
+ * bank's approval turns into the thank-you as soon as the webhook lands.
+ */
+export const checkoutStatus = query({
+  args: { checkoutId: v.id("checkouts") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      status: v.union(
+        v.literal("open"),
+        v.literal("paid"),
+        v.literal("replaced")
+      ),
+      reference: v.optional(v.string()),
+      receiptNumber: v.optional(v.string()),
+      totalPaise: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const viewer = await viewerPerson(ctx)
+    if (!viewer.ok) return null
+    const checkout = await ctx.db.get(args.checkoutId)
+    if (!checkout || checkout.personId !== viewer.value.id) return null
+    const order = checkout.orderId ? await ctx.db.get(checkout.orderId) : null
+    return {
+      status: checkout.status,
+      reference: order?.reference,
+      receiptNumber: order?.receiptNumber,
+      totalPaise: checkout.totalPaise,
+    }
+  },
+})
+
+/** Take what was bought out of the cart; anything added since stays. */
+export async function removePurchased(
+  ctx: MutationCtx,
+  personId: Id<"persons">,
+  bought: { slug: string; language: "en" | "as"; quantity: number }[]
+) {
+  const cart = await ctx.db
+    .query("carts")
+    .withIndex("by_person", (q) => q.eq("personId", personId))
+    .first()
+  if (!cart || cart.lines.length === 0) return
+  const lines = cart.lines.flatMap((line) => {
+    const paid = bought
+      .filter((b) => b.slug === line.slug && b.language === line.language)
+      .reduce((n, b) => n + b.quantity, 0)
+    const quantity = line.quantity - paid
+    return quantity > 0 ? [{ ...line, quantity }] : []
   })
-
-  await clearCart(ctx, viewer.id)
-  return { ok: true as const, reference, totalPaise }
+  await ctx.db.patch(cart._id, { lines, updatedAt: Date.now() })
 }

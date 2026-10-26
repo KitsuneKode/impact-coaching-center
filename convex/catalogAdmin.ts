@@ -27,7 +27,7 @@ import {
 import type { Doc, Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
 import { PICTURE, pictureOf, picturesOf } from "./images"
-import { PDF_MAX_BYTES, r2 } from "./files"
+import { PDF_MAX_BYTES, r2, reclaim, releaseImages, releasePdf } from "./files"
 import {
   LOCALE,
   LOCALISED,
@@ -131,7 +131,7 @@ type Owner = { table: "books" | "bundles" | "resources"; id: string }
  * costs one pass over the catalogue rather than one pass per image. Admin-
  * only and over small tables, so streaming beats an index per file field.
  */
-async function filesInUse(ctx: MutationCtx, except?: Owner) {
+export async function filesInUse(ctx: MutationCtx, except?: Owner) {
   const used = new Set<StorageId>()
   /* A post can embed an image anywhere in its Markdown, so post bodies are
      searched per file rather than parsed into ids. */
@@ -171,8 +171,8 @@ async function filesInUse(ctx: MutationCtx, except?: Owner) {
     used.has(id) || bodies.some((body) => body.includes(id))
 }
 
-/** Delete a file and its size record. */
-async function deleteFile(ctx: MutationCtx, id: StorageId) {
+/** Delete a stored image and its size record. */
+export async function deleteStoredImage(ctx: MutationCtx, id: StorageId) {
   const meta = await ctx.db
     .query("images")
     .withIndex("by_storageId", (q) => q.eq("storageId", id))
@@ -181,20 +181,25 @@ async function deleteFile(ctx: MutationCtx, id: StorageId) {
   await ctx.storage.delete(id)
 }
 
-/** Delete files a save stopped pointing at, unless another record uses them. */
+/**
+ * Files a save stopped pointing at go to the weekly sweep, which deletes
+ * them after the restore window if nothing else uses them (files.ts).
+ * Files a save points at again are taken back off its list.
+ */
 async function dropReplaced(
   ctx: MutationCtx,
   before: readonly StorageId[],
   after: readonly StorageId[],
-  except: Owner
+  owner: Owner
 ) {
+  const was = new Set(before)
   const kept = new Set(after)
-  const dropped = before.filter((id) => !kept.has(id))
-  if (dropped.length === 0) return
-  const inUse = await filesInUse(ctx, except)
-  await Promise.all(
-    dropped.filter((id) => !inUse(id)).map((id) => deleteFile(ctx, id))
+  await releaseImages(
+    ctx,
+    before.filter((id) => !kept.has(id)),
+    owner
   )
+  await reclaim(ctx, { images: after.filter((id) => !was.has(id)) })
 }
 
 /** A slug is taken only when a different row holds it. */
@@ -273,7 +278,7 @@ export const discardUpload = mutation({
 /** The discard itself, split out so it can be tested without a session. */
 export async function applyDiscardUpload(ctx: MutationCtx, id: StorageId) {
   if ((await filesInUse(ctx))(id)) return invalidInput("image")
-  await deleteFile(ctx, id)
+  await deleteStoredImage(ctx, id)
   return { ok: true as const }
 }
 
@@ -967,19 +972,32 @@ export async function applySaveResource(
   const nextPdf = args.pdf === undefined ? current.pdf : args.pdf
   if (current.published && nextPages.length === 0 && !nextPdf)
     return invalidInput("pages")
-  // A replaced or removed PDF is deleted from R2 once nothing points at it.
-  if (
+  // A replaced or removed PDF can be put back for 30 days (files.ts),
+  // with its page-one preview.
+  const pdfReleased =
     args.pdf !== undefined &&
-    current.pdf &&
+    current.pdf !== undefined &&
     current.pdf.key !== args.pdf?.key
-  )
-    await r2.deleteObject(ctx, current.pdf.key)
+  if (pdfReleased && current.pdf)
+    await releasePdf(
+      ctx,
+      current.pdf,
+      { table: "resources", id: args.id },
+      current.cover
+    )
+  if (args.pdf) await reclaim(ctx, { pdfKey: args.pdf.key })
+  if (args.cover) await reclaim(ctx, { images: [args.cover] })
   if (args.pageImages)
     await dropReplaced(ctx, current.pageImages, args.pageImages, {
       table: "resources",
       id: args.id,
     })
-  if (args.cover !== undefined && current.cover && current.cover !== args.cover)
+  if (
+    !pdfReleased &&
+    args.cover !== undefined &&
+    current.cover &&
+    current.cover !== args.cover
+  )
     await dropReplaced(ctx, [current.cover], [], {
       table: "resources",
       id: args.id,

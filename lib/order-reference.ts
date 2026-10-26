@@ -17,3 +17,12 @@ export function newOrderReference(random: () => number = Math.random): string {
 export function isOrderReference(value: string): boolean {
   return /^ICT-[0-9A-HJKMNP-TV-Z]{5}$/.test(value)
 }
+
+/** "ict 7k3f9", "7K3F9" or "ICT-7K3F9" all mean the same order. */
+export function normaliseReference(raw: string) {
+  const code = raw
+    .trim()
+    .toUpperCase()
+    .replace(/^ICT[\s-]*/, "")
+  return `ICT-${code}`
+}

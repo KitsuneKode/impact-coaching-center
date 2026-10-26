@@ -26,6 +26,7 @@ import { consumeRateLimit } from "./persons"
 import { revalidateSite } from "./site"
 import { PICTURE, pictureOf } from "./images"
 import { CAMPAIGN_KIND, CAMPAIGN_STATUS, CAMPAIGN_WORDS } from "./schema"
+import { reclaim, releaseImages } from "./files"
 
 /**
  * Promotions on the site, for the owner and staff with the promotions grant.
@@ -305,7 +306,11 @@ export async function applySaveCampaign(
   const conflict = checkRevision(current, args.expectedRevision ?? -1)
   if (conflict) return conflict
   if (current.image && current.image !== args.image)
-    await ctx.storage.delete(current.image)
+    await releaseImages(ctx, [current.image], {
+      table: "campaigns",
+      id: args.id,
+    })
+  if (args.image) await reclaim(ctx, { images: [args.image] })
   const revision = current.revision + 1
   await ctx.db.patch(args.id, {
     ...checked.value,

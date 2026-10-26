@@ -8,5 +8,5 @@ export default createMiddleware(routing)
 export const config = {
   // English-only areas and files are left alone.
   matcher:
-    "/((?!api|admin|account|checkout|login|register|_next|_vercel|.*\\..*).*)",
+    "/((?!api|admin|account|checkout|login|receipt|register|_next|_vercel|.*\\..*).*)",
 }

@@ -39,6 +39,7 @@ const FIELD_NAMES: Record<string, string> = {
   legalName: "Business name",
   gstin: "GSTIN",
   receiptPrefix: "Receipt prefix",
+  deskPhone: "Order alerts number",
 }
 
 function Settings() {
@@ -84,6 +85,7 @@ function SettingsForm({
     legalName: settings.legalName,
     gstin: settings.gstin ?? "",
     receiptPrefix: settings.receiptPrefix,
+    deskPhone: settings.deskPhone?.replace(/^\+91/, "") ?? "",
   })
   const [error, setError] = useState<{
     field?: string
@@ -109,6 +111,7 @@ function SettingsForm({
         legalName: draft.legalName,
         gstin: draft.gstin || undefined,
         receiptPrefix: draft.receiptPrefix,
+        deskPhone: draft.deskPhone || undefined,
         expectedRevision: settings.revision,
       })
       if (result.ok) toast.success("Saved")
@@ -200,6 +203,27 @@ function SettingsForm({
               </FieldDescription>
             </Field>
           </div>
+          <Field data-invalid={invalid("deskPhone") || undefined}>
+            <FieldLabel htmlFor="settings-desk">
+              Order alerts number{" "}
+              <span className="font-normal">(optional)</span>
+            </FieldLabel>
+            <Input
+              id="settings-desk"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="98765 43210"
+              value={draft.deskPhone}
+              onChange={(e) => set("deskPhone")(e.target.value)}
+              aria-invalid={invalid("deskPhone")}
+              aria-describedby="settings-desk-hint"
+            />
+            <FieldDescription id="settings-desk-hint">
+              Each paid order is sent here on WhatsApp, with a link to it. Use
+              the desk phone, not a personal one. Leave empty for no alerts.
+            </FieldDescription>
+          </Field>
           {error ? <FieldError>{error.message}</FieldError> : null}
           <div>
             <Button type="submit" size="md" disabled={busy}>

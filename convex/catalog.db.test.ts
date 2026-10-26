@@ -24,6 +24,13 @@ for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
 type T = ReturnType<typeof convexTest>
 
 /** A Person as the session would resolve them, or null if it would not. */
+/** Push every released file past its thirty-day restore window. */
+const expire = (t: ReturnType<typeof convexTest>) =>
+  t.run(async (ctx) => {
+    for (const row of await ctx.db.query("releasedFiles").collect())
+      await ctx.db.patch(row._id, { releasedAt: 0 })
+  })
+
 async function viewer(
   t: T,
   phone: string,
@@ -321,6 +328,10 @@ describe("saveBook", () => {
         images: { en: { cover: second, samplePages: [] } },
       })
     )
+    // Released, not deleted: it can be restored for thirty days.
+    expect(await t.run((ctx) => ctx.storage.getUrl(first))).not.toBeNull()
+    await expire(t)
+    await t.mutation(internal.files.sweep, {})
     expect(await t.run((ctx) => ctx.storage.getUrl(first))).toBeNull()
     expect(await t.run((ctx) => ctx.storage.getUrl(second))).not.toBeNull()
     expect(await t.run((ctx) => ctx.db.query("images").collect())).toHaveLength(
@@ -499,6 +510,12 @@ describe("files a save stops using", () => {
         images: { en: { samplePages: [] } },
       })
     )
+    const released = await t.run((ctx) =>
+      ctx.db.query("releasedFiles").collect()
+    )
+    expect(released.map((row) => row.image)).toEqual([cover])
+    await expire(t)
+    await t.mutation(internal.files.sweep, {})
     const file = await t.run((ctx) => ctx.db.system.get("_storage", cover))
     expect(file).toBeNull()
   })

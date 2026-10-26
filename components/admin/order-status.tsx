@@ -20,16 +20,6 @@ export function OrderStatusBadge({
       </Badge>
     )
   switch (status) {
-    case "awaiting_payment":
-      return (
-        <Badge className="gap-1.5">
-          <span
-            aria-hidden="true"
-            className="size-1.5 shrink-0 rounded-full border border-muted-foreground"
-          />
-          Awaiting payment
-        </Badge>
-      )
     case "paid":
       return (
         <Badge variant="solid" className="gap-1.5">
@@ -38,16 +28,6 @@ export function OrderStatusBadge({
             className="size-1.5 shrink-0 rounded-full bg-foreground"
           />
           Paid
-        </Badge>
-      )
-    case "packed":
-      return (
-        <Badge variant="solid" className="gap-1.5">
-          <span
-            aria-hidden="true"
-            className="size-1.5 shrink-0 rounded-full bg-foreground"
-          />
-          Packed
         </Badge>
       )
     case "ready_for_collection":

@@ -27,6 +27,7 @@ const noindexRoutes = [
   "/admin",
   "/admin/leads",
   "/admin/orders",
+  "/admin/orders/labels",
   "/admin/people",
   // Sample content, labelled as such and noindexed by its layout.
   "/admin/books",
@@ -45,6 +46,7 @@ const noindexRoutes = [
   "/admin/promotions/new",
   // A buyer's own order flow - nothing public, nothing to rank.
   "/checkout",
+  "/receipt/[token]",
   // Noindexed while every title is a sample; list them once ICT's are in.
   "/books",
   "/resources",

@@ -6,6 +6,7 @@ import { findVerifiedPerson } from "./persons"
 import { applyQuestionnaire } from "./profile"
 import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
+import type { MutationCtx } from "./_generated/server"
 import schema from "./schema"
 
 const modules: Record<string, () => Promise<unknown>> = {}
@@ -41,48 +42,84 @@ async function setup(role: "student" | "staff" | "owner" = "student") {
 async function order(
   t: ReturnType<typeof convexTest>,
   personId: Id<"persons">,
-  status: "paid" | "delivered" | "cancelled" | "awaiting_payment"
+  status: "paid" | "delivered" | "cancelled"
 ) {
-  return t.run(async (ctx) =>
-    ctx.db.insert("orders", {
+  return t.run(async (ctx) => {
+    const lines = [
+      {
+        bundleId: await ctx.db.insert("bundles", {
+          slug: "gk-set",
+          exam: "ADRE",
+          title: { en: "GK set" },
+          description: { en: "" },
+          bookIds: [],
+          variants: {
+            en: { pricePaise: 25000, available: true },
+            as: { pricePaise: 25000, available: true },
+          },
+          soldCount: 0,
+          sortOrder: 0,
+          published: true,
+          revision: 0,
+          updatedAt: 0,
+        }),
+        slug: "gk-set",
+        title: "GK set",
+        language: "en" as const,
+        books: ["Assam GK"],
+        quantity: 1,
+        unitPaise: 25000,
+      },
+    ]
+    const money = { itemsPaise: 25000, deliveryPaise: 6000, totalPaise: 31000 }
+    const address = { line1: "Ward 3", city: "North Lakhimpur", pin: "787001" }
+    const contact = { name: "Asha", phone: "+919876543210" }
+    const checkoutId = await checkout(ctx, personId, "paid")
+    return ctx.db.insert("orders", {
       personId,
       reference: `ICT-${status}`,
       status,
+      closed: status !== "paid",
+      history: [{ status: "paid", at: Date.now() }],
       fulfilment: "delivery",
-      contact: { name: "Asha", phone: "+919876543210" },
-      lines: [
-        {
-          bundleId: await ctx.db.insert("bundles", {
-            slug: "gk-set",
-            exam: "ADRE",
-            title: { en: "GK set" },
-            description: { en: "" },
-            bookIds: [],
-            variants: {
-              en: { pricePaise: 25000, available: true },
-              as: { pricePaise: 25000, available: true },
-            },
-            soldCount: 0,
-            sortOrder: 0,
-            published: true,
-            revision: 0,
-            updatedAt: 0,
-          }),
-          slug: "gk-set",
-          title: "GK set",
-          language: "en",
-          books: ["Assam GK"],
-          quantity: 1,
-          unitPaise: 25000,
-        },
-      ],
-      itemsPaise: 25000,
-      deliveryPaise: 6000,
-      totalPaise: 31000,
-      address: { line1: "Ward 3", city: "North Lakhimpur", pin: "787001" },
+      contact,
+      lines,
+      ...money,
+      address,
+      checkoutId,
+      payment: {
+        razorpayOrderId: `order_${status}`,
+        razorpayPaymentId: `pay_${status}`,
+        method: "upi",
+        paidAt: Date.now(),
+      },
+      receiptNumber: "ICT/26-27/0001",
+      receiptToken: "t".repeat(24),
+      seller: { legalName: "Impact Career Tutorials", address: "ICT" },
       placedAt: Date.now(),
+      revision: 0,
     })
-  )
+  })
+}
+
+/** A checkout attempt, frozen from a one-set cart. */
+function checkout(
+  ctx: MutationCtx,
+  personId: Id<"persons">,
+  status: "open" | "paid" | "replaced"
+) {
+  return ctx.db.insert("checkouts", {
+    personId,
+    status,
+    fulfilment: "collection",
+    contact: { name: "Asha", phone: "+919876543210" },
+    lines: [],
+    itemsPaise: 25000,
+    deliveryPaise: 0,
+    totalPaise: 25000,
+    signature: status,
+    updatedAt: Date.now(),
+  })
 }
 
 describe("account deletion", () => {
@@ -170,9 +207,9 @@ describe("account deletion", () => {
 })
 
 describe("account deletion and unpaid orders", () => {
-  test("an order still awaiting payment is cancelled, so a late payment is refunded", async () => {
+  test("an unpaid checkout and the cart go with the account", async () => {
     const { t, id, viewer } = await setup()
-    const orderId = await order(t, id, "awaiting_payment")
+    await t.run((ctx) => checkout(ctx, id, "open"))
     await t.run((ctx) =>
       ctx.db.insert("carts", {
         personId: id,
@@ -181,12 +218,11 @@ describe("account deletion and unpaid orders", () => {
       })
     )
     await t.run((ctx) => eraseAccount(ctx, viewer, "DELETE"))
-    const cancelled = await t.run((ctx) => ctx.db.get(orderId))
-    expect(cancelled?.status).toBe("cancelled")
-    // Cancelled, not expired: a payment that still arrives is not revived.
-    expect(cancelled?.expiredAt).toBeUndefined()
-    const carts = await t.run((ctx) => ctx.db.query("carts").collect())
-    expect(carts).toHaveLength(0)
+    // A payment that still arrives finds no attempt and is flagged to refund.
+    expect(await t.run((ctx) => ctx.db.query("checkouts").collect())).toEqual(
+      []
+    )
+    expect(await t.run((ctx) => ctx.db.query("carts").collect())).toEqual([])
   })
 
   test("the name given with each enquiry goes with the account", async () => {

@@ -2,8 +2,9 @@ import { convexTest } from "convex-test"
 import { describe, expect, test } from "bun:test"
 
 import { financialYear, hmacHex } from "../lib/payments"
-import { placeOrderAs } from "./checkout"
+import { beginCheckoutAs } from "./checkout"
 import { findVerifiedPerson } from "./persons"
+import { DEFAULT_SETTINGS } from "./settings"
 import { internal } from "./_generated/api"
 import schema from "./schema"
 
@@ -74,23 +75,28 @@ async function placed(t: T, phone: string, gatewayOrderId: string) {
     })
   )
   const result = await t.run((ctx) =>
-    placeOrderAs(ctx, person, {
-      fulfilment: "collection",
-      idempotencyKey: `key-${gatewayOrderId}`,
-    })
+    beginCheckoutAs(ctx, person, { fulfilment: "collection" })
   )
-  if (!result.ok) throw new Error("order not placed")
-  const order = await t.run(async (ctx) =>
-    (await ctx.db.query("orders").collect()).find(
-      (o) => o.reference === result.reference
-    )
-  )
+  if (!result.ok) throw new Error("checkout not begun")
   await t.mutation(internal.payments.attachGatewayOrder, {
-    orderId: order!._id,
+    checkoutId: result.checkoutId,
     gatewayOrderId,
   })
-  return { orderId: order!._id, bundleId, totalPaise: result.totalPaise }
+  return {
+    personId: person.id,
+    checkoutId: result.checkoutId,
+    bundleId,
+    totalPaise: result.totalPaise,
+  }
 }
+
+const orderFor = (t: T, gatewayOrderId: string) =>
+  t.run(
+    async (ctx) =>
+      (await ctx.db.query("orders").collect()).find(
+        (o) => o.payment.razorpayOrderId === gatewayOrderId
+      ) ?? null
+  )
 
 const settle = (
   t: T,
@@ -107,29 +113,50 @@ const settle = (
   })
 
 describe("settle", () => {
-  test("marks the order paid, numbers the receipt and counts the sets", async () => {
+  test("makes the order, numbers the receipt, counts the sets, empties the cart", async () => {
     const t = convexTest(schema, modules)
-    const { orderId, bundleId, totalPaise } = await placed(
+    const { personId, checkoutId, bundleId, totalPaise } = await placed(
       t,
       "+919800000001",
       "order_A"
     )
-    const receipt = await settle(t, "order_A", totalPaise)
-    expect(receipt).toBe(`ICT/${financialYear(Date.now())}/0001`)
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
-    expect(order?.status).toBe("paid")
-    expect(order?.payment?.razorpayPaymentId).toBe("pay_1")
-    expect(order?.receiptNumber).toBe(receipt!)
+    const settled = await settle(t, "order_A", totalPaise)
+    expect(settled?.receiptNumber).toBe(`ICT/${financialYear(Date.now())}/0001`)
+    const order = await orderFor(t, "order_A")
+    expect(order).toMatchObject({
+      reference: settled?.reference,
+      status: "paid",
+      closed: false,
+      checkoutId,
+      totalPaise,
+    })
+    expect(order?.payment.razorpayPaymentId).toBe("pay_1")
+    expect(
+      order?.history.map((step: { status: string }) => step.status)
+    ).toEqual(["paid"])
+    expect(order?.receiptToken).toMatch(/^[\w-]{24}$/)
+    const checkout = await t.run((ctx) => ctx.db.get(checkoutId))
+    expect(checkout).toMatchObject({ status: "paid", orderId: order?._id })
     const set = await t.run((ctx) => ctx.db.get("bundles", bundleId))
     expect(set?.soldCount).toBe(5)
+    const cart = await t.run((ctx) =>
+      ctx.db
+        .query("carts")
+        .withIndex("by_person", (q) => q.eq("personId", personId))
+        .first()
+    )
+    expect(cart?.lines).toEqual([])
   })
 
-  test("settling twice changes nothing and returns the same receipt", async () => {
+  test("settling twice makes one order and returns the same receipt", async () => {
     const t = convexTest(schema, modules)
     const { bundleId, totalPaise } = await placed(t, "+919800000002", "order_B")
     const first = await settle(t, "order_B", totalPaise, "pay_B")
     const again = await settle(t, "order_B", totalPaise, "pay_B")
-    expect(again).toBe(first)
+    expect(again).toEqual(first)
+    expect(await t.run((ctx) => ctx.db.query("orders").collect())).toHaveLength(
+      1
+    )
     const set = await t.run((ctx) => ctx.db.get("bundles", bundleId))
     expect(set?.soldCount).toBe(5)
   })
@@ -138,21 +165,66 @@ describe("settle", () => {
     const t = convexTest(schema, modules)
     const a = await placed(t, "+919800000003", "order_C")
     const b = await placed(t, "+919800000004", "order_D")
-    expect(await settle(t, "order_C", a.totalPaise)).toMatch(/\/0001$/)
-    expect(await settle(t, "order_D", b.totalPaise)).toMatch(/\/0002$/)
+    expect((await settle(t, "order_C", a.totalPaise))?.receiptNumber).toMatch(
+      /\/0001$/
+    )
+    expect((await settle(t, "order_D", b.totalPaise))?.receiptNumber).toMatch(
+      /\/0002$/
+    )
   })
 
-  test("a payment for a different amount does not settle", async () => {
+  test("a payment for a different amount makes no order and asks for a refund", async () => {
     const t = convexTest(schema, modules)
-    const { orderId, totalPaise } = await placed(t, "+919800000005", "order_E")
+    const { totalPaise } = await placed(t, "+919800000005", "order_E")
     expect(await settle(t, "order_E", totalPaise - 100)).toBeNull()
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
-    expect(order?.status).toBe("awaiting_payment")
+    expect(await orderFor(t, "order_E")).toBeNull()
+    const audits = await t.run((ctx) => ctx.db.query("auditLog").collect())
+    expect(
+      audits.some((a) => a.summary.includes("Refund it in Razorpay"))
+    ).toBe(true)
   })
 
   test("an unknown gateway order settles nothing", async () => {
     const t = convexTest(schema, modules)
     expect(await settle(t, "order_NOPE", 100)).toBeNull()
+  })
+
+  test("a replaced attempt that is paid anyway still becomes the order", async () => {
+    const t = convexTest(schema, modules)
+    const { checkoutId, totalPaise } = await placed(
+      t,
+      "+919800000008",
+      "order_R"
+    )
+    await t.run((ctx) => ctx.db.patch(checkoutId, { status: "replaced" }))
+    expect(await settle(t, "order_R", totalPaise)).not.toBeNull()
+    expect((await orderFor(t, "order_R"))?.status).toBe("paid")
+  })
+
+  test("tells the buyer and the desk once, however many times it settles", async () => {
+    const t = convexTest(schema, modules)
+    process.env.SITE_URL = "https://ict.example"
+    await t.run((ctx) =>
+      ctx.db.insert("siteSettings", {
+        ...DEFAULT_SETTINGS,
+        deskPhone: "+919800000099",
+        revision: 0,
+      })
+    )
+    const { totalPaise } = await placed(t, "+919800000009", "order_M")
+    await settle(t, "order_M", totalPaise)
+    await settle(t, "order_M", totalPaise)
+    const messages = await t.run((ctx) => ctx.db.query("messages").collect())
+    expect(messages.map((m) => [m.template, m.to]).sort()).toEqual([
+      ["desk_new_order", "+919800000099"],
+      ["order_paid", "+919800000009"],
+    ])
+    const order = await orderFor(t, "order_M")
+    const paid = messages.find((m) => m.template === "order_paid")
+    expect(paid?.params[2]).toBe(
+      `https://ict.example/receipt/${order?.receiptToken}`
+    )
+    delete process.env.SITE_URL
   })
 })
 
@@ -172,18 +244,14 @@ describe("webhook events", () => {
 
   test("an event is recorded and settled together; a retry changes nothing", async () => {
     const t = convexTest(schema, modules)
-    const { orderId, bundleId, totalPaise } = await placed(
-      t,
-      "+919800000006",
-      "order_F"
-    )
+    const { bundleId, totalPaise } = await placed(t, "+919800000006", "order_F")
     const event = paidEvent("evt_1", "order_F", totalPaise)
     expect(await t.mutation(internal.payments.handleWebhook, event)).toBe(true)
     expect(await t.mutation(internal.payments.handleWebhook, event)).toBe(false)
     const events = await t.run((ctx) => ctx.db.query("paymentEvents").collect())
     expect(events).toHaveLength(1)
-    expect(events[0]?.orderId).toBe(orderId)
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    const order = await orderFor(t, "order_F")
+    expect(events[0]?.orderId).toBe(order!._id)
     expect(order?.status).toBe("paid")
     const set = await t.run((ctx) => ctx.db.get("bundles", bundleId))
     expect(set?.soldCount).toBe(5)
@@ -191,20 +259,19 @@ describe("webhook events", () => {
 
   test("an authorized-only event is recorded but settles nothing", async () => {
     const t = convexTest(schema, modules)
-    const { orderId, totalPaise } = await placed(t, "+919800000016", "order_H")
+    const { totalPaise } = await placed(t, "+919800000016", "order_H")
     await t.mutation(internal.payments.handleWebhook, {
       ...paidEvent("evt_auth", "order_H", totalPaise),
       type: "payment.authorized",
     })
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
-    expect(order?.status).toBe("awaiting_payment")
+    expect(await orderFor(t, "order_H")).toBeNull()
   })
 
   test("the signed route settles the order once, and refuses a bad signature", async () => {
     const t = convexTest(schema, modules)
     process.env.RAZORPAY_WEBHOOK_SECRET = "whsec_test"
     process.env.SITE_URL ??= "http://localhost:3000"
-    const { orderId, totalPaise } = await placed(t, "+919800000026", "order_I")
+    const { totalPaise } = await placed(t, "+919800000026", "order_I")
     const body = JSON.stringify({
       event: "payment.captured",
       payload: {
@@ -233,7 +300,7 @@ describe("webhook events", () => {
     const signature = await hmacHex("whsec_test", body)
     expect(await send(signature)).toBe(200)
     expect(await send(signature)).toBe(200)
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    const order = await orderFor(t, "order_I")
     expect(order?.status).toBe("paid")
     expect(order?.receiptNumber).toMatch(/\/0001$/)
     delete process.env.RAZORPAY_WEBHOOK_SECRET
@@ -243,7 +310,7 @@ describe("webhook events", () => {
 describe("receipts", () => {
   test("name the seller as they were when paid, whatever settings say later", async () => {
     const t = convexTest(schema, modules)
-    const { orderId, totalPaise } = await placed(t, "+919800000036", "order_J")
+    const { totalPaise } = await placed(t, "+919800000036", "order_J")
     await settle(t, "order_J", totalPaise)
     await t.run((ctx) =>
       ctx.db.insert("siteSettings", {
@@ -255,7 +322,7 @@ describe("receipts", () => {
         updatedAt: 0,
       })
     )
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
+    const order = await orderFor(t, "order_J")
     expect(order?.seller?.legalName).toBe("Impact Career Tutorials")
   })
 })
@@ -263,55 +330,59 @@ describe("receipts", () => {
 describe("attachGatewayOrder", () => {
   test("keeps the first gateway order, so a retried payment reuses it", async () => {
     const t = convexTest(schema, modules)
-    const { orderId } = await placed(t, "+919800000007", "order_G")
+    const { checkoutId } = await placed(t, "+919800000007", "order_G")
     const kept = await t.mutation(internal.payments.attachGatewayOrder, {
-      orderId,
+      checkoutId,
       gatewayOrderId: "order_OTHER",
     })
     expect(kept).toBe("order_G")
   })
 })
 
-describe("unpaid orders", () => {
-  test("expire after three days, and a late payment revives one", async () => {
-    const t = convexTest(schema, modules)
-    const { orderId, bundleId, totalPaise } = await placed(
-      t,
-      "+919800000091",
-      "order_late"
-    )
-    const now = Date.now()
-    expect(await t.mutation(internal.orders.expireUnpaid, { now })).toBe(0)
-    expect(
-      await t.mutation(internal.orders.expireUnpaid, {
-        now: now + 3 * 24 * 60 * 60 * 1000 + 1000,
-      })
-    ).toBe(1)
-    const expired = await t.run((ctx) => ctx.db.get("orders", orderId))
-    expect(expired?.status).toBe("cancelled")
-    expect(expired?.expiredAt).toBeDefined()
-
-    const receipt = await settle(t, "order_late", totalPaise, "pay_late")
-    expect(receipt).toMatch(/^ICT\//)
-    const paid = await t.run((ctx) => ctx.db.get("orders", orderId))
-    expect(paid?.status).toBe("paid")
-    expect(paid?.expiredAt).toBeUndefined()
-    const set = await t.run((ctx) => ctx.db.get("bundles", bundleId))
-    expect(set?.soldCount).toBe(5)
+describe("refunds from Razorpay", () => {
+  const refund = (id: string, gatewayOrderId: string, refundPaise: number) => ({
+    eventId: `evt_${id}`,
+    type: "refund.processed",
+    gatewayOrderId,
+    refundId: `rfnd_${id}`,
+    refundPaise,
   })
 
-  test("a payment for an order a person cancelled is flagged, not kept", async () => {
+  test("a full refund closes a cancelled order without counting it twice", async () => {
     const t = convexTest(schema, modules)
-    const { orderId, totalPaise } = await placed(t, "+919800000092", "order_x")
-    await t.run((ctx) => ctx.db.patch(orderId, { status: "cancelled" }))
-    expect(await settle(t, "order_x", totalPaise, "pay_x")).toBeNull()
-    const order = await t.run((ctx) => ctx.db.get("orders", orderId))
-    expect(order?.status).toBe("cancelled")
-    expect(order?.refundDueAt).toBeDefined()
-    expect(order?.payment?.razorpayPaymentId).toBe("pay_x")
+    const { bundleId, totalPaise } = await placed(t, "+919800000041", "order_K")
+    await settle(t, "order_K", totalPaise)
+    const paid = (await orderFor(t, "order_K"))!
+    // Cancelled by the owner: off the sold count, refund owed.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(paid._id, {
+        status: "cancelled",
+        refundDueAt: Date.now(),
+      })
+      const set = await ctx.db.get(bundleId)
+      await ctx.db.patch(bundleId, { soldCount: (set?.soldCount ?? 0) - 2 })
+    })
+    await t.mutation(
+      internal.payments.handleWebhook,
+      refund("full", "order_K", totalPaise)
+    )
+    const order = await orderFor(t, "order_K")
+    expect(order).toMatchObject({ status: "refunded", closed: true })
+    expect(order?.refundDueAt).toBeUndefined()
+    const set = await t.run((ctx) => ctx.db.get(bundleId))
+    expect(set?.soldCount).toBe(3)
+  })
+
+  test("a part refund is noted and changes nothing else", async () => {
+    const t = convexTest(schema, modules)
+    const { totalPaise } = await placed(t, "+919800000042", "order_L")
+    await settle(t, "order_L", totalPaise)
+    await t.mutation(
+      internal.payments.handleWebhook,
+      refund("part", "order_L", 100)
+    )
+    expect((await orderFor(t, "order_L"))?.status).toBe("paid")
     const notes = await t.run((ctx) => ctx.db.query("activities").collect())
-    expect(
-      notes.some((note) => note.body?.includes("Refund it in Razorpay"))
-    ).toBe(true)
+    expect(notes.some((n) => n.body?.includes("part of the total"))).toBe(true)
   })
 })

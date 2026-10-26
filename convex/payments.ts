@@ -10,8 +10,11 @@ import {
   receiptNumber,
   SIMULATED_SECRET,
 } from "../lib/payments"
+import { orderSummary, publicOrigin } from "../lib/order-messages"
+import { formatPaise } from "../lib/money"
 import { recordAudit } from "./audit"
 import { REFUSAL, viewerPerson, type Refusal } from "./authz"
+import { removePurchased } from "./checkout"
 import { internal } from "./_generated/api"
 import type { Doc, Id } from "./_generated/dataModel"
 import {
@@ -20,21 +23,21 @@ import {
   internalQuery,
   type MutationCtx,
 } from "./_generated/server"
+import { queueMessage } from "./messages"
+import { allocateOrderReference, newReceiptToken } from "./orders"
 import { readSettings } from "./settings"
 
 /**
- * Taking payment for an order the server has already priced (checkout.ts).
+ * Taking the money for a checkout attempt (checkout.ts), and making the
+ * order once it is captured (ADR-0005).
  *
- * 1. `startPayment` creates the gateway order for the order's total and
- *    hands Checkout what it needs. Retrying reuses the same gateway order.
+ * 1. `startPayment` creates the Razorpay order for the attempt's total and
+ *    hands Checkout what it needs. Pressing Pay again reuses it.
  * 2. Checkout returns a payment id and signature; `confirmPayment` checks the
- *    signature against our stored gateway order id and, on Razorpay, asks the
- *    API for the payment's amount and state before settling.
- * 3. The `/razorpay/webhook` route settles the same way if the browser never
- *    came back. `settle` is idempotent, so either path, or both, is fine.
- *
- * Settling marks the order paid, numbers its receipt for the financial year,
- * counts the sets sold and writes the lead's timeline.
+ *    signature against our stored Razorpay order id and asks Razorpay's API
+ *    for the payment's amount and state.
+ * 3. The `/razorpay/webhook` route does the same if the browser never comes
+ *    back. Whichever arrives first makes the order; the other finds it made.
  */
 
 /** Payment refusals beyond the shared ones, worded for the checkout UI. */
@@ -79,16 +82,14 @@ function razorpayAuth() {
 /* ------------------------------------------------------------ queries */
 
 /**
- * What `orderForViewer` returns, spelled out: actions in this file call
+ * What `checkoutForViewer` returns, spelled out: actions in this file call
  * functions in this file, and inferring that type makes TypeScript chase its
  * own tail through the generated `internal` (see the Convex guidelines).
  */
-type ViewerOrder =
+type ViewerCheckout =
   | {
       ok: true
-      id: Id<"orders">
-      reference: string
-      status: string
+      status: "open" | "paid" | "replaced"
       totalPaise: number
       gatewayOrderId?: string
       name: string
@@ -106,23 +107,25 @@ type Started =
       amountPaise: number
       name: string
       phone: string
-      reference: string
     }
   | PaymentRefused
 type Simulated =
   | { ok: true; paymentId: string; signature: string }
   | PaymentRefused
-type Confirmed = { ok: true; receiptNumber: string } | PaymentRefused
+type Settled = { reference: string; receiptNumber: string }
+type Confirmed = ({ ok: true } & Settled) | PaymentRefused
 
-/** The viewer's own order, with what payment needs. */
-export const orderForViewer = internalQuery({
-  args: { reference: v.string() },
+/** The viewer's own checkout attempt, with what payment needs. */
+export const checkoutForViewer = internalQuery({
+  args: { checkoutId: v.id("checkouts") },
   returns: v.union(
     v.object({
       ok: v.literal(true),
-      id: v.id("orders"),
-      reference: v.string(),
-      status: v.string(),
+      status: v.union(
+        v.literal("open"),
+        v.literal("paid"),
+        v.literal("replaced")
+      ),
       totalPaise: v.number(),
       gatewayOrderId: v.optional(v.string()),
       name: v.string(),
@@ -133,47 +136,59 @@ export const orderForViewer = internalQuery({
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
     if (!viewer.ok) return viewer
-    const order = await ctx.db
-      .query("orders")
-      .withIndex("by_reference", (q) => q.eq("reference", args.reference))
-      .first()
-    // Someone else's reference reads as missing, not as forbidden.
-    if (!order || order.personId !== viewer.value.id)
+    const checkout = await ctx.db.get(args.checkoutId)
+    // Someone else's attempt reads as missing, not as forbidden.
+    if (!checkout || checkout.personId !== viewer.value.id)
       return { ok: false as const, reason: "missing-record" as const }
     return {
       ok: true as const,
-      id: order._id,
-      reference: order.reference,
-      status: order.status,
-      totalPaise: order.totalPaise,
-      gatewayOrderId: order.payment?.razorpayOrderId,
-      name: order.contact.name,
-      phone: order.contact.phone,
+      status: checkout.status,
+      totalPaise: checkout.totalPaise,
+      gatewayOrderId: checkout.gatewayOrderId,
+      name: checkout.contact.name,
+      phone: checkout.contact.phone,
     }
   },
 })
 
 /** Remember the gateway order, unless one is already attached. */
 export const attachGatewayOrder = internalMutation({
-  args: { orderId: v.id("orders"), gatewayOrderId: v.string() },
+  args: { checkoutId: v.id("checkouts"), gatewayOrderId: v.string() },
   returns: v.string(),
   handler: async (ctx, args) => {
-    const order = await ctx.db.get(args.orderId)
-    if (!order) throw new Error("order vanished")
-    if (order.payment?.razorpayOrderId) return order.payment.razorpayOrderId
-    await ctx.db.patch(args.orderId, {
-      payment: { razorpayOrderId: args.gatewayOrderId },
+    const checkout = await ctx.db.get(args.checkoutId)
+    if (!checkout) throw new Error("checkout vanished")
+    if (checkout.gatewayOrderId) return checkout.gatewayOrderId
+    await ctx.db.patch(args.checkoutId, {
+      gatewayOrderId: args.gatewayOrderId,
       updatedAt: Date.now(),
     })
     return args.gatewayOrderId
   },
 })
 
+/** The gateway said no; the attempt stays open to try again. */
+export const noteDeclined = internalMutation({
+  args: { gatewayOrderId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const checkout = await ctx.db
+      .query("checkouts")
+      .withIndex("by_gatewayOrderId", (q) =>
+        q.eq("gatewayOrderId", args.gatewayOrderId)
+      )
+      .first()
+    if (checkout?.status === "open")
+      await ctx.db.patch(checkout._id, { declinedAt: Date.now() })
+    return null
+  },
+})
+
 /* ------------------------------------------------------------ actions */
 
-/** Open payment for one of the viewer's unpaid orders. */
+/** Open payment for one of the viewer's checkout attempts. */
 export const startPayment = action({
-  args: { reference: v.string() },
+  args: { checkoutId: v.id("checkouts") },
   returns: v.union(
     v.object({
       ok: v.literal(true),
@@ -183,22 +198,22 @@ export const startPayment = action({
       amountPaise: v.number(),
       name: v.string(),
       phone: v.string(),
-      reference: v.string(),
     }),
     PAYMENT_REFUSAL
   ),
   handler: async (ctx, args): Promise<Started> => {
     const mode = provider()
     if (mode === "off") return refuse("payments-off")
-    const order: ViewerOrder = await ctx.runQuery(
-      internal.payments.orderForViewer,
+    const checkout: ViewerCheckout = await ctx.runQuery(
+      internal.payments.checkoutForViewer,
       args
     )
-    if (!order.ok) return order
-    if (order.status === "paid" || order.status !== "awaiting_payment")
-      return refuse(order.status === "paid" ? "already-paid" : "not-payable")
+    if (!checkout.ok) return checkout
+    if (checkout.status === "paid") return refuse("already-paid")
+    // Replaced by a newer cart: paying this one would buy the old cart.
+    if (checkout.status !== "open") return refuse("not-payable")
 
-    let gatewayOrderId = order.gatewayOrderId
+    let gatewayOrderId = checkout.gatewayOrderId
     let keyId: string | undefined
     if (mode === "razorpay") {
       const auth = razorpayAuth()
@@ -212,10 +227,11 @@ export const startPayment = action({
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            amount: order.totalPaise,
+            amount: checkout.totalPaise,
             currency: "INR",
-            receipt: order.reference,
-            notes: { reference: order.reference },
+            // Razorpay's receipt field allows 40 characters; an id fits.
+            receipt: args.checkoutId,
+            notes: { checkout: args.checkoutId },
           }),
         })
         if (!response.ok) return refuse("gateway")
@@ -228,18 +244,16 @@ export const startPayment = action({
     }
     const attached: string = await ctx.runMutation(
       internal.payments.attachGatewayOrder,
-      { orderId: order.id, gatewayOrderId }
+      { checkoutId: args.checkoutId, gatewayOrderId }
     )
-    gatewayOrderId = attached
     return {
       ok: true as const,
       provider: mode,
       keyId,
-      gatewayOrderId,
-      amountPaise: order.totalPaise,
-      name: order.name,
-      phone: order.phone,
-      reference: order.reference,
+      gatewayOrderId: attached,
+      amountPaise: checkout.totalPaise,
+      name: checkout.name,
+      phone: checkout.phone,
     }
   },
 })
@@ -251,7 +265,7 @@ export const startPayment = action({
  */
 export const simulatePayment = action({
   args: {
-    reference: v.string(),
+    checkoutId: v.id("checkouts"),
     outcome: v.union(v.literal("success"), v.literal("failure")),
   },
   returns: v.union(
@@ -264,17 +278,22 @@ export const simulatePayment = action({
   ),
   handler: async (ctx, args): Promise<Simulated> => {
     if (provider() !== "simulated") return refuse("payments-off")
-    const order: ViewerOrder = await ctx.runQuery(
-      internal.payments.orderForViewer,
-      { reference: args.reference }
+    const checkout: ViewerCheckout = await ctx.runQuery(
+      internal.payments.checkoutForViewer,
+      { checkoutId: args.checkoutId }
     )
-    if (!order.ok) return order
-    if (!order.gatewayOrderId) return refuse("not-payable")
-    if (args.outcome === "failure") return refuse("declined")
+    if (!checkout.ok) return checkout
+    if (!checkout.gatewayOrderId) return refuse("not-payable")
+    if (args.outcome === "failure") {
+      await ctx.runMutation(internal.payments.noteDeclined, {
+        gatewayOrderId: checkout.gatewayOrderId,
+      })
+      return refuse("declined")
+    }
     const paymentId = `pay_SIM${crypto.randomUUID().replaceAll("-", "").slice(0, 14)}`
     const signature = await hmacHex(
       SIMULATED_SECRET,
-      `${order.gatewayOrderId}|${paymentId}`
+      `${checkout.gatewayOrderId}|${paymentId}`
     )
     return { ok: true as const, paymentId, signature }
   },
@@ -283,30 +302,34 @@ export const simulatePayment = action({
 /** Checkout's success handler lands here with the gateway's proof. */
 export const confirmPayment = action({
   args: {
-    reference: v.string(),
+    checkoutId: v.id("checkouts"),
     paymentId: v.string(),
     signature: v.string(),
   },
   returns: v.union(
-    v.object({ ok: v.literal(true), receiptNumber: v.string() }),
+    v.object({
+      ok: v.literal(true),
+      reference: v.string(),
+      receiptNumber: v.string(),
+    }),
     PAYMENT_REFUSAL
   ),
   handler: async (ctx, args): Promise<Confirmed> => {
     const mode = provider()
     if (mode === "off") return refuse("payments-off")
-    const order: ViewerOrder = await ctx.runQuery(
-      internal.payments.orderForViewer,
-      { reference: args.reference }
+    const checkout: ViewerCheckout = await ctx.runQuery(
+      internal.payments.checkoutForViewer,
+      { checkoutId: args.checkoutId }
     )
-    if (!order.ok) return order
+    if (!checkout.ok) return checkout
     // Our stored gateway order id, never one the browser sends.
-    if (!order.gatewayOrderId) return refuse("not-payable")
+    if (!checkout.gatewayOrderId) return refuse("not-payable")
 
     const secret =
       mode === "razorpay" ? razorpayAuth()?.secret : SIMULATED_SECRET
     if (!secret) return refuse("payments-off")
     const valid = await checkoutSignatureValid({
-      orderId: order.gatewayOrderId,
+      orderId: checkout.gatewayOrderId,
       paymentId: args.paymentId,
       signature: args.signature,
       secret,
@@ -330,36 +353,40 @@ export const confirmPayment = action({
         method?: string
       }
       if (
-        payment.order_id !== order.gatewayOrderId ||
-        payment.amount !== order.totalPaise
+        payment.order_id !== checkout.gatewayOrderId ||
+        payment.amount !== checkout.totalPaise
       )
         return refuse("declined")
       // The bank said yes but Razorpay has not captured it yet. The
-      // `payment.captured` webhook settles the order when it does.
+      // `payment.captured` webhook makes the order when it does.
       if (paymentPending(payment.status ?? "")) return refuse("pending")
       if (!paymentSettled(payment.status ?? "")) return refuse("declined")
       method = payment.method ?? "razorpay"
     }
 
-    const settled: string | null = await ctx.runMutation(
+    const settled: Settled | null = await ctx.runMutation(
       internal.payments.settle,
       {
-        gatewayOrderId: order.gatewayOrderId,
+        gatewayOrderId: checkout.gatewayOrderId,
         paymentId: args.paymentId,
         method,
-        amountPaise: order.totalPaise,
+        amountPaise: checkout.totalPaise,
         source: "checkout",
       }
     )
     if (!settled) return refuse("not-payable")
-    return { ok: true as const, receiptNumber: settled }
+    return { ok: true as const, ...settled }
   },
 })
 
 /* ------------------------------------------------------------ settling */
 
 /** Next receipt number for the year, from the counters table. */
-async function nextReceipt(ctx: MutationCtx, at: number, prefix: string) {
+export async function nextReceipt(
+  ctx: MutationCtx,
+  at: number,
+  prefix: string
+) {
   const year = financialYear(at)
   const name = `receipt:${year}`
   const counter = await ctx.db
@@ -378,7 +405,7 @@ async function nextReceipt(ctx: MutationCtx, at: number, prefix: string) {
  */
 export async function countSales(
   ctx: MutationCtx,
-  order: Doc<"orders">,
+  order: Pick<Doc<"orders">, "lines">,
   sign: 1 | -1 = 1
 ) {
   /* One set can sit on two lines (English and Assamese). Summed per set
@@ -409,60 +436,59 @@ const SETTLE = v.object(SETTLE_ARGS)
 type SettleArgs = Infer<typeof SETTLE>
 
 /**
- * Mark the order behind a gateway order paid. Idempotent: an order already
- * paid returns its receipt and changes nothing. A payment for a different
- * amount, or for an order no longer awaiting payment, is refused (null).
+ * Captured money becomes an order. Idempotent: a checkout already turned
+ * into an order returns it and changes nothing. A payment for a different
+ * amount, or for an attempt we never made, makes nothing (null) and is
+ * logged for the owner to refund.
  */
-export async function settleOrder(ctx: MutationCtx, args: SettleArgs) {
-  const order = await ctx.db
+export async function settleCheckout(
+  ctx: MutationCtx,
+  args: SettleArgs
+): Promise<Settled | null> {
+  // Made already (the other path got here first): hand it back.
+  const made = await ctx.db
     .query("orders")
     .withIndex("by_razorpayOrderId", (q) =>
       q.eq("payment.razorpayOrderId", args.gatewayOrderId)
     )
     .first()
-  if (!order) return null
-  if (order.receiptNumber) return order.receiptNumber
-  if (args.amountPaise !== order.totalPaise) return null
-  // An order expired for going unpaid is revived by a payment that still
-  // arrives (Razorpay can capture late). One a person cancelled is not:
-  // the money is flagged for the owner to refund instead of silently kept.
-  const revived = order.status === "cancelled" && order.expiredAt !== undefined
-  if (order.status !== "awaiting_payment" && !revived) {
-    if (order.status === "cancelled" && !order.refundDueAt) {
-      const now = Date.now()
-      await ctx.db.patch(order._id, {
-        refundDueAt: now,
-        payment: {
-          razorpayOrderId: args.gatewayOrderId,
-          razorpayPaymentId: args.paymentId,
-          method: args.method,
-        },
-        updatedAt: now,
-        revision: (order.revision ?? 0) + 1,
-      })
-      await ctx.db.insert("activities", {
-        personId: order.personId,
-        kind: "order_status",
-        body: `Payment ${args.paymentId} received for cancelled order ${order.reference}. Refund it in Razorpay.`,
-        from: "cancelled",
-        to: "cancelled",
-      })
-      await recordAudit(ctx, null, {
-        action: "payment",
-        entity: "order",
-        entityId: order._id,
-        summary: `Payment ${args.paymentId} arrived for cancelled order ${order.reference}; refund needed.`,
-      })
-    }
+  if (made)
+    return { reference: made.reference, receiptNumber: made.receiptNumber }
+  const checkout = await ctx.db
+    .query("checkouts")
+    .withIndex("by_gatewayOrderId", (q) =>
+      q.eq("gatewayOrderId", args.gatewayOrderId)
+    )
+    .first()
+  if (!checkout || args.amountPaise !== checkout.totalPaise) {
+    await recordAudit(ctx, null, {
+      action: "payment",
+      entity: "order",
+      summary: `Payment ${args.paymentId} (${formatPaise(args.amountPaise)}) matches no checkout for ${args.gatewayOrderId}. Refund it in Razorpay.`,
+    })
     return null
   }
-  const from = order.status
 
+  /* A replaced attempt still becomes an order: the money arrived for what
+     it froze, and keeping money without an order is the one wrong answer. */
   const now = Date.now()
   const settings = await readSettings(ctx)
   const receipt = await nextReceipt(ctx, now, settings.receiptPrefix)
-  await ctx.db.patch(order._id, {
+  const reference = await allocateOrderReference(ctx)
+  const orderId = await ctx.db.insert("orders", {
+    personId: checkout.personId,
+    reference,
     status: "paid",
+    closed: false,
+    history: [{ status: "paid", at: now }],
+    fulfilment: checkout.fulfilment,
+    contact: checkout.contact,
+    lines: checkout.lines,
+    itemsPaise: checkout.itemsPaise,
+    deliveryPaise: checkout.deliveryPaise,
+    totalPaise: checkout.totalPaise,
+    address: checkout.address,
+    checkoutId: checkout._id,
     payment: {
       razorpayOrderId: args.gatewayOrderId,
       razorpayPaymentId: args.paymentId,
@@ -470,6 +496,7 @@ export async function settleOrder(ctx: MutationCtx, args: SettleArgs) {
       paidAt: now,
     },
     receiptNumber: receipt,
+    receiptToken: newReceiptToken(),
     // The receipt names the seller as they were when the money arrived; a
     // later settings edit must not rewrite an issued receipt.
     seller: {
@@ -477,41 +504,135 @@ export async function settleOrder(ctx: MutationCtx, args: SettleArgs) {
       gstin: settings.gstin,
       address: settings.pickupAddress,
     },
-    expiredAt: undefined,
+    placedAt: now,
     updatedAt: now,
-    revision: (order.revision ?? 0) + 1,
+    revision: 0,
   })
-  await countSales(ctx, order)
+  await ctx.db.patch(checkout._id, {
+    status: "paid",
+    orderId,
+    updatedAt: now,
+  })
+  // A second open attempt for the same cart would buy it twice.
+  const others = await ctx.db
+    .query("checkouts")
+    .withIndex("by_personId_and_status", (q) =>
+      q.eq("personId", checkout.personId).eq("status", "open")
+    )
+    .take(10)
+  await Promise.all(
+    others.map((row) =>
+      ctx.db.patch(row._id, { status: "replaced", updatedAt: now })
+    )
+  )
+  await countSales(ctx, checkout)
+  await removePurchased(ctx, checkout.personId, checkout.lines)
   await ctx.db.insert("activities", {
-    personId: order.personId,
-    kind: "order_status",
-    body: `Order ${order.reference} paid · ₹${Math.round(order.totalPaise / 100)} · receipt ${receipt}${revived ? " (after it had expired)" : ""}`,
-    from,
+    personId: checkout.personId,
+    kind: "order_placed",
+    body: `Order ${reference} paid: ${orderSummary(checkout)} · receipt ${receipt}`,
     to: "paid",
   })
   await recordAudit(ctx, null, {
     action: "payment",
     entity: "order",
-    entityId: order._id,
-    summary: `Order ${order.reference} paid (${args.source}, ${args.method})${revived ? " after it had expired" : ""}.`,
-    from,
+    entityId: orderId,
+    summary: `Order ${reference} paid (${args.source}, ${args.method}).`,
     to: "paid",
   })
-  return receipt
+
+  const person = await ctx.db.get(checkout.personId)
+  const origin = publicOrigin(process.env.SITE_URL)
+  if (origin) {
+    const order = (await ctx.db.get(orderId))!
+    await queueMessage(ctx, {
+      key: `${reference}:paid:buyer`,
+      to: checkout.contact.phone,
+      template: "order_paid",
+      language: person?.locale ?? "en",
+      params: [
+        reference,
+        formatPaise(checkout.totalPaise),
+        `${origin}/receipt/${order.receiptToken}`,
+      ],
+    })
+    if (settings.deskPhone)
+      await queueMessage(ctx, {
+        key: `${reference}:paid:desk`,
+        to: settings.deskPhone,
+        template: "desk_new_order",
+        language: "en",
+        params: [
+          reference,
+          orderSummary(checkout),
+          `${origin}/admin/orders/${reference}`,
+        ],
+      })
+  }
+  return { reference, receiptNumber: receipt }
 }
 
 export const settle = internalMutation({
   args: SETTLE_ARGS,
-  returns: v.union(v.string(), v.null()),
-  handler: (ctx, args) => settleOrder(ctx, args),
+  returns: v.union(
+    v.null(),
+    v.object({ reference: v.string(), receiptNumber: v.string() })
+  ),
+  handler: (ctx, args) => settleCheckout(ctx, args),
 })
+
+/**
+ * Razorpay says money went back. A full refund closes the order as
+ * refunded (and stops counting it as sold); a part refund is noted only.
+ */
+export async function recordRefund(
+  ctx: MutationCtx,
+  args: { gatewayOrderId: string; refundId: string; amountPaise: number }
+) {
+  const order = await ctx.db
+    .query("orders")
+    .withIndex("by_razorpayOrderId", (q) =>
+      q.eq("payment.razorpayOrderId", args.gatewayOrderId)
+    )
+    .first()
+  if (!order || order.status === "refunded") return
+  const now = Date.now()
+  const full = args.amountPaise >= order.totalPaise
+  if (full) {
+    await ctx.db.patch(order._id, {
+      status: "refunded",
+      closed: true,
+      history: [...order.history, { status: "refunded", at: now }],
+      refundDueAt: undefined,
+      updatedAt: now,
+      revision: order.revision + 1,
+    })
+    // A cancelled order was already taken off the sold count.
+    if (order.status !== "cancelled") await countSales(ctx, order, -1)
+  }
+  await ctx.db.insert("activities", {
+    personId: order.personId,
+    kind: "order_status",
+    body: `Razorpay refunded ${formatPaise(args.amountPaise)} on order ${order.reference} (${args.refundId})${full ? "" : ", part of the total"}.`,
+    from: order.status,
+    to: full ? "refunded" : order.status,
+  })
+  await recordAudit(ctx, null, {
+    action: "payment",
+    entity: "order",
+    entityId: order._id,
+    summary: `Refund ${args.refundId} of ${formatPaise(args.amountPaise)} on ${order.reference}.`,
+    from: order.status,
+    to: full ? "refunded" : order.status,
+  })
+}
 
 /** Webhook events that mean the money is captured. */
 const SETTLING_EVENTS = new Set(["order.paid", "payment.captured"])
 
 /**
  * One webhook event, once, in one transaction: the event is recorded and the
- * order settled together, so a failure rolls both back and Razorpay's retry
+ * order made together, so a failure rolls both back and Razorpay's retry
  * finds the event unseen and tries again. Returns false for a repeat.
  */
 export const handleWebhook = internalMutation({
@@ -522,6 +643,8 @@ export const handleWebhook = internalMutation({
     paymentId: v.optional(v.string()),
     method: v.optional(v.string()),
     amountPaise: v.optional(v.number()),
+    refundId: v.optional(v.string()),
+    refundPaise: v.optional(v.number()),
   },
   returns: v.boolean(),
   handler: async (ctx, args) => {
@@ -531,6 +654,40 @@ export const handleWebhook = internalMutation({
       .first()
     if (seen) return false
     const { gatewayOrderId, paymentId, amountPaise } = args
+    if (
+      SETTLING_EVENTS.has(args.type) &&
+      gatewayOrderId &&
+      paymentId &&
+      amountPaise !== undefined
+    )
+      await settleCheckout(ctx, {
+        gatewayOrderId,
+        paymentId,
+        method: args.method ?? "razorpay",
+        amountPaise,
+        source: "webhook",
+      })
+    if (args.type === "payment.failed" && gatewayOrderId) {
+      const checkout = await ctx.db
+        .query("checkouts")
+        .withIndex("by_gatewayOrderId", (q) =>
+          q.eq("gatewayOrderId", gatewayOrderId)
+        )
+        .first()
+      if (checkout?.status === "open")
+        await ctx.db.patch(checkout._id, { declinedAt: Date.now() })
+    }
+    if (
+      args.type === "refund.processed" &&
+      gatewayOrderId &&
+      args.refundId &&
+      args.refundPaise !== undefined
+    )
+      await recordRefund(ctx, {
+        gatewayOrderId,
+        refundId: args.refundId,
+        amountPaise: args.refundPaise,
+      })
     const order = gatewayOrderId
       ? await ctx.db
           .query("orders")
@@ -544,19 +701,6 @@ export const handleWebhook = internalMutation({
       type: args.type,
       orderId: order?._id,
     })
-    if (
-      SETTLING_EVENTS.has(args.type) &&
-      gatewayOrderId &&
-      paymentId &&
-      amountPaise !== undefined
-    )
-      await settleOrder(ctx, {
-        gatewayOrderId,
-        paymentId,
-        method: args.method ?? "razorpay",
-        amountPaise,
-        source: "webhook",
-      })
     return true
   },
 })

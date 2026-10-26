@@ -204,10 +204,10 @@ function Queue({ now, asOf }: { now: number; asOf: number }) {
   if (data.refundsDue)
     needs.push({
       key: "refunds",
-      href: "/admin/orders",
+      href: "/admin/orders?tab=refund_due",
       count: count(data.refundsDue),
       label: `${plural(data.refundsDue, "refund", "refunds")} to make in Razorpay`,
-      detail: "Then mark the order refunded",
+      detail: "The order closes itself once Razorpay refunds it",
       urgent: true,
     })
   if (data.followUps.overdue)
@@ -237,41 +237,26 @@ function Queue({ now, asOf }: { now: number; asOf: number }) {
       count: `${count(dueToday)}${plus(data.followUps.capped)}`,
       label: `${plural(dueToday, "follow-up", "follow-ups")} due today`,
     })
-  if (data.toPack.count)
+  if (data.toSend.count)
     needs.push({
-      key: "pack",
-      href: "/admin/orders",
-      count: `${count(data.toPack.count)}${plus(data.toPack.capped)}`,
-      label: `paid ${plural(data.toPack.count, "order", "orders")} to pack`,
-      detail: data.toPack.oldestAt
-        ? `Oldest placed ${waited(data.toPack.oldestAt, now)} ago`
+      key: "send",
+      href: "/admin/orders?tab=to_send",
+      count: `${count(data.toSend.count)}${plus(data.toSend.capped)}`,
+      label: `paid ${plural(data.toSend.count, "order", "orders")} to send`,
+      detail: data.toSend.oldestAt
+        ? `Oldest paid ${waited(data.toSend.oldestAt, now)} ago`
         : undefined,
-    })
-  if (data.toShip)
-    needs.push({
-      key: "ship",
-      href: "/admin/orders",
-      count: count(data.toShip),
-      label: `packed ${plural(data.toShip, "parcel", "parcels")} for the courier`,
     })
   if (data.collection.count)
     needs.push({
       key: "collect",
-      href: "/admin/orders",
+      href: "/admin/orders?tab=to_collect",
       count: count(data.collection.count),
       label: `${plural(data.collection.count, "set", "sets")} waiting to be collected`,
       detail: data.collection.waitingLong
         ? `${count(data.collection.waitingLong)} for more than 3 days: call them`
         : undefined,
       urgent: data.collection.waitingLong > 0,
-    })
-  if (data.unpaid)
-    needs.push({
-      key: "unpaid",
-      href: "/admin/orders",
-      count: count(data.unpaid),
-      label: `${plural(data.unpaid, "order", "orders")} waiting for the buyer to pay`,
-      detail: "Cancelled automatically after 3 days",
     })
 
   const urgent = needs.filter((need) => need.urgent).length

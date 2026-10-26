@@ -279,17 +279,12 @@ function orders(count: number, people: { name: string; phone: string }[]) {
     const fulfilment = rand() < 0.62 ? "delivery" : "collection"
     const status =
       daysAgo < 1
-        ? weighted([
-            ["awaiting_payment", 2],
-            ["paid", 5],
-          ] as const)
+        ? ("paid" as const)
         : daysAgo < 4
           ? fulfilment === "delivery"
             ? weighted([
-                ["paid", 2],
-                ["packed", 3],
+                ["paid", 3],
                 ["shipped", 3],
-                ["awaiting_payment", 1],
               ] as const)
             : weighted([
                 ["paid", 2],
@@ -1058,7 +1053,7 @@ const worstOrders = [
   {
     phone: "9999920001",
     name: LONGEST_NAME,
-    status: "awaiting_payment",
+    status: "paid",
     fulfilment: "delivery",
     daysAgo: 0.05,
     seen: false,

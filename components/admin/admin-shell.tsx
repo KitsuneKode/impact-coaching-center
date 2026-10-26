@@ -169,6 +169,7 @@ function Shell({ children }: { children: ReactNode }) {
   const viewer = useViewer()
   const isStaff = viewer?.role === "staff" || viewer?.role === "owner"
   const stalled = useStalled(viewer === undefined)
+  const path = usePathname()
 
   /*
    * `undefined` is still asking. Rendering the bare page first and then
@@ -178,6 +179,8 @@ function Shell({ children }: { children: ReactNode }) {
    */
   if (viewer === undefined) return stalled ? <Unreachable /> : <ShellWaiting />
   if (!isStaff) return <StaffGate phone={viewer?.phone} />
+  // A sheet for the printer: staff only, no chrome.
+  if (path === "/admin/orders/labels") return children
 
   return (
     <SidebarProvider>

@@ -80,7 +80,7 @@ describe("the overview", () => {
     expect(today.toCall).toEqual([
       expect.objectContaining({ name: "Pallabi", reason: "new" }),
     ])
-    expect(today.toPack.count).toBe(0)
+    expect(today.toSend.count).toBe(0)
     expect(today.refundsDue).toBe(0)
   })
 

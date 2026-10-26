@@ -73,14 +73,12 @@ export const today = query({
         overdue: v.number(),
         capped: v.boolean(),
       }),
-      toPack: v.object({
+      toSend: v.object({
         count: v.number(),
         capped: v.boolean(),
         oldestAt: v.optional(v.number()),
       }),
-      toShip: v.number(),
       collection: v.object({ count: v.number(), waitingLong: v.number() }),
-      unpaid: v.number(),
       refundsDue: v.optional(v.number()),
       syncFailedAt: v.optional(v.number()),
       toCall: v.array(TO_CALL),
@@ -98,7 +96,7 @@ export async function readToday(ctx: QueryCtx, viewer: Viewer, now: number) {
   const startOfToday = endOfToday - DAY
 
   // Every read on this screen is independent: they run together.
-  const [counts, uncalled, followUps, paid, packed, ready, unpaid, owed, sync] =
+  const [counts, uncalled, followUps, paid, ready, owed, sync] =
     await Promise.all([
       // The same counts the sidebar badge shows, so the two never disagree.
       readLeadCounts(ctx, viewer, now),
@@ -115,9 +113,7 @@ export async function readToday(ctx: QueryCtx, viewer: Viewer, now: number) {
         )
         .take(200),
       ordersIn(ctx, "paid"),
-      ordersIn(ctx, "packed"),
       ordersIn(ctx, "ready_for_collection"),
-      ordersIn(ctx, "awaiting_payment"),
       viewer.role === "owner"
         ? ctx.db
             .query("orders")
@@ -176,19 +172,17 @@ export async function readToday(ctx: QueryCtx, viewer: Viewer, now: number) {
       overdue: overdue.length,
       capped: counts.capped,
     },
-    toPack: {
+    toSend: {
       count: paid.count,
       capped: paid.capped,
       oldestAt: paid.oldestAt,
     },
-    toShip: packed.count,
     collection: {
       count: ready.count,
       waitingLong: ready.rows.filter(
         (o) => now - (o.updatedAt ?? o.placedAt) > COLLECTION_WAIT_MS
       ).length,
     },
-    unpaid: unpaid.count,
     refundsDue,
     syncFailedAt,
     toCall,

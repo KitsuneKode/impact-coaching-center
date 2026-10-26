@@ -4,6 +4,7 @@ import {
   IconBuildingStore,
   IconCheck,
   IconCopy,
+  IconExternalLink,
   IconReceipt,
   IconTruckDelivery,
 } from "@tabler/icons-react"
@@ -13,11 +14,12 @@ import Link from "next/link"
 import { useState } from "react"
 
 import { OrderStatusBadge } from "@/components/admin/order-status"
-import { PayOrder } from "@/components/commerce/pay-order"
 import { ButtonLink } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
+import { courierSite } from "@/lib/couriers"
 import { formatPaise } from "@/lib/money"
+import type { OrderStatus } from "@/lib/order-status"
 
 /**
  * The buyer's own orders. This is where "it is on its way" becomes
@@ -52,8 +54,8 @@ export function OrdersCard() {
       <section className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
         <h2 className="text-lg font-medium">Your orders</h2>
         <p className="mbs-4 text-sm text-muted-foreground">
-          No orders yet. When you place one, its status and delivery details
-          will appear here.
+          No orders yet. Book sets you buy show up here, with where each one has
+          got to.
         </p>
         <ButtonLink
           href="/books"
@@ -101,7 +103,11 @@ export function OrdersCard() {
               <OrderStatusBadge status={order.status} />
             </div>
 
-            <OrderTrack status={order.status} fulfilment={order.fulfilment} />
+            <OrderTrack
+              status={order.status}
+              fulfilment={order.fulfilment}
+              history={order.history}
+            />
 
             {order.courier ? (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl bg-secondary px-4 py-3 text-sm">
@@ -113,7 +119,13 @@ export function OrdersCard() {
                     {order.courier.trackingNumber}
                   </span>
                 </span>
-                <CopyTracking number={order.courier.trackingNumber} />
+                <span className="ms-auto flex flex-wrap gap-1">
+                  <CopyTracking number={order.courier.trackingNumber} />
+                  <TrackParcel
+                    courier={order.courier.name}
+                    number={order.courier.trackingNumber}
+                  />
+                </span>
               </div>
             ) : order.fulfilment === "collection" &&
               order.status === "ready_for_collection" ? (
@@ -124,23 +136,13 @@ export function OrdersCard() {
               </p>
             ) : null}
 
-            {order.status === "awaiting_payment" ? (
-              <div>
-                <PayOrder
-                  reference={order.reference}
-                  amountPaise={order.totalPaise}
-                  size="md"
-                />
-              </div>
-            ) : order.receiptNumber ? (
-              <Link
-                href={`/account/receipt/${order.reference}`}
-                className="inline-flex min-h-11 items-center gap-2 self-start text-sm font-semibold underline decoration-foreground/30 underline-offset-4"
-              >
-                <IconReceipt aria-hidden size={16} stroke={1.75} />
-                Receipt <span className="tnum">{order.receiptNumber}</span>
-              </Link>
-            ) : null}
+            <Link
+              href={`/account/receipt/${order.reference}`}
+              className="inline-flex min-h-11 items-center gap-2 self-start text-sm font-semibold underline decoration-foreground/30 underline-offset-4"
+            >
+              <IconReceipt aria-hidden size={16} stroke={1.75} />
+              Receipt <span className="tnum">{order.receiptNumber}</span>
+            </Link>
           </li>
         ))}
       </ul>
@@ -152,7 +154,6 @@ export function OrdersCard() {
 const TRACKS = {
   delivery: [
     ["paid", "Paid"],
-    ["packed", "Packed"],
     ["shipped", "Shipped"],
     ["delivered", "Delivered"],
   ],
@@ -163,16 +164,24 @@ const TRACKS = {
   ],
 } as const
 
+const stepDate = new Intl.DateTimeFormat("en-IN", {
+  timeZone: "Asia/Kolkata",
+  day: "numeric",
+  month: "short",
+})
+
 /**
- * How far the order has come, as steps. Shown once paid and while it is
- * moving; a cancelled or refunded order says so in its badge instead.
+ * How far the order has come, as steps, each dated when it happened. A
+ * cancelled or refunded order says so in its badge instead.
  */
 function OrderTrack({
   status,
   fulfilment,
+  history,
 }: {
-  status: string
+  status: OrderStatus
   fulfilment: "delivery" | "collection"
+  history: { status: OrderStatus; at: number }[]
 }) {
   const steps = TRACKS[fulfilment]
   const at = steps.findIndex(([key]) => key === status)
@@ -183,18 +192,53 @@ function OrderTrack({
       data-order-track
       style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
     >
-      {steps.map(([key, label], i) => (
-        <li
-          key={key}
-          data-done={i <= at || undefined}
-          data-next-done={i < at || undefined}
-          aria-current={i === at ? "step" : undefined}
-        >
-          <span aria-hidden data-order-dot />
-          {label}
-        </li>
-      ))}
+      {steps.map(([key, label], i) => {
+        const when = history.find((step) => step.status === key)?.at
+        return (
+          <li
+            key={key}
+            data-done={i <= at || undefined}
+            data-next-done={i < at || undefined}
+            aria-current={i === at ? "step" : undefined}
+          >
+            <span aria-hidden data-order-dot />
+            {label}
+            {when && i <= at ? (
+              <time
+                dateTime={new Date(when).toISOString()}
+                className="tnum block text-xs font-normal text-muted-foreground"
+              >
+                {stepDate.format(when)}
+              </time>
+            ) : null}
+          </li>
+        )
+      })}
     </ol>
+  )
+}
+
+/**
+ * Couriers publish no per-parcel link, so this copies the number and opens
+ * their tracking page, where it can be pasted.
+ */
+function TrackParcel({ courier, number }: { courier: string; number: string }) {
+  const site = courierSite(courier)
+  if (!site) return null
+  return (
+    <a
+      href={site}
+      target="_blank"
+      rel="noreferrer"
+      onClick={() =>
+        void navigator.clipboard?.writeText(number).catch(() => {})
+      }
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold text-primary hover:bg-card"
+    >
+      Track on {courier}&rsquo;s site
+      <IconExternalLink aria-hidden size={15} stroke={1.75} />
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>
   )
 }
 
@@ -213,7 +257,7 @@ function CopyTracking({ number }: { number: string }) {
           // No clipboard: the number is on screen to copy by hand.
         }
       }}
-      className="ms-auto inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold text-primary hover:bg-card"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold text-primary hover:bg-card"
     >
       {copied ? (
         <IconCheck aria-hidden size={16} stroke={2} />

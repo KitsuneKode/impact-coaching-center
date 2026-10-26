@@ -8,6 +8,7 @@ import {
   requireOwner,
 } from "./authz"
 import { brand, place } from "../lib/brand"
+import { toE164 } from "../lib/leads"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query, type QueryCtx } from "./_generated/server"
 
@@ -53,6 +54,7 @@ const FIELDS = {
   legalName: v.string(),
   gstin: v.optional(v.string()),
   receiptPrefix: v.string(),
+  deskPhone: v.optional(v.string()),
 }
 
 export const adminSettings = query({
@@ -67,6 +69,7 @@ export const adminSettings = query({
       legalName: s.legalName,
       gstin: s.gstin,
       receiptPrefix: s.receiptPrefix,
+      deskPhone: s.deskPhone,
       revision: s.revision,
     }
   },
@@ -93,6 +96,10 @@ export const saveSettings = mutation({
     if (!/^[A-Z]{2,8}$/.test(receiptPrefix))
       return invalidInput("receiptPrefix")
     if (gstin && !GSTIN.test(gstin)) return invalidInput("gstin")
+    const deskPhone = input.deskPhone?.trim()
+      ? (toE164(input.deskPhone) ?? null)
+      : undefined
+    if (deskPhone === null) return invalidInput("deskPhone")
 
     const current = await readSettings(ctx)
     const conflict = checkRevision(current, expectedRevision)
@@ -103,6 +110,7 @@ export const saveSettings = mutation({
       legalName,
       gstin,
       receiptPrefix,
+      deskPhone,
       revision: current.revision + 1,
       updatedAt: Date.now(),
     }

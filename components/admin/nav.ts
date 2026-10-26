@@ -73,8 +73,14 @@ export function isActivePath(href: string, pathname: string): boolean {
 
 /** What to call the screen at this path, for the breadcrumb. */
 export function labelForPath(pathname: string): string | null {
-  const match = [...NAV, ...COMMERCE_NAV, ...CONTENT_NAV, ...OWNER_NAV].find(
-    (item) => isActivePath(item.href, pathname)
+  return sectionForPath(pathname)?.label ?? null
+}
+
+/** The nav section a path sits in. */
+export function sectionForPath(pathname: string) {
+  return (
+    [...NAV, ...COMMERCE_NAV, ...CONTENT_NAV, ...OWNER_NAV].find((item) =>
+      isActivePath(item.href, pathname)
+    ) ?? null
   )
-  return match?.label ?? null
 }

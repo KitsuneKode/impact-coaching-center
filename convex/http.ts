@@ -154,8 +154,13 @@ http.route({
     if (!eventId || typeof event.event !== "string")
       return new Response(null, { status: 400 })
     const payment = event.payload?.payment?.entity
+    const refund = event.payload?.refund?.entity
     const text = (value: unknown) =>
       typeof value === "string" && value.length <= 100 ? value : undefined
+    const paise = (value: unknown) =>
+      typeof value === "number" && Number.isSafeInteger(value)
+        ? value
+        : undefined
     // Recorded and settled in one transaction: if settling fails, the event
     // is not marked seen, the route answers 500 and Razorpay retries it.
     await ctx.runMutation(internal.payments.handleWebhook, {
@@ -165,11 +170,9 @@ http.route({
         text(event.payload?.order?.entity?.id) ?? text(payment?.order_id),
       paymentId: text(payment?.id),
       method: text(payment?.method),
-      amountPaise:
-        typeof payment?.amount === "number" &&
-        Number.isSafeInteger(payment.amount)
-          ? payment.amount
-          : undefined,
+      amountPaise: paise(payment?.amount),
+      refundId: text(refund?.id),
+      refundPaise: paise(refund?.amount),
     })
     return new Response(null, { status: 200 })
   }),
@@ -188,6 +191,7 @@ type RazorpayEvent = {
         method?: unknown
       }
     }
+    refund?: { entity?: { id?: unknown; amount?: unknown } }
   }
 }
 

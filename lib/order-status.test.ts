@@ -10,12 +10,23 @@ describe("the moves the order menu offers", () => {
     expect(nextStatuses("cancelled", false, "delivery", true)).toEqual([])
   })
 
-  test("an unpaid cancellation is the end of the road", () => {
+  test("a cancellation with no money held goes nowhere", () => {
     expect(nextStatuses("cancelled", true, "delivery")).toEqual([])
   })
 
-  test("a collection order is never offered packing", () => {
-    expect(nextStatuses("paid", false, "collection")).not.toContain("packed")
-    expect(nextStatuses("paid", false, "delivery")).toContain("packed")
+  test("parcels ship and collections are handed over", () => {
+    expect(nextStatuses("paid", false, "delivery")).toEqual(["shipped"])
+    expect(nextStatuses("paid", false, "collection")).toEqual([
+      "ready_for_collection",
+    ])
+  })
+
+  test("only the owner can cancel a paid order", () => {
+    expect(nextStatuses("paid", false, "delivery")).not.toContain("cancelled")
+    expect(nextStatuses("paid", true, "delivery")).toContain("cancelled")
+  })
+
+  test("a parcel on its way can only arrive", () => {
+    expect(nextStatuses("shipped", true, "delivery")).toEqual(["delivered"])
   })
 })

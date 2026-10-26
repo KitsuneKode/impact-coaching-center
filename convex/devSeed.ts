@@ -4,7 +4,9 @@ import { isDevelopmentDeployment } from "../lib/dev-deployment"
 import { toE164 } from "../lib/leads"
 import type { Id } from "./_generated/dataModel"
 import { internalMutation } from "./_generated/server"
-import { allocateOrderReference } from "./orders"
+import { allocateOrderReference, newReceiptToken } from "./orders"
+import { CLOSED_STATUSES, type OrderStatus } from "../lib/order-status"
+import { financialYear } from "../lib/payments"
 import {
   ADDRESS,
   CAMPAIGN_KIND,
@@ -134,6 +136,20 @@ export const seedEnquiries = internalMutation({
   },
 })
 
+/** The statuses an order passed through to reach `status`. */
+function stepsTo(
+  status: OrderStatus,
+  fulfilment: "delivery" | "collection"
+): OrderStatus[] {
+  const route: OrderStatus[] =
+    fulfilment === "delivery"
+      ? ["paid", "shipped", "delivered"]
+      : ["paid", "ready_for_collection", "collected"]
+  if (status === "cancelled") return ["paid", "cancelled"]
+  if (status === "refunded") return ["paid", "cancelled", "refunded"]
+  return route.slice(0, route.indexOf(status) + 1)
+}
+
 /** Orders, priced from the seeded bundles exactly as checkout would. */
 export const seedOrders = internalMutation({
   args: {
@@ -232,23 +248,65 @@ export const seedOrders = internalMutation({
             }
           : undefined)
 
-      await ctx.db.insert("orders", {
+      /* Every order is a paid checkout, as payments.settleCheckout makes
+         them; the steps after payment are spread over the days since. */
+      const totalPaise = itemsPaise + deliveryPaise
+      const contact = { name: order.name, phone }
+      const gatewayOrderId = `order_SEED${String(written + 1).padStart(6, "0")}`
+      const checkoutId = await ctx.db.insert("checkouts", {
+        personId,
+        status: "paid",
+        fulfilment: order.fulfilment,
+        contact,
+        lines,
+        itemsPaise,
+        deliveryPaise,
+        totalPaise,
+        address: order.address,
+        signature: gatewayOrderId,
+        gatewayOrderId,
+        updatedAt: placedAt,
+      })
+      const steps = stepsTo(order.status, order.fulfilment)
+      const history = steps.map((status, i) => ({
+        status,
+        at: placedAt + (i * (now - placedAt)) / Math.max(steps.length, 2),
+      }))
+      const refundDue = order.status === "cancelled"
+      const orderId = await ctx.db.insert("orders", {
         personId,
         reference: order.reference ?? (await allocateOrderReference(ctx)),
         status: order.status,
+        closed: CLOSED_STATUSES.has(order.status),
+        history,
         fulfilment: order.fulfilment,
-        contact: { name: order.name, phone },
+        contact,
         courier,
         lines,
         itemsPaise,
         deliveryPaise,
-        totalPaise: itemsPaise + deliveryPaise,
+        totalPaise,
         address: order.address,
+        checkoutId,
+        payment: {
+          razorpayOrderId: gatewayOrderId,
+          razorpayPaymentId: gatewayOrderId.replace("order_", "pay_"),
+          method: "upi",
+          paidAt: placedAt,
+        },
+        receiptNumber: `ICT/${financialYear(placedAt)}/${String(written + 1).padStart(4, "0")}`,
+        receiptToken: newReceiptToken(),
+        seller: {
+          legalName: "Impact Career Tutorials",
+          address: "Impact Career Tutorials, North Lakhimpur, Assam",
+        },
+        refundDueAt: refundDue ? history.at(-1)!.at : undefined,
         placedAt,
-        updatedAt: placedAt,
+        updatedAt: history.at(-1)!.at,
         seenAt: order.seen ? placedAt : undefined,
-        revision: 0,
+        revision: steps.length - 1,
       })
+      await ctx.db.patch(checkoutId, { orderId })
       written += 1
     }
 

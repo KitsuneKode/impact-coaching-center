@@ -14,25 +14,43 @@ import {
   type Viewer,
   viewerPerson,
 } from "./authz"
-import { internal } from "./_generated/api"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import {
-  internalMutation,
   mutation,
   type MutationCtx,
   query,
   type QueryCtx,
 } from "./_generated/server"
-import { ADDRESS, ORDER_LINE, ORDER_STATUS } from "./schema"
-import { newOrderReference } from "../lib/order-reference"
+import { courierSite } from "../lib/couriers"
+import { publicOrigin } from "../lib/order-messages"
+import {
+  isOrderReference,
+  newOrderReference,
+  normaliseReference,
+} from "../lib/order-reference"
+import {
+  CLOSED_STATUSES,
+  ORDER_TABS,
+  ROUTE_OF,
+  TRANSITIONS,
+  type OrderTab,
+} from "../lib/order-status"
+import { queueMessage } from "./messages"
 import { countSales } from "./payments"
+import {
+  ADDRESS,
+  COURIER,
+  ORDER_LINE,
+  ORDER_STATUS,
+  ORDER_STEP,
+} from "./schema"
 import { readSettings } from "./settings"
 
-/** Who carries the parcel. Shared by schema, args and projections. */
-const COURIER = v.object({
-  name: v.string(),
-  trackingNumber: v.string(),
-})
+/**
+ * Orders after payment (ADR-0005): the staff queue, status moves with their
+ * history, the buyer's view and the receipt. Orders are never deleted; they
+ * are financial records.
+ */
 
 /**
  * A fresh reference that nothing else holds. The alphabet makes collisions
@@ -52,6 +70,14 @@ export async function allocateOrderReference(
   throw new Error("Could not allocate a fresh order reference; try again.")
 }
 
+/** 24 URL-safe characters (~143 bits): the receipt link's only secret. */
+export function newReceiptToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(18))
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+}
+
 /** Longer than any courier's name or consignment number. */
 const COURIER_NAME_MAX = 60
 const TRACKING_NUMBER_MAX = 40
@@ -66,45 +92,8 @@ function cleanCourier(courier?: { name: string; trackingNumber: string }) {
   return { name, trackingNumber }
 }
 
-/** What may follow what. */
-const TRANSITIONS: Record<string, readonly string[]> = {
-  awaiting_payment: ["paid", "cancelled"],
-  paid: ["packed", "ready_for_collection", "cancelled", "refunded"],
-  packed: ["shipped", "cancelled", "refunded"],
-  shipped: ["delivered", "refunded"],
-  ready_for_collection: ["collected", "cancelled", "refunded"],
-  delivered: ["refunded"],
-  collected: ["refunded"],
-  // Only once money is held for it (refundDueAt); see applyStatusChange.
-  cancelled: ["refunded"],
-  refunded: [],
-}
+/* ------------------------------------------------------------ staff reads */
 
-/** Statuses a staff member may set from the admin. */
-const STAFF_SETTABLE = new Set([
-  "packed",
-  "shipped",
-  "delivered",
-  "ready_for_collection",
-  "collected",
-  "cancelled",
-])
-
-/** Asserts money moved back. Owner-only until a provider can prove it. */
-const OWNER_SETTABLE = new Set(["refunded"])
-
-/**
- * Statuses that still need somebody to pack, send or hand over. An order
- * awaiting payment is the buyer's move, so it is counted on its own.
- */
-const OPEN_STATUSES = new Set([
-  "paid",
-  "packed",
-  "shipped",
-  "ready_for_collection",
-])
-
-/** One page of orders for the fulfilment queue. */
 /** The queue-row projection. Never the whole order or Person document. */
 const ORDER_ROW = v.object({
   id: v.id("orders"),
@@ -116,7 +105,7 @@ const ORDER_ROW = v.object({
   deliveryPaise: v.number(),
   totalPaise: v.number(),
   address: v.optional(ADDRESS),
-  receiptNumber: v.optional(v.string()),
+  receiptNumber: v.string(),
   placedAt: v.number(),
   seen: v.boolean(),
   revision: v.number(),
@@ -129,61 +118,90 @@ const ORDER_ROW = v.object({
   refundDue: v.boolean(),
 })
 
+async function toRow(ctx: QueryCtx, order: Doc<"orders">) {
+  const person = await ctx.db.get(order.personId)
+  const deleted = Boolean(person?.deletedAt)
+  return {
+    id: order._id,
+    reference: order.reference,
+    status: order.status,
+    fulfilment: order.fulfilment,
+    lines: order.lines,
+    itemsPaise: order.itemsPaise,
+    deliveryPaise: order.deliveryPaise,
+    totalPaise: order.totalPaise,
+    address: order.address,
+    receiptNumber: order.receiptNumber,
+    placedAt: order.placedAt,
+    seen: Boolean(order.seenAt),
+    revision: revisionOf(order),
+    courier: order.courier,
+    /* The buyer's name and number travel with the order - unless the
+       account was erased, in which case there is nobody to show or dial. */
+    buyerName: deleted ? "" : order.contact.name,
+    buyerPhone: deleted ? "" : order.contact.phone,
+    buyerDeleted: deleted,
+    refundDue: order.refundDueAt !== undefined,
+  }
+}
+
+const ORDER_TAB = v.union(...ORDER_TABS.map((tab) => v.literal(tab)))
+
+/** The query behind one queue tab: every filter runs here, on an index. */
+function tabQuery(ctx: QueryCtx, tab: OrderTab) {
+  switch (tab) {
+    case "to_send":
+      return ctx.db
+        .query("orders")
+        .withIndex("by_status_and_placedAt", (q) => q.eq("status", "paid"))
+        .order("asc")
+    case "on_the_way":
+      return ctx.db
+        .query("orders")
+        .withIndex("by_status_and_placedAt", (q) => q.eq("status", "shipped"))
+        .order("asc")
+    case "to_collect":
+      return ctx.db
+        .query("orders")
+        .withIndex("by_status_and_placedAt", (q) =>
+          q.eq("status", "ready_for_collection")
+        )
+        .order("asc")
+    case "refund_due":
+      return ctx.db
+        .query("orders")
+        .withIndex("by_refundDueAt", (q) => q.gt("refundDueAt", 0))
+        .order("asc")
+    case "done":
+      return ctx.db
+        .query("orders")
+        .withIndex("by_closed_and_placedAt", (q) => q.eq("closed", true))
+        .order("desc")
+  }
+}
+
+/** One page of one queue tab. Open work is oldest first; done, newest. */
 export const adminOrdersPage = query({
-  args: { paginationOpts: paginationOptsValidator },
+  args: { tab: ORDER_TAB, paginationOpts: paginationOptsValidator },
   returns: paginated(ORDER_ROW),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { page: [], isDone: true, continueCursor: "" }
-    return readOrdersPage(ctx, staff.value, args.paginationOpts)
+    return readOrdersPage(ctx, staff.value, args.tab, args.paginationOpts)
   },
 })
 
-/** One page of the queue for an already-resolved viewer. */
+/** One page of one tab for an already-resolved viewer. */
 export async function readOrdersPage(
   ctx: QueryCtx,
   viewer: Viewer,
+  tab: OrderTab,
   paginationOpts: { numItems: number; cursor: string | null }
 ) {
   if (viewer.role !== "staff" && viewer.role !== "owner")
     return { page: [], isDone: true, continueCursor: "" }
-
-  const result = await ctx.db
-    .query("orders")
-    .withIndex("by_placedAt")
-    .order("desc")
-    .paginate(paginationOpts)
-
-  const page = await Promise.all(
-    result.page.map(async (order) => {
-      const person = await ctx.db.get(order.personId)
-      const deleted = Boolean(person?.deletedAt)
-      return {
-        id: order._id,
-        reference: order.reference,
-        status: order.status,
-        fulfilment: order.fulfilment,
-        lines: order.lines,
-        itemsPaise: order.itemsPaise,
-        deliveryPaise: order.deliveryPaise,
-        totalPaise: order.totalPaise,
-        address: order.address,
-        receiptNumber: order.receiptNumber,
-        placedAt: order.placedAt,
-        seen: Boolean(order.seenAt),
-        revision: revisionOf(order),
-        courier: order.courier,
-        /* The buyer's name and number travel with the order - unless the
-           account was erased, in which case the tombstone's `deleted:` phone
-           is not a number and must not become a tappable link. */
-        buyerName: deleted ? "" : order.contact.name,
-        buyerPhone: deleted ? "" : order.contact.phone,
-        buyerDeleted: deleted,
-        refundDue: order.refundDueAt !== undefined,
-      }
-    })
-  )
-
+  const result = await tabQuery(ctx, tab).paginate(paginationOpts)
+  const page = await Promise.all(result.page.map((o) => toRow(ctx, o)))
   return { ...result, page }
 }
 
@@ -194,55 +212,174 @@ export const canSeeOrders = query({
   handler: async (ctx) => (await requireStaff(ctx)).ok,
 })
 
-/** How many orders still need somebody, and how many nobody has opened. */
+/** How many orders wait in each open tab, and how many nobody has opened. */
 export const orderCounts = query({
   args: {},
   returns: v.object({
+    to_send: v.number(),
+    on_the_way: v.number(),
+    to_collect: v.number(),
+    refund_due: v.number(),
     open: v.number(),
     unseen: v.number(),
-    unpaid: v.number(),
     capped: v.boolean(),
   }),
   handler: async (ctx) => {
+    const empty = {
+      to_send: 0,
+      on_the_way: 0,
+      to_collect: 0,
+      refund_due: 0,
+      open: 0,
+      unseen: 0,
+      capped: false,
+    }
     const staff = await requireStaff(ctx)
-    if (!staff.ok) return { open: 0, unseen: 0, unpaid: 0, capped: false }
-
-    /* Bounded reads: one capped page per open status, never a full collect of
-       a table that only ever grows. */
-    const open = await Promise.all(
-      [...OPEN_STATUSES].map((status) =>
-        ctx.db
-          .query("orders")
-          .withIndex("by_status_and_placedAt", (q) =>
-            q.eq("status", status as Infer<typeof ORDER_STATUS>)
-          )
-          .take(COUNT_CAP + 1)
-      )
+    if (!staff.ok) return empty
+    /* Bounded reads: one capped page per tab, never a full collect of a
+       table that only ever grows. */
+    const tabs = ["to_send", "on_the_way", "to_collect", "refund_due"] as const
+    const [toSend, onTheWay, toCollect, refundDue] = await Promise.all(
+      tabs.map((tab) => tabQuery(ctx, tab).take(COUNT_CAP + 1))
     )
-    const rows = open.flat()
-    const unpaid = await ctx.db
-      .query("orders")
-      .withIndex("by_status_and_placedAt", (q) =>
-        q.eq("status", "awaiting_payment")
-      )
-      .take(COUNT_CAP + 1)
+    const open = [...toSend, ...toCollect]
+    const n = (rows: unknown[]) => Math.min(rows.length, COUNT_CAP)
     return {
-      unpaid: Math.min(unpaid.length, COUNT_CAP),
-      open: Math.min(rows.length, COUNT_CAP),
-      unseen: Math.min(rows.filter((order) => !order.seenAt).length, COUNT_CAP),
-      capped: rows.length > COUNT_CAP,
+      to_send: n(toSend),
+      on_the_way: n(onTheWay),
+      to_collect: n(toCollect),
+      refund_due: n(refundDue),
+      // Waiting on ICT, not on a courier.
+      open: n(open),
+      unseen: n(open.filter((order) => !order.seenAt)),
+      capped: [toSend, onTheWay, toCollect, refundDue].some(
+        (rows) => rows.length > COUNT_CAP
+      ),
     }
   },
 })
 
+const MESSAGE_STATE = v.object({
+  label: v.string(),
+  status: v.union(v.literal("queued"), v.literal("sent"), v.literal("failed")),
+})
+
+/** One order for its own admin page: the row, its history and messages. */
+export const adminOrder = query({
+  args: { reference: v.string() },
+  returns: v.union(
+    v.null(),
+    v.object({
+      row: ORDER_ROW,
+      history: v.array(
+        v.object({
+          status: ORDER_STATUS,
+          at: v.number(),
+          by: v.optional(v.string()),
+        })
+      ),
+      messages: v.array(MESSAGE_STATE),
+      paymentId: v.string(),
+      method: v.string(),
+      receiptToken: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const staff = await requireStaff(ctx)
+    if (!staff.ok) return null
+    const reference = normaliseReference(args.reference)
+    if (!isOrderReference(reference)) return null
+    const order = await ctx.db
+      .query("orders")
+      .withIndex("by_reference", (q) => q.eq("reference", reference))
+      .first()
+    if (!order) return null
+    const history = await Promise.all(
+      order.history.map(async (step) => ({
+        status: step.status,
+        at: step.at,
+        by: step.by ? (await ctx.db.get(step.by))?.name : undefined,
+      }))
+    )
+    const labels: [string, string][] = [
+      [`${reference}:paid:buyer`, "Payment receipt to the buyer"],
+      [`${reference}:paid:desk`, "New-order alert to the desk"],
+      [`${reference}:shipped:buyer`, "Shipped, to the buyer"],
+      [`${reference}:ready:buyer`, "Ready to collect, to the buyer"],
+    ]
+    const messages = (
+      await Promise.all(
+        labels.map(async ([key, label]) => {
+          const message = await ctx.db
+            .query("messages")
+            .withIndex("by_key", (q) => q.eq("key", key))
+            .first()
+          return message ? [{ label, status: message.status }] : []
+        })
+      )
+    ).flat()
+    return {
+      row: await toRow(ctx, order),
+      history,
+      messages,
+      paymentId: order.payment.razorpayPaymentId,
+      method: order.payment.method,
+      receiptToken: order.receiptToken,
+    }
+  },
+})
+
+/** Addresses for printing parcel labels; delivery orders only. */
+export const labelsFor = query({
+  args: { references: v.array(v.string()) },
+  returns: v.array(
+    v.object({
+      reference: v.string(),
+      name: v.string(),
+      phone: v.string(),
+      address: ADDRESS,
+      sets: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const staff = await requireStaff(ctx)
+    if (!staff.ok) return []
+    const orders = await Promise.all(
+      args.references.slice(0, 60).map((reference) =>
+        ctx.db
+          .query("orders")
+          .withIndex("by_reference", (q) => q.eq("reference", reference))
+          .first()
+      )
+    )
+    return orders.flatMap((order) =>
+      order?.address && order.contact.phone
+        ? [
+            {
+              reference: order.reference,
+              name: order.contact.name,
+              phone: order.contact.phone,
+              address: order.address,
+              sets: order.lines.reduce((n, line) => n + line.quantity, 0),
+            },
+          ]
+        : []
+    )
+  },
+})
+
+/* ------------------------------------------------------------ status moves */
+
+const MOVE = {
+  orderId: v.id("orders"),
+  status: ORDER_STATUS,
+  expectedRevision: v.number(),
+  courier: v.optional(COURIER),
+}
+
 /** Move an order to another status. */
 export const setOrderStatus = mutation({
-  args: {
-    orderId: v.id("orders"),
-    status: ORDER_STATUS,
-    expectedRevision: v.number(),
-    courier: v.optional(COURIER),
-  },
+  args: MOVE,
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
@@ -250,6 +387,62 @@ export const setOrderStatus = mutation({
     return applyStatusChange(ctx, staff.value, args)
   },
 })
+
+/** A batch from the queue, at most a day's packing; each order on its own. */
+const BULK_MAX = 50
+
+export const setOrderStatuses = mutation({
+  args: { moves: v.array(v.object(MOVE)) },
+  returns: v.union(
+    v.object({
+      ok: v.literal(true),
+      results: v.array(
+        v.object({
+          orderId: v.id("orders"),
+          ok: v.boolean(),
+          reason: v.optional(v.string()),
+        })
+      ),
+    }),
+    v.object({ ok: v.literal(false), reason: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    const staff = await requireStaff(ctx)
+    if (!staff.ok) return { ok: false as const, reason: staff.reason }
+    if (args.moves.length === 0 || args.moves.length > BULK_MAX)
+      return { ok: false as const, reason: "invalid-input" }
+    return {
+      ok: true as const,
+      results: await applyStatusChanges(ctx, staff.value, args.moves),
+    }
+  },
+})
+
+/** A batch of moves, each refused or applied on its own. */
+export async function applyStatusChanges(
+  ctx: MutationCtx,
+  viewer: Viewer,
+  moves: Parameters<typeof applyStatusChange>[2][]
+) {
+  const results = []
+  // One after another: two moves of one order must see each other.
+  for (const move of moves) {
+    const result = await applyStatusChange(ctx, viewer, move)
+    results.push(
+      result.ok
+        ? { orderId: move.orderId, ok: true }
+        : {
+            orderId: move.orderId,
+            ok: false,
+            reason:
+              result.reason === "invalid-input"
+                ? (result.field ?? result.reason)
+                : result.reason,
+          }
+    )
+  }
+  return results
+}
 
 /** The status move itself, given an already-resolved staff viewer. */
 export async function applyStatusChange(
@@ -270,52 +463,25 @@ export async function applyStatusChange(
   const conflict = checkRevision(order, args.expectedRevision)
   if (conflict) return conflict
 
-  if (!STAFF_SETTABLE.has(args.status) && !OWNER_SETTABLE.has(args.status))
-    return invalidInput("status")
-  // Money back out is the owner's call until a provider proves it - and
-  // a staff member asking is a role refusal, not a bad value.
-  if (OWNER_SETTABLE.has(args.status) && viewer.role !== "owner")
-    return forbidden
-
-  const allowed = TRANSITIONS[order.status] ?? []
-  if (!allowed.includes(args.status)) return invalidInput("transition")
-
-  /*
-   * Money ICT holds changes the rules. Cancelling a paid order means a
-   * refund is owed, which is the owner's decision, and a cancelled order
-   * can only be marked refunded when money actually arrived for it.
-   */
-  const paid = order.receiptNumber !== undefined
-  if (args.status === "cancelled" && paid && viewer.role !== "owner")
-    return forbidden
-  if (order.status === "cancelled" && !order.refundDueAt)
+  if (!TRANSITIONS[order.status].includes(args.status))
     return invalidInput("transition")
-  /* A paid order stops counting as sold the moment it is undone. A
-     cancelled one was already taken off when it was cancelled. */
-  const unsell =
-    paid &&
-    order.status !== "cancelled" &&
-    (args.status === "cancelled" || args.status === "refunded")
-
-  /*
-   * A parcel move onto a collection order - or the other way round - is a
-   * data error, not a state the queue can hold. Shipping is also the moment
-   * the courier details become compulsory: "it is on its way" without a
-   * tracking number is a promise nobody can answer a question about.
-   */
+  /* Money ICT holds changes the rules: cancelling a paid order owes a
+     refund, and saying the refund happened, are the owner's calls. A
+     staff member asking is a role refusal, not a bad value. */
   if (
-    (args.status === "packed" ||
-      args.status === "shipped" ||
-      args.status === "delivered") &&
-    order.fulfilment !== "delivery"
+    (args.status === "cancelled" || args.status === "refunded") &&
+    viewer.role !== "owner"
   )
-    return invalidInput("fulfilment")
-  if (
-    (args.status === "ready_for_collection" || args.status === "collected") &&
-    order.fulfilment !== "collection"
-  )
-    return invalidInput("fulfilment")
+    return forbidden
+  if (args.status === "refunded" && order.refundDueAt === undefined)
+    return invalidInput("transition")
 
+  // A parcel move on a collection order, or the reverse, is a data error.
+  const route = ROUTE_OF[args.status]
+  if (route && route !== order.fulfilment) return invalidInput("fulfilment")
+
+  /* Shipping is when the courier details become compulsory: "it is on its
+     way" without a tracking number is a promise nobody can answer for. */
   let courier = order.courier
   if (args.status === "shipped") {
     const cleaned = cleanCourier(args.courier)
@@ -329,13 +495,20 @@ export async function applyStatusChange(
   const revision = revisionOf(order) + 1
   await ctx.db.patch(args.orderId, {
     status: args.status,
+    closed: CLOSED_STATUSES.has(args.status),
+    history: [
+      ...order.history,
+      { status: args.status, at: now, by: viewer.id },
+    ],
     courier,
     revision,
     updatedAt: now,
-    ...(args.status === "cancelled" && paid ? { refundDueAt: now } : {}),
+    seenAt: order.seenAt ?? now,
+    ...(args.status === "cancelled" ? { refundDueAt: now } : {}),
     ...(args.status === "refunded" ? { refundDueAt: undefined } : {}),
   })
-  if (unsell) await countSales(ctx, order, -1)
+  // Undone once, when cancelled; refunding a cancelled order changes nothing.
+  if (args.status === "cancelled") await countSales(ctx, order, -1)
 
   await ctx.db.insert("activities", {
     personId: order.personId,
@@ -345,8 +518,47 @@ export async function applyStatusChange(
     from: order.status,
     to: args.status,
   })
+  await tellBuyer(ctx, { ...order, courier }, args.status)
 
   return { ok: true as const, revision }
+}
+
+/** The buyer hears about the two moves they wait for. */
+async function tellBuyer(
+  ctx: MutationCtx,
+  order: Doc<"orders">,
+  status: Infer<typeof ORDER_STATUS>
+) {
+  if (status !== "shipped" && status !== "ready_for_collection") return
+  const person = await ctx.db.get(order.personId)
+  if (!person || person.deletedAt) return
+  const language = person.locale ?? "en"
+  if (status === "shipped" && order.courier) {
+    const origin = publicOrigin(process.env.SITE_URL)
+    await queueMessage(ctx, {
+      key: `${order.reference}:shipped:buyer`,
+      to: order.contact.phone,
+      template: "order_shipped",
+      language,
+      params: [
+        order.reference,
+        order.courier.name,
+        order.courier.trackingNumber,
+        courierSite(order.courier.name) ??
+          (origin ? `${origin}/account` : "your ICT account"),
+      ],
+    })
+  }
+  if (status === "ready_for_collection") {
+    const settings = await readSettings(ctx)
+    await queueMessage(ctx, {
+      key: `${order.reference}:ready:buyer`,
+      to: order.contact.phone,
+      template: "order_ready",
+      language,
+      params: [order.reference, settings.pickupAddress],
+    })
+  }
 }
 
 /**
@@ -407,7 +619,25 @@ export async function applyCourierChange(
   return { ok: true as const, revision }
 }
 
-/** The signed-in buyer's own orders, newest first. */
+/** Mark an order as seen, so it stops counting as new. */
+export const markOrderSeen = mutation({
+  args: { orderId: v.id("orders") },
+  returns: mutationResult({}),
+  handler: async (ctx, args) => {
+    const staff = await requireStaff(ctx)
+    if (!staff.ok) return staff
+
+    const order = await ctx.db.get(args.orderId)
+    if (!order) return missingRecord
+    if (order.seenAt) return { ok: true as const }
+
+    await ctx.db.patch(args.orderId, { seenAt: Date.now() })
+    return { ok: true as const }
+  },
+})
+
+/* ------------------------------------------------------------ the buyer */
+
 const MY_ORDER = v.object({
   id: v.id("orders"),
   reference: v.string(),
@@ -418,10 +648,11 @@ const MY_ORDER = v.object({
   totalPaise: v.number(),
   placedAt: v.number(),
   courier: v.optional(COURIER),
-  receiptNumber: v.optional(v.string()),
-  paidAt: v.optional(v.number()),
+  receiptNumber: v.string(),
+  history: v.array(ORDER_STEP.omit("by")),
 })
 
+/** The signed-in buyer's own orders, newest first. */
 export const myOrders = query({
   args: {},
   returns: v.union(v.null(), v.array(MY_ORDER)),
@@ -446,40 +677,59 @@ export const myOrders = query({
       placedAt: order.placedAt,
       courier: order.courier,
       receiptNumber: order.receiptNumber,
-      paidAt: order.payment?.paidAt,
+      // Who moved it is staff business; when is the buyer's.
+      history: order.history.map(({ status, at }) => ({ status, at })),
     }))
   },
 })
 
+const RECEIPT = v.object({
+  reference: v.string(),
+  receiptNumber: v.string(),
+  paidAt: v.number(),
+  method: v.string(),
+  paymentId: v.string(),
+  buyer: v.object({ name: v.string(), phone: v.string() }),
+  fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+  address: v.optional(ADDRESS),
+  lines: v.array(ORDER_LINE),
+  itemsPaise: v.number(),
+  deliveryPaise: v.number(),
+  totalPaise: v.number(),
+  status: ORDER_STATUS,
+  seller: v.object({
+    legalName: v.string(),
+    gstin: v.optional(v.string()),
+    address: v.string(),
+  }),
+})
+
+function receiptOf(order: Doc<"orders">) {
+  return {
+    reference: order.reference,
+    receiptNumber: order.receiptNumber,
+    paidAt: order.payment.paidAt,
+    method: order.payment.method,
+    paymentId: order.payment.razorpayPaymentId,
+    buyer: order.contact,
+    fulfilment: order.fulfilment,
+    address: order.address,
+    lines: order.lines,
+    itemsPaise: order.itemsPaise,
+    deliveryPaise: order.deliveryPaise,
+    totalPaise: order.totalPaise,
+    status: order.status,
+    seller: order.seller,
+  }
+}
+
 /**
- * One paid order as a receipt: what was bought, for how much, when and how,
- * and who sold it (legal name and GSTIN from the shop settings). Only the
- * buyer, or staff who can see orders, may read it.
+ * One order as a receipt. Only the buyer, or staff who can see orders, may
+ * read it signed in; the link in WhatsApp uses `receiptByToken`.
  */
 export const myReceipt = query({
   args: { reference: v.string() },
-  returns: v.union(
-    v.null(),
-    v.object({
-      reference: v.string(),
-      receiptNumber: v.string(),
-      paidAt: v.number(),
-      method: v.optional(v.string()),
-      paymentId: v.optional(v.string()),
-      buyer: v.object({ name: v.string(), phone: v.string() }),
-      fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
-      address: v.optional(ADDRESS),
-      lines: v.array(ORDER_LINE),
-      itemsPaise: v.number(),
-      deliveryPaise: v.number(),
-      totalPaise: v.number(),
-      seller: v.object({
-        legalName: v.string(),
-        gstin: v.optional(v.string()),
-        address: v.string(),
-      }),
-    })
-  ),
+  returns: v.union(v.null(), RECEIPT),
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
     if (!viewer.ok) return null
@@ -487,96 +737,52 @@ export const myReceipt = query({
       .query("orders")
       .withIndex("by_reference", (q) => q.eq("reference", args.reference))
       .first()
-    if (!order?.receiptNumber || !order.payment?.paidAt) return null
+    if (!order) return null
     /* Someone else's receipt carries their number and address: staff may
-       read it only on a session young enough for staff work, the same
-       test every other staff read applies. */
+       read it only on a session young enough for staff work. */
     if (order.personId !== viewer.value.id && !(await requireStaff(ctx)).ok)
       return null
-    // Frozen at payment; orders paid before that existed read the settings.
-    const settings = order.seller ? null : await readSettings(ctx)
-    const seller = order.seller ?? {
-      legalName: settings!.legalName,
-      gstin: settings!.gstin,
-      address: settings!.pickupAddress,
-    }
-    return {
-      reference: order.reference,
-      receiptNumber: order.receiptNumber,
-      paidAt: order.payment.paidAt,
-      method: order.payment.method,
-      paymentId: order.payment.razorpayPaymentId,
-      buyer: order.contact,
-      fulfilment: order.fulfilment,
-      address: order.address,
-      lines: order.lines,
-      itemsPaise: order.itemsPaise,
-      deliveryPaise: order.deliveryPaise,
-      totalPaise: order.totalPaise,
-      seller,
-    }
+    return receiptOf(order)
   },
 })
 
-/** Mark an order as seen, so it stops counting as new. */
-export const markOrderSeen = mutation({
-  args: { orderId: v.id("orders") },
-  returns: mutationResult({}),
-  handler: async (ctx, args) => {
-    const staff = await requireStaff(ctx)
-    if (!staff.ok) return staff
-
-    const order = await ctx.db.get(args.orderId)
-    if (!order) return missingRecord
-    if (order.seenAt) return { ok: true as const }
-
-    await ctx.db.patch(args.orderId, { seenAt: Date.now() })
-    return { ok: true as const }
-  },
-})
-
-/** How long an order may wait for payment before the daily job cancels it. */
-export const UNPAID_EXPIRY_MS = 3 * 24 * 60 * 60 * 1000
-const EXPIRE_BATCH = 100
+/** "+91 98••• ••210": enough to recognise, not enough to call. */
+function maskPhone(phone: string) {
+  const digits = phone.replace(/\D/g, "").slice(-10)
+  if (digits.length < 10) return ""
+  return `+91 ${digits.slice(0, 2)}••• ••${digits.slice(7)}`
+}
 
 /**
- * Cancel orders left unpaid for three days, oldest first, a batch at a
- * time. They are marked `expiredAt`, so a payment that still arrives
- * revives the order (payments.settle) instead of being lost.
+ * The receipt behind a WhatsApp link, without signing in. The token is the
+ * secret; even so the phone is masked and the street left off, so a
+ * forwarded link shows what was bought, not where somebody lives.
  */
-export const expireUnpaid = internalMutation({
-  args: { now: v.optional(v.number()) },
-  returns: v.number(),
+export const receiptByToken = query({
+  args: { token: v.string() },
+  returns: v.union(v.null(), RECEIPT),
   handler: async (ctx, args) => {
-    const now = args.now ?? Date.now()
-    const stale = await ctx.db
+    if (!/^[\w-]{24}$/.test(args.token)) return null
+    const order = await ctx.db
       .query("orders")
-      .withIndex("by_status_and_placedAt", (q) =>
-        q
-          .eq("status", "awaiting_payment")
-          .lt("placedAt", now - UNPAID_EXPIRY_MS)
-      )
-      .take(EXPIRE_BATCH)
-    await Promise.all(
-      stale.flatMap((order) => [
-        ctx.db.patch(order._id, {
-          status: "cancelled",
-          expiredAt: now,
-          updatedAt: now,
-          revision: (order.revision ?? 0) + 1,
-        }),
-        ctx.db.insert("activities", {
-          personId: order.personId,
-          kind: "order_status",
-          body: `Order ${order.reference} expired unpaid after three days.`,
-          from: "awaiting_payment",
-          to: "cancelled",
-        }),
-      ])
-    )
-    // More than one batch left: carry on in a fresh transaction.
-    if (stale.length === EXPIRE_BATCH)
-      await ctx.scheduler.runAfter(0, internal.orders.expireUnpaid, { now })
-    return stale.length
+      .withIndex("by_receiptToken", (q) => q.eq("receiptToken", args.token))
+      .first()
+    if (!order) return null
+    const receipt = receiptOf(order)
+    return {
+      ...receipt,
+      buyer: {
+        name: order.contact.name,
+        phone: maskPhone(order.contact.phone),
+      },
+      address: order.address
+        ? {
+            line1: "",
+            city: order.address.city,
+            district: order.address.district,
+            pin: order.address.pin,
+          }
+        : undefined,
+    }
   },
 })

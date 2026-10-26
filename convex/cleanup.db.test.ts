@@ -37,7 +37,7 @@ describe("daily cleanup", () => {
         windowStart: now,
       })
     })
-    await t.mutation(internal.cleanup.daily, {})
+    await t.mutation(internal.cleanup.weekly, {})
     const numbers = await t.run((ctx) =>
       ctx.db.query("otpUndeliverable").collect()
     )

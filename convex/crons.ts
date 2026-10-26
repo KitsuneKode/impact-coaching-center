@@ -4,34 +4,22 @@ import { internal } from "./_generated/api"
 
 const crons = cronJobs()
 
-// ClassPlus is the source of truth for courses; the site follows it.
-crons.interval("sync ClassPlus courses", { hours: 6 }, internal.courses.sync, {
+// ClassPlus is the source of truth for courses; the site follows it nightly,
+// and the owner has "Sync now" for a change that cannot wait. 02:00 in India.
+crons.cron("sync ClassPlus courses", "30 20 * * *", internal.courses.sync, {
   trigger: "schedule",
 })
 
-// Orders left unpaid for three days are cancelled; a late payment revives one.
-// 21:00 UTC is 02:30 in India, when nobody is paying.
-crons.cron(
-  "expire unpaid orders",
-  "0 21 * * *",
-  internal.orders.expireUnpaid,
-  {}
-)
-
-// Short-lived rows: undeliverable numbers, spent rate limits, old event ids.
+// Short-lived rows: undeliverable numbers, spent rate limits, old event ids,
+// abandoned checkouts, sent messages. Sundays, 03:00 in India.
 crons.cron(
   "clean up short-lived rows",
-  "30 21 * * *",
-  internal.cleanup.daily,
+  "30 21 * * 0",
+  internal.cleanup.weekly,
   {}
 )
 
-// PDFs uploaded to R2 but never saved to a resource. 03:00 in India.
-crons.cron(
-  "sweep unclaimed documents",
-  "30 21 * * 0",
-  internal.files.sweepDocuments,
-  {}
-)
+// Files nothing uses any more, past their restore window. 03:30 in India.
+crons.cron("sweep released files", "0 22 * * 0", internal.files.sweep, {})
 
 export default crons

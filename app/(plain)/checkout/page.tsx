@@ -1,9 +1,11 @@
 "use client"
 
 import {
+  IconCircleCheck,
   IconLock,
   IconPackage,
   IconPlugConnectedX,
+  IconReceipt,
   IconTruckDelivery,
 } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
@@ -32,26 +34,19 @@ import {
 import { deliversTo, inLanguage, ORDER_SETS_MAX } from "@/lib/catalog"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
-import { PayOrder } from "@/components/commerce/pay-order"
+import { PayButton, type Paid } from "@/components/commerce/pay-order"
+import { Spinner } from "@/components/ui/spinner"
+import type { Id } from "@/convex/_generated/dataModel"
 import { place } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 import { useViewer } from "@/hooks/use-viewer"
 
 /*
- * Checkout. The page prices nothing itself for the write: the server reads
- * the shopper's cart and the published sets, so what is shown here is a
- * preview of what placeOrder will charge, not the charge.
- *
- * Placing saves the order as "awaiting payment"; the pay step that follows
- * (components/commerce/pay-order.tsx) takes the money through Razorpay, and
- * only its verified payment marks the order paid.
+ * Checkout (ADR-0005). The page prices nothing itself for the write: Pay
+ * freezes the server cart at the server's prices, Razorpay takes the money,
+ * and only a captured payment makes an order. Until then the cart is the
+ * cart: closing the payment window loses nothing.
  */
-/** "1 set", "3 sets". */
-const setCount = (lines: { quantity: number }[]) => {
-  const n = lines.reduce((sum, line) => sum + line.quantity, 0)
-  return `${n} ${n === 1 ? "set" : "sets"}`
-}
-
 type AddressField = "line1" | "city" | "pin"
 /** In the order they appear, so focus lands on the first one to fix. */
 const ADDRESS_FIELDS: AddressField[] = ["line1", "city", "pin"]
@@ -132,19 +127,12 @@ function CheckoutWaiting() {
   )
 }
 
-type Placed = { reference: string; totalPaise: number }
-
 function CheckoutForm() {
   const lines = useCart((s) => s.lines)
   const cart = useCartActions()
   const bundles = useQuery(api.catalog.bundles)
   const shop = useQuery(api.settings.shop)
-  const placeOrder = useMutation(api.checkout.placeOrder)
-  /* An order saved whose answer never reached this phone (a dropped
-     connection, a reload) took the cart with it. Shown here, it is paid
-     rather than placed a second time. */
-  const myOrders = useQuery(api.orders.myOrders)
-  const unpaid = myOrders?.find((order) => order.status === "awaiting_payment")
+  const beginCheckout = useMutation(api.checkout.beginCheckout)
   const [fulfilment, setFulfilment] = useState<"delivery" | "collection">(
     "delivery"
   )
@@ -159,12 +147,8 @@ function CheckoutForm() {
   const [fieldErrors, setFieldErrors] = useState<
     Partial<Record<AddressField, string>>
   >({})
-  const [placing, setPlacing] = useState(false)
-  const [placed, setPlaced] = useState<Placed | null>(null)
-  const [paid, setPaid] = useState(false)
-  /* One key per attempt-set: a double-click or a retried submission comes
-     back with the same order rather than minting a second. */
-  const [idempotencyKey] = useState(() => crypto.randomUUID())
+  const [paid, setPaid] = useState<Paid | null>(null)
+  const [pending, setPending] = useState<Id<"checkouts"> | null>(null)
   const errorId = useId()
 
   const rows = lines.flatMap((line) => {
@@ -213,13 +197,15 @@ function CheckoutForm() {
     return !first
   }
 
-  const submit = async () => {
+  const shownTotal = itemsPaise + deliveryPaise
+
+  /** Freeze the cart for payment, or say what to fix. */
+  const prepare = async () => {
     setError(null)
-    if (fulfilment === "delivery" && !checkAddress()) return
-    setPlacing(true)
+    if (fulfilment === "delivery" && !checkAddress()) return null
     try {
       track({ name: "checkout_started", lines: rows.length })
-      const result = await placeOrder({
+      const result = await beginCheckout({
         fulfilment,
         address:
           fulfilment === "delivery"
@@ -231,77 +217,37 @@ function CheckoutForm() {
                 pin: address.pin,
               }
             : undefined,
-        idempotencyKey: idempotencyKey,
       })
-      if (result.ok) {
-        track({ name: "order_placed", fulfilment })
-        setPlaced({
-          reference: result.reference,
-          totalPaise: result.totalPaise,
-        })
-        // The pay step is a shorter page: start it at the top, where Pay is,
-        // not at the footer the long form had scrolled to.
-        requestAnimationFrame(() => window.scrollTo({ top: 0 }))
-      } else {
+      if (!result.ok) {
         setError(
           result.reason === "rate-limited"
-            ? "Too many orders just now - wait a little and try again."
+            ? "Too many tries just now. Wait a few minutes and try again."
             : result.reason === "anonymous"
-              ? "Sign in to place the order."
+              ? "Your session ended. Sign in again to pay."
               : result.reason === "invalid-input"
                 ? (REFUSED_FIELD[result.field ?? ""] ??
                   "Check your details and try again.")
-                : "We couldn't place that order - try again."
+                : "That didn't go through. Try again."
         )
+        return null
       }
+      // A price moved since this page loaded: show it before taking it.
+      if (result.totalPaise !== shownTotal) {
+        setError(
+          `The total is now ${formatPaise(result.totalPaise)}. Check it and press Pay again.`
+        )
+        return null
+      }
+      return result
     } catch {
-      setError("The order didn't go through - check your connection.")
-    } finally {
-      setPlacing(false)
+      setError("That didn't go through. Check your connection and try again.")
+      return null
     }
   }
 
-  if (placed)
-    return (
-      <PageShell
-        title={
-          <>
-            <span className="text-foreground">Order {placed.reference}.</span>{" "}
-            <span className="text-muted-foreground">
-              {paid ? "Paid. Thank you." : "One step left."}
-            </span>
-          </>
-        }
-      >
-        <div className="max-w-160 space-y-6">
-          <p className="text-lg text-pretty">
-            Pay <span className="tnum">{formatPaise(placed.totalPaise)}</span>{" "}
-            to confirm it. The order is saved: if you close this, you can pay
-            later from{" "}
-            <Link
-              href="/account"
-              className="underline underline-offset-4 hover:text-foreground"
-            >
-              your account
-            </Link>
-            .
-          </p>
-          <PayOrder
-            reference={placed.reference}
-            amountPaise={placed.totalPaise}
-            onPaid={() => setPaid(true)}
-          />
-          <div className="flex gap-3 pbs-2">
-            <ButtonLink variant="secondary" href="/account">
-              See your orders
-            </ButtonLink>
-            <ButtonLink variant="ghost" href="/books">
-              Keep browsing
-            </ButtonLink>
-          </div>
-        </div>
-      </PageShell>
-    )
+  if (paid) return <Thanks paid={paid} fulfilment={fulfilment} />
+  if (pending)
+    return <Confirming checkoutId={pending} fulfilment={fulfilment} />
 
   // Lines the shop cannot sell, each with the real reason, so the buyer
   // can remove exactly that one here instead of guessing in the cart.
@@ -342,20 +288,6 @@ function CheckoutForm() {
     >
       {bundles === undefined ? (
         <ListSkeleton rows={4} className="max-w-160" />
-      ) : lines.length === 0 && unpaid ? (
-        <StatePanel
-          icon={<IconPackage stroke={1.75} />}
-          title={`Order ${unpaid.reference} is waiting for payment`}
-          description={`${formatPaise(unpaid.totalPaise)} for ${setCount(unpaid.lines)}. Pay for it here; unpaid orders are cancelled after three days.`}
-          action={
-            <div className="mbs-6">
-              <PayOrder
-                reference={unpaid.reference}
-                amountPaise={unpaid.totalPaise}
-              />
-            </div>
-          }
-        />
       ) : lines.length === 0 ? (
         <StatePanel
           icon={<IconPackage stroke={1.75} />}
@@ -370,17 +302,6 @@ function CheckoutForm() {
       ) : (
         <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
           <div className="space-y-10">
-            {unpaid ? (
-              <p className="rounded-card border border-border bg-secondary/50 p-4 text-sm">
-                Order{" "}
-                <span className="tnum font-medium">{unpaid.reference}</span> (
-                {formatPaise(unpaid.totalPaise)}) is still waiting for payment.{" "}
-                <Link href="/account" className="link">
-                  Pay for it in your account
-                </Link>{" "}
-                if that is the one you meant, or carry on to place a new order.
-              </p>
-            ) : null}
             <section aria-label="Your order">
               <h2 className="type-label">Your order</h2>
               <ul className="mbs-4 divide-y divide-border">
@@ -611,28 +532,164 @@ function CheckoutForm() {
                 </dd>
               </div>
             </dl>
-            <Button
-              size="lg"
-              className="w-full"
-              disabled={placing || missing.length > 0}
-              onClick={() => void submit()}
-              aria-describedby={error ? errorId : undefined}
+            <PayButton
+              amountPaise={shownTotal}
+              prepare={prepare}
+              onPaid={(result) => {
+                setPaid(result)
+                requestAnimationFrame(() => window.scrollTo({ top: 0 }))
+              }}
+              onPending={setPending}
+              disabled={rows.length === 0 || missing.length > 0}
+            />
+            <p
+              id={errorId}
+              role="alert"
+              className="text-sm text-destructive empty:hidden"
             >
-              {placing ? "Saving your order…" : "Continue to payment"}
-            </Button>
-            {error && (
-              <FieldError id={errorId} className="text-left">
-                {error}
-              </FieldError>
-            )}
+              {error}
+            </p>
             <FieldDescription className="text-center">
-              Your order is saved first, then you pay securely with Razorpay:
-              UPI, cards or net banking. If a payment fails, the order waits in
-              your account to try again.
+              UPI, cards or net banking, through Razorpay. Your cart stays here
+              until the payment goes through.
             </FieldDescription>
           </aside>
         </div>
       )}
+    </PageShell>
+  )
+}
+
+/** After the money: the order, its receipt, and where to follow it. */
+function Thanks({
+  paid,
+  fulfilment,
+}: {
+  paid: Paid
+  fulfilment: "delivery" | "collection"
+}) {
+  const next =
+    fulfilment === "delivery"
+      ? [
+          "We pack the books and post them.",
+          "WhatsApp brings the courier and the tracking number.",
+          "Your order page shows each step, with the receipt.",
+        ]
+      : [
+          "We pack the books at the centre.",
+          "WhatsApp tells you when they're ready to collect.",
+          "Bring the order reference to DC Bungalow Road.",
+        ]
+  return (
+    <PageShell
+      title={
+        <>
+          <span className="text-foreground">Paid. Thank you.</span>{" "}
+          <span className="text-muted-foreground">
+            Order <span className="tnum">{paid.reference}</span>.
+          </span>
+        </>
+      }
+    >
+      <div className="max-w-160 space-y-6">
+        <p className="flex items-start gap-3 text-lg text-pretty">
+          <IconCircleCheck
+            aria-hidden
+            className="mbs-1 size-6 shrink-0 text-primary"
+            stroke={1.75}
+          />
+          <span>
+            Receipt <span className="tnum">{paid.receiptNumber}</span>. We send
+            it on WhatsApp too, and tell you there when your books are on their
+            way or ready to collect.
+          </span>
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <ButtonLink href={`/account/receipt/${paid.reference}`}>
+            <IconReceipt aria-hidden size={18} stroke={1.75} />
+            View the receipt
+          </ButtonLink>
+          <ButtonLink variant="secondary" href="/account">
+            Follow your order
+          </ButtonLink>
+          <ButtonLink variant="ghost" href="/books">
+            Keep browsing
+          </ButtonLink>
+        </div>
+        <section aria-labelledby="next-heading" className="pbs-6">
+          <h2 id="next-heading" className="text-lg font-semibold">
+            What happens next
+          </h2>
+          <ol className="mbs-4 grid gap-3">
+            {next.map((step, i) => (
+              <li key={step} className="flex items-baseline gap-4">
+                <span className="tnum font-display text-xl font-semibold text-primary">
+                  {i + 1}
+                </span>
+                <span className="text-pretty">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+        <p className="border-t border-border pbs-6 text-muted-foreground">
+          While you wait, the{" "}
+          <Link href="/resources" className="link">
+            free notes and past papers
+          </Link>{" "}
+          are open to you.
+        </p>
+      </div>
+    </PageShell>
+  )
+}
+
+/**
+ * The bank said yes but Razorpay has not captured it yet. The webhook makes
+ * the order; this page is subscribed to the attempt and turns into the
+ * thank-you by itself.
+ */
+function Confirming({
+  checkoutId,
+  fulfilment,
+}: {
+  checkoutId: Id<"checkouts">
+  fulfilment: "delivery" | "collection"
+}) {
+  const status = useQuery(api.checkout.checkoutStatus, { checkoutId })
+  if (status?.reference && status.receiptNumber)
+    return (
+      <Thanks
+        fulfilment={fulfilment}
+        paid={{
+          reference: status.reference,
+          receiptNumber: status.receiptNumber,
+        }}
+      />
+    )
+  return (
+    <PageShell
+      title={
+        <>
+          <span className="text-foreground">Confirming your payment.</span>{" "}
+          <span className="text-muted-foreground">Don&rsquo;t pay again.</span>
+        </>
+      }
+    >
+      <div className="max-w-160 space-y-4">
+        <output className="flex items-center gap-3 text-lg">
+          <Spinner />
+          Your bank approved it. Razorpay usually confirms within a few minutes,
+          and this page updates by itself.
+        </output>
+        <p className="text-muted-foreground">
+          You can close it: the order appears in{" "}
+          <Link href="/account" className="link">
+            your account
+          </Link>{" "}
+          and we send the receipt on WhatsApp. If money left your account and no
+          order appears by tomorrow, call ICT with the time you paid.
+        </p>
+      </div>
     </PageShell>
   )
 }

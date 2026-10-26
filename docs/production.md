@@ -183,9 +183,21 @@ build'`. Check Project → Settings → Functions shows region `dub1` after the
    It refuses once any owner exists.
 
 Still separate work, not configuration: WhatsApp OTP transport (KIT-46),
-Razorpay payments (KIT-60; checkout records orders as `awaiting_payment` and
-says so), domain and DNS (KIT-42; then set `SITE_INDEXABLE=true`), Google
+Razorpay live keys (orders exist only once paid, ADR-0005), domain and DNS (KIT-42; then set `SITE_INDEXABLE=true`), Google
 Business Profile and Search Console (KIT-43).
+
+## Orders v2 migration (dev deployments only)
+
+Production starts on the v2 order shape and needs nothing. A deployment that
+already holds orders from before ADR-0005 refuses the new schema
+("missing the required field `checkoutId`"). Move them, in this order:
+
+1. Add `{ schemaValidation: false }` as the second argument of
+   `defineSchema` in `convex/schema.ts`; `npx convex dev --once`.
+2. `npx convex run internal.migrations.ordersToV2 '{}'` (logs how many moved;
+   pages itself 50 at a time).
+3. Remove the option again; `npx convex dev --once`. The push now validates
+   every document against the strict schema.
 
 ## Verifying after deploy
 

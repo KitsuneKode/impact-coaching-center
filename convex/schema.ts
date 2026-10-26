@@ -53,10 +53,9 @@ export const PDF_DOCUMENT = v.object({
   name: v.string(),
 })
 
+/** An order exists only once paid (ADR-0005); these are its moves after. */
 export const ORDER_STATUS = v.union(
-  v.literal("awaiting_payment"),
   v.literal("paid"),
-  v.literal("packed"),
   v.literal("shipped"),
   v.literal("delivered"),
   v.literal("ready_for_collection"),
@@ -152,6 +151,32 @@ export const ADDRESS = v.object({
   district: v.optional(v.string()),
   pin: v.string(),
 })
+
+export const COURIER = v.object({
+  name: v.string(),
+  trackingNumber: v.string(),
+})
+
+/** One status an order took, when, and who moved it (none for the payment). */
+export const ORDER_STEP = v.object({
+  status: ORDER_STATUS,
+  at: v.number(),
+  by: v.optional(v.id("persons")),
+})
+
+export const CHECKOUT_STATUS = v.union(
+  v.literal("open"),
+  v.literal("paid"),
+  v.literal("replaced")
+)
+
+/** Order messages on WhatsApp; each is a Meta template (lib/order-messages.ts). */
+export const MESSAGE_TEMPLATE = v.union(
+  v.literal("order_paid"),
+  v.literal("order_shipped"),
+  v.literal("order_ready"),
+  v.literal("desk_new_order")
+)
 
 export const CAMPAIGN_KIND = v.union(
   v.literal("bar"),
@@ -397,7 +422,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_published", ["published"]),
+    .index("by_published", ["published"])
+    .index("by_pdfKey", ["pdf.key"]),
 
   /** First open per Person per resource, for staff to see. */
   resourceOpens: defineTable({
@@ -502,11 +528,43 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_person", ["personId"]),
 
+  /**
+   * One attempt to pay: the cart frozen at a price, with its Razorpay order.
+   * Nobody but the buyer sees it; an order is made from it only when the
+   * money is captured (ADR-0005). Abandoned ones are swept after 30 days.
+   */
+  checkouts: defineTable({
+    personId: v.id("persons"),
+    status: CHECKOUT_STATUS,
+    fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+    contact: v.object({ name: v.string(), phone: v.string() }),
+    lines: v.array(ORDER_LINE),
+    itemsPaise: v.number(),
+    deliveryPaise: v.number(),
+    totalPaise: v.number(),
+    address: v.optional(ADDRESS),
+    /** What was priced, so an unchanged cart reuses this attempt. */
+    signature: v.string(),
+    gatewayOrderId: v.optional(v.string()),
+    /** The order the captured payment made. */
+    orderId: v.optional(v.id("orders")),
+    /** Last time the gateway declined a payment on it. */
+    declinedAt: v.optional(v.number()),
+    updatedAt: v.number(),
+  })
+    .index("by_personId_and_status", ["personId", "status"])
+    .index("by_gatewayOrderId", ["gatewayOrderId"])
+    .index("by_status_and_updatedAt", ["status", "updatedAt"]),
+
   orders: defineTable({
     personId: v.id("persons"),
     /** Short reference read out over the phone, e.g. ICT-7K3F9. */
     reference: v.string(),
     status: ORDER_STATUS,
+    /** Delivered, collected, cancelled or refunded: nothing left to do. */
+    closed: v.boolean(),
+    /** Every status it has had, oldest first; a handful at most. */
+    history: v.array(ORDER_STEP),
     fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
     contact: v.object({ name: v.string(), phone: v.string() }),
     lines: v.array(ORDER_LINE),
@@ -515,45 +573,57 @@ export default defineSchema({
     totalPaise: v.number(),
     /** Where this parcel went; a Person who moves must not rewrite it. */
     address: v.optional(ADDRESS),
-    courier: v.optional(
-      v.object({ name: v.string(), trackingNumber: v.string() })
-    ),
-    payment: v.optional(
-      v.object({
-        razorpayOrderId: v.string(),
-        razorpayPaymentId: v.optional(v.string()),
-        method: v.optional(v.string()),
-        paidAt: v.optional(v.number()),
-      })
-    ),
-    /** Sequential per financial year, e.g. ICT/26-27/0001. Set when paid. */
-    receiptNumber: v.optional(v.string()),
+    courier: v.optional(COURIER),
+    checkoutId: v.id("checkouts"),
+    payment: v.object({
+      razorpayOrderId: v.string(),
+      razorpayPaymentId: v.string(),
+      method: v.string(),
+      paidAt: v.number(),
+    }),
+    /** Sequential per financial year, e.g. ICT/26-27/0001. */
+    receiptNumber: v.string(),
+    /** Unguessable: opens the receipt without signing in, from WhatsApp. */
+    receiptToken: v.string(),
     /** The seller as the receipt names them, frozen when it was paid. */
-    seller: v.optional(
-      v.object({
-        legalName: v.string(),
-        gstin: v.optional(v.string()),
-        address: v.string(),
-      })
-    ),
+    seller: v.object({
+      legalName: v.string(),
+      gstin: v.optional(v.string()),
+      address: v.string(),
+    }),
     /** Money ICT holds for a cancelled order; cleared when marked refunded. */
     refundDueAt: v.optional(v.number()),
     placedAt: v.number(),
     updatedAt: v.optional(v.number()),
     /** First time a staff member opened it; drives the new-order badge. */
     seenAt: v.optional(v.number()),
-    /** Set when the daily job cancelled it for going unpaid. */
-    expiredAt: v.optional(v.number()),
-    idempotencyKey: v.optional(v.string()),
-    revision: v.optional(v.number()),
+    revision: v.number(),
   })
     .index("by_status_and_placedAt", ["status", "placedAt"])
+    .index("by_closed_and_placedAt", ["closed", "placedAt"])
     .index("by_personId_and_placedAt", ["personId", "placedAt"])
     .index("by_placedAt", ["placedAt"])
     .index("by_reference", ["reference"])
-    .index("by_idempotencyKey", ["idempotencyKey"])
+    .index("by_receiptToken", ["receiptToken"])
     .index("by_razorpayOrderId", ["payment.razorpayOrderId"])
     .index("by_refundDueAt", ["refundDueAt"]),
+
+  /**
+   * Files a save stopped pointing at. Kept for 30 days so an editor can put
+   * the old PDF back, then deleted by the weekly sweep if still unused.
+   */
+  releasedFiles: defineTable({
+    owner: v.object({ table: v.string(), id: v.string() }),
+    image: v.optional(v.id("_storage")),
+    pdf: v.optional(PDF_DOCUMENT),
+    /** The PDF's page-one preview, restored with it. */
+    cover: v.optional(v.id("_storage")),
+    releasedAt: v.number(),
+  })
+    .index("by_owner_and_releasedAt", ["owner.table", "owner.id", "releasedAt"])
+    .index("by_releasedAt", ["releasedAt"])
+    .index("by_image", ["image"])
+    .index("by_pdfKey", ["pdf.key"]),
 
   /** Razorpay webhook events already handled, so a retry is a no-op. */
   paymentEvents: defineTable({
@@ -561,6 +631,29 @@ export default defineSchema({
     type: v.string(),
     orderId: v.optional(v.id("orders")),
   }).index("by_eventId", ["eventId"]),
+
+  /**
+   * WhatsApp messages about orders, one row per order event and recipient,
+   * so a payment confirmed twice never sends two. Sent by a scheduled action.
+   */
+  messages: defineTable({
+    /** e.g. "ICT-7K3F9:paid:buyer". */
+    key: v.string(),
+    to: v.string(),
+    template: MESSAGE_TEMPLATE,
+    language: LOCALE,
+    params: v.array(v.string()),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("failed")
+    ),
+    attempts: v.number(),
+    error: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_key", ["key"])
+    .index("by_status", ["status"]),
 
   /**
    * Taps on WhatsApp and phone links, as daily totals per page and source.
@@ -593,6 +686,8 @@ export default defineSchema({
     legalName: v.string(),
     gstin: v.optional(v.string()),
     receiptPrefix: v.string(),
+    /** Where new-order alerts go on WhatsApp, E.164; none means no alerts. */
+    deskPhone: v.optional(v.string()),
     revision: v.number(),
     updatedAt: v.number(),
   }),
