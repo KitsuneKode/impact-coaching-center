@@ -11,6 +11,7 @@ import { JoinBand } from "@/components/home/join-band"
 import { LoopWatch } from "@/components/home/loop-watch"
 import { Results } from "@/components/home/results"
 import { Centre } from "@/components/home/centre"
+import { Tagline } from "@/components/home/tagline"
 import { StudentFan } from "@/components/home/student-fan"
 import { Teachers } from "@/components/home/teachers"
 import { publishedBundles, publishedResources } from "@/lib/catalog-server"
@@ -38,6 +39,7 @@ export default async function Page({ params }: PageProps<"/[locale]">) {
       <main>
         <ExamStack courses={courses} />
         <StudentFan />
+        <Tagline />
         <FreeFirst resources={resources} courses={courses} />
         <Books bundles={bundles} />
         <Teachers />

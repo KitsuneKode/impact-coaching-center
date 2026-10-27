@@ -1007,7 +1007,8 @@
     "centreCaption6": "আমন্ত্ৰিত বিষয়াৰ বাবে ভৰপূৰ সভা",
     "volumesLabel": "ICTৰ প্ৰতিখন কিতাপ",
     "cardStarts": "{date}ৰ পৰা আৰম্ভ",
-    "cardSave": "{amount} ৰাহি"
+    "cardSave": "{amount} ৰাহি",
+    "tagline": "মাচুল দিয়াৰ আগতে চাব পৰা শিক্ষক। ফোনত আকৌ চাব পৰা ক্লাছ।"
   },
   "Promos": {
     "code": "ক'ড",

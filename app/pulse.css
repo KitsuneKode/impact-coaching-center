@@ -3839,3 +3839,23 @@
       rotateX(calc(var(--py, 0) * 5deg));
   }
 }
+
+/* The home tagline (components/home/tagline.tsx): each word starts at a
+   third of the ink and takes its full colour in reading order as the
+   section crosses the window. Unsupported or reduced motion: fully lit. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-tagline-word] {
+      color: color-mix(in oklch, var(--foreground) 22%, transparent);
+      animation: tagline-lit linear both;
+      animation-timeline: view(block);
+      animation-range: cover calc(18% + var(--i) / var(--n) * 30%) cover
+        calc(24% + var(--i) / var(--n) * 30%);
+    }
+    @keyframes tagline-lit {
+      to {
+        color: var(--foreground);
+      }
+    }
+  }
+}
