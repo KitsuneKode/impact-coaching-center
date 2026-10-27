@@ -4,6 +4,7 @@ import { IconBrandWhatsapp } from "@tabler/icons-react"
 import { useQuery } from "convex/react"
 import { useTranslations } from "next-intl"
 
+import { convexConfigured } from "@/app/providers"
 import { api } from "@/convex/_generated/api"
 import { ButtonAnchor } from "@/components/ui/button"
 import { contactHref } from "@/lib/contact"
@@ -13,9 +14,13 @@ import { cn } from "@/lib/utils"
  * "online" until the server says otherwise: the buttons keep their shape
  * either way, so a late answer swaps a label rather than moving the page.
  */
-export function useShopMode() {
-  return useQuery(api.payments.shopMode) ?? "online"
-}
+const useLiveShopMode = () => useQuery(api.payments.shopMode) ?? "online"
+
+/* A build with no Convex (a bare preview) has no provider to ask, and
+   useQuery throws there; the choice is made once, so hooks keep their order. */
+export const useShopMode: () => "online" | "whatsapp" = convexConfigured
+  ? useLiveShopMode
+  : () => "online"
 
 /** While payments are off: the same order, started on WhatsApp instead. */
 export function OrderOnWhatsApp({
