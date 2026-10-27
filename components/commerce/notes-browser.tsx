@@ -22,6 +22,7 @@ import {
 
 import { convexConfigured } from "@/app/providers"
 import { PageViewer } from "@/components/commerce/lazy-page-viewer"
+import { NotePeek } from "@/components/commerce/note-peek"
 import {
   parseProgress,
   progressSnapshot,
@@ -458,7 +459,7 @@ function Shelf({
                           {current.description}
                         </span>
                       ) : null}
-                      <span data-notes-lines aria-hidden />
+                      <NotePeek slug={current.slug} />
                       <span className="tnum mbs-4 block text-sm text-muted-foreground">
                         {meta(current)}
                       </span>
