@@ -4,6 +4,9 @@ One list for everything asked on 26–27 Oct. Work top to bottom; tick as each
 lands with a click-through. The original messages are kept word for word at
 the end.
 
+Results: `docs/plans/2026-10-27-launch-status.md` (status table, audit,
+parent's questions, blockers, what to ask ICT).
+
 ## 0. Finish what was in flight
 
 - [x] Legacy orders migrate to the v2 shape (`convex/migrations.ts`), run locally
@@ -24,65 +27,71 @@ the end.
 
 ## 2. Marketing landing and trust (msg 5)
 
-- [ ] Hero: taller, better hierarchy, type that doesn't crowd (leading,
+- [x] Hero: taller, better hierarchy, type that doesn't crowd (leading,
       `text-wrap: balance/pretty`), measure, alignment
-- [ ] Home: type hierarchy and rhythm across sections
-- [ ] Copy pass (better-writing) on home and the trust pages (results, about,
+- [x] Home: type hierarchy and rhythm across sections
+- [x] Copy pass (better-writing) on home and the trust pages (results, about,
       teachers, contact, policies)
-- [ ] Parent's audit: can a parent answer fees, timings, results, teachers,
+- [x] Parent's audit: can a parent answer fees, timings, results, teachers,
       location, safety, how to enrol, what's free, in under a minute?
-- [ ] Trust blocks: testimonials, achievements/results, classrooms and the
-      building, teachers; each placed where the doubt arises
-- [ ] "Free" is obvious from day 1: free notes, free mock/ASSIST, free counselling
-- [ ] H1s and headings per page (better-accessibility + better-writing)
-- [ ] Blog reading like Fumadocs: contents rail, headings, code/tables, prev/next
-- [ ] Every breakpoint: 390 phone, tablet, 1440 laptop, 1920 and 2560
+- [~] Trust blocks: testimonials, achievements/results, classrooms and the
+  building, teachers; each placed where the doubt arises (waiting on ICT's photos and bios)
+- [x] "Free" is obvious from day 1: free notes, free mock/ASSIST, free counselling
+- [x] H1s and headings per page (better-accessibility + better-writing)
+- [x] Blog reading like Fumadocs: contents rail, headings, code/tables, prev/next
+- [x] Every breakpoint: 390 phone, tablet, 1440 laptop, 1920 and 2560
 
 ## 3. Admin dashboard (msg 4, msg 6)
 
-- [ ] Audit every admin page on phone and desktop: broken, confusing, slow
-- [ ] Shell, overview, tables and forms modelled on shadcn's dashboard/data-table
+- [x] Audit every admin page on phone and desktop: broken, confusing, slow
+- [x] Shell, overview, tables and forms modelled on shadcn's dashboard/data-table
       blocks; shadows, density, empty states
-- [ ] Enquiries table: faster triage, better filters, bulk actions
-- [ ] Traffic sources: where enquiries come from (first-touch referrer/UTM,
+- [x] Enquiries table: faster triage, better filters, bulk actions
+- [x] Traffic sources: where enquiries come from (first-touch referrer/UTM,
       stored with the lead, free) shown on the overview; PostHog stays optional
-- [ ] Lead quality: keep bots out of enquiries (honeypot, time trap, rate
+- [x] Lead quality: keep bots out of enquiries (honeypot, time trap, rate
       limit, Turnstile where it pays), flag duplicates
-- [ ] shadcn lint rules installed and passing
-- [ ] Buttons: Kobra-style press feel (free components only; Pro needs ICT's
+- [x] shadcn lint rules installed and passing (0.2.3; three new rules deferred, see launch-status §7)
+- [x] Buttons: Kobra-style press feel (free components only; Pro needs ICT's
       licence), consistent across site and admin
-- [ ] Inspiration checked: fluidfunctionalism.com docs, vibrant.design,
-      shadcn blocks, Aceternity (taste, not copy)
+- [x] Inspiration checked: fluidfunctionalism.com docs, vibrant.design,
+      shadcn blocks, Aceternity (taste, not copy). Fluid Functionalism's two-step
+      density and shared control height are now true of admin forms; Emil's
+      seven tips hold (tooltips now open instantly after the first);
+      vibrant.design is a gallery, nothing to adopt wholesale
 
 ## 4. SEO and discovery (msg 4)
 
-- [ ] Sitemap, robots, llms.txt, hreflang, canonical: verify on a prod build
-- [ ] Search Console verification by env; Google Business Profile checklist
-- [ ] Structured data: EducationalOrganization, LocalBusiness, Course, FAQ, Article
-- [ ] OG images per page type
+- [x] Sitemap, robots, llms.txt, hreflang, canonical: verify on a prod build
+- [x] Search Console verification by env; Google Business Profile checklist
+- [x] Structured data: EducationalOrganization, LocalBusiness, Course, FAQ, Article
+- [x] OG images per page type
 
 ## 5. Motion and polish (msg 4)
 
-- [ ] Find animation opportunities and fix motion that's off (Emil's 7 tips,
+- [x] Find animation opportunities and fix motion that's off (Emil's 7 tips,
       invisible details), reduced motion respected
-- [ ] Buttons, shadows, focus states consistent (beautiful-shadows,
+- [x] Buttons, shadows, focus states consistent (beautiful-shadows,
       make-interfaces-feel-better, emil-design-eng, apple-design)
-- [ ] Page transitions: React view transitions where they help
-- [ ] React review: react-best-practices, narrow prop types, no wasted renders
-- [ ] Routing middleware (`proxy.ts`): locale, security headers, bot paths
+- [x] Page transitions: React view transitions where they help (in place since 14 Oct)
+- [x] React review: react-best-practices, narrow prop types, no wasted renders
+      (react-doctor 53/100: no confirmed bugs; the two effect-cleanup errors are
+      false positives, shadcn errors sit in the vendored reader. Complexity in
+      the big editors and sequential awaits in static pages: after launch)
+- [x] Routing middleware (`proxy.ts`, reviewed: locale only; headers live in next.config.ts): locale, security headers, bot paths
 
 ## 6. Reports (msg 4, msg 10)
 
-- [ ] Status table: done / left / % / blockers
-- [ ] Principal-engineer audit: code quality, scalability, edge cases, traffic,
+- [x] Status table: done / left / % / blockers
+- [x] Principal-engineer audit: code quality, scalability, edge cases, traffic,
       users' region and devices, content, trust, lead generation, ratings
-- [ ] What to focus on for the business
-- [ ] What to ask ICT, in one message, ordered by what blocks launch
-- [ ] Keep only ICT-dependent items open; everything else done and tested
+- [x] What to focus on for the business
+- [x] What to ask ICT, in one message, ordered by what blocks launch
+- [x] Keep only ICT-dependent items open; everything else done and tested
 
 ## 7. Ship
 
-- [ ] Commit in milestones, push `feat/launch` (Vercel Hobby rate limit: few pushes)
+- [x] Commit in milestones, push `feat/launch` (Vercel Hobby rate limit: few pushes)
 - [ ] Merge to `main` and production deploy: needs the owner's go and ICT's accounts
 
 ---
