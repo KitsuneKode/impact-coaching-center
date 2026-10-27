@@ -1,25 +1,6 @@
 "use client"
 
-import {
-  IconArrowRight,
-  IconAward,
-  IconBooks,
-  IconBuildingBank,
-  IconBuildingMonument,
-  IconCalendarEvent,
-  IconChecklist,
-  IconCompass,
-  IconFileText,
-  IconMapPin,
-  IconNews,
-  IconNotes,
-  IconPencil,
-  IconShieldCheck,
-  IconShieldStar,
-  IconTrophy,
-  IconTruckDelivery,
-  IconUsers,
-} from "@tabler/icons-react"
+import { IconArrowRight } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import { memo, type RefObject, useEffect, useRef, useState } from "react"
 
@@ -32,27 +13,10 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
 import { Link, usePathname } from "@/i18n/navigation"
+import { NAV_ICONS } from "./nav-icons"
 import { NAV_MENUS } from "./nav-links"
 
-const ICONS = {
-  landmark: IconBuildingMonument,
-  shield: IconShieldCheck,
-  bank: IconBuildingBank,
-  compass: IconCompass,
-  award: IconAward,
-  truck: IconTruckDelivery,
-  file: IconFileText,
-  news: IconNews,
-  notes: IconNotes,
-  checklist: IconChecklist,
-  books: IconBooks,
-  badge: IconShieldStar,
-  calendar: IconCalendarEvent,
-  pencil: IconPencil,
-  trophy: IconTrophy,
-  users: IconUsers,
-  map: IconMapPin,
-} as const
+const ICONS = NAV_ICONS
 
 /**
  * The header's sections. Each name is a button that opens its pages in a

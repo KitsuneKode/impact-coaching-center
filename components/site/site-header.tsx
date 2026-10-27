@@ -13,6 +13,7 @@ import { Link } from "@/i18n/navigation"
 import { brand, contact, formatPhone } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
 import { SiteSearch } from "@/components/site/site-search"
+import { HeaderCart } from "./header-cart"
 import { SiteMenu } from "./site-menu"
 import { SiteNav } from "./site-nav"
 
@@ -72,6 +73,9 @@ export function SiteHeader() {
 
           <span data-flip className="flex">
             <SiteSearch />
+          </span>
+          <span data-flip className="flex">
+            <HeaderCart />
           </span>
 
           {/* The account button slides on its own: the language switch

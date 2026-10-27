@@ -2,6 +2,7 @@
 
 import {
   IconArrowRight,
+  IconChevronDown,
   IconMenu2,
   IconPhone,
   IconX,
@@ -9,7 +10,7 @@ import {
 import { AnimatePresence, useReducedMotion } from "motion/react"
 import * as m from "motion/react-m"
 import { useTranslations } from "next-intl"
-import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 
 import { AccountMenu } from "@/components/account/account-menu"
@@ -17,6 +18,7 @@ import { LocaleSwitch } from "@/components/i18n/locale-switch"
 import { ThemeSwitch } from "@/components/theme/theme-switch"
 import { Link, usePathname } from "@/i18n/navigation"
 import { contactHref } from "@/lib/contact"
+import { NAV_ICONS } from "./nav-icons"
 import { NAV_MENUS } from "./nav-links"
 
 const ease = [0.23, 1, 0.32, 1] as const
@@ -27,6 +29,11 @@ const ease = [0.23, 1, 0.32, 1] as const
  * header has shrunk (the sheet lives on <body>; inside the header it would
  * take the floating bar's box). Page scroll locks while it is open, Escape
  * closes it, and focus cycles inside.
+ *
+ * The sections are an accordion, one open at a time (the current page's
+ * section opens first), each page a row with its icon and one line on what
+ * is there. Language, theme, account and the one call to action stay
+ * pinned at the bottom, in thumb reach.
  */
 export function SiteMenu({ phone }: { phone: string }) {
   const t = useTranslations("Nav")
@@ -43,6 +50,14 @@ export function SiteMenu({ phone }: { phone: string }) {
     () => false
   )
   const panel = useRef<HTMLElement>(null)
+  const ids = useId()
+  const here = NAV_MENUS.find((menu) =>
+    menu.items.some((item) => {
+      const base = item.href.split(/[?#]/)[0]
+      return base !== "/" && (path === base || path.startsWith(`${base}/`))
+    })
+  )?.key
+  const [section, setSection] = useState<string | undefined>(here)
 
   // A new page closes the menu.
   const [seen, setSeen] = useState(path)
@@ -80,7 +95,10 @@ export function SiteMenu({ phone }: { phone: string }) {
       const items = [
         button.current,
         ...(panel.current?.querySelectorAll<HTMLElement>("a, button") ?? []),
-      ].filter((item): item is HTMLElement => item !== null)
+      ].filter(
+        (item): item is HTMLElement =>
+          item !== null && item.closest("[inert]") === null
+      )
       const first = items[0]
       const last = items[items.length - 1]
       const active = document.activeElement as HTMLElement | null
@@ -117,7 +135,11 @@ export function SiteMenu({ phone }: { phone: string }) {
         aria-expanded={open}
         aria-controls="site-menu"
         aria-label={open ? t("closeMenu") : t("openMenu")}
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => {
+          if (open) return close()
+          setSection(here)
+          setOpen(true)
+        }}
       >
         <span className="relative grid size-5 place-items-center">
           <AnimatePresence initial={false} mode="popLayout">
@@ -147,62 +169,120 @@ export function SiteMenu({ phone }: { phone: string }) {
                 exit={{ opacity: 0, transition: { duration: 0.12 } }}
               >
                 <m.div
+                  className="flex min-h-full flex-col"
                   initial={reduce ? false : { transform: "translateY(-8px)" }}
                   animate={{
                     transform: "translateY(0px)",
                     transition: { duration: 0.22, ease },
                   }}
                 >
-                  {/* Each section, then its own pages as chips: "APSC books"
-                  is one tap, the same groups as the desktop panels. */}
-                  <ul>
-                    {NAV_MENUS.map((menu) => (
-                      <li
-                        key={menu.key}
-                        className="border-b border-border px-5 pbs-4 pbe-4"
-                      >
-                        <Link
-                          href={menu.href}
-                          onClick={() => setOpen(false)}
-                          className="flex min-h-11 items-center justify-between font-display text-xl font-semibold"
-                        >
-                          {menu.key === "ict" ? menus("ict") : t(menu.key)}
-                          <IconArrowRight
-                            aria-hidden
-                            size={18}
-                            stroke={2}
-                            className="text-muted-foreground"
-                          />
-                        </Link>
-                        <ul className="mbs-2 flex flex-wrap gap-2">
-                          {menu.items.map((item) => (
-                            <li key={item.key}>
-                              <Link
-                                href={item.href}
-                                onClick={() => setOpen(false)}
-                                data-press
-                                className="inline-flex min-h-10 items-center rounded-full bg-secondary px-3.5 text-sm font-medium"
-                              >
-                                {menus(`${item.key}.title`)}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
-                    ))}
+                  <ul className="px-5">
+                    {NAV_MENUS.map((menu) => {
+                      const expanded = section === menu.key
+                      const name =
+                        menu.key === "ict" ? menus("ict") : t(menu.key)
+                      return (
+                        <li key={menu.key} className="border-b border-border">
+                          <button
+                            type="button"
+                            id={`${ids}-${menu.key}`}
+                            aria-expanded={expanded}
+                            aria-controls={`${ids}-${menu.key}-pages`}
+                            onClick={() =>
+                              setSection(expanded ? undefined : menu.key)
+                            }
+                            className="flex min-h-16 w-full items-center justify-between gap-4 text-start font-display text-xl font-semibold"
+                          >
+                            {name}
+                            <IconChevronDown
+                              aria-hidden
+                              size={20}
+                              stroke={1.75}
+                              data-accordion-chevron
+                              className="text-muted-foreground"
+                            />
+                          </button>
+                          <section
+                            id={`${ids}-${menu.key}-pages`}
+                            aria-labelledby={`${ids}-${menu.key}`}
+                            data-accordion-panel
+                            data-open={expanded || undefined}
+                            inert={!expanded}
+                          >
+                            <div className="min-h-0 overflow-hidden">
+                              <ul className="grid gap-0.5 pbe-4">
+                                {menu.items.map((item) => {
+                                  const Icon = NAV_ICONS[item.icon]
+                                  return (
+                                    <li key={item.key}>
+                                      <Link
+                                        href={item.href}
+                                        onClick={() => setOpen(false)}
+                                        data-menu-row
+                                        className="flex min-h-14 items-center gap-3.5 rounded-2xl px-2"
+                                      >
+                                        <span
+                                          data-menu-icon
+                                          className="grid size-10 flex-none place-items-center rounded-xl"
+                                        >
+                                          <Icon
+                                            aria-hidden
+                                            size={19}
+                                            stroke={1.75}
+                                          />
+                                        </span>
+                                        <span className="min-w-0">
+                                          <span className="block font-semibold">
+                                            {menus(`${item.key}.title`)}
+                                          </span>
+                                          <span className="block truncate text-sm text-muted-foreground">
+                                            {menus(`${item.key}.note`)}
+                                          </span>
+                                        </span>
+                                      </Link>
+                                    </li>
+                                  )
+                                })}
+                                {menu.key === "ict" ? null : (
+                                  <li>
+                                    <Link
+                                      href={menu.href}
+                                      onClick={() => setOpen(false)}
+                                      className="inline-flex min-h-11 items-center gap-1.5 px-2 text-sm font-semibold text-primary"
+                                    >
+                                      {menus(`all.${menu.key}`)}
+                                      <IconArrowRight
+                                        aria-hidden
+                                        size={16}
+                                        stroke={2}
+                                      />
+                                    </Link>
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          </section>
+                        </li>
+                      )
+                    })}
                   </ul>
-                  <div className="flex items-center gap-2 px-5 pbs-5">
-                    <LocaleSwitch />
-                    <ThemeSwitch />
-                    <AccountMenu />
-                  </div>
-                  <div className="grid gap-3 p-5 sm:grid-cols-2">
+                  {/* Pinned to the bottom of the sheet, in thumb reach. */}
+                  <div data-menu-dock className="grid gap-3 px-5 pbs-4 pbe-5">
+                    <div className="flex items-center gap-2">
+                      <LocaleSwitch />
+                      <ThemeSwitch />
+                      <span className="ms-auto">
+                        <AccountMenu />
+                      </span>
+                    </div>
                     <a
                       href={contactHref({ kind: "workshop" })}
                       target="_blank"
                       rel="noreferrer noopener"
                       onClick={() => setOpen(false)}
-                      className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink transition-transform duration-150 ease-out-strong active:scale-[0.97]"
+                      data-cta="amber"
+                      data-press
+                      className="group inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
                     >
                       {offer("cta")}
                       <IconArrowRight
@@ -215,9 +295,9 @@ export function SiteMenu({ phone }: { phone: string }) {
                     <a
                       href={contactHref({ kind: "call" })}
                       onClick={() => setOpen(false)}
-                      className="tnum inline-flex h-12 items-center justify-center gap-2 rounded-full font-semibold shadow-[inset_0_0_0_1.5px_var(--border)]"
+                      className="tnum inline-flex min-h-11 items-center justify-center gap-2 text-sm font-semibold text-muted-foreground"
                     >
-                      <IconPhone aria-hidden size={18} stroke={1.75} />
+                      <IconPhone aria-hidden size={17} stroke={1.75} />
                       {t("callNumber", { phone })}
                     </a>
                   </div>

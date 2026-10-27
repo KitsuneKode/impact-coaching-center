@@ -1039,6 +1039,10 @@
       "books": "All book sets",
       "notes": "All free notes",
       "exams": "All exam guides"
+    },
+    "cart": {
+      "title": "Your cart",
+      "note": "Review your sets and pay"
     }
   },
   "Reader": {

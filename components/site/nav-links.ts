@@ -27,6 +27,7 @@ export const NAV_MENUS = [
       },
       { key: "bankingBooks", href: "/books#bank-ssc-railway", icon: "bank" },
       { key: "delivery", href: "/shipping", icon: "truck" },
+      { key: "cart", href: "/checkout", icon: "bag" },
     ],
   },
   {
