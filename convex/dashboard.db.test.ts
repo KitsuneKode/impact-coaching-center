@@ -130,5 +130,8 @@ describe("website visits by source", () => {
     ])
     const rows = await t.run((ctx) => ctx.db.query("visits").take(10))
     expect(rows).toHaveLength(2)
+    // The enquiry lands on today, the last of thirty days.
+    expect(week.daily).toHaveLength(30)
+    expect(week.daily.at(-1)).toBe(1)
   })
 })

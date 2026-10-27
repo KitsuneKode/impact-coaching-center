@@ -406,7 +406,7 @@ function PromotionForm({
               {CAMPAIGN_KINDS.map((k) => (
                 <label
                   key={k}
-                  className="group relative grid cursor-pointer content-start gap-1 rounded-[16px] bg-card p-4 pe-12 shadow-[0_0_0_1px_var(--border)] transition-[box-shadow,background-color] duration-150 has-[:checked]:bg-primary/[0.04] has-[:checked]:shadow-[0_0_0_2px_var(--primary)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
+                  className="group relative grid cursor-pointer content-start gap-1 rounded-control bg-card p-4 pe-12 shadow-[0_0_0_1px_var(--border)] transition-[box-shadow,background-color] duration-150 has-[:checked]:bg-primary/[0.04] has-[:checked]:shadow-[0_0_0_2px_var(--primary)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring"
                 >
                   <input
                     id={`p-kind-${k}`}

@@ -17,6 +17,7 @@ import type { ReactNode } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { AddEnquiry } from "@/components/admin/add-enquiry"
+import { EnquiryTrend } from "@/components/admin/enquiry-trend"
 import { ButtonAnchor } from "@/components/ui/button"
 import { PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -135,12 +136,12 @@ function Card({
   return (
     <section
       className={cn(
-        "flex min-w-0 flex-col gap-4 rounded-[22px] bg-card p-5 shadow-[0_0_0_1px_var(--border)] md:p-6",
+        "flex min-w-0 flex-col gap-5 rounded-card bg-card p-5 shadow-frame md:p-6",
         className
       )}
     >
       <header className="flex min-h-9 flex-wrap items-center justify-between gap-3">
-        <h2 className="flex flex-wrap items-baseline gap-x-2 font-display text-lg font-semibold tracking-[-0.015em]">
+        <h2 className="flex flex-wrap items-baseline gap-x-2 text-base font-semibold">
           <span className="whitespace-nowrap">{title}</span>
           {aside ? (
             <span className="tnum text-sm font-normal tracking-normal whitespace-nowrap text-muted-foreground">
@@ -184,7 +185,7 @@ function Queue({ now, asOf }: { now: number; asOf: number }) {
           className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-2"
         >
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-28 rounded-[16px]" />
+            <Skeleton key={i} className="h-28 rounded-control" />
           ))}
         </div>
       </Card>
@@ -278,12 +279,12 @@ function Queue({ now, asOf }: { now: number; asOf: number }) {
               <Link
                 href={need.href}
                 data-urgent={need.urgent || undefined}
-                className="group relative flex h-full flex-col gap-1 rounded-[16px] bg-secondary/55 p-3.5 transition-[background-color] duration-150 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
+                className="group relative flex h-full flex-col gap-1 rounded-control bg-secondary/55 p-3.5 transition-[background-color] duration-150 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring sm:p-4"
               >
                 {need.count ? (
                   <span
                     className={cn(
-                      "tnum font-display text-[1.75rem] leading-none font-semibold tracking-[-0.03em]",
+                      "tnum text-3xl leading-none font-semibold tracking-tight",
                       need.urgent ? "text-destructive" : "text-foreground"
                     )}
                   >
@@ -316,7 +317,7 @@ function Queue({ now, asOf }: { now: number; asOf: number }) {
           ))}
         </ul>
       ) : (
-        <p className="flex items-center gap-2 rounded-[16px] bg-secondary/55 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 rounded-control bg-secondary/55 p-4 text-sm text-muted-foreground">
           <IconCircleCheck aria-hidden size={18} stroke={1.75} />
           Nothing is waiting on anyone.
         </p>
@@ -327,13 +328,11 @@ function Queue({ now, asOf }: { now: number; asOf: number }) {
 
 /* ----------------------------------------------------------- who to call */
 
+/* Colour only where it means something: a dot beside plain text. */
 const REASON = {
-  overdue: {
-    text: "Overdue",
-    tone: "bg-[color-mix(in_oklch,var(--destructive)_12%,transparent)] text-destructive",
-  },
-  due: { text: "Due today", tone: "bg-primary/10 text-primary" },
-  new: { text: "New", tone: "bg-secondary text-foreground" },
+  overdue: { text: "Overdue", dot: "bg-destructive" },
+  due: { text: "Due today", dot: "bg-primary" },
+  new: { text: "New", dot: "bg-muted-foreground/50" },
 } as const
 
 /** A first message staff can send as is, or edit before sending. */
@@ -354,7 +353,7 @@ function ToCall({ now, asOf }: { now: number; asOf: number }) {
       <Card title="Who to call first" className={CALL_SPAN}>
         <div aria-busy="true" className="grid gap-2">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-12 rounded-[14px]" />
+            <Skeleton key={i} className="h-12 rounded-control" />
           ))}
         </div>
       </Card>
@@ -385,11 +384,11 @@ function ToCall({ now, asOf }: { now: number; asOf: number }) {
             return (
               <li
                 key={lead.id}
-                className="flex items-center gap-3 rounded-[14px] px-2 py-2 hover:bg-secondary/60"
+                className="flex items-center gap-3 rounded-control px-2 py-2 hover:bg-secondary/60"
               >
                 <span
                   aria-hidden
-                  className="tnum w-5 flex-none text-end font-display text-sm font-semibold text-muted-foreground"
+                  className="tnum w-5 flex-none text-end text-sm font-medium text-muted-foreground"
                 >
                   {i + 1}
                 </span>
@@ -401,12 +400,11 @@ function ToCall({ now, asOf }: { now: number; asOf: number }) {
                     {lead.name || formatPhone(lead.phone)}
                   </span>
                   <span className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-                    <span
-                      className={cn(
-                        "flex-none rounded-full px-2 py-0.5 font-medium",
-                        reason.tone
-                      )}
-                    >
+                    <span className="inline-flex flex-none items-center gap-1.5 font-medium text-foreground">
+                      <span
+                        aria-hidden
+                        className={cn("size-1.5 rounded-full", reason.dot)}
+                      />
                       {reason.text}
                       {lead.reason === "new" ? `, ${waited(lead.at, now)}` : ""}
                     </span>
@@ -436,7 +434,7 @@ function ToCall({ now, asOf }: { now: number; asOf: number }) {
           })}
         </ol>
       ) : (
-        <p className="flex items-center gap-2 rounded-[16px] bg-secondary/55 p-4 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 rounded-control bg-secondary/55 p-4 text-sm text-muted-foreground">
           <IconCircleCheck aria-hidden size={18} stroke={1.75} />
           Nobody is waiting for a call.
         </p>
@@ -489,7 +487,7 @@ function Stat({
   return (
     <div className="grid content-start gap-1.5 bg-card p-4 md:p-5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span className="tnum font-display text-[1.75rem] leading-none font-semibold tracking-[-0.03em]">
+      <span className="tnum text-3xl leading-none font-semibold tracking-tight">
         {value}
       </span>
       {note}
@@ -537,8 +535,8 @@ function Week({ asOf }: { asOf: number }) {
   if (data === undefined)
     return (
       <div aria-busy="true" className="grid gap-3 xl:col-span-12">
-        <Skeleton className="h-36 rounded-[22px]" />
-        <Skeleton className="h-80 rounded-[22px]" />
+        <Skeleton className="h-36 rounded-card" />
+        <Skeleton className="h-80 rounded-card" />
       </div>
     )
   if (data === null) return null
@@ -553,7 +551,7 @@ function Week({ asOf }: { asOf: number }) {
       <Card title="This week" className="xl:col-span-12">
         {/* Hairlines between the figures come from the gap over a border
             fill, so they meet cleanly however the grid wraps. */}
-        <div className="grid grid-cols-2 gap-px overflow-clip rounded-[16px] bg-border shadow-[0_0_0_1px_var(--border)] lg:grid-cols-5 max-lg:[&>:last-child:nth-child(odd)]:col-span-2">
+        <div className="grid grid-cols-2 gap-px overflow-clip rounded-control bg-border shadow-[0_0_0_1px_var(--border)] lg:grid-cols-5 max-lg:[&>:last-child:nth-child(odd)]:col-span-2">
           <Stat
             label="Enquiries"
             value={`${count(data.enquiries.thisWeek)}${data.enquiries.capped ? "+" : ""}`}
@@ -630,6 +628,7 @@ function Week({ asOf }: { asOf: number }) {
       >
         {people ? (
           <div className="grid gap-8">
+            <EnquiryTrend daily={data.daily} asOf={asOf} />
             <div className="grid gap-3">
               <h3 className="text-sm font-medium">Where they are now</h3>
               <div
@@ -654,7 +653,7 @@ function Week({ asOf }: { asOf: number }) {
                       {label}
                     </span>
                     <span className="flex items-baseline gap-1.5">
-                      <span className="tnum font-display text-xl leading-none font-semibold tracking-[-0.02em]">
+                      <span className="tnum text-xl leading-none font-semibold">
                         {count(data.stages[key])}
                       </span>
                       <span className="tnum text-xs text-muted-foreground">

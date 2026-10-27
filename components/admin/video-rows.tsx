@@ -108,7 +108,7 @@ export function VideoRows({
                 // carried by index above.
                 key={i}
                 data-row={i}
-                className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 rounded-[14px] bg-secondary/55 p-2 pe-1.5"
+                className="grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-3 rounded-control bg-secondary/55 p-2 pe-1.5"
               >
                 <span className="relative grid aspect-[9/16] w-12 place-items-center overflow-clip rounded-[8px] bg-foreground/[0.07] text-muted-foreground">
                   {id ? (

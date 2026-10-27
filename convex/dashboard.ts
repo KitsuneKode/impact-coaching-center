@@ -232,6 +232,8 @@ export const week = query({
         })
       ),
       pages: v.array(v.object({ page: v.string(), people: v.number() })),
+      /** Enquiries per India day, oldest first, the last 30 days. */
+      daily: v.array(v.number()),
       /** Last 30 days: website visits per source, and how many enquired. */
       visits: v.array(
         v.object({
@@ -398,7 +400,19 @@ export async function readWeek(ctx: QueryCtx, viewer: Viewer, now: number) {
     if (entry) entry.enquired += 1
   }
 
+  // Each enquiry on its India day, today last.
+  const days = Array.from({ length: 30 }, (_, i) =>
+    indiaDay(now - (29 - i) * DAY)
+  )
+  const index = new Map(days.map((day, i) => [day, i]))
+  const daily = days.map(() => 0)
+  for (const enquiry of month) {
+    const i = index.get(indiaDay(enquiry._creationTime))
+    if (i !== undefined) daily[i]! += 1
+  }
+
   return {
+    daily,
     enquiries: {
       thisWeek: thisWeek.length,
       lastWeek: lastWeek.length,
