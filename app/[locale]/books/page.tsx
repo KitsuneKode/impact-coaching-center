@@ -18,6 +18,8 @@ import { onlySamples, publishedBundles } from "@/lib/catalog-server"
 import { slugify } from "@/lib/catalog"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 import { OrderSteps } from "@/components/commerce/order-steps"
+import { VolumeShelf } from "@/components/commerce/volume-shelf"
+import type { Language } from "@/lib/catalog"
 
 /* Catalogue data refreshes when it changes (lib/catalog-server.ts); the
    page is static and rebuilt in the background on the same beat. */
@@ -98,6 +100,11 @@ export default async function BooksPage({
           <ShopCartButton />
         </div>
       </PageHead>
+      <VolumeShelf
+        bundles={bundles}
+        language={locale as Language}
+        label={pulse("volumesLabel")}
+      />
 
       {groups.length ? (
         groups.map(([exam, sets]) => (
