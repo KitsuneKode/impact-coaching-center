@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 /** One CTA definition for the whole site. */
 const buttonVariants = cva(
   [
-    "group/button relative inline-flex shrink-0 items-center justify-center gap-2 rounded-control",
+    "group/button relative inline-flex shrink-0 items-center justify-center gap-2 rounded-full",
     "font-medium whitespace-nowrap select-none",
     "transition-[transform,background-color,border-color,color,box-shadow] duration-200 ease-out",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
@@ -28,9 +28,9 @@ const buttonVariants = cva(
         link: "px-0 text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground",
       },
       size: {
-        sm: "h-9 px-3.5 text-sm [&_svg]:size-4",
-        md: "h-11 px-4.5 text-[0.9375rem] [&_svg]:size-[18px]",
-        lg: "h-12 px-5.5 text-[0.9375rem] [&_svg]:size-[18px]",
+        sm: "h-9 px-4 text-sm [&_svg]:size-4",
+        md: "h-11 px-5 text-[0.9375rem] font-semibold [&_svg]:size-[18px]",
+        lg: "h-12 px-6 text-base font-semibold [&_svg]:size-[18px]",
         /* The visible square stays compact; the invisible ::after pad is
            what carries the 44px touch target. */
         icon: "size-10 after:absolute after:-inset-0.5 [&_svg]:size-5",

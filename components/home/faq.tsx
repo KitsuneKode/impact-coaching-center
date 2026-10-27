@@ -59,7 +59,8 @@ export function Faq({
             target="_blank"
             rel="noreferrer noopener"
             data-press
-            className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full bg-secondary ps-4 pe-5 text-sm font-semibold transition-colors duration-150 hover:bg-primary hover:text-primary-foreground"
+            data-cta="ghost-paper"
+            className="inline-flex h-11 w-fit items-center gap-2 rounded-full px-5 text-[0.9375rem] font-semibold"
           >
             <IconBrandWhatsapp aria-hidden size={18} stroke={1.75} />
             {t("faqAsk")}

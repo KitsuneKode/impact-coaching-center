@@ -49,6 +49,7 @@ export function BatchTicket({
           className="relative grid grid-cols-[34%_1fr] rounded-[22px] bg-card"
         >
           <span data-perf aria-hidden />
+          <span data-ticket-glare aria-hidden />
           <span className="flex flex-col justify-between p-5">
             <span className="text-xs font-semibold text-muted-foreground">
               {starts
@@ -66,7 +67,8 @@ export function BatchTicket({
               /* No start date entered yet: say it is open, not a lone "batch". */
               <span className="font-display text-2xl leading-none font-semibold">
                 {t("ticketOpen")}
-                <span className="mbs-1.5 block font-sans text-xs font-medium text-muted-foreground">
+                <span className="mbs-1.5 flex items-center gap-1.5 font-sans text-xs font-medium text-muted-foreground">
+                  <span aria-hidden data-live-dot />
                   {t("ticketEnrolling")}
                 </span>
               </span>

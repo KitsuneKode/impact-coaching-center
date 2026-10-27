@@ -137,10 +137,11 @@ export function BlueField() {
       el.height = Math.max(1, Math.round(box.height * scale))
       gl.viewport(0, 0, el.width, el.height)
       gl.uniform2f(uRes, el.width, el.height)
+      // Resizing a canvas wipes it to black: draw again at once, or a still
+      // field (reduced motion, a paused loop) stays black until it moves.
+      if ("ready" in el.dataset) draw(performance.now())
     }
-    resize()
-    const sized = new ResizeObserver(resize)
-    sized.observe(section)
+    const sized = new ResizeObserver(() => resize())
 
     // A start somewhere in the loop, so a reload is not the same frame.
     const offset = Math.random() * 200
@@ -180,6 +181,12 @@ export function BlueField() {
       gl.uniform1f(uNear, now.near)
       gl.drawArrays(gl.TRIANGLES, 0, 3)
     }
+    /* The wall's drift slows to a crawl while the pointer is over it, so a
+       photo can be looked at rather than chased; it picks up again after. */
+    const drifts = [
+      ...section.querySelectorAll("[data-hero-sidewall] [data-wall-col]"),
+    ].flatMap((col) => col.getAnimations())
+    let rate = 1
     let lastStep = 0
     const tick = (time: number) => {
       frame = requestAnimationFrame(tick)
@@ -193,6 +200,12 @@ export function BlueField() {
       // Ink rises with speed and settles over about a second.
       now.ink = Math.min(1, now.ink * Math.exp(-dt / 0.9) + speed * 2.2)
       speed = 0
+      const slow = goal.near === 1 && goal.x > 0.55 ? 0.15 : 1
+      const nextRate = rate + (slow - rate) * (1 - Math.exp(-dt / 0.5))
+      if (Math.abs(nextRate - rate) > 0.005) {
+        rate = nextRate
+        for (const drift of drifts) drift.playbackRate = rate
+      }
       section.style.setProperty("--px", ((now.x - 0.5) * 2).toFixed(3))
       section.style.setProperty("--py", ((0.5 - now.y) * 2).toFixed(3))
       if (time - last < 1000 / 30) return
@@ -204,6 +217,17 @@ export function BlueField() {
       if (!still && visible && !document.hidden)
         frame = requestAnimationFrame(tick)
     }
+
+    resize()
+    sized.observe(section)
+
+    // A lost context (GPU reset, too many tabs) shows black: hand back to
+    // the CSS field underneath until the page is reloaded.
+    const onLost = () => {
+      cancelAnimationFrame(frame)
+      delete el.dataset.ready
+    }
+    el.addEventListener("webglcontextlost", onLost)
 
     // After first paint and idle time: the headline is the page's LCP.
     const reveal = () => {
@@ -231,6 +255,7 @@ export function BlueField() {
       sized.disconnect()
       seen.disconnect()
       document.removeEventListener("visibilitychange", run)
+      el.removeEventListener("webglcontextlost", onLost)
       section.removeEventListener("pointermove", onMove)
       section.removeEventListener("pointerleave", onLeave)
       // Not loseContext(): React's dev double effect would reuse a dead one.

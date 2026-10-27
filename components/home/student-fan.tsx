@@ -29,7 +29,8 @@ export function StudentFan() {
         <Link
           href="/success-stories#voices"
           data-press
-          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-secondary px-5 font-semibold"
+          data-cta="ghost-paper"
+          className="inline-flex h-11 w-fit items-center gap-2 rounded-full px-5 text-[0.9375rem] font-semibold"
         >
           {voices("hearAll", { count: studentReviews.length })}
           <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />

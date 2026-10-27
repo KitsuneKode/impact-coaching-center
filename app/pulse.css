@@ -3859,3 +3859,74 @@
     }
   }
 }
+
+/* The hero's right side, under the pointer (fine pointers only). The copy
+   column lets clicks through its empty area, so the photos can be hovered:
+   one lifts and takes its full colour. The ticket carries a glare that
+   follows the pointer (--px/--py from blue-field.tsx). */
+[data-hero-body] {
+  pointer-events: none;
+}
+[data-hero-body] > * {
+  pointer-events: auto;
+}
+[data-ticket-glare] {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    60% 90% at calc(50% + var(--px, 0) * 55%) calc(50% + var(--py, 0) * 70%),
+    rgb(255 255 255 / 0.55),
+    rgb(255 255 255 / 0) 60%
+  );
+  mix-blend-mode: soft-light;
+}
+/* "Enrolling now": a live dot, its ring breathing out once every two
+   seconds; still for reduced motion. */
+[data-live-dot] {
+  position: relative;
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 999px;
+  background-color: var(--verified);
+  flex: none;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-ticket-glare] {
+    opacity: 1;
+  }
+  [data-live-dot]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: var(--verified);
+    animation: live-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+  @keyframes live-ping {
+    75%,
+    100% {
+      scale: 2.6;
+      opacity: 0;
+    }
+  }
+  [data-hero-sidewall] [data-wall-col] > span {
+    transition:
+      scale 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  [data-hero-sidewall] [data-wall-col] > span img {
+    transition: filter 0.4s ease-out;
+  }
+  [data-hero-sidewall] [data-wall-col] > span:hover {
+    z-index: 1;
+    scale: 1.05;
+    box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.45);
+  }
+  [data-hero-sidewall] [data-wall-col] > span:hover img {
+    filter: none;
+  }
+}
