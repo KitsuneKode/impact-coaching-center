@@ -428,7 +428,7 @@ function Shelf({
                         data-press
                         data-cta="ghost-paper"
                         onClick={() => setShown({ view, count: count + PAGE })}
-                        className="inline-flex h-11 items-center rounded-full ps-5 pe-5 text-sm font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                        className="inline-flex h-11 items-center rounded-full ps-5 pe-5 text-sm font-semibold"
                       >
                         {t("showMore", {
                           count: Math.min(PAGE, files.length - visible.length),
@@ -490,7 +490,7 @@ function Shelf({
                   setQuery("")
                   move({ q: null, lang: null })
                 }}
-                className="inline-flex h-10 items-center rounded-full ps-4 pe-4 text-sm font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                className="inline-flex h-10 items-center rounded-full ps-4 pe-4 text-sm font-semibold"
               >
                 {t("clear")}
               </button>

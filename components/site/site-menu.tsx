@@ -225,11 +225,7 @@ export function SiteMenu({ phone }: { phone: string }) {
                                           data-menu-icon
                                           className="grid size-10 flex-none place-items-center rounded-xl"
                                         >
-                                          <Icon
-                                            aria-hidden
-                                            size={19}
-                                            stroke={1.75}
-                                          />
+                                          <Icon size={20} />
                                         </span>
                                         <span className="min-w-0">
                                           <span className="block font-semibold">

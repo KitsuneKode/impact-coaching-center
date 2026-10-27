@@ -127,7 +127,7 @@ export default async function SuccessStoriesPage({
                 href="#voices"
                 data-press
                 data-cta="ghost-blue"
-                className="inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
+                className="inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold"
               >
                 <IconPlayerPlayFilled aria-hidden size={14} />
                 {t("watchReviews")}

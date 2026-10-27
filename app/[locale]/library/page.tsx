@@ -131,7 +131,7 @@ export default async function LibraryPage({
                 href={contactHref({ kind: "call" })}
                 data-press
                 data-cta="ghost-blue"
-                className="tnum inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
+                className="tnum inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold"
               >
                 <IconPhone aria-hidden size={17} stroke={1.75} />
                 {formatPhone(contact.phones[0])}

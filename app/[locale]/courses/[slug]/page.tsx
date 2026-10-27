@@ -390,7 +390,7 @@ export default async function CoursePage({
                     href={links.play}
                     target="_blank"
                     rel="noreferrer noopener"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap"
                   >
                     <IconDeviceMobile aria-hidden size={17} stroke={1.75} />
                     {t("getApp")}
@@ -399,7 +399,7 @@ export default async function CoursePage({
                     data-press
                     data-cta="ghost-paper"
                     href={contactHref({ kind: "call" })}
-                    className="tnum inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                    className="tnum inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold whitespace-nowrap"
                   >
                     <IconPhone aria-hidden size={17} stroke={1.75} />
                     {formatPhone(contact.phones[0])}

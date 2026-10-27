@@ -19,11 +19,17 @@ import { useEffect, useRef } from "react"
 const VERTEX = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`
 
 /* Domain-warped noise (the "silk"), lit towards the right where the photos
-   sit, so the copy on the left keeps its contrast with white text. */
+   sit, so the copy on the left keeps its contrast with white text. The
+   pointer stirs it like ink in water: a swirl around it whose strength is
+   how fast it moves (uInk), and a soft light under it. Film grain moves
+   over all of it, heavier on the left, like the paper the copy sits on. */
 const FRAGMENT = `
 precision mediump float;
 uniform vec2 uRes;
 uniform float uTime;
+uniform vec2 uMouse;
+uniform float uInk;
+uniform float uNear;
 uniform vec3 uDeep;
 uniform vec3 uBlue;
 uniform vec3 uLight;
@@ -33,7 +39,11 @@ float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);
 float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*noise(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return v;}
 void main(){
   vec2 uv=gl_FragCoord.xy/uRes;
-  vec2 p=uv*vec2(uRes.x/uRes.y,1.)*1.6;
+  vec2 aspect=vec2(uRes.x/uRes.y,1.);
+  vec2 p=uv*aspect*1.6;
+  vec2 d=(uv-uMouse)*aspect;
+  float fall=exp(-dot(d,d)*9.);
+  p+=vec2(-d.y,d.x)*fall*uInk*2.4+d*fall*uInk*.6;
   float t=uTime*.035;
   vec2 q=vec2(fbm(p+t),fbm(p-t+vec2(5.2,1.3)));
   vec2 r=vec2(fbm(p+2.2*q+vec2(1.7,9.2)+t*1.4),fbm(p+2.2*q+vec2(8.3,2.8)-t));
@@ -43,7 +53,9 @@ void main(){
   col=mix(col,uLight,smoothstep(.5,.92,f)*right*.6);
   float sheen=pow(max(0.,sin((p.x*.9+p.y*.5)*2.2+f*5.+uTime*.12)),14.);
   col+=sheen*.07*right;
-  col+=(hash(floor(gl_FragCoord.xy))-.5)*.022;
+  col+=uLight*exp(-dot(d,d)*5.)*.16*uNear;
+  float grain=hash(gl_FragCoord.xy+floor(uTime*18.)*vec2(17.,31.))-.5;
+  col+=grain*mix(.07,.035,uv.x);
   gl_FragColor=vec4(col,1.);
 }`
 
@@ -110,6 +122,9 @@ export function BlueField() {
     gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
     const uRes = gl.getUniformLocation(program, "uRes")
     const uTime = gl.getUniformLocation(program, "uTime")
+    const uMouse = gl.getUniformLocation(program, "uMouse")
+    const uInk = gl.getUniformLocation(program, "uInk")
+    const uNear = gl.getUniformLocation(program, "uNear")
     gl.uniform3fv(gl.getUniformLocation(program, "uDeep"), DEEP)
     gl.uniform3fv(gl.getUniformLocation(program, "uBlue"), BLUE)
     gl.uniform3fv(gl.getUniformLocation(program, "uLight"), LIGHT)
@@ -132,15 +147,57 @@ export function BlueField() {
     let frame = 0
     let last = 0
     let visible = true
-    const draw = (now: number) => {
-      gl.uniform1f(uTime, offset + now / 1000)
+
+    /* The pointer, eased: where it is (0-1 across the section, y up as the
+       shader reads it), how fast it moved (the ink), and whether it is over
+       the section at all. The photo wall reads the same pointer through
+       --px/--py, -1 to 1, so the columns move against each other. */
+    const fine = matchMedia("(hover: hover) and (pointer: fine)").matches
+    const goal = { x: 0.3, y: 0.55, near: 0 }
+    const now = { x: 0.3, y: 0.55, near: 0, ink: 0 }
+    let speed = 0
+    const onMove = (event: PointerEvent) => {
+      const box = section.getBoundingClientRect()
+      const x = (event.clientX - box.left) / box.width
+      const y = 1 - (event.clientY - box.top) / box.height
+      speed += Math.hypot(x - goal.x, y - goal.y)
+      goal.x = x
+      goal.y = y
+      goal.near = 1
+    }
+    const onLeave = () => {
+      goal.near = 0
+    }
+    if (fine && !still) {
+      section.addEventListener("pointermove", onMove, { passive: true })
+      section.addEventListener("pointerleave", onLeave)
+    }
+
+    const draw = (time: number) => {
+      gl.uniform1f(uTime, offset + time / 1000)
+      gl.uniform2f(uMouse, now.x, now.y)
+      gl.uniform1f(uInk, now.ink)
+      gl.uniform1f(uNear, now.near)
       gl.drawArrays(gl.TRIANGLES, 0, 3)
     }
-    const tick = (now: number) => {
+    let lastStep = 0
+    const tick = (time: number) => {
       frame = requestAnimationFrame(tick)
-      if (now - last < 1000 / 30) return
-      last = now
-      draw(now)
+      const dt = lastStep ? Math.min((time - lastStep) / 1000, 0.05) : 1 / 60
+      lastStep = time
+      // Springy follow (critically damped feel), every frame for the CSS.
+      const k = 1 - Math.exp(-dt / 0.18)
+      now.x += (goal.x - now.x) * k
+      now.y += (goal.y - now.y) * k
+      now.near += (goal.near - now.near) * (1 - Math.exp(-dt / 0.4))
+      // Ink rises with speed and settles over about a second.
+      now.ink = Math.min(1, now.ink * Math.exp(-dt / 0.9) + speed * 2.2)
+      speed = 0
+      section.style.setProperty("--px", ((now.x - 0.5) * 2).toFixed(3))
+      section.style.setProperty("--py", ((0.5 - now.y) * 2).toFixed(3))
+      if (time - last < 1000 / 30) return
+      last = time
+      draw(time)
     }
     const run = () => {
       cancelAnimationFrame(frame)
@@ -174,6 +231,8 @@ export function BlueField() {
       sized.disconnect()
       seen.disconnect()
       document.removeEventListener("visibilitychange", run)
+      section.removeEventListener("pointermove", onMove)
+      section.removeEventListener("pointerleave", onLeave)
       // Not loseContext(): React's dev double effect would reuse a dead one.
       gl.deleteBuffer(buffer)
       gl.deleteProgram(program)

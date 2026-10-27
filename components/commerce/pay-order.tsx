@@ -303,7 +303,7 @@ function TestGateway({
                 data-cta="ghost-paper"
                 disabled={working}
                 onClick={() => void run("failure")}
-                className="inline-flex h-12 items-center rounded-full px-5 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                className="inline-flex h-12 items-center rounded-full px-5 font-semibold"
               >
                 Decline
               </button>

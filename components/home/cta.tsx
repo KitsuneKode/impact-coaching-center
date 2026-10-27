@@ -41,10 +41,7 @@ export function WhatsFree({
       href="#free"
       className={cn(
         "inline-flex h-12 items-center rounded-full px-6 font-semibold",
-        className,
-        tone === "blue"
-          ? "shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
-          : "shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_35%,transparent)]"
+        className
       )}
     >
       {t("whatsFree")}

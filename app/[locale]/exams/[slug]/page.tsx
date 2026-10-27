@@ -305,7 +305,7 @@ export default async function ExamGuidePage({
                     rel="noreferrer noopener"
                     data-press
                     data-cta="ghost-blue"
-                    className="inline-flex h-12 items-center rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
+                    className="inline-flex h-12 items-center rounded-full px-6 font-semibold"
                   >
                     {t("enquire")}
                   </a>

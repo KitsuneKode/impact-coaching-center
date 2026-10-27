@@ -31,7 +31,7 @@ export function JoinBand() {
               data-press
               data-cta="ghost-blue"
               href={contactHref({ kind: "call" })}
-              className="tnum inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,white_45%,transparent)]"
+              className="tnum inline-flex h-12 items-center gap-2 rounded-full px-6 font-semibold"
             >
               <IconPhone aria-hidden size={18} stroke={1.75} />
               {nav("callNumber", { phone: formatPhone(contact.phones[0]) })}

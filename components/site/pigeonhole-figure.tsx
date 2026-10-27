@@ -169,13 +169,15 @@ export function PigeonholeFigure({
       const href = HOLES[i]?.href
       if (href) router.push(`${prefix}${href === "/" ? "" : href}` || "/")
     }
-    // A label over the pigeonhole under the pointer: mouse and trackpad
-    // only (a tap opens the page at once), written straight to the DOM.
+    // A label over the pigeonhole under the pointer, written straight to
+    // the DOM. With a mouse it follows the pointer; on a touch screen the
+    // first tap shows it, so a finger sees where it is going before it goes.
     const fine = matchMedia("(hover: hover) and (pointer: fine)")
     const card = root.closest("figure")
     const label = tip.current
-    const point = (event: PointerEvent, i: number | null) => {
-      if (!label || !card || !fine.matches) return
+    let armed: number | null = null
+    const point = (event: Event, i: number | null) => {
+      if (!label || !card) return
       const href = i === null ? undefined : HOLES[i]?.href
       const el = (event.target as Element | null)?.closest("[data-opening]")
       if (!href || !el || i === null) {
@@ -196,6 +198,7 @@ export function PigeonholeFigure({
       if (label) delete label.dataset.on
     }
     const onMove = (event: PointerEvent) => {
+      if (event.pointerType !== "mouse" && !fine.matches) return
       const i = holeOf(event)
       point(event, i)
       // Any hover takes over from the tour, even on the pigeonhole it is at.
@@ -203,7 +206,14 @@ export function PigeonholeFigure({
     }
     const onClick = (event: MouseEvent) => {
       const i = holeOf(event)
-      if (i !== null) go(i)
+      if (i === null) return
+      // Touch: tap once to aim the lamp and name the pigeonhole, again to open.
+      if (!fine.matches && armed !== i) {
+        armed = i
+        point(event, HOLES[i]?.href ? i : null)
+        return
+      }
+      go(i)
     }
     // A press pulls the papers out a little further, like taking hold of them.
     const onDown = (event: PointerEvent) => {

@@ -233,17 +233,7 @@
     }
   }
   @media (hover: hover) and (pointer: fine) {
-    [data-cta="amber"]:hover {
-      background-color: var(--highlight-hover);
-      box-shadow: 0 12px 30px -10px
-        color-mix(in oklch, var(--highlight) 70%, transparent);
-    }
-    [data-cta="ghost-blue"]:hover {
-      background-color: color-mix(in oklch, white 10%, transparent);
-    }
-    [data-cta="ghost-paper"]:hover {
-      background-color: color-mix(in oklch, var(--foreground) 5%, transparent);
-    }
+    /* Hover on the call-to-action plates lives with the raise (globals.css). */
     [data-press]:hover [data-nudge] {
       translate: 2px 0;
     }
@@ -3822,5 +3812,30 @@
     margin-block-start: 0.75rem;
     opacity: 1;
     translate: none;
+  }
+}
+
+/* The hero answers the pointer (blue-field.tsx writes --px/--py, -1 to 1):
+   the photo columns shift against each other, as in a grid that follows the
+   hand, and the batch ticket tilts toward it. Fine pointers only; touch and
+   reduced motion never set the variables, so nothing moves. */
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  [data-hero-sidewall] [data-wall-col] {
+    --k: 1;
+    transform: translate3d(
+      calc(var(--px, 0) * var(--k) * 10px),
+      calc(var(--py, 0) * var(--k) * 34px),
+      0
+    );
+  }
+  [data-hero-sidewall] [data-wall-col]:nth-child(2) {
+    --k: -1.4;
+  }
+  [data-hero-sidewall] [data-wall-col]:nth-child(3) {
+    --k: 0.7;
+  }
+  [data-hero-ticket] [data-ticket-wrap] {
+    transform: perspective(900px) rotateY(calc(var(--px, 0) * 7deg))
+      rotateX(calc(var(--py, 0) * 5deg));
   }
 }

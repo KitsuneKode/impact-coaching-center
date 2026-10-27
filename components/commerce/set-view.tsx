@@ -394,7 +394,7 @@ function Coverflow({
                     data-press
                     data-cta="ghost-paper"
                     onClick={() => onRead(book)}
-                    className="mbs-3 inline-flex h-10 items-center gap-2 rounded-full ps-4 pe-4 text-sm font-semibold shadow-[inset_0_0_0_1.5px_color-mix(in_oklch,var(--foreground)_20%,transparent)]"
+                    className="mbs-3 inline-flex h-10 items-center gap-2 rounded-full ps-4 pe-4 text-sm font-semibold"
                   >
                     <IconBook aria-hidden size={16} stroke={1.75} />
                     {readLabel}
