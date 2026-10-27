@@ -116,7 +116,9 @@ function Order({ reference }: { reference: string }) {
       </div>
 
       {moves.length > 0 ? (
-        <div className="mbs-6 flex flex-wrap gap-2">
+        /* Phones: the next move is a bar along the bottom, in thumb reach
+           however far down the packing slip the desk has read. */
+        <div className="mbs-6 flex flex-wrap gap-2 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-30 max-md:flex-nowrap max-md:border-t max-md:border-border max-md:bg-background/95 max-md:px-5 max-md:pt-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:backdrop-blur-md max-md:*:flex-1">
           {moves.map((status) => {
             const money = status === "cancelled" || status === "refunded"
             return (
@@ -294,6 +296,8 @@ function Order({ reference }: { reference: string }) {
       </div>
 
       {actions.dialogs}
+      {/* Room for the phone action bar, so it never covers the last panel. */}
+      {moves.length > 0 ? <div aria-hidden className="h-24 md:hidden" /> : null}
     </PageShell>
   )
 }

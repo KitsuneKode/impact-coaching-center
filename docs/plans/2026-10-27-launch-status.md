@@ -78,8 +78,9 @@ into the form. Assamese headings on every page.
 
 ### Edge cases still open
 
-- A refund made in the Razorpay dashboard for an order staff never cancelled:
-  the webhook marks it refunded, but no one is alerted. Add a desk message.
+- A refund made in the Razorpay dashboard: checked on 27 Oct, a full refund
+  closes the order, so it leaves "To send" and cannot be shipped. Staff see
+  it under Done; no WhatsApp alert (that needs another Meta template).
 - Two staff moving the same order at once: revision checks refuse the second,
   but the message could name who moved it.
 - Free notes when sign-in is down: still gated. Decide whether page one of
@@ -134,8 +135,11 @@ Latin digits that match ICT's posters, and no card details needed to start.
 
 ## 8. What I would do next
 
-- Book set page: the animated ring of books the owner asked for (the set page
-  has a book row with paging today).
-- A pinned action bar at the bottom of the admin order page on phones.
+- Done 27 Oct: "Come and see the centre" on the home page (ICT's six centre
+  photos, each playing its video, with directions and a call button), and the
+  admin order page's next move pinned to the bottom on phones.
+- Book set page: already deals its books out of one stack on wide screens and
+  becomes a swipe carousel on phones; a full 3D ring needs four or more books.
+- The reader's toolbar is English on Assamese pages: needs a strings option
+  in kitsu-lab's component (about 60 strings), not a fork here.
 - Uptime and error alerts once production exists.
-- A "visit the centre" strip on the home page once ICT sends photos.

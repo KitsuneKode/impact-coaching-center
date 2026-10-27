@@ -584,7 +584,7 @@ export function LeadsTable({
             table.setPageIndex(0)
           }}
           aria-label="Filter by status"
-          className="-mx-5 scrollbar-none flex-nowrap overflow-x-auto px-5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0"
+          className="-mx-5 scrollbar-none w-auto flex-nowrap overflow-x-auto px-5 *:shrink-0 md:mx-0 md:w-fit md:flex-wrap md:overflow-visible md:px-0"
         >
           {STATUS_FILTERS.map((option) => (
             <ToggleGroupItem key={option.value} value={option.value}>

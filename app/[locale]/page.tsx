@@ -10,6 +10,7 @@ import { Hero } from "@/components/home/hero"
 import { JoinBand } from "@/components/home/join-band"
 import { LoopWatch } from "@/components/home/loop-watch"
 import { Results } from "@/components/home/results"
+import { Centre } from "@/components/home/centre"
 import { StudentFan } from "@/components/home/student-fan"
 import { Teachers } from "@/components/home/teachers"
 import { publishedBundles, publishedResources } from "@/lib/catalog-server"
@@ -41,6 +42,7 @@ export default async function Page({ params }: PageProps<"/[locale]">) {
         <Books bundles={bundles} />
         <Teachers />
         <Results />
+        <Centre />
         <Faq courses={courses} />
         <Ask />
         <JoinBand />

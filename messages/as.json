@@ -995,7 +995,16 @@
     "heroProofYoutube": "YouTubeত 16.2K শিক্ষাৰ্থী",
     "heroProofLabel": "পৰীক্ষা কৰিব পৰা প্ৰমাণ",
     "ticketOpen": "খোলা",
-    "ticketEnrolling": "নামভৰ্তি চলিছে"
+    "ticketEnrolling": "নামভৰ্তি চলিছে",
+    "centreHeading": "কেন্দ্ৰটো আহি চাওক।",
+    "centreLede": "ডিচি বাংলো ৰোডত শ্ৰেণীকোঠা, ডিজিটেল কোঠা আৰু মক টেষ্টৰ হল। সিদ্ধান্ত লোৱাৰ আগতে এটা বিনামূলীয়া ক্লাছত বহক।",
+    "centreWatch": "চাওক: {caption}",
+    "centreCaption1": "শ্ৰেণীকোঠাত ৱাৰিয়ৰ মক টেষ্ট",
+    "centreCaption2": "বিজয় মক টেষ্ট, ভৰপূৰ হল",
+    "centreCaption3": "ডিজিটেল শ্ৰেণীকোঠা",
+    "centreCaption4": "এটা সাধাৰণ শ্ৰেণীৰ দিন",
+    "centreCaption5": "বোৰ্ডত অতিথিৰ অধিৱেশন",
+    "centreCaption6": "আমন্ত্ৰিত বিষয়াৰ বাবে ভৰপূৰ সভা"
   },
   "Promos": {
     "code": "ক'ড",

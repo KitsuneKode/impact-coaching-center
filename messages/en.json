@@ -795,7 +795,16 @@
     "heroProofYoutube": "16.2K learning with us on YouTube",
     "heroProofLabel": "Proof you can check",
     "ticketOpen": "Open",
-    "ticketEnrolling": "Enrolling now"
+    "ticketEnrolling": "Enrolling now",
+    "centreHeading": "Come and see the centre.",
+    "centreLede": "Classrooms, a digital room and a hall for mock tests on DC Bungalow Road. Sit a free class before you decide.",
+    "centreWatch": "Watch: {caption}",
+    "centreCaption1": "Warrior mock test, in the classroom",
+    "centreCaption2": "Bijoy mock test, a full hall",
+    "centreCaption3": "The digital classroom",
+    "centreCaption4": "An ordinary class day",
+    "centreCaption5": "A guest session at the board",
+    "centreCaption6": "A full house for a visiting officer"
   },
   "Promos": {
     "code": "Code",
