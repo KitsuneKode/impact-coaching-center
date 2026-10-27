@@ -84,7 +84,7 @@ export function Centre() {
                   />
                   <span
                     aria-hidden
-                    className="absolute inset-s-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-ink shadow-sm"
+                    className="absolute inset-s-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-ink shadow-frame"
                   >
                     <IconPlayerPlayFilled size={14} />
                   </span>
