@@ -12,6 +12,10 @@ export const serverEnv = createEnv({
   server: {
     /* "true" invites indexing; lib/site.ts owns the rules. */
     SITE_INDEXABLE: z.enum(["true", "false"]).optional(),
+    /* Search Console and Bing Webmaster "HTML tag" codes, the content
+       value only. DNS verification needs neither. */
+    GOOGLE_SITE_VERIFICATION: z.string().min(1).optional(),
+    BING_SITE_VERIFICATION: z.string().min(1).optional(),
     /* Shared with the Convex /enquiries route; `openssl rand -hex 32`. Off
        production a missing one gives the honest WhatsApp fallback. */
     LEAD_INGEST_SECRET: launchBuild

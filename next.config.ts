@@ -91,6 +91,13 @@ const guessed = [
 ] as const
 
 const nextConfig: NextConfig = {
+  /* Share cards read their fonts from disk when a post is regenerated. */
+  outputFileTracingIncludes: {
+    "/[locale]/blog/[slug]/opengraph-image": [
+      "./lib/og/*.ttf",
+      "./public/brand/ict-mark.png",
+    ],
+  },
   images: {
     remotePatterns: [
       {

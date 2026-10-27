@@ -19,7 +19,7 @@ import { headingsOf, readingMinutes } from "@/lib/article"
 import { brand } from "@/lib/brand"
 import { publishedPost } from "@/lib/catalog-server"
 import { publishedPosts } from "@/lib/catalog-server"
-import { alternatesFor, openGraphFor, siteUrl } from "@/lib/site"
+import { alternatesFor, localePath, openGraphFor, siteUrl } from "@/lib/site"
 
 /* Catalogue data refreshes when it changes (lib/catalog-server.ts); the
    page is static and rebuilt in the background on the same beat. */
@@ -42,7 +42,20 @@ export async function generateMetadata({
     description: post.excerpt,
     alternates: alternatesFor(path, locale),
     openGraph: {
-      ...openGraphFor(path, post.title, post.excerpt, locale),
+      // English posts: the generated title card (./opengraph-image.tsx).
+      // Assamese ones keep the photo card; the card cannot shape Assamese.
+      ...openGraphFor(
+        path,
+        post.title,
+        post.excerpt,
+        locale,
+        post.language === "as"
+          ? undefined
+          : {
+              url: `${localePath(path, locale)}/opengraph-image`,
+              alt: post.title,
+            }
+      ),
       type: "article",
       ...(post.publishedAt
         ? { publishedTime: new Date(post.publishedAt).toISOString() }

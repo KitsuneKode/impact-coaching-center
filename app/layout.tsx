@@ -5,7 +5,7 @@ import "./globals.css"
 import { InlineScript } from "@/components/site/inline-script"
 import { Providers } from "@/app/providers"
 import { brand, contact, links, place } from "@/lib/brand"
-import { indexable, openGraphFor, siteUrl } from "@/lib/site"
+import { indexable, openGraphFor, siteUrl, siteVerification } from "@/lib/site"
 import { themeInitScript } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
@@ -68,6 +68,7 @@ export const metadata: Metadata = {
     "Classroom, night batch, and the ICT app, with faculty you can watch teach on YouTube before you pay anything."
   ),
   twitter: { card: "summary_large_image" },
+  verification: siteVerification,
   robots: indexable
     ? { index: true, follow: true }
     : { index: false, follow: false },

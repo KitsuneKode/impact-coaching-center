@@ -98,3 +98,11 @@ export function alternatesFor(
     },
   }
 }
+
+/** Ownership tags for Search Console and Bing, when set on the host. */
+export const siteVerification = {
+  google: serverEnv.GOOGLE_SITE_VERIFICATION,
+  other: serverEnv.BING_SITE_VERIFICATION
+    ? { "msvalidate.01": serverEnv.BING_SITE_VERIFICATION }
+    : undefined,
+}
