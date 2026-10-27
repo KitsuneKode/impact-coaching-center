@@ -86,7 +86,8 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
-        <div className="flex gap-2">
+        {/* Arrows move the phone row; wide screens show every face at once. */}
+        <div className="flex gap-2 lg:hidden">
           <button
             type="button"
             data-press
@@ -111,6 +112,55 @@ export function VoicesCarousel({ reviews }: { reviews: StudentReview[] }) {
           </button>
         </div>
       </div>
+
+      {/* Wide screens: every face at once, one opened (app/pulse.css). */}
+      <ul
+        data-voices-accordion
+        aria-label={t("listLabel", { count: shown.length })}
+        className="container-page mbs-8"
+      >
+        {shown.map((student) => (
+          <li key={student.id} data-slice>
+            <VideoDialog
+              id={student.id}
+              title={`${student.name}, ${student.batch}`}
+              subtitle={t("subtitle", { exam: student.exam })}
+              vertical
+              label={null}
+              className="block size-full text-start"
+            >
+              <Image
+                src={thumb(student.id)}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 26rem, 1px"
+              />
+              <span aria-hidden data-slice-name>
+                {student.name}
+              </span>
+              <span data-slice-info>
+                <span className="block font-display text-xl font-semibold text-balance">
+                  {student.name}
+                </span>
+                <span className="block text-sm text-white/80">
+                  {student.batch} · {student.exam}
+                </span>
+              </span>
+              <span
+                data-play
+                className="absolute inset-e-4 inset-bs-4 z-1 grid size-11 place-items-center rounded-full bg-highlight text-ink"
+              >
+                <IconPlayerPlayFilled
+                  aria-hidden
+                  size={16}
+                  className="translate-x-px"
+                />
+              </span>
+              <span className="sr-only">, {t("play")}</span>
+            </VideoDialog>
+          </li>
+        ))}
+      </ul>
 
       <ul
         id={`${id}-track`}

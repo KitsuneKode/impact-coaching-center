@@ -26,6 +26,7 @@ import {
   studentReviews,
   thumb,
 } from "@/lib/stories"
+import { RollingNumber } from "@/components/motion/rolling-number"
 import { BlueField } from "@/components/site/blue-field"
 
 export async function generateMetadata({
@@ -170,7 +171,7 @@ export default async function SuccessStoriesPage({
                   {t(item.key)}
                 </dt>
                 <dd className="tnum order-1 font-display text-4xl leading-none font-semibold">
-                  {item.value}
+                  <RollingNumber value={String(item.value)} />
                 </dd>
               </div>
             ))}

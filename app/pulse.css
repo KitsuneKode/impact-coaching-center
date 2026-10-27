@@ -3556,3 +3556,140 @@
     mask-image: linear-gradient(90deg, #000 82%, transparent);
   }
 }
+
+/* Rolling counts (components/motion/rolling-number.tsx): each digit is a
+   0-9 strip in a one-line window, rolled to its digit once in view. */
+[data-roll-digit] {
+  display: inline-block;
+  block-size: 1em;
+  overflow: clip;
+  line-height: 1;
+}
+[data-roll-strip] {
+  display: flex;
+  flex-direction: column;
+}
+[data-roll-strip] > span {
+  block-size: 1em;
+  line-height: 1;
+}
+[data-rolling="done"] [data-roll-strip] {
+  translate: 0 calc(var(--to) * -1em);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-roll-strip] {
+    translate: 0 calc(var(--to) * -1em);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-rolling="done"] [data-roll-strip] {
+    transition: translate 1.2s cubic-bezier(0.16, 1, 0.3, 1)
+      var(--roll-delay, 0ms);
+  }
+}
+
+/* Student voices on wide screens (voices-carousel.tsx): tall slices, one
+   open at a time, like an image accordion. Hover or focus opens a slice;
+   with neither, the first stays open. Names run up the closed slices. */
+[data-voices-accordion] {
+  display: none;
+}
+@media (width >= 64rem) {
+  [data-voices-accordion] {
+    display: flex;
+    gap: 10px;
+    block-size: clamp(26rem, 32vw, 32rem);
+  }
+  [data-voices-track] {
+    display: none;
+  }
+  [data-slice] {
+    position: relative;
+    flex: 1 1 0;
+    min-inline-size: 0;
+    overflow: clip;
+    border-radius: 22px;
+    background-color: var(--secondary);
+  }
+  [data-voices-accordion]:not(:has([data-slice]:is(:hover, :focus-within)))
+    [data-slice]:first-child,
+  [data-slice]:is(:hover, :focus-within) {
+    flex-grow: 5.5;
+  }
+  [data-slice] img {
+    object-fit: cover;
+    filter: saturate(0.9);
+  }
+  [data-slice]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      transparent 30%,
+      color-mix(in oklch, var(--ink-fixed) 92%, transparent) 88%
+    );
+  }
+  [data-slice-name] {
+    position: absolute;
+    z-index: 1;
+    inset-block-end: 1.25rem;
+    inset-inline-start: 50%;
+    writing-mode: vertical-rl;
+    rotate: 180deg;
+    translate: 50% 0;
+    color: white;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  [data-slice-info] {
+    position: absolute;
+    z-index: 1;
+    inset-inline: 1.25rem;
+    inset-block-end: 1.25rem;
+    color: white;
+    opacity: 0;
+    translate: 0 8px;
+  }
+  [data-voices-accordion]:not(:has([data-slice]:is(:hover, :focus-within)))
+    [data-slice]:first-child
+    :is([data-slice-info]),
+  [data-slice]:is(:hover, :focus-within) [data-slice-info] {
+    opacity: 1;
+    translate: 0 0;
+  }
+  [data-voices-accordion]:not(:has([data-slice]:is(:hover, :focus-within)))
+    [data-slice]:first-child
+    [data-slice-name],
+  [data-slice]:is(:hover, :focus-within) [data-slice-name] {
+    opacity: 0;
+  }
+  [data-slice] [data-play] {
+    opacity: 0;
+    scale: 0.8;
+  }
+  [data-voices-accordion]:not(:has([data-slice]:is(:hover, :focus-within)))
+    [data-slice]:first-child
+    [data-play],
+  [data-slice]:is(:hover, :focus-within) [data-play] {
+    opacity: 1;
+    scale: 1;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-slice] {
+      transition: flex-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    [data-slice-info],
+    [data-slice-name],
+    [data-slice] [data-play] {
+      transition:
+        opacity 0.3s ease-out,
+        translate 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+        scale 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    [data-slice]:is(:hover, :focus-within) [data-slice-info] {
+      transition-delay: 0.12s;
+    }
+  }
+}
