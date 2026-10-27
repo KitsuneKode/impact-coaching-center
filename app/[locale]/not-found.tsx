@@ -3,6 +3,7 @@ import { useLocale, useTranslations } from "next-intl"
 
 import { PigeonholeFigure } from "@/components/site/pigeonhole-figure"
 import { Link } from "@/i18n/navigation"
+import { BlueField } from "@/components/site/blue-field"
 
 /** The branded 404, in the reader's language, on the blue field. */
 export default function NotFound() {
@@ -11,6 +12,7 @@ export default function NotFound() {
   return (
     <main>
       <section data-hero="blue" aria-labelledby="missing-heading">
+        <BlueField />
         <div data-hero-glow aria-hidden />
         <div aria-hidden className="h-(--header-height)" />
         <div className="relative container-page grid gap-10 pbs-10 pbe-20 md:pbs-16 md:pbe-28 lg:grid-cols-12 lg:items-center">

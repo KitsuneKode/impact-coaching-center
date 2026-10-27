@@ -26,6 +26,7 @@ import {
   libraryUpdated,
 } from "@/lib/library"
 import { alternatesFor, openGraphFor } from "@/lib/site"
+import { BlueField } from "@/components/site/blue-field"
 
 export async function generateMetadata({
   params,
@@ -76,6 +77,7 @@ export default async function LibraryPage({
     <main>
       {/* ---- the room on blue ---- */}
       <section data-hero="blue" aria-labelledby="library-heading">
+        <BlueField />
         <div data-hero-glow aria-hidden />
         <div aria-hidden className="h-(--header-height)" />
         <div className="relative container-page grid gap-10 pbs-6 pbe-14 lg:grid-cols-12 lg:items-center lg:gap-14 lg:pbs-10 lg:pbe-20">

@@ -9,6 +9,7 @@ import { PrimaryCta, WhatsFree } from "./cta"
 import { PhotoWall } from "./photo-wall"
 import { WordRoll } from "./word-roll"
 import { afterWords, splitWords } from "@/components/motion/words"
+import { BlueField } from "@/components/site/blue-field"
 
 /** Drift speed per wall column, in seconds. */
 const WALL_DURATIONS = [58, 70, 62]
@@ -41,6 +42,7 @@ export function Hero({
 
   return (
     <section id="top" data-hero="blue" aria-label={t("heroLabel")}>
+      <BlueField />
       <div data-hero-glow aria-hidden />
       <div data-hero-sidewall aria-hidden>
         <PhotoWall

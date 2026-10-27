@@ -42,6 +42,7 @@ import {
   siteUrl,
 } from "@/lib/site"
 import { PageExam } from "@/components/site/page-exam"
+import { BlueField } from "@/components/site/blue-field"
 
 /* Courses come from ClassPlus every few hours; a new one gets its page on
    first visit and every page refreshes within the quarter hour. */
@@ -213,6 +214,7 @@ export default async function CoursePage({
 
       {/* ---- the course on blue, with its poster and fee on a card ---- */}
       <section data-hero="blue" aria-labelledby="course-heading">
+        <BlueField />
         <div data-hero-glow aria-hidden />
         <div aria-hidden className="h-(--header-height)" />
         <div className="relative container-page grid gap-10 pbs-6 pbe-14 lg:grid-cols-12 lg:items-center lg:gap-14 lg:pbs-10 lg:pbe-20">

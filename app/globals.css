@@ -1743,3 +1743,131 @@ body :lang(as) {
     background-color: color-mix(in oklch, var(--destructive), black 10%);
   }
 }
+
+/*
+ * Raised buttons (components/ui/button.tsx, and the amber call to action).
+ * The surface is a layer under the label: a press sinks and flattens the
+ * plate while the words stay where the eye is. Light catches the top edge
+ * (inset lip), a darker ring draws the edge, and six stacked shadows tinted
+ * to the ink give it weight. Hover lights it; press takes the lift away.
+ */
+@layer components {
+  :is([data-raise], [data-cta="amber"]) {
+    position: relative;
+    isolation: isolate;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  :is([data-raise], [data-cta="amber"])::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-color: var(--raise-fill);
+    box-shadow: var(--raise-shadow);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :is([data-raise], [data-cta="amber"])::before {
+      transition:
+        scale 0.15s var(--ease-out-strong),
+        box-shadow 0.2s cubic-bezier(0.6, 0.6, 0, 1),
+        filter 0.2s cubic-bezier(0.6, 0.6, 0, 1);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is([data-raise], [data-cta="amber"]):hover::before {
+      box-shadow: var(--raise-lifted, var(--raise-shadow));
+      filter: var(--raise-lit, none);
+    }
+  }
+  /* The plate sinks; the label does not move. */
+  :is([data-raise], [data-cta="amber"]):active {
+    scale: 1;
+  }
+  :is([data-raise], [data-cta="amber"]):active::before {
+    scale: 0.97;
+    box-shadow: var(--raise-pressed, var(--raise-shadow));
+    filter: none;
+  }
+
+  [data-raise="primary"],
+  [data-raise="flat-primary"] {
+    --raise-fill: var(--primary);
+    --raise-edge: color-mix(in oklch, var(--primary), black 32%);
+  }
+  [data-cta="amber"] {
+    --raise-fill: var(--highlight);
+    --raise-edge: color-mix(in oklch, var(--highlight), black 22%);
+  }
+  :is([data-raise="primary"], [data-cta="amber"]) {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.2),
+      inset 0 1px 2px -0.5px rgb(255 255 255 / 0.16),
+      inset 0 8px 24px -4px rgb(255 255 255 / 0.1),
+      inset 0 -4px 12px -4px rgb(0 0 0 / 0.08), 0 0 0 1px var(--raise-edge),
+      0 0.5px 0.5px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 2px 2px -1px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 5px 5px -2.5px color-mix(in oklch, var(--shade) 7%, transparent),
+      0 8px 8px -3px color-mix(in oklch, var(--shade) 6%, transparent),
+      0 12px 12px -6px color-mix(in oklch, var(--shade) 5%, transparent);
+    --raise-pressed:
+      inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 2px 6px rgb(0 0 0 / 0.12),
+      0 0 0 1px var(--raise-edge),
+      0 0.5px 0.5px color-mix(in oklch, var(--shade) 8%, transparent);
+    --raise-lit: brightness(1.08);
+  }
+
+  [data-raise="secondary"],
+  [data-raise="flat-secondary"] {
+    --raise-fill: var(--card);
+  }
+  [data-raise="secondary"] {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      inset 0 -1px 0 color-mix(in oklch, var(--shade) 5%, transparent),
+      inset 0 -6px 12px -6px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 9%, transparent),
+      0 0.5px 0.5px color-mix(in oklch, var(--shade) 5%, transparent),
+      0 2px 2px -1px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 3%, transparent),
+      0 5px 5px -2.5px color-mix(in oklch, var(--shade) 3%, transparent),
+      0 8px 8px -3px color-mix(in oklch, var(--shade) 2%, transparent);
+    --raise-lifted:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      inset 0 -1px 0 color-mix(in oklch, var(--shade) 5%, transparent),
+      inset 0 -6px 12px -6px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 12%, transparent),
+      0 1px 1px -0.5px color-mix(in oklch, var(--shade) 6%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 5%, transparent),
+      0 5px 5px -2.5px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 8px 8px -4px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 12px 12px -6px color-mix(in oklch, var(--shade) 3%, transparent);
+    --raise-pressed:
+      inset 0 1px 3px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 10%, transparent);
+  }
+  /* A field-like control: the fill and a hairline, no lift. */
+  [data-raise="flat-secondary"] {
+    --raise-shadow: 0 0 0 1px var(--border);
+  }
+  [data-raise="flat-primary"] {
+    --raise-shadow: 0 0 0 1px var(--raise-edge);
+  }
+
+  /* Dark mode: the lip is a glint, not a white rim. */
+  :root[data-theme="dark"] [data-raise="secondary"] {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      inset 0 0 0 1px rgb(255 255 255 / 0.08), 0 0.5px 0.5px rgb(0 0 0 / 0.3),
+      0 2px 2px -1px rgb(0 0 0 / 0.24), 0 5px 5px -2.5px rgb(0 0 0 / 0.18),
+      0 12px 12px -6px rgb(0 0 0 / 0.14);
+    --raise-lifted: var(--raise-shadow);
+    --raise-lit: brightness(1.15);
+    --raise-pressed:
+      inset 0 1px 3px rgb(0 0 0 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+}

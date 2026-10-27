@@ -11,7 +11,32 @@
     position: relative;
     overflow: clip;
     background-color: var(--primary);
+    /* The still field, and the fallback for the live one (blue-field.tsx):
+       deeper bottom-left, lit top-right where the photos sit. */
+    background-image:
+      radial-gradient(
+        70% 80% at 88% 8%,
+        color-mix(in oklch, var(--primary) 78%, white),
+        transparent 70%
+      ),
+      radial-gradient(60% 70% at 6% 100%, var(--primary-deep), transparent 72%);
     color: oklch(100% 0 none);
+  }
+  [data-blue-field] {
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  [data-blue-field][data-ready] {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-blue-field] {
+      transition: opacity 1.4s var(--ease-out-strong);
+    }
   }
   /* Laptops and up: the hero is the first screen, the exam marquee just
      showing under it, so the page reads as having more below. */
@@ -114,20 +139,19 @@
       inset: 0;
       pointer-events: none;
     }
+    /* The photos fade into whatever is behind them (the live silk), not
+       into a flat blue that would show as a seam beside it. */
+    [data-hero-sidewall] {
+      mask-image: linear-gradient(90deg, transparent 2%, #000 58%);
+    }
     [data-hero-sidewall]::before {
       z-index: 2;
-      background:
-        linear-gradient(
-          90deg,
-          var(--primary) 0%,
-          color-mix(in oklch, var(--primary) 0%, transparent) 58%
-        ),
-        linear-gradient(
-          180deg,
-          color-mix(in oklch, var(--primary-deep) 55%, transparent),
-          color-mix(in oklch, var(--primary-deep) 12%, transparent) 34%,
-          transparent 62%
-        );
+      background: linear-gradient(
+        180deg,
+        color-mix(in oklch, var(--primary-deep) 55%, transparent),
+        color-mix(in oklch, var(--primary-deep) 12%, transparent) 34%,
+        transparent 62%
+      );
     }
     [data-hero-sidewall]::after {
       z-index: 1;

@@ -26,6 +26,7 @@ import {
   studentReviews,
   thumb,
 } from "@/lib/stories"
+import { BlueField } from "@/components/site/blue-field"
 
 export async function generateMetadata({
   params,
@@ -73,6 +74,7 @@ export default async function SuccessStoriesPage({
     <main>
       {/* ---- the claim on blue, with the counts it rests on ---- */}
       <section data-hero="blue" aria-labelledby="stories-heading">
+        <BlueField />
         <div data-hero-glow aria-hidden />
         <div aria-hidden className="h-(--header-height)" />
         <div className="relative container-page grid gap-10 pbs-6 pbe-14 lg:grid-cols-12 lg:items-end lg:gap-14 lg:pbs-10 lg:pbe-20">

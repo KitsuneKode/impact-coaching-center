@@ -36,6 +36,7 @@ import {
   type PublicBundle,
 } from "@/lib/catalog"
 import { formatPaise } from "@/lib/money"
+import { BlueField } from "@/components/site/blue-field"
 
 const TONES: readonly BookTone[] = ["amber", "paper", "ink"]
 
@@ -86,6 +87,7 @@ export function SetView({
   return (
     <>
       <section data-hero="blue" aria-labelledby="set-heading">
+        <BlueField />
         <div data-hero-glow aria-hidden />
         <div aria-hidden className="h-(--header-height)" />
         <div className="relative container-page grid gap-10 pbs-8 pbe-14 lg:grid-cols-12 lg:items-end lg:gap-14 lg:pbe-20">

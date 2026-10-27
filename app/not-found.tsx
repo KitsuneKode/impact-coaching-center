@@ -3,12 +3,14 @@ import Link from "next/link"
 
 import { PigeonholeFigure } from "@/components/site/pigeonhole-figure"
 import { HOLES } from "@/components/site/pigeonholes-art"
+import { BlueField } from "@/components/site/blue-field"
 
 /** The branded 404 for paths outside the localised site, on the blue field. */
 export default function NotFound() {
   return (
     <main>
       <section data-hero="blue" aria-labelledby="missing-heading">
+        <BlueField />
         <div data-hero-glow aria-hidden />
         <div className="relative container-page grid gap-10 pbs-16 pbe-20 md:pbs-24 md:pbe-28 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5">
