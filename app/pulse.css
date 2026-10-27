@@ -3042,6 +3042,10 @@
     background-color: var(--secondary);
     color: var(--foreground);
   }
+  [data-course-chip][data-course-starts] {
+    background-color: color-mix(in oklch, var(--highlight) 32%, transparent);
+    font-weight: 600;
+  }
   [data-course-chip] svg {
     flex: none;
     color: var(--primary-ink);

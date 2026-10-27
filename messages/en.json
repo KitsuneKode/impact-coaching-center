@@ -805,7 +805,9 @@
     "centreCaption4": "An ordinary class day",
     "centreCaption5": "A guest session at the board",
     "centreCaption6": "A full house for a visiting officer",
-    "volumesLabel": "Every book ICT prints"
+    "volumesLabel": "Every book ICT prints",
+    "cardStarts": "Starts {date}",
+    "cardSave": "Save {amount}"
   },
   "Promos": {
     "code": "Code",

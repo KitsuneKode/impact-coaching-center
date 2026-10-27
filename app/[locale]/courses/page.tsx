@@ -1,5 +1,6 @@
 import {
   IconArrowRight,
+  IconCalendarEvent,
   IconArrowUpRight,
   IconCircleCheckFilled,
   IconClock,
@@ -219,6 +220,16 @@ async function TrackHead({ slug }: { slug: (typeof tracks)[number]["slug"] }) {
 
 /** One course as a poster card: what it is, when it runs, who joined, the fee. */
 async function CourseCard({ course }: { course: Course }) {
+  const locale = await getLocale()
+  const today = await todayInIndia()
+  // A start date ICT entered and that is still ahead: the reason to act now.
+  const starts =
+    course.batchStarts && course.batchStarts > today
+      ? new Date(`${course.batchStarts}T00:00:00+05:30`).toLocaleDateString(
+          locale === "as" ? "as-IN-u-nu-latn" : "en-IN",
+          { day: "numeric", month: "short", timeZone: "Asia/Kolkata" }
+        )
+      : null
   const t = await getTranslations("Pulse")
   const board = await getTranslations("Board")
   const content = await contentFor(await getLocale())
@@ -262,6 +273,12 @@ async function CourseCard({ course }: { course: Course }) {
           </span>
         ) : null}
         <span className="tnum mbs-4 flex flex-wrap gap-2 text-sm max-sm:mbs-2 max-sm:text-xs">
+          {starts ? (
+            <span data-course-chip data-course-starts>
+              <IconCalendarEvent aria-hidden size={15} stroke={1.75} />
+              {t("cardStarts", { date: starts })}
+            </span>
+          ) : null}
           {exam ? (
             <span data-course-chip data-course-exam>
               {exam}
@@ -282,14 +299,19 @@ async function CourseCard({ course }: { course: Course }) {
           ) : null}
         </span>
         <span className="mbs-auto flex items-end justify-between gap-4 pbs-5 max-sm:pbs-2">
-          <span className="tnum">
+          <span className="tnum min-w-0">
             <span className="font-display text-2xl font-semibold max-sm:text-lg">
               {course.free ? t("free") : inr(course.price)}
             </span>
             {!course.free && course.mrp > course.price ? (
-              <s className="ms-2 text-sm text-muted-foreground">
-                {inr(course.mrp)}
-              </s>
+              <>
+                <s className="ms-2 text-sm text-muted-foreground">
+                  {inr(course.mrp)}
+                </s>
+                <span className="text-sm font-semibold whitespace-nowrap text-verified max-sm:block sm:ms-2">
+                  {t("cardSave", { amount: inr(course.mrp - course.price) })}
+                </span>
+              </>
             ) : null}
             {course.offlineFee ? (
               <span className="block text-sm text-muted-foreground">
