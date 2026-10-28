@@ -1,10 +1,14 @@
 "use client"
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+import { IconArrowLeft, IconPhoneCall, IconX } from "@tabler/icons-react"
+import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { LeadForm } from "@/components/marketing/lead-form"
 import { FloatingReel } from "@/components/site/floating-reel"
+import { usePageExam } from "@/components/site/page-exam"
 import { PromoBanner, PromoCard, type Promo } from "@/components/site/promos"
 import {
   isAvailable,
@@ -166,6 +170,11 @@ function busy() {
 }
 
 /**
+ * A card at the bottom left, not a modal: the page stays readable and
+ * usable around it, nothing is dimmed and focus stays where it was. Its
+ * second step asks for a call back in the same card, for the visitor who
+ * wants to talk before acting on the offer.
+ *
  * Comes up once the visitor has shown interest: the end of the page in view
  * for a moment, or a long read past a third of it. Never sooner than the
  * campaign's own delay, never on a hidden tab or over a video or a form,
@@ -184,7 +193,11 @@ function TimedPopup({
   onDismiss: () => void
   onDone: () => void
 }) {
+  const t = useTranslations("Promos")
+  const lead = useTranslations("Lead")
+  const exam = usePageExam()
   const [open, setOpen] = useState(false)
+  const [asking, setAsking] = useState(false)
   const shown = useRef(false)
   const acted = useRef(false)
   // The latest callback, read when the timer fires.
@@ -192,7 +205,6 @@ function TimedPopup({
   useEffect(() => {
     onShowRef.current = onShow
   })
-  const popup = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (session.get(SHOWN_THIS_VISIT) || session.get(CONTACTED_THIS_VISIT))
@@ -264,6 +276,9 @@ function TimedPopup({
   return (
     <DialogPrimitive.Root
       open={open}
+      modal={false}
+      // Clicks elsewhere on the page are reading, not a dismissal.
+      disablePointerDismissal
       onOpenChange={(next) => {
         setOpen(next)
         if (next) return
@@ -272,38 +287,68 @@ function TimedPopup({
       }}
     >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop data-promo-backdrop />
-        {/* Focus the dialog, not the first button, so its heading is read first. */}
         <DialogPrimitive.Popup
-          ref={popup}
-          initialFocus={popup}
+          initialFocus={false}
+          finalFocus={false}
           data-promo-popup
+          data-asking={asking ? "" : undefined}
         >
-          <PromoCard
-            promo={toPromo(row)}
-            onAction={() => {
-              acted.current = true
-              onAction()
-              setOpen(false)
-              // Setting `open` ourselves skips onOpenChange, so remember the
-              // click here: its rest days apply after a click as after a close.
-              onDone()
-            }}
-            title={(text) => (
-              <DialogPrimitive.Title className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-balance">
-                {text}
-              </DialogPrimitive.Title>
-            )}
-            close={(label) => (
-              <DialogPrimitive.Close
-                data-press
-                data-cta="ghost-paper"
-                className="inline-flex h-12 items-center rounded-full px-5 font-semibold"
+          <DialogPrimitive.Close
+            aria-label={t("close")}
+            data-promo-popup-close
+            data-press
+          >
+            <IconX aria-hidden size={16} stroke={2.25} />
+          </DialogPrimitive.Close>
+          {asking ? (
+            <div className="grid gap-4 p-6">
+              <button
+                type="button"
+                onClick={() => setAsking(false)}
+                className="inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                {label}
-              </DialogPrimitive.Close>
-            )}
-          />
+                <IconArrowLeft aria-hidden size={16} stroke={2} />
+                {row.headline}
+              </button>
+              <DialogPrimitive.Title className="font-display text-xl leading-tight font-semibold tracking-[-0.02em]">
+                {lead("submit")}
+              </DialogPrimitive.Title>
+              <LeadForm bare defaultTrack={exam ?? undefined} />
+            </div>
+          ) : (
+            <PromoCard
+              promo={toPromo(row)}
+              onAction={() => {
+                acted.current = true
+                onAction()
+                setOpen(false)
+                // Setting `open` ourselves skips onOpenChange, so remember the
+                // click here: its rest days apply after a click as after a close.
+                onDone()
+              }}
+              title={(text) => (
+                <DialogPrimitive.Title className="pe-6 font-display text-xl leading-tight font-semibold tracking-[-0.02em] text-balance">
+                  {text}
+                </DialogPrimitive.Title>
+              )}
+              close={() => (
+                <button
+                  type="button"
+                  onClick={() => {
+                    acted.current = true
+                    onAction()
+                    setAsking(true)
+                  }}
+                  data-press
+                  data-cta="ghost-paper"
+                  className="inline-flex h-12 items-center gap-2 rounded-full px-5 font-semibold"
+                >
+                  <IconPhoneCall aria-hidden size={18} stroke={1.75} />
+                  {lead("submit")}
+                </button>
+              )}
+            />
+          )}
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

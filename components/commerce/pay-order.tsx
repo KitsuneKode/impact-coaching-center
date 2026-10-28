@@ -272,8 +272,8 @@ function TestGateway({
       }}
     >
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop data-promo-backdrop />
-        <DialogPrimitive.Popup data-promo-popup className="bg-card">
+        <DialogPrimitive.Backdrop data-center-backdrop />
+        <DialogPrimitive.Popup data-center-dialog className="bg-card">
           <div className="grid gap-4 p-6 sm:p-7">
             <span className="justify-self-start rounded-full bg-highlight ps-3 pe-3 pbs-1 pbe-1 text-xs font-semibold text-ink">
               Test gateway

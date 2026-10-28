@@ -106,7 +106,10 @@ export function PromoCard({
   return (
     <div className="relative grid overflow-clip rounded-[28px] bg-card text-foreground">
       {promo.image ? (
-        <span className="relative block aspect-[16/9] bg-secondary">
+        <span
+          data-promo-image
+          className="relative block aspect-[16/9] bg-secondary"
+        >
           <Image
             src={promo.image.url}
             alt=""
