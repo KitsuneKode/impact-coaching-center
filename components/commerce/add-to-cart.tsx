@@ -8,7 +8,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { track } from "@/lib/analytics"
-import { useCartActions } from "@/lib/cart-store"
+import { CART_ADDED_TOAST, useCartActions } from "@/lib/cart-store"
 import type { Language } from "@/lib/catalog"
 import { cn } from "@/lib/utils"
 
@@ -49,6 +49,8 @@ export function AddToCart({
         setAdded(true)
         window.setTimeout(() => setAdded(false), 1400)
         toast.success(t("addedToast", { title }), {
+          // One at a time, and gone once the cart itself opens.
+          id: CART_ADDED_TOAST,
           action: onOpenCart
             ? { label: t("viewCart"), onClick: onOpenCart }
             : undefined,

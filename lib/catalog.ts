@@ -130,10 +130,12 @@ export const IMAGE_MAX_BYTES = 8 * 1024 * 1024
 export const SAMPLE_PAGES_MAX = 12
 export const RESOURCE_PAGES_MAX = 300
 export const BUNDLE_BOOKS_MAX = 12
-/** Largest quantity of one bundle in one order. */
-export const BUNDLE_QUANTITY_MAX = 5
-/** Sets in one order, across every line: more than this is a bulk buyer, who calls ICT. */
-export const ORDER_SETS_MAX = 5
+/**
+ * Copies of one set in one cart line. Not a sales limit - ICT sells as many
+ * as a buyer wants (decided 28 Oct 2026, replacing the five-set order cap) -
+ * only a guard so a slipped "1000" can never reach the payment window.
+ */
+export const LINE_QUANTITY_MAX = 99
 
 /** Parcels go within Assam, whose PIN codes all start with 78. */
 export function deliversTo(pin: string) {

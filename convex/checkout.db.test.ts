@@ -420,31 +420,27 @@ describe("order rules ICT set", () => {
     expect(await begin(t, buyer, "collection")).toMatchObject({ ok: true })
   })
 
-  test("one order holds at most five sets across its lines", async () => {
+  test("an order has no set cap: twenty sets across two lines check out", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
     await bundle(t, "apsc")
     await bundle(t, "adre")
-    await cart(t, buyer.id, [line("apsc", "en", 3), line("adre", "as", 3)])
-    expect(await begin(t, buyer, "collection")).toEqual({
-      ok: false,
-      reason: "invalid-input",
-      field: "quantity",
-    })
+    await cart(t, buyer.id, [line("apsc", "en", 12), line("adre", "as", 8)])
+    expect(await begin(t, buyer, "collection")).toMatchObject({ ok: true })
   })
 })
 
 describe("the server cart", () => {
-  test("a merge past five sets keeps the newest lines and trims the oldest", async () => {
+  test("a merge keeps every set: no order cap trims the older lines", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
     await cart(t, buyer.id, [line("apsc", "en", 3, 100)])
     await t.run((ctx) =>
-      mergeCartAs(ctx, buyer.id, [line("adre", "as", 4, 200)])
+      mergeCartAs(ctx, buyer.id, [line("adre", "as", 14, 200)])
     )
     expect(await cartLinesOf(t, buyer.id)).toEqual([
-      line("apsc", "en", 1, 100),
-      line("adre", "as", 4, 200),
+      line("apsc", "en", 3, 100),
+      line("adre", "as", 14, 200),
     ])
   })
 
@@ -484,13 +480,14 @@ describe("the server cart", () => {
     expect(
       await t.run((ctx) =>
         mergeCartAs(ctx, buyer.id, [
-          line("a", "en", 99, 1),
+          line("a", "en", 4, 1),
           line("b", "en", 0, 1),
-          line("a", "en", 4, 2),
+          line("a", "en", 500, 2),
         ])
       )
     ).toEqual({ ok: true })
-    expect(await cartLinesOf(t, buyer.id)).toEqual([line("a", "en", 4, 2)])
+    // 500 is a typo, not a buyer: the line stops at the guard.
+    expect(await cartLinesOf(t, buyer.id)).toEqual([line("a", "en", 99, 2)])
 
     const flood = Array.from({ length: 11 }, (_, i) => line(`set-${i}`))
     expect(await t.run((ctx) => mergeCartAs(ctx, buyer.id, flood))).toEqual({
@@ -514,8 +511,8 @@ describe("the server cart", () => {
       ["en", 3],
     ])
 
-    // Fractional quantities are refused; oversized ones clamp to what one
-    // order holds (five sets in all, one of them already Assamese).
+    // Fractional quantities are refused. Large ones go in whole - there is
+    // no order cap - up to the per-line typo guard.
     expect(await set("apsc", "en", 1.5)).toEqual({
       ok: false,
       reason: "invalid-input",
@@ -523,14 +520,17 @@ describe("the server cart", () => {
     })
     await set("apsc", "en", 55)
     lines = await cartLinesOf(t, buyer.id)
-    expect(lines.find((l) => l.language === "en")?.quantity).toBe(4)
+    expect(lines.find((l) => l.language === "en")?.quantity).toBe(55)
+    await set("apsc", "en", 1000)
+    lines = await cartLinesOf(t, buyer.id)
+    expect(lines.find((l) => l.language === "en")?.quantity).toBe(99)
 
-    // A full cart refuses another set rather than dropping one silently.
-    expect(await set("adre", "en", 1)).toEqual({
-      ok: false,
-      reason: "invalid-input",
-      field: "quantity",
-    })
+    // Another set still goes in beside a large line.
+    expect(await set("adre", "en", 6)).toEqual({ ok: true })
+    await set("adre", "en", 0)
+
+    // Changing a line keeps it where it was in the cart.
+    expect(lines.map((l) => l.language)).toEqual(["en", "as"])
 
     await set("apsc", "en", 0)
     lines = await cartLinesOf(t, buyer.id)

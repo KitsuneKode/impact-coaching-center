@@ -24,6 +24,8 @@ export type EnquiryIntent =
   | { kind: "search"; query: string }
   /** A question the FAQ did not answer. */
   | { kind: "question" }
+  /** A seat in the study library, with the plan they looked at, if any. */
+  | { kind: "library"; plan?: string }
   /** Ordering book sets while online payment is off. */
   | { kind: "books"; sets: string[] }
   | { kind: "call" }
@@ -48,6 +50,8 @@ function message(intent: Exclude<EnquiryIntent, { kind: "call" }>): string {
       return "Hello ICT, please message me when new exam dates are announced."
     case "search":
       return `Hello ICT, I looked on your website for “${intent.query.slice(0, 80)}” and could not find it. Can you help?`
+    case "library":
+      return `Hello ICT, I would like a seat in the study library${intent.plan ? ` (${intent.plan})` : ""}. Is one free, and when can I come and see the room?`
     case "books":
       return `Hello ICT, I would like to order: ${intent.sets.join("; ")}. Please tell me the total and how to pay.`
     case "whatsapp-handoff":

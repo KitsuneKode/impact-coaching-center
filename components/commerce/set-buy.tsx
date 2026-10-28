@@ -14,7 +14,12 @@ import { useShopMode } from "@/components/commerce/order-on-whatsapp"
 import { useOpenCartIfShop } from "@/components/commerce/shop-shell"
 import { track } from "@/lib/analytics"
 import { contactHref } from "@/lib/contact"
-import { useCartActions } from "@/lib/cart-store"
+import {
+  CART_ADDED_TOAST,
+  useCart,
+  useCartActions,
+  useCartHydrated,
+} from "@/lib/cart-store"
 import { LANGUAGES, type Language, type PublicBundle } from "@/lib/catalog"
 import { formatPaise } from "@/lib/money"
 
@@ -41,6 +46,17 @@ export function SetBuy({
   const router = useRouter()
   const [added, setAdded] = useState<Language | null>(null)
   const whatsapp = useShopMode() === "whatsapp"
+  /* How many of each language are already in the cart, so the list says so. */
+  const hydrated = useCartHydrated()
+  const inCart = useCart((s) =>
+    LANGUAGES.map(
+      (language) =>
+        s.lines.find((l) => l.slug === slug && l.language === language)
+          ?.quantity ?? 0
+    ).join(",")
+  )
+  const held = (language: Language) =>
+    hydrated ? Number(inCart.split(",")[LANGUAGES.indexOf(language)]) : 0
 
   const buy = (language: Language) => {
     // At the cap nothing goes in; the cart has already said why.
@@ -49,6 +65,8 @@ export function SetBuy({
     setAdded(language)
     window.setTimeout(() => setAdded(null), 1400)
     toast.success(t("addedToast", { title }), {
+      // One at a time, and gone once the cart itself opens.
+      id: CART_ADDED_TOAST,
       action: {
         label: t("viewCart"),
         // In the shop the cart opens in place; elsewhere checkout shows it.
@@ -94,6 +112,7 @@ export function SetBuy({
             </span>
           )
         const done = added === language
+        const count = held(language)
         // Payments off: the same price, ordered on WhatsApp.
         if (whatsapp)
           return (
@@ -135,7 +154,11 @@ export function SetBuy({
             data-press
             data-added={done || undefined}
             onClick={() => buy(language)}
-            aria-label={t("addSetAria", { set: name, title })}
+            aria-label={
+              count
+                ? `${t("addSetAria", { set: name, title })}. ${t("inCart", { count })}`
+                : t("addSetAria", { set: name, title })
+            }
             className="tnum inline-flex min-w-0 items-center justify-between gap-2 rounded-2xl ps-3.5 pe-2.5 pbs-2 pbe-2 text-start sm:gap-3 sm:ps-4 sm:pe-3"
           >
             <span className="flex min-w-0 flex-col">
@@ -149,13 +172,23 @@ export function SetBuy({
             <span
               aria-hidden
               data-set-add
-              className="grid size-8 flex-none place-items-center rounded-full sm:size-9"
+              className="relative grid size-8 flex-none place-items-center rounded-full sm:size-9"
             >
               {done ? (
                 <IconCheck size={17} stroke={2.25} />
               ) : (
                 <IconShoppingBagPlus size={17} stroke={1.75} />
               )}
+              {/* Already in the cart: how many, like the header's badge. */}
+              {count ? (
+                <span
+                  key={count}
+                  data-swap
+                  className="tnum absolute -inset-e-1.5 -inset-bs-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-highlight px-1 text-[0.6875rem] leading-none font-bold text-ink ring-2 ring-card"
+                >
+                  {count}
+                </span>
+              ) : null}
             </span>
           </button>
         )

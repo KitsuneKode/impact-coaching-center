@@ -208,6 +208,20 @@ describe("contactHref exact copy", () => {
     expect(contactHref({ kind: "call" })).toBe("tel:+918638061175")
   })
 
+  test("a library seat names the plan, and is not a workshop ask", () => {
+    const plain = decodeURIComponent(contactHref({ kind: "library" }))
+    expect(plain).toBe(
+      "https://wa.me/918638061175?text=Hello ICT, I would like a seat in the study library. Is one free, and when can I come and see the room?"
+    )
+    const planned = decodeURIComponent(
+      contactHref({ kind: "library", plan: "Full day, 6 months" })
+    )
+    expect(planned).toContain("study library (Full day, 6 months).")
+    expect(contactHref({ kind: "library" })).not.toBe(
+      contactHref({ kind: "workshop" })
+    )
+  })
+
   test("a books order lists every set", () => {
     const href = contactHref({
       kind: "books",

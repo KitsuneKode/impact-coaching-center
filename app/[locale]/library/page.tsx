@@ -18,13 +18,8 @@ import { contentFor } from "@/i18n/content-server"
 import { Link } from "@/i18n/navigation"
 import { contact, formatPhone } from "@/lib/brand"
 import { contactHref } from "@/lib/contact"
-import { inr } from "@/lib/courses"
-import {
-  libraryApproved,
-  libraryHours,
-  libraryPlans,
-  libraryUpdated,
-} from "@/lib/library"
+import { libraryApproved, libraryHours, libraryUpdated } from "@/lib/library"
+import { LibraryPlans } from "@/components/site/library-plans"
 import { alternatesFor, openGraphFor } from "@/lib/site"
 import { BlueField } from "@/components/site/blue-field"
 
@@ -59,8 +54,9 @@ const facts = [
 ] as const
 
 /**
- * The library: what it gives, how to get a seat, and ICT's plans once ICT
- * confirms them. No online payment; seats are paid for at the centre.
+ * The library: what it gives, how to get a seat, and ICT's plans (stand-in
+ * prices from ICT's poster until confirmed, lib/library.ts). No online
+ * payment; seats are paid for at the centre.
  */
 export default async function LibraryPage({
   params,
@@ -117,7 +113,7 @@ export default async function LibraryPage({
               className="mbs-8 flex flex-wrap gap-3"
             >
               <a
-                href={contactHref({ kind: "workshop" })}
+                href={contactHref({ kind: "library" })}
                 target="_blank"
                 rel="noreferrer noopener"
                 data-press
@@ -255,51 +251,7 @@ export default async function LibraryPage({
             {libraryHours ?? t("libHoursPending")}
           </p>
         </Reveal>
-        {libraryPlans.length ? (
-          <ul className="mbs-10 grid grid-cols-[repeat(auto-fit,minmax(min(100%,17rem),1fr))] gap-4">
-            {libraryPlans.map((plan, i) => (
-              <li key={plan.name}>
-                <Reveal delay={i * 0.06} className="h-full">
-                  <div
-                    data-include-card
-                    className="flex h-full flex-col rounded-[28px] p-7"
-                  >
-                    <span className="font-semibold">{plan.name}</span>
-                    <span className="tnum mbs-4 font-display text-4xl font-semibold">
-                      {inr(plan.price)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {plan.period}
-                    </span>
-                    <ul className="mbs-6 grid gap-2 text-sm">
-                      {plan.includes.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </Reveal>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Reveal delay={0.06}>
-            <div className="mbs-10 flex flex-col items-start justify-between gap-6 rounded-[28px] bg-highlight p-7 text-ink md:flex-row md:items-center md:p-9">
-              <p className="max-w-[52ch] text-lg text-pretty">
-                {t("libPlansPending")}
-              </p>
-              <a
-                href={contactHref({ kind: "workshop" })}
-                target="_blank"
-                rel="noreferrer noopener"
-                data-press
-                className="inline-flex h-12 flex-none items-center gap-2 rounded-full bg-ink px-6 font-semibold text-white"
-              >
-                {t("askFee")}
-                <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
-              </a>
-            </div>
-          </Reveal>
-        )}
+        <LibraryPlans />
       </section>
     </main>
   )

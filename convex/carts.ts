@@ -1,6 +1,6 @@
 import { type Infer, v } from "convex/values"
 
-import { BUNDLE_QUANTITY_MAX, ORDER_SETS_MAX } from "../lib/catalog"
+import { LINE_QUANTITY_MAX } from "../lib/catalog"
 import { invalidInput, mutationResult, viewerPerson } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import {
@@ -32,23 +32,6 @@ type Line = Infer<typeof CART_LINE>
 const keyOf = (line: Pick<Line, "slug" | "language">) =>
   `${line.slug}:${line.language}`
 
-/**
- * Keep the cart within one order's worth of sets: the newest lines keep
- * their quantity, older ones give way, and a line left with none drops.
- */
-function withinOrderCap(lines: Line[]): Line[] {
-  let room = ORDER_SETS_MAX
-  const kept = new Map<string, Line>()
-  for (const line of [...lines].sort((a, b) => b.at - a.at)) {
-    const quantity = Math.min(line.quantity, room)
-    if (quantity <= 0) continue
-    room -= quantity
-    kept.set(keyOf(line), { ...line, quantity })
-  }
-  // Back in the cart's own order.
-  return lines.flatMap((line) => kept.get(keyOf(line)) ?? [])
-}
-
 /** Clamp, dedupe and reject caller lines until the shape is cart-safe. */
 function cleanLines(lines: Line[]): Line[] | null {
   if (lines.length > MAX_LINES) return null
@@ -57,7 +40,7 @@ function cleanLines(lines: Line[]): Line[] | null {
     if (!line.slug || line.slug.length > 120) return null
     if (!Number.isInteger(line.quantity)) return null
     if (!Number.isFinite(line.at)) return null
-    const quantity = Math.min(BUNDLE_QUANTITY_MAX, line.quantity)
+    const quantity = Math.min(LINE_QUANTITY_MAX, line.quantity)
     if (quantity <= 0) continue
     // Same line twice: keep the newer, identical to the sign-in merge rule.
     const kept = byKey.get(keyOf(line))
@@ -123,7 +106,7 @@ export async function mergeCartAs(
     const kept = merged.get(keyOf(line))
     if (!kept || line.at >= kept.at) merged.set(keyOf(line), line)
   }
-  const lines = withinOrderCap([...merged.values()].slice(0, MAX_LINES))
+  const lines = [...merged.values()].slice(0, MAX_LINES)
   await writeCart(ctx, personId, lines)
   return { ok: true as const }
 }
@@ -153,14 +136,19 @@ export async function setCartLineAs(
   // The cap guards additions; a removal always goes through.
   if (args.quantity > 0 && rest.length >= MAX_LINES)
     return invalidInput("lines")
-  // One order holds ORDER_SETS_MAX sets in all; the other lines keep theirs.
-  const room = ORDER_SETS_MAX - rest.reduce((n, line) => n + line.quantity, 0)
-  const quantity = Math.min(BUNDLE_QUANTITY_MAX, args.quantity, room)
-  if (args.quantity > 0 && quantity <= 0) return invalidInput("quantity")
+  // No cap on the order; one line stops at the typo guard.
+  const quantity = Math.min(LINE_QUANTITY_MAX, args.quantity)
+  const next = { slug: args.slug, language: args.language, quantity, at }
+  /* A changed line keeps its place, so the list being edited never jumps;
+     a new one goes at the end. */
   const lines =
-    args.quantity > 0
-      ? [...rest, { slug: args.slug, language: args.language, quantity, at }]
-      : rest
+    args.quantity <= 0
+      ? rest
+      : (cart?.lines ?? []).some((line) => keyOf(line) === keyOf(args))
+        ? (cart?.lines ?? []).map((line) =>
+            keyOf(line) === keyOf(args) ? next : line
+          )
+        : [...rest, next]
   await writeCart(ctx, personId, lines, at)
   return { ok: true as const }
 }

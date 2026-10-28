@@ -19,6 +19,9 @@ import {
 } from "react"
 
 import { AddToCart } from "@/components/commerce/add-to-cart"
+import { QuantityStepper } from "@/components/commerce/quantity-stepper"
+import { Button, ButtonLink } from "@/components/ui/button"
+import { useCart, useCartActions, useCartHydrated } from "@/lib/cart-store"
 import {
   OrderOnWhatsApp,
   useShopMode,
@@ -81,6 +84,16 @@ export function SetView({
   const pathname = usePathname()
   const variant = bundle.variants[language]
   const title = inLanguage(bundle.title, language)
+  /* Once this language is in the cart the card shows how many, and the
+     count changes here rather than by adding again and again. */
+  const hydrated = useCartHydrated()
+  const held = useCart(
+    (s) =>
+      s.lines.find((l) => l.slug === bundle.slug && l.language === language)
+        ?.quantity ?? 0
+  )
+  const inCart = hydrated ? held : 0
+  const { setQuantity } = useCartActions()
   const setName = (l: Language) =>
     l === "as" ? t("assameseSet") : t("englishSet")
 
@@ -185,6 +198,47 @@ export function SetView({
                     size="lg"
                     className="w-full rounded-full"
                   />
+                ) : variant.available && !bundle.sample && inCart ? (
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between gap-3 rounded-2xl bg-secondary/60 p-2 ps-4">
+                      <span className="text-sm">
+                        <span className="tnum font-semibold">
+                          {t("inCart", { count: inCart })}
+                        </span>
+                        <span className="tnum block text-muted-foreground">
+                          {formatPaise(variant.pricePaise * inCart)}
+                        </span>
+                      </span>
+                      <QuantityStepper
+                        value={inCart}
+                        label={t("setOf", {
+                          set: title,
+                          language: setName(language),
+                        })}
+                        onChange={(next) =>
+                          setQuantity({ slug: bundle.slug, language }, next)
+                        }
+                        className="bg-card"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <ButtonLink
+                        href="/checkout"
+                        size="lg"
+                        className="rounded-full"
+                      >
+                        {t("checkout")}
+                      </ButtonLink>
+                      <Button
+                        variant="secondary"
+                        size="lg"
+                        className="rounded-full"
+                        onClick={openCart}
+                      >
+                        {t("viewCart")}
+                      </Button>
+                    </div>
+                  </div>
                 ) : variant.available && !bundle.sample ? (
                   <AddToCart
                     slug={bundle.slug}

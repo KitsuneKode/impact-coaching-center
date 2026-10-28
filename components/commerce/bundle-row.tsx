@@ -13,7 +13,14 @@ const TONES: readonly BookTone[] = ["amber", "paper", "ink"]
  * A set as a wide card: its books standing fanned on a blue stage, then the
  * name, the books by title, and a price per language with its availability.
  */
-export function BundleRow({ bundle }: { bundle: PublicBundle }) {
+export function BundleRow({
+  bundle,
+  matched = [],
+}: {
+  bundle: PublicBundle
+  /** Book titles a search named, marked in the list of books. */
+  matched?: readonly string[]
+}) {
   const t = useTranslations("Pulse")
   const shop = useTranslations("Shop")
   const language = useLocale() as Language
@@ -90,8 +97,19 @@ export function BundleRow({ bundle }: { bundle: PublicBundle }) {
             const edition =
               book.editions[language] ?? book.editions.en ?? book.editions.as
             return (
-              <span key={book.slug} className="text-muted-foreground">
-                {edition?.title}
+              <span
+                key={book.slug}
+                className={
+                  edition?.title && matched.includes(edition.title)
+                    ? "font-semibold text-foreground"
+                    : "text-muted-foreground"
+                }
+              >
+                {edition?.title && matched.includes(edition.title) ? (
+                  <mark data-hit>{edition.title}</mark>
+                ) : (
+                  edition?.title
+                )}
               </span>
             )
           })}

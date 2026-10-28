@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  IconBook,
   IconBook2,
   IconCalendarEvent,
   IconCheck,
@@ -103,6 +104,7 @@ const GROUPS: {
 }[] = [
   { kind: "course", key: "searchCourses", icon: IconSchool },
   { kind: "set", key: "searchSets", icon: IconBook2 },
+  { kind: "book", key: "searchBooks", icon: IconBook },
   { kind: "notes", key: "searchNotes", icon: IconFolder },
   { kind: "exam", key: "searchExams", icon: IconCalendarEvent },
   { kind: "post", key: "searchPosts", icon: IconNews },
@@ -113,6 +115,7 @@ const GROUPS: {
 const START: Record<SearchItem["kind"], number> = {
   course: 4,
   set: 2,
+  book: 0,
   notes: 2,
   exam: 3,
   post: 0,

@@ -4,7 +4,7 @@ import { invalidInput, REFUSAL, viewerPerson, type Viewer } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
 import { centres } from "../lib/brand"
-import { deliversTo, ORDER_SETS_MAX } from "../lib/catalog"
+import { deliversTo } from "../lib/catalog"
 import { toE164 } from "../lib/leads"
 import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
@@ -125,8 +125,6 @@ export async function beginCheckoutAs(
     .first()
   const cartLines = cart?.lines ?? []
   if (cartLines.length === 0) return invalidInput("cart")
-  const sets = cartLines.reduce((n, line) => n + line.quantity, 0)
-  if (sets > ORDER_SETS_MAX) return invalidInput("quantity")
 
   const person = await ctx.db.get(viewer.id)
   if (!person?.name.trim()) return invalidInput("name")

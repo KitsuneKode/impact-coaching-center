@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server"
 
 import { contentFor } from "@/i18n/content-server"
-import { inLanguage, type Language } from "@/lib/catalog"
+import { inLanguage, type Language, lowestPrice } from "@/lib/catalog"
 import {
   publishedBundles,
   publishedPosts,
@@ -10,10 +10,11 @@ import {
 import { inr } from "@/lib/courses"
 import { liveCourses } from "@/lib/courses-server"
 import { exams, pick } from "@/lib/exams"
+import { formatPaise } from "@/lib/money"
 
 /** One thing the site search can find. */
 export type SearchItem = {
-  kind: "course" | "set" | "notes" | "exam" | "post" | "page"
+  kind: "course" | "set" | "book" | "notes" | "exam" | "post" | "page"
   title: string
   /** A short second line: the exam, a price, a page count. */
   detail: string
@@ -81,14 +82,45 @@ export async function buildSearchIndex(
     })
   }
 
+  /*
+   * Sets as the books page shows them, placeholders included (their detail
+   * says so), and each book on its own line pointing at the set that holds
+   * it, so "which set has Polity?" is one search. The index follows the
+   * catalogue: an admin save refreshes the "catalog" tag this reads under.
+   */
   for (const bundle of bundles) {
-    if (bundle.sample) continue
+    const setTitle = inLanguage(bundle.title, locale)
+    const from = lowestPrice(bundle)
+    const price = bundle.sample
+      ? shop("sampleLabel")
+      : from === null
+        ? shop("notAvailable")
+        : shop("fromPrice", { price: formatPaise(from) })
+    for (const book of bundle.books) {
+      const edition =
+        book.editions[locale] ?? book.editions.en ?? book.editions.as
+      if (!edition) continue
+      items.push({
+        kind: "book",
+        title: edition.title,
+        detail: [shop("inSet", { set: setTitle }), price].join(" · "),
+        href: `/books/${bundle.slug}`,
+        keywords: [
+          book.editions.en?.title,
+          book.editions.as?.title,
+          edition.subtitle,
+          book.exam,
+          ...aliasesFor(book.exam),
+        ].filter((word): word is string => Boolean(word)),
+      })
+    }
     items.push({
       kind: "set",
-      title: inLanguage(bundle.title, locale),
+      title: setTitle,
       detail: [
         content.phrase(bundle.exam),
         shop("booksInSet", { count: bundle.books.length }),
+        price,
       ].join(" · "),
       href: `/books/${bundle.slug}`,
       keywords: [

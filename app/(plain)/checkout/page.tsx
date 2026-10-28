@@ -2,7 +2,7 @@
 
 import {
   IconCircleCheck,
-  IconLock,
+  IconLogin2,
   IconPackage,
   IconPlugConnectedX,
   IconReceipt,
@@ -17,7 +17,7 @@ import {
   OrderOnWhatsApp,
   useShopMode,
 } from "@/components/commerce/order-on-whatsapp"
-import { Button, ButtonLink } from "@/components/ui/button"
+import { ButtonLink } from "@/components/ui/button"
 import { FieldDescription } from "@/components/ui/field"
 import {
   checkDelivery,
@@ -29,13 +29,15 @@ import {
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import { track } from "@/lib/analytics"
+import { useCart, useCartHydrated } from "@/lib/cart-store"
+import { inLanguage, LINE_QUANTITY_MAX } from "@/lib/catalog"
 import {
-  useCart,
-  useCartActions,
-  useCartHydrated,
-  useCartSync,
-} from "@/lib/cart-store"
-import { inLanguage, ORDER_SETS_MAX } from "@/lib/catalog"
+  cartRows,
+  cartTotals,
+  CartLines,
+} from "@/components/commerce/cart-lines"
+import { SecureCheckout } from "@/components/commerce/secure-checkout"
+import { useCartSynced } from "@/components/commerce/shop-shell"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
 import { PayButton, type Paid } from "@/components/commerce/pay-order"
@@ -62,7 +64,7 @@ const REFUSED_FIELD: Record<string, string> = {
     "Check the address: PIN code, district, town, and the house and street.",
   "courier-phone": "Check the courier's number: 10 digits, like 98765 43210.",
   centre: "Choose a centre to collect from.",
-  quantity: `One order holds up to ${ORDER_SETS_MAX} sets. Remove some, or call ICT for more.`,
+  quantity: `Up to ${LINE_QUANTITY_MAX} of one set at a time. For more, call ICT.`,
   name: "Add your name in your account before ordering.",
 }
 
@@ -81,39 +83,18 @@ export default function CheckoutPage() {
 }
 
 function Checkout() {
-  /* Merges any guest cart into the server copy on arrival after sign-in. */
-  const { synced } = useCartSync()
+  /* The site-wide shop shell merges a guest cart into the server copy on
+     sign-in; checkout pays for that copy, so it waits for the merge. */
+  const synced = useCartSynced()
   const viewer = useViewer()
   const hydrated = useCartHydrated()
 
   if (viewer === undefined || !hydrated) return <CheckoutWaiting />
+  if (viewer !== null && !synced) return <CheckoutWaiting />
 
-  if (viewer === null)
-    return (
-      <PageShell
-        title={
-          <>
-            <span className="text-foreground">One step first.</span>{" "}
-            <span className="text-muted-foreground">Sign in.</span>
-          </>
-        }
-      >
-        <StatePanel
-          icon={<IconLock stroke={1.75} />}
-          title="Log in to place the order"
-          description="Your cart stays on this device and carries over once you're in. New here? Signing in with your number creates the account."
-          action={
-            <ButtonLink href="/login?next=/checkout" className="mbs-6">
-              Log in with your number
-            </ButtonLink>
-          }
-        />
-      </PageShell>
-    )
-
-  if (!synced) return <CheckoutWaiting />
-
-  return <CheckoutForm />
+  /* A guest sees and edits the whole cart here too; only paying needs the
+     number, so the sign-in ask sits where Pay will be. */
+  return <CheckoutForm signedIn={viewer !== null} />
 }
 
 /**
@@ -130,9 +111,8 @@ function CheckoutWaiting() {
   )
 }
 
-function CheckoutForm() {
+function CheckoutForm({ signedIn }: { signedIn: boolean }) {
   const lines = useCart((s) => s.lines)
-  const cart = useCartActions()
   const bundles = useQuery(api.catalog.bundles)
   const shop = useQuery(api.settings.shop)
   const beginCheckout = useMutation(api.checkout.beginCheckout)
@@ -140,7 +120,7 @@ function CheckoutForm() {
     "delivery"
   )
   const viewer = useViewer()
-  const saved = useQuery(api.checkout.savedDelivery)
+  const saved = useQuery(api.checkout.savedDelivery, signedIn ? {} : "skip")
   const [address, setAddress] = useState<Delivery>({
     pin: "",
     district: "",
@@ -181,24 +161,21 @@ function CheckoutForm() {
   const [pending, setPending] = useState<Id<"checkouts"> | null>(null)
   const errorId = useId()
 
-  const rows = lines.flatMap((line) => {
-    const bundle = bundles?.find((b) => b.slug === line.slug)
-    const variant = bundle?.variants[line.language]
-    return bundle && !bundle.sample && variant?.available
+  const cartLines = cartRows(lines, bundles)
+  const totals = cartTotals(cartLines)
+  /* The lines that can be bought, named the way an order message says them. */
+  const rows = cartLines.flatMap((row) =>
+    row.status === "ok" && row.bundle
       ? [
           {
-            ...line,
-            title: `${inLanguage(bundle.title, line.language)} (${line.language === "as" ? "Assamese" : "English"} set)`,
-            unitPaise: variant.pricePaise,
+            ...row.line,
+            title: `${inLanguage(row.bundle.title, row.line.language)} (${row.line.language === "as" ? "Assamese" : "English"} set)`,
           },
         ]
       : []
-  })
-  const shippingPaise = shop?.shippingPaise ?? 0
-  const itemsPaise = rows.reduce(
-    (sum, row) => sum + row.unitPaise * row.quantity,
-    0
   )
+  const shippingPaise = shop?.shippingPaise ?? 0
+  const itemsPaise = totals.itemsPaise
   const deliveryPaise = fulfilment === "delivery" ? shippingPaise : 0
 
   const checkAddress = () => {
@@ -267,33 +244,13 @@ function CheckoutForm() {
   if (pending)
     return <Confirming checkoutId={pending} fulfilment={fulfilment} />
 
-  // Lines the shop cannot sell, each with the real reason, so the buyer
-  // can remove exactly that one here instead of guessing in the cart.
-  const missing = lines
-    .filter(
-      (line) =>
-        !rows.some(
-          (row) => row.slug === line.slug && row.language === line.language
-        )
-    )
-    .map((line) => {
-      const bundle = bundles?.find((b) => b.slug === line.slug)
-      return {
-        ...line,
-        title: bundle ? inLanguage(bundle.title, line.language) : line.slug,
-        reason: !bundle
-          ? "is no longer sold"
-          : bundle.sample
-            ? "is a sample set and is not on sale yet"
-            : "is not available in this language right now",
-      }
-    })
-
   return (
     <PageShell
       title={
         <>
-          <span className="text-foreground">Checkout.</span>
+          <span className="text-foreground">
+            {signedIn ? "Checkout." : "Your cart."}
+          </span>
           {/* No total for an empty cart: delivery alone is not an order. */}
           {rows.length ? (
             <span className="text-muted-foreground">
@@ -320,188 +277,159 @@ function CheckoutForm() {
       ) : (
         <div className="grid gap-10 lg:grid-cols-[1fr_20rem]">
           <div className="space-y-10">
-            <section aria-label="Your order">
-              <h2 className="type-label">Your order</h2>
-              <ul className="mbs-4 divide-y divide-border">
-                {rows.map((row) => (
-                  <li
-                    key={`${row.slug}:${row.language}`}
-                    className="flex items-baseline justify-between gap-4 py-3"
-                  >
-                    <span>
-                      {row.title}
-                      <span className="whitespace-nowrap text-muted-foreground">
-                        {" "}
-                        × {row.quantity}
-                      </span>
-                    </span>
-                    <span className="tnum">
-                      {formatPaise(row.unitPaise * row.quantity)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {missing.length > 0 && (
-                <ul className="mbs-3 grid gap-2" aria-live="polite">
-                  {missing.map((line) => (
-                    <li
-                      key={`${line.slug}:${line.language}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-destructive/8 p-3 text-sm"
-                    >
-                      <span className="text-destructive">
-                        {line.title} (
-                        {line.language === "as" ? "Assamese" : "English"} set){" "}
-                        {line.reason}, so it can&rsquo;t be ordered.
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() =>
-                          cart.remove({
-                            slug: line.slug,
-                            language: line.language,
-                          })
-                        }
-                      >
-                        Remove
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            <section id="order" aria-labelledby="order-heading">
+              <h2
+                id="order-heading"
+                className="flex items-baseline justify-between gap-3"
+              >
+                <span className="type-label">Your order</span>
+                <span className="tnum text-sm text-muted-foreground">
+                  {totals.sets === 1 ? "1 set" : `${totals.sets} sets`}
+                </span>
+              </h2>
+              <CartLines rows={cartLines} className="mbs-2" />
+              <p className="mbs-2 text-sm">
+                <Link href="/books" className="link">
+                  Add another set
+                </Link>
+              </p>
             </section>
 
-            <fieldset>
-              <legend className="type-label">Getting it to you</legend>
-              <div className="mbs-4 grid gap-3 sm:grid-cols-2">
-                {(
-                  [
-                    ["delivery", IconTruckDelivery],
-                    ["collection", IconPackage],
-                  ] as const
-                ).map(([value, Icon]) => (
-                  <label
-                    key={value}
-                    className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-[20px] p-4 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
-                      fulfilment === value
-                        ? "bg-card shadow-[inset_0_0_0_2px_var(--primary)]"
-                        : "bg-secondary hover:bg-secondary/70"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="fulfilment"
-                      value={value}
-                      checked={fulfilment === value}
-                      onChange={() => setFulfilment(value)}
-                      className="mbs-1 size-4 accent-primary"
-                    />
-                    <span>
-                      <Icon
-                        stroke={1.75}
-                        className="mbe-2 size-5"
-                        aria-hidden
-                      />
-                      <span className="block font-medium">
-                        {FULFILMENT_LABELS[value]}
-                      </span>
-                      <span className="block text-sm text-muted-foreground">
-                        {value === "delivery"
-                          ? `${formatPaise(shippingPaise)} delivery`
-                          : `Free. From the centre on ${place.spoken}, when it's ready`}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            {fulfilment === "collection" ? (
-              <fieldset className="grid gap-3">
-                <legend className="mbe-3 text-sm font-medium">
-                  Collect from
-                </legend>
-                {centres.map((c) => (
-                  <label
-                    key={c.id}
-                    className={cn(
-                      "flex items-start gap-3 rounded-[20px] p-4 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
-                      !c.at
-                        ? "cursor-not-allowed bg-secondary/60 text-muted-foreground"
-                        : centre === c.id
-                          ? "cursor-pointer bg-card shadow-[inset_0_0_0_2px_var(--primary)]"
-                          : "cursor-pointer bg-secondary hover:bg-secondary/70"
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="centre"
-                      value={c.id}
-                      checked={centre === c.id}
-                      disabled={!c.at}
-                      onChange={() => setCentre(c.id)}
-                      className="mbs-1 size-4 accent-primary"
-                    />
-                    <span className="min-w-0 font-medium">
-                      {c.town} centre
-                      <span className="block text-sm font-normal text-muted-foreground">
-                        {c.at ? (
-                          <>
-                            {c.at.street}, {c.town}{" "}
-                            <span className="tnum">{c.at.pin}</span>.{" "}
-                            <a
-                              href={c.at.maps}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="link"
-                            >
-                              Open in Maps
-                            </a>
-                          </>
-                        ) : (
-                          "Collection opens here once the centre's address is set."
-                        )}
-                      </span>
-                    </span>
-                  </label>
-                ))}
-                <p className="text-sm text-muted-foreground">
-                  Your account shows when it&rsquo;s ready to collect. Bring the
-                  order number.
-                </p>
-              </fieldset>
-            ) : null}
-
-            {fulfilment === "delivery" && (
+            {signedIn ? (
               <>
-                <DeliveryAddress
-                  value={address}
-                  errors={fieldErrors}
-                  onChange={(next, field) => {
-                    setAddress((a) => ({ ...a, ...next }))
-                    setFieldErrors((errors) => ({
-                      ...errors,
-                      [field]: undefined,
-                    }))
-                  }}
-                />
-                <label className="flex items-start gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={saveAddress}
-                    onChange={(e) => setSaveAddress(e.target.checked)}
-                    className="mbs-0.5 size-4 accent-primary"
-                  />
-                  <span>
-                    Save this address for my next order
-                    <span className="block text-muted-foreground">
-                      Kept in your account; you can change it at checkout.
-                    </span>
-                  </span>
-                </label>
+                <fieldset>
+                  <legend className="type-label">Getting it to you</legend>
+                  <div className="mbs-4 grid gap-3 sm:grid-cols-2">
+                    {(
+                      [
+                        ["delivery", IconTruckDelivery],
+                        ["collection", IconPackage],
+                      ] as const
+                    ).map(([value, Icon]) => (
+                      <label
+                        key={value}
+                        className={cn(
+                          "flex cursor-pointer items-start gap-3 rounded-[20px] p-4 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
+                          fulfilment === value
+                            ? "bg-card shadow-[inset_0_0_0_2px_var(--primary)]"
+                            : "bg-secondary hover:bg-secondary/70"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="fulfilment"
+                          value={value}
+                          checked={fulfilment === value}
+                          onChange={() => setFulfilment(value)}
+                          className="mbs-1 size-4 accent-primary"
+                        />
+                        <span>
+                          <Icon
+                            stroke={1.75}
+                            className="mbe-2 size-5"
+                            aria-hidden
+                          />
+                          <span className="block font-medium">
+                            {FULFILMENT_LABELS[value]}
+                          </span>
+                          <span className="block text-sm text-muted-foreground">
+                            {value === "delivery"
+                              ? `${formatPaise(shippingPaise)} delivery`
+                              : `Free. From the centre on ${place.spoken}, when it's ready`}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                {fulfilment === "collection" ? (
+                  <fieldset className="grid gap-3">
+                    <legend className="mbe-3 text-sm font-medium">
+                      Collect from
+                    </legend>
+                    {centres.map((c) => (
+                      <label
+                        key={c.id}
+                        className={cn(
+                          "flex items-start gap-3 rounded-[20px] p-4 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
+                          !c.at
+                            ? "cursor-not-allowed bg-secondary/60 text-muted-foreground"
+                            : centre === c.id
+                              ? "cursor-pointer bg-card shadow-[inset_0_0_0_2px_var(--primary)]"
+                              : "cursor-pointer bg-secondary hover:bg-secondary/70"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="centre"
+                          value={c.id}
+                          checked={centre === c.id}
+                          disabled={!c.at}
+                          onChange={() => setCentre(c.id)}
+                          className="mbs-1 size-4 accent-primary"
+                        />
+                        <span className="min-w-0 font-medium">
+                          {c.town} centre
+                          <span className="block text-sm font-normal text-muted-foreground">
+                            {c.at ? (
+                              <>
+                                {c.at.street}, {c.town}{" "}
+                                <span className="tnum">{c.at.pin}</span>.{" "}
+                                <a
+                                  href={c.at.maps}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="link"
+                                >
+                                  Open in Maps
+                                </a>
+                              </>
+                            ) : (
+                              "Collection opens here once the centre's address is set."
+                            )}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                    <p className="text-sm text-muted-foreground">
+                      Your account shows when it&rsquo;s ready to collect. Bring
+                      the order number.
+                    </p>
+                  </fieldset>
+                ) : null}
+
+                {fulfilment === "delivery" && (
+                  <>
+                    <DeliveryAddress
+                      value={address}
+                      errors={fieldErrors}
+                      onChange={(next, field) => {
+                        setAddress((a) => ({ ...a, ...next }))
+                        setFieldErrors((errors) => ({
+                          ...errors,
+                          [field]: undefined,
+                        }))
+                      }}
+                    />
+                    <label className="flex items-start gap-3 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={saveAddress}
+                        onChange={(e) => setSaveAddress(e.target.checked)}
+                        className="mbs-0.5 size-4 accent-primary"
+                      />
+                      <span>
+                        Save this address for my next order
+                        <span className="block text-muted-foreground">
+                          Kept in your account; you can change it at checkout.
+                        </span>
+                      </span>
+                    </label>
+                  </>
+                )}
               </>
-            )}
+            ) : null}
           </div>
 
           <aside
@@ -510,15 +438,28 @@ function CheckoutForm() {
           >
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Books</dt>
+                <dt className="text-muted-foreground">
+                  Books{" "}
+                  <span className="tnum">
+                    ({totals.sets === 1 ? "1 set" : `${totals.sets} sets`})
+                  </span>
+                </dt>
                 <dd className="tnum">{formatPaise(itemsPaise)}</dd>
               </div>
+              {totals.savedPaise ? (
+                <div className="flex justify-between text-verified">
+                  <dt>You save</dt>
+                  <dd className="tnum">{formatPaise(totals.savedPaise)}</dd>
+                </div>
+              ) : null}
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Delivery</dt>
                 <dd className="tnum">
-                  {fulfilment === "delivery"
-                    ? formatPaise(deliveryPaise)
-                    : "Free"}
+                  {!signedIn || whatsapp
+                    ? `${formatPaise(shippingPaise)}, or free to collect`
+                    : fulfilment === "delivery"
+                      ? formatPaise(deliveryPaise)
+                      : "Free"}
                 </dd>
               </div>
               <div className="flex justify-between border-t border-border pbs-3 text-base font-medium">
@@ -528,7 +469,30 @@ function CheckoutForm() {
                 </dd>
               </div>
             </dl>
-            {whatsapp ? (
+            {totals.blocked ? (
+              <output className="block text-sm text-destructive">
+                {totals.blocked === 1
+                  ? "One set can't be ordered right now. Remove it to go on."
+                  : "Some sets can't be ordered right now. Remove them to go on."}
+              </output>
+            ) : null}
+            {/* Ordering on WhatsApp needs no account; paying here does. */}
+            {!signedIn && !whatsapp ? (
+              <>
+                <ButtonLink
+                  size="lg"
+                  href="/login?next=/checkout"
+                  className="w-full rounded-full"
+                >
+                  <IconLogin2 aria-hidden stroke={1.75} />
+                  Log in to pay
+                </ButtonLink>
+                <FieldDescription className="text-center">
+                  With your phone number and a code; new numbers get an account.
+                  This cart comes with you.
+                </FieldDescription>
+              </>
+            ) : whatsapp ? (
               <>
                 <OrderOnWhatsApp
                   size="lg"
@@ -550,7 +514,7 @@ function CheckoutForm() {
                     requestAnimationFrame(() => window.scrollTo({ top: 0 }))
                   }}
                   onPending={setPending}
-                  disabled={rows.length === 0 || missing.length > 0}
+                  disabled={rows.length === 0 || totals.blocked > 0}
                 />
                 <p
                   id={errorId}
@@ -559,12 +523,12 @@ function CheckoutForm() {
                 >
                   {error}
                 </p>
-                <FieldDescription className="text-center">
-                  UPI, cards or net banking, through Razorpay. Your cart stays
-                  here until the payment goes through.
-                </FieldDescription>
               </>
             )}
+            <SecureCheckout
+              mode={whatsapp ? "whatsapp" : "online"}
+              className="border-t border-border pbs-4"
+            />
           </aside>
         </div>
       )}

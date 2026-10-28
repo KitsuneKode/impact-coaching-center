@@ -7,9 +7,8 @@ import {
 import type { Metadata } from "next"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 
-import { BundleRow } from "@/components/commerce/bundle-row"
+import { SetFinder } from "@/components/commerce/set-finder"
 import { ShopCartButton } from "@/components/commerce/shop-shell"
-import { Reveal } from "@/components/motion/reveal"
 import { JumpChips } from "@/components/site/jump-chips"
 import { PageHead } from "@/components/site/page-head"
 import { StatePanel } from "@/components/ui/page-shell"
@@ -107,30 +106,13 @@ export default async function BooksPage({
       />
 
       {groups.length ? (
-        groups.map(([exam, sets]) => (
-          <section
-            key={exam}
-            id={slugify(exam)}
-            aria-labelledby={`${slugify(exam)}-heading`}
-            className="container-page pbe-16"
-          >
-            <h2
-              id={`${slugify(exam)}-heading`}
-              className="font-display text-xl font-semibold"
-            >
-              {phrase(exam)}
-            </h2>
-            <ul className="mbs-6 grid gap-6">
-              {sets.map((bundle, i) => (
-                <li key={bundle.slug}>
-                  <Reveal delay={i * 0.05}>
-                    <BundleRow bundle={bundle} />
-                  </Reveal>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
+        <SetFinder
+          groups={groups.map(([exam, sets]) => ({
+            id: slugify(exam),
+            label: phrase(exam),
+            bundles: sets,
+          }))}
+        />
       ) : (
         <div className="container-page pbe-20">
           <StatePanel

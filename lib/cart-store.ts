@@ -7,12 +7,11 @@ import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
 import { api } from "@/convex/_generated/api"
-import {
-  BUNDLE_QUANTITY_MAX,
-  type Language,
-  ORDER_SETS_MAX,
-} from "@/lib/catalog"
+import { type Language, LINE_QUANTITY_MAX } from "@/lib/catalog"
 import { useViewer } from "@/hooks/use-viewer"
+
+/** The "added to your cart" toast; the cart sheet dismisses it on opening. */
+export const CART_ADDED_TOAST = "cart-added"
 
 export type CartLine = {
   slug: string
@@ -41,21 +40,19 @@ type CartState = {
   clear: () => void
 }
 
-/** A bulk order is a phone call, not a cart. */
-export const MAX_QUANTITY = BUNDLE_QUANTITY_MAX
+/**
+ * Copies of one set per line. There is no order cap; this only catches a
+ * slipped key (lib/catalog.ts), and convex/carts.ts clamps the same way.
+ */
+export const MAX_QUANTITY = LINE_QUANTITY_MAX
 
-/** Sets the other lines leave room for, under one order's cap. */
-const roomFor = (lines: CartLine[], key: LineKey) =>
-  ORDER_SETS_MAX -
-  lines.filter((l) => !same(l, key)).reduce((n, l) => n + l.quantity, 0)
-
-/** Said once when a change would pass the cap; the cart keeps what fits. */
+/** Said once when a change passes the per-line guard; the line keeps the most. */
 function sayCapReached() {
   const assamese = document.documentElement.lang.startsWith("as")
   toast(
     assamese
-      ? `এটা অৰ্ডাৰত বেছি হ'লে ${ORDER_SETS_MAX}টা ছেট। অধিক লাগিলে ICTলৈ ফোন কৰক।`
-      : `One order holds up to ${ORDER_SETS_MAX} sets. For more, call ICT.`,
+      ? `এটা সংকলন এবাৰত ${MAX_QUANTITY}টালৈকে। ইয়াতকৈ বেছি লাগিলে ICTলৈ ফোন কৰক।`
+      : `Up to ${MAX_QUANTITY} of one set at a time. For more, call ICT.`,
     { id: "cart-cap" }
   )
 }
@@ -74,12 +71,7 @@ export const useCart = create<CartState>()(
         set((state) => {
           const line = state.lines.find((l) => same(l, key))
           const wanted = (line?.quantity ?? 0) + 1
-          const quantity = Math.min(
-            MAX_QUANTITY,
-            wanted,
-            roomFor(state.lines, key)
-          )
-          // Either cap (five of one set, five in the order) says the same.
+          const quantity = Math.min(MAX_QUANTITY, wanted)
           if (quantity < wanted) sayCapReached()
           if (quantity <= 0) return state
           return {
@@ -94,11 +86,7 @@ export const useCart = create<CartState>()(
         set((state) => {
           if (quantity <= 0)
             return { lines: state.lines.filter((l) => !same(l, key)) }
-          const allowed = Math.min(
-            MAX_QUANTITY,
-            quantity,
-            roomFor(state.lines, key)
-          )
+          const allowed = Math.min(MAX_QUANTITY, Math.floor(quantity))
           if (allowed < quantity) sayCapReached()
           if (allowed <= 0) return state
           return {
@@ -242,7 +230,9 @@ export function useCartActions() {
     // A signed-in change is this account's line, never a guest's.
     if (useCart.getState().owner !== viewer.id)
       useCart.setState({ owner: viewer.id })
-    void setLine({ ...key, quantity })
+    /* Only the key's own fields: callers often pass a whole CartLine, and
+       the mutation's validator refuses the extra `at` and `quantity`. */
+    void setLine({ slug: key.slug, language: key.language, quantity })
       .then((result) => {
         if (result.ok) return
         /* Refused, so the server cart - the one checkout orders - did not
@@ -260,7 +250,7 @@ export function useCartActions() {
 
   const { add, setQuantity, remove } = useCart.getState()
   return {
-    /** True when a copy went in; false when a cap kept it out (and said so). */
+    /** True when a copy went in; false when the guard kept it out (and said so). */
     add: (key: LineKey) => {
       const before = quantityOf(key)
       add(key)

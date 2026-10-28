@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server"
 import { Suspense, type ReactNode } from "react"
 
+import { ShopShell } from "@/components/commerce/shop-shell"
 import { InlineScript } from "@/components/site/inline-script"
 import { LivePromos } from "@/components/site/live-promos"
 import { SiteFooter } from "@/components/site/site-footer"
@@ -11,7 +12,8 @@ import { SiteHeader } from "@/components/site/site-header"
 
 /**
  * The public site's frame: skip link, promo strip, header, the live
- * promotions below the page, and the footer.
+ * promotions below the page, and the footer - inside the shop shell, so
+ * the cart sheet opens from the header on any page.
  * Rendered by the language layout and by the English-only (plain) group;
  * /admin sits outside both and gets none of it.
  */
@@ -26,7 +28,7 @@ export async function SiteChrome({
   const t = await getTranslations("Chrome")
   const bars = await liveBars()
   return (
-    <>
+    <ShopShell>
       {/* WCAG 2.4.1: skip the navigation that precedes every page. */}
       <a
         href="#main"
@@ -54,6 +56,6 @@ export async function SiteChrome({
         <LivePromos />
       </div>
       <SiteFooter />
-    </>
+    </ShopShell>
   )
 }

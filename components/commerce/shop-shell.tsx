@@ -10,20 +10,25 @@ import { useCartSync } from "@/lib/cart-store"
 import { useShopMode } from "@/components/commerce/order-on-whatsapp"
 
 const OpenCart = createContext<(() => void) | null>(null)
+/* True until a signed-in shopper's guest cart has been merged. */
+const Synced = createContext(true)
 
-/** Opens the cart sheet from anywhere inside the shop; outside it, null. */
+/** Opens the cart sheet from anywhere on the site; outside the shell, null. */
 export const useOpenCartIfShop = () => useContext(OpenCart)
-/** Opens the cart sheet from anywhere inside the shop. */
+/** Opens the cart sheet from anywhere on the site. */
 export const useOpenCart = () => useContext(OpenCart) ?? (() => {})
+/**
+ * False while a signed-in shopper's guest cart is still being merged into
+ * the server copy - the one checkout pays for - so checkout can wait.
+ */
+export const useCartSynced = () => useContext(Synced)
 
-/* Sign-in merges the browser cart into the Person's server copy and keeps
-   the local store mirroring it. Exists only to own the hook. */
-function CartSync() {
-  useCartSync()
-  return null
-}
-
-/** The cart sheet, reachable from every page under /books. */
+/**
+ * The cart sheet and the cart's sign-in sync, once for the whole public
+ * site (SiteChrome), so the header's cart opens the same sheet on any page
+ * and there is only ever one merge. Changing the sync state re-renders this
+ * shell, not the page: `children` keep their identity.
+ */
 export function ShopShell({ children }: { children: ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false)
   // One function for the life of the shell, so opening the cart does not
@@ -31,14 +36,34 @@ export function ShopShell({ children }: { children: ReactNode }) {
   const [openCart] = useState(() => () => setCartOpen(true))
   return (
     <OpenCart.Provider value={openCart}>
-      {children}
       {convexConfigured ? (
-        <>
-          <CartSync />
-          <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
-        </>
-      ) : null}
+        <SyncedShop open={cartOpen} onOpenChange={setCartOpen}>
+          {children}
+        </SyncedShop>
+      ) : (
+        children
+      )}
     </OpenCart.Provider>
+  )
+}
+
+function SyncedShop({
+  open,
+  onOpenChange,
+  children,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  children: ReactNode
+}) {
+  /* Sign-in merges the browser cart into the Person's server copy and keeps
+     the local store mirroring it. */
+  const { synced } = useCartSync()
+  return (
+    <Synced.Provider value={synced}>
+      {children}
+      <CartSheet open={open} onOpenChange={onOpenChange} />
+    </Synced.Provider>
   )
 }
 

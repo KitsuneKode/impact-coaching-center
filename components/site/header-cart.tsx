@@ -3,34 +3,57 @@
 import { IconShoppingBag } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 
+import { useCartCount } from "@/components/commerce/cart-sheet"
 import { useShopMode } from "@/components/commerce/order-on-whatsapp"
-import { Link } from "@/i18n/navigation"
-import { useCart, useCartHydrated } from "@/lib/cart-store"
+import { useOpenCartIfShop } from "@/components/commerce/shop-shell"
+import { Link, usePathname } from "@/i18n/navigation"
 
 /**
- * The cart in the header, on every page, once it holds something: the way
- * back to checkout from wherever the shopper wandered. Hidden while empty
- * (nothing to go back to) and while sets order on WhatsApp.
+ * The cart in the header, on every page, once it holds something: it opens
+ * the cart sheet in place, so a look at the cart never costs the page the
+ * shopper was on. On checkout, which is the cart, it is not shown twice.
+ * Hidden while empty and while sets order on WhatsApp.
  */
 export function HeaderCart() {
   const t = useTranslations("Shop")
-  const hydrated = useCartHydrated()
-  const count = useCart((s) => s.lines.reduce((n, l) => n + l.quantity, 0))
+  const count = useCartCount()
   const online = useShopMode() === "online"
-  if (!hydrated || count === 0 || !online) return null
-  return (
-    <Link
-      href="/checkout"
-      data-site-cart
-      data-arrive
-      data-press
-      aria-label={t("cartLabel", { count })}
-    >
+  const openCart = useOpenCartIfShop()
+  const onCheckout = usePathname() === "/checkout"
+  if (count === 0 || !online || onCheckout) return null
+  const badge = (
+    <>
       <IconShoppingBag aria-hidden size={19} stroke={1.75} />
       {/* Keyed by the count, so each new item pops the badge. */}
       <span key={count} aria-hidden data-site-cart-count className="tnum">
         {count}
       </span>
-    </Link>
+    </>
+  )
+  // No shell (a bare preview without Convex): the cart page instead.
+  if (!openCart)
+    return (
+      <Link
+        href="/checkout"
+        data-site-cart
+        data-arrive
+        data-press
+        aria-label={t("cartLabel", { count })}
+      >
+        {badge}
+      </Link>
+    )
+  return (
+    <button
+      type="button"
+      onClick={openCart}
+      data-site-cart
+      data-arrive
+      data-press
+      aria-haspopup="dialog"
+      aria-label={t("cartLabel", { count })}
+    >
+      {badge}
+    </button>
   )
 }
