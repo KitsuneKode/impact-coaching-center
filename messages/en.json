@@ -972,7 +972,10 @@
     "free": "Free",
     "save": "Save {amount} · {pct}% off",
     "dayCount": "{count, plural, =0 {No batch in these hours yet: ask ICT, or pick another time} one {# batch in these hours} other {# batches in these hours}}",
-    "seeNamed": "See {name}"
+    "seeNamed": "See {name}",
+    "callBack": "Request a call back",
+    "starts": "Starts {date}",
+    "started": "Started {date}"
   },
   "Teachers": {
     "title": "Teachers",

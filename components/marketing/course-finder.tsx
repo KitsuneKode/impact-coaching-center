@@ -8,13 +8,15 @@ import {
   IconCheck,
   IconClock,
   IconCompass,
+  IconPhoneCall,
   IconRefresh,
   IconX,
 } from "@tabler/icons-react"
 import { AnimatePresence, m, useReducedMotion } from "motion/react"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react"
 
+import { LeadForm } from "@/components/marketing/lead-form"
 import { DialogClose, DialogTitle } from "@/components/ui/dialog"
 import { Link } from "@/i18n/navigation"
 import { contactHref } from "@/lib/contact"
@@ -56,6 +58,7 @@ const KEYS = "ABCD"
 export function CourseFinder({
   courses,
   exams,
+  today,
   day = [],
   total,
   answers,
@@ -85,6 +88,8 @@ export function CourseFinder({
     STEPS.every(({ key }) => answers[key]) ? STEPS.length : 0
   )
   const [direction, setDirection] = useState(1)
+  // The result's call-back form, open once asked for.
+  const [asking, setAsking] = useState(false)
   const done = step === STEPS.length
 
   /* The card's height follows its content, measured, so it can glide. */
@@ -252,6 +257,7 @@ export function CourseFinder({
                   <div className="mbs-5 grid grid-cols-[minmax(0,1fr)] gap-4">
                     <FitCard
                       pick={best}
+                      today={today}
                       reason={(r) => t(`why.${r}`, { exam: examLabel ?? "" })}
                       appNote={answers.mode === "app" ? t("appNote") : null}
                     />
@@ -310,7 +316,18 @@ export function CourseFinder({
                     type="button"
                     data-finder-ghost
                     data-press
+                    aria-expanded={asking}
+                    onClick={() => setAsking((open) => !open)}
+                  >
+                    <IconPhoneCall aria-hidden size={18} stroke={1.75} />
+                    {t("callBack")}
+                  </button>
+                  <button
+                    type="button"
+                    data-finder-ghost
+                    data-press
                     onClick={() => {
+                      setAsking(false)
                       onAnswers({})
                       go(0)
                     }}
@@ -319,6 +336,19 @@ export function CourseFinder({
                     {t("again")}
                   </button>
                 </div>
+
+                {asking ? (
+                  <div className="mbs-6 rounded-[22px] bg-secondary p-5">
+                    <LeadForm
+                      bare
+                      defaultTrack={
+                        answers.exam && answers.exam !== "unsure"
+                          ? examOf[answers.exam]
+                          : undefined
+                      }
+                    />
+                  </div>
+                ) : null}
 
                 {total ? (
                   <button
@@ -621,16 +651,29 @@ function Price({ course, large }: { course: Course; large?: boolean }) {
 }
 
 /** The best fit: what it is, when it runs, what it costs, and why it came up. */
+/** "2026-11-02" (IST) as "2 Nov" in the page's language. */
+function dayMonth(iso: string, locale: string) {
+  return new Date(`${iso}T00:00:00+05:30`).toLocaleDateString(
+    locale === "as" ? "as-IN-u-nu-latn" : "en-IN",
+    { timeZone: "Asia/Kolkata", day: "numeric", month: "short" }
+  )
+}
+
 function FitCard({
   pick,
+  today,
   reason,
   appNote,
 }: {
   pick: FinderPick
+  today: string
   reason: (reason: FinderPick["reasons"][number]) => string
   appNote: string | null
 }) {
+  const t = useTranslations("Finder")
+  const locale = useLocale()
   const course = pick.course as Course
+  const starts = course.batchStarts
   return (
     <div
       data-finder-fit
@@ -646,10 +689,21 @@ function FitCard({
               {course.subtitle}
             </p>
           ) : null}
-          {course.timing ? (
-            <p className="mbs-3 inline-flex items-center gap-1.5 rounded-full bg-card ps-3 pe-3 pbs-1 pbe-1 text-sm font-medium">
-              <IconClock aria-hidden size={15} stroke={1.75} />
-              {course.timing}
+          {course.timing || starts ? (
+            <p className="mbs-3 flex flex-wrap gap-2">
+              {course.timing ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-card ps-3 pe-3 pbs-1 pbe-1 text-sm font-medium">
+                  <IconClock aria-hidden size={15} stroke={1.75} />
+                  {course.timing}
+                </span>
+              ) : null}
+              {starts ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-card ps-3 pe-3 pbs-1 pbe-1 text-sm font-medium">
+                  {starts <= today
+                    ? t("started", { date: dayMonth(starts, locale) })
+                    : t("starts", { date: dayMonth(starts, locale) })}
+                </span>
+              ) : null}
             </p>
           ) : null}
         </div>

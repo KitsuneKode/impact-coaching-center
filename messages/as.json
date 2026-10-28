@@ -1172,7 +1172,10 @@
     "free": "বিনামূলীয়া",
     "save": "{amount} ৰাহি · {pct}% কম",
     "dayCount": "{count, plural, =0 {এই সময়ত এতিয়াও কোনো বেচ নাই: ICTক সোধক, বা আন সময় বাছক} other {এই সময়ত {count}টা বেচ}}",
-    "seeNamed": "{name} চাওক"
+    "seeNamed": "{name} চাওক",
+    "callBack": "কল বেকৰ অনুৰোধ কৰক",
+    "starts": "{date}ৰ পৰা আৰম্ভ",
+    "started": "{date}ত আৰম্ভ হৈছে"
   },
   "Teachers": {
     "title": "শিক্ষকসকল",
