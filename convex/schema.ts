@@ -147,9 +147,19 @@ export const ORDER_LINE = v.object({
 export const ADDRESS = v.object({
   line1: v.string(),
   line2: v.optional(v.string()),
+  /** "Near the Namghar": how a courier finds a house without a number. */
+  landmark: v.optional(v.string()),
   city: v.string(),
+  /** Required at checkout; optional here for orders placed before it was. */
   district: v.optional(v.string()),
   pin: v.string(),
+})
+
+/** Who an order is for; the courier rings `courierPhone` when it is set. */
+export const CONTACT = v.object({
+  name: v.string(),
+  phone: v.string(),
+  courierPhone: v.optional(v.string()),
 })
 
 export const COURIER = v.object({
@@ -221,6 +231,10 @@ export default defineSchema({
         version (lib/terms.ts) they agreed to. */
     termsAcceptedAt: v.optional(v.number()),
     termsVersion: v.optional(v.string()),
+    /** The address and courier number they asked checkout to remember. */
+    savedDelivery: v.optional(
+      v.object({ address: ADDRESS, courierPhone: v.optional(v.string()) })
+    ),
     /** First way we heard of them, e.g. "website" or "staff_walk_in". */
     source: v.string(),
     /** Absent until they show intent: a reader is not a lead. */
@@ -537,12 +551,14 @@ export default defineSchema({
     personId: v.id("persons"),
     status: CHECKOUT_STATUS,
     fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
-    contact: v.object({ name: v.string(), phone: v.string() }),
+    contact: CONTACT,
     lines: v.array(ORDER_LINE),
     itemsPaise: v.number(),
     deliveryPaise: v.number(),
     totalPaise: v.number(),
     address: v.optional(ADDRESS),
+    /** For collection: which centre (lib/brand.ts `centres`). */
+    pickupCentre: v.optional(v.string()),
     /** What was priced, so an unchanged cart reuses this attempt. */
     signature: v.string(),
     gatewayOrderId: v.optional(v.string()),
@@ -566,13 +582,15 @@ export default defineSchema({
     /** Every status it has had, oldest first; a handful at most. */
     history: v.array(ORDER_STEP),
     fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
-    contact: v.object({ name: v.string(), phone: v.string() }),
+    contact: CONTACT,
     lines: v.array(ORDER_LINE),
     itemsPaise: v.number(),
     deliveryPaise: v.number(),
     totalPaise: v.number(),
     /** Where this parcel went; a Person who moves must not rewrite it. */
     address: v.optional(ADDRESS),
+    /** For collection: which centre (lib/brand.ts `centres`). */
+    pickupCentre: v.optional(v.string()),
     courier: v.optional(COURIER),
     checkoutId: v.id("checkouts"),
     payment: v.object({

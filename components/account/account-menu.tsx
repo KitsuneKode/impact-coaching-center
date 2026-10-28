@@ -109,7 +109,7 @@ function Menu({ className, variant = "text" }: Props) {
         className={`relative inline-flex size-10 items-center justify-center rounded-full transition-colors after:absolute after:-inset-0.5 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
       >
         <Avatar className="size-8">
-          <AvatarFallback className="text-xs">
+          <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
             {mark ?? <IconUser stroke={1.75} className="size-4" />}
           </AvatarFallback>
         </Avatar>

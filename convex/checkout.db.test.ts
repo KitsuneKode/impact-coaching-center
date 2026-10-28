@@ -109,6 +109,7 @@ async function cart(t: T, personId: Id<"persons">, lines: CartLine[]) {
 const ADDRESS = {
   line1: "House 12, GS Road",
   city: "Guwahati",
+  district: "Kamrup Metropolitan",
   pin: "781005",
 }
 const SHIPPING = DEFAULT_SETTINGS.shippingPaise
@@ -238,6 +239,7 @@ describe("beginCheckout", () => {
       { ...ADDRESS, pin: "78100" },
       { ...ADDRESS, line1: "   " },
       { ...ADDRESS, city: "" },
+      { ...ADDRESS, district: " " },
     ])
       expect(await begin(t, buyer, "delivery", address)).toEqual({
         ok: false,
@@ -245,6 +247,75 @@ describe("beginCheckout", () => {
         field: "address",
       })
     expect(await checkoutsOf(t)).toHaveLength(0)
+  })
+
+  test("a courier number must be a mobile; the account's own is not repeated", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await bundle(t, "apsc-set")
+    await cart(t, buyer.id, [line("apsc-set")])
+    const run = (courierPhone: string) =>
+      t.run((ctx) =>
+        beginCheckoutAs(ctx, buyer, {
+          fulfilment: "delivery",
+          address: ADDRESS,
+          courierPhone,
+        })
+      )
+
+    expect(await run("12345")).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "courier-phone",
+    })
+    expect(await run("98765 43210")).toMatchObject({ ok: true })
+    expect((await checkoutsOf(t))[0]!.contact.courierPhone).toBeUndefined()
+    expect(await run("91234 56789")).toMatchObject({ ok: true })
+    const latest = (await checkoutsOf(t)).find((c) => c.status === "open")!
+    expect(latest.contact.courierPhone).toBe("+919123456789")
+  })
+
+  test("collection is at a centre with an address, the main one by default", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await bundle(t, "apsc-set")
+    await cart(t, buyer.id, [line("apsc-set")])
+    const run = (centre?: string) =>
+      t.run((ctx) =>
+        beginCheckoutAs(ctx, buyer, { fulfilment: "collection", centre })
+      )
+
+    // Dhemaji has no address on file yet; nowhere is not a centre.
+    for (const centre of ["dhemaji", "nowhere"])
+      expect(await run(centre)).toEqual({
+        ok: false,
+        reason: "invalid-input",
+        field: "centre",
+      })
+    expect(await run()).toMatchObject({ ok: true })
+    expect((await checkoutsOf(t))[0]!.pickupCentre).toBe("north-lakhimpur")
+  })
+
+  test("the address is remembered only when asked", async () => {
+    const t = convexTest(schema, modules)
+    const buyer = (await viewer(t, "+919876543210"))!
+    await bundle(t, "apsc-set")
+    await cart(t, buyer.id, [line("apsc-set")])
+    const saved = () =>
+      t.run(async (ctx) => (await ctx.db.get(buyer.id))?.savedDelivery)
+
+    await begin(t, buyer, "delivery", ADDRESS)
+    expect(await saved()).toBeNull()
+    await t.run((ctx) =>
+      beginCheckoutAs(ctx, buyer, {
+        fulfilment: "delivery",
+        address: { ...ADDRESS, landmark: "Near the Namghar" },
+        saveAddress: true,
+      })
+    )
+    expect(await saved()).toEqual({
+      address: { ...ADDRESS, landmark: "Near the Namghar" },
+    })
   })
 
   test("unknown, unpublished, demo and switched-off sets cannot be bought", async () => {

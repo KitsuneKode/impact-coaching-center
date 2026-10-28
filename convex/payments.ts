@@ -503,6 +503,7 @@ export async function settleCheckout(
     deliveryPaise: checkout.deliveryPaise,
     totalPaise: checkout.totalPaise,
     address: checkout.address,
+    pickupCentre: checkout.pickupCentre,
     checkoutId: checkout._id,
     payment: {
       razorpayOrderId: args.gatewayOrderId,

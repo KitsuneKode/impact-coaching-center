@@ -3,7 +3,9 @@ import { v } from "convex/values"
 import { invalidInput, REFUSAL, viewerPerson, type Viewer } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
+import { centres } from "../lib/brand"
 import { deliversTo, ORDER_SETS_MAX } from "../lib/catalog"
+import { toE164 } from "../lib/leads"
 import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
 import { readSettings } from "./settings"
@@ -28,29 +30,43 @@ function cleanAddressField(value: string | undefined, max: number) {
   return clean
 }
 
-function validateAddress(address: {
+type AddressInput = {
   line1: string
   line2?: string
+  landmark?: string
   city: string
   district?: string
   pin: string
-}) {
+}
+
+function validateAddress(address: AddressInput) {
   if ((address.line2?.trim().length ?? 0) > 200) return null
-  if ((address.district?.trim().length ?? 0) > 100) return null
+  if ((address.landmark?.trim().length ?? 0) > 120) return null
   const line1 = cleanAddressField(address.line1, 200)
   const city = cleanAddressField(address.city, 100)
+  // A courier sorts by district: it is asked for, not optional.
+  const district = cleanAddressField(address.district, 100)
   const line2 = cleanAddressField(address.line2, 200) ?? undefined
-  const district = cleanAddressField(address.district, 100) ?? undefined
+  const landmark = cleanAddressField(address.landmark, 120) ?? undefined
   const pin = address.pin.trim()
-  if (!line1 || !city) return null
+  if (!line1 || !city || !district) return null
   if (!/^\d{6}$/.test(pin)) return null
-  return { line1, line2, city, district, pin }
+  return { line1, line2, landmark, city, district, pin }
 }
+
+/** Centres that can hand over an order: the ones with an address. */
+const PICKUP_CENTRES = centres.filter((c) => c.at).map((c) => c.id)
 
 export const beginCheckout = mutation({
   args: {
     fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
     address: v.optional(ADDRESS),
+    /** A number for the courier, when not the account's own. */
+    courierPhone: v.optional(v.string()),
+    /** Collection only: which centre. */
+    centre: v.optional(v.string()),
+    /** Remember the address and courier number for next time. */
+    saveAddress: v.optional(v.boolean()),
   },
   returns: v.union(
     v.object({
@@ -73,17 +89,26 @@ export async function beginCheckoutAs(
   viewer: Viewer,
   args: {
     fulfilment: "delivery" | "collection"
-    address?: {
-      line1: string
-      line2?: string
-      city: string
-      district?: string
-      pin: string
-    }
+    address?: AddressInput
+    courierPhone?: string
+    centre?: string
+    saveAddress?: boolean
   }
 ) {
   if (args.fulfilment === "collection" && args.address !== undefined)
     return invalidInput("address")
+  const pickupCentre =
+    args.fulfilment === "collection"
+      ? (args.centre ?? PICKUP_CENTRES[0])
+      : undefined
+  if (pickupCentre !== undefined && !PICKUP_CENTRES.includes(pickupCentre))
+    return invalidInput("centre")
+  let courierPhone: string | undefined
+  if (args.fulfilment === "delivery" && args.courierPhone?.trim()) {
+    const e164 = toE164(args.courierPhone)
+    if (!e164) return invalidInput("courier-phone")
+    courierPhone = e164
+  }
   const address =
     args.fulfilment === "delivery" && args.address
       ? (validateAddress(args.address) ?? undefined)
@@ -145,10 +170,22 @@ export async function beginCheckoutAs(
   const deliveryPaise =
     args.fulfilment === "delivery" ? settings.shippingPaise : 0
   const totalPaise = itemsPaise + deliveryPaise
-  const contact = { name: person.name.trim(), phone: person.phone }
+  const contact = {
+    name: person.name.trim(),
+    phone: person.phone,
+    ...(courierPhone && courierPhone !== person.phone ? { courierPhone } : {}),
+  }
+  const now = Date.now()
+  // Asked to remember it: saved now, paid for or not, as they typed it.
+  if (args.saveAddress && address)
+    await ctx.db.patch(person._id, {
+      savedDelivery: { address, courierPhone: contact.courierPhone },
+      updatedAt: now,
+    })
   const signature = JSON.stringify([
     args.fulfilment,
     address ?? null,
+    pickupCentre ?? null,
     contact,
     lines.map((l) => [l.bundleId, l.language, l.quantity, l.unitPaise]),
     deliveryPaise,
@@ -157,7 +194,6 @@ export async function beginCheckoutAs(
   /* Pressing Pay again on the same cart (a closed window, a declined card,
      a second tab) reuses the attempt and its Razorpay order, whose amount
      cannot change. Anything else replaces it. */
-  const now = Date.now()
   const open = await ctx.db
     .query("checkouts")
     .withIndex("by_personId_and_status", (q) =>
@@ -198,6 +234,7 @@ export async function beginCheckoutAs(
     deliveryPaise,
     totalPaise,
     address,
+    pickupCentre,
     signature,
     updatedAt: now,
   })
@@ -258,3 +295,18 @@ export async function removePurchased(
   })
   await ctx.db.patch(cart._id, { lines, updatedAt: Date.now() })
 }
+
+/** What checkout remembered for the viewer, to fill the form again. */
+export const savedDelivery = query({
+  args: {},
+  returns: v.union(
+    v.null(),
+    v.object({ address: ADDRESS, courierPhone: v.optional(v.string()) })
+  ),
+  handler: async (ctx) => {
+    const viewer = await viewerPerson(ctx)
+    if (!viewer.ok) return null
+    const person = await ctx.db.get(viewer.value.id)
+    return person?.savedDelivery ?? null
+  },
+})

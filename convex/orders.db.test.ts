@@ -96,7 +96,12 @@ async function order(
     const contact = { name: "Test Person", phone: "+919876543211" }
     const address =
       fulfilment === "delivery"
-        ? { line1: "House 1", city: "North Lakhimpur", pin: "787001" }
+        ? {
+            line1: "House 1",
+            city: "North Lakhimpur",
+            district: "Lakhimpur",
+            pin: "787001",
+          }
         : undefined
     const checkoutId = await ctx.db.insert("checkouts", {
       personId,

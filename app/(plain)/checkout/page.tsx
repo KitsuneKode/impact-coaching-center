@@ -18,14 +18,14 @@ import {
   useShopMode,
 } from "@/components/commerce/order-on-whatsapp"
 import { Button, ButtonLink } from "@/components/ui/button"
+import { FieldDescription } from "@/components/ui/field"
 import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+  checkDelivery,
+  DELIVERY_FIELDS,
+  DeliveryAddress,
+  type Delivery,
+  type DeliveryField,
+} from "@/components/commerce/delivery-address"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import { track } from "@/lib/analytics"
@@ -35,13 +35,13 @@ import {
   useCartHydrated,
   useCartSync,
 } from "@/lib/cart-store"
-import { deliversTo, inLanguage, ORDER_SETS_MAX } from "@/lib/catalog"
+import { inLanguage, ORDER_SETS_MAX } from "@/lib/catalog"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
 import { PayButton, type Paid } from "@/components/commerce/pay-order"
 import { Spinner } from "@/components/ui/spinner"
 import type { Id } from "@/convex/_generated/dataModel"
-import { place } from "@/lib/brand"
+import { centres, formatPhone, place } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 import { useViewer } from "@/hooks/use-viewer"
 
@@ -51,10 +51,6 @@ import { useViewer } from "@/hooks/use-viewer"
  * and only a captured payment makes an order. Until then the cart is the
  * cart: closing the payment window loses nothing.
  */
-type AddressField = "line1" | "city" | "pin"
-/** In the order they appear, so focus lands on the first one to fix. */
-const ADDRESS_FIELDS: AddressField[] = ["line1", "city", "pin"]
-
 /** What each server refusal means for the buyer, and what to do. */
 const REFUSED_FIELD: Record<string, string> = {
   items:
@@ -62,7 +58,10 @@ const REFUSED_FIELD: Record<string, string> = {
   cart: "Your cart is empty.",
   "pin-area":
     "We deliver within Assam only (PIN codes starting 78). Choose collection at the centre, or call ICT.",
-  address: "Check the address: house and street, town, and a 6-digit PIN.",
+  address:
+    "Check the address: PIN code, district, town, and the house and street.",
+  "courier-phone": "Check the courier's number: 10 digits, like 98765 43210.",
+  centre: "Choose a centre to collect from.",
   quantity: `One order holds up to ${ORDER_SETS_MAX} sets. Remove some, or call ICT for more.`,
   name: "Add your name in your account before ordering.",
 }
@@ -140,16 +139,42 @@ function CheckoutForm() {
   const [fulfilment, setFulfilment] = useState<"delivery" | "collection">(
     "delivery"
   )
-  const [address, setAddress] = useState({
+  const viewer = useViewer()
+  const saved = useQuery(api.checkout.savedDelivery)
+  const [address, setAddress] = useState<Delivery>({
+    pin: "",
+    district: "",
+    city: "",
     line1: "",
     line2: "",
-    city: "",
-    district: "",
-    pin: "",
+    landmark: "",
+    courierPhone: "",
   })
+  const [saveAddress, setSaveAddress] = useState(true)
+  const [centre, setCentre] = useState(centres[0]!.id)
+  // Once: the remembered address, or at least the buyer's own number.
+  const [prefilled, setPrefilled] = useState(false)
+  if (!prefilled && saved !== undefined && viewer !== undefined) {
+    setPrefilled(true)
+    const own = viewer?.phone ? formatPhone(viewer.phone) : ""
+    setAddress((a) => ({
+      ...a,
+      ...(saved
+        ? {
+            pin: saved.address.pin,
+            district: saved.address.district ?? "",
+            city: saved.address.city,
+            line1: saved.address.line1,
+            line2: saved.address.line2 ?? "",
+            landmark: saved.address.landmark ?? "",
+          }
+        : {}),
+      courierPhone: saved?.courierPhone ? formatPhone(saved.courierPhone) : own,
+    }))
+  }
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<AddressField, string>>
+    Partial<Record<DeliveryField, string>>
   >({})
   const [paid, setPaid] = useState<Paid | null>(null)
   const whatsapp = useShopMode() === "whatsapp"
@@ -176,28 +201,10 @@ function CheckoutForm() {
   )
   const deliveryPaise = fulfilment === "delivery" ? shippingPaise : 0
 
-  const set =
-    (field: keyof typeof address) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value =
-        field === "pin"
-          ? e.target.value.replace(/\D/g, "").slice(0, 6)
-          : e.target.value
-      setAddress((a) => ({ ...a, [field]: value }))
-      setFieldErrors((errors) => ({ ...errors, [field]: undefined }))
-    }
-
-  /** Checked here first, so the buyer fixes it in place, not after a round trip. */
   const checkAddress = () => {
-    const errors: Partial<Record<AddressField, string>> = {}
-    if (!address.line1.trim()) errors.line1 = "Add the house number and street."
-    if (!address.city.trim()) errors.city = "Add the town or city."
-    if (!/^\d{6}$/.test(address.pin)) errors.pin = "A PIN code is 6 digits."
-    else if (!deliversTo(address.pin))
-      errors.pin =
-        "We deliver within Assam only (PIN codes starting 78). Choose collection, or call ICT."
+    const errors = checkDelivery(address)
     setFieldErrors(errors)
-    const first = ADDRESS_FIELDS.find((field) => errors[field])
+    const first = DELIVERY_FIELDS.find((field) => errors[field])
     if (first) document.getElementById(first)?.focus()
     return !first
   }
@@ -210,18 +217,24 @@ function CheckoutForm() {
     if (fulfilment === "delivery" && !checkAddress()) return null
     try {
       track({ name: "checkout_started", lines: rows.length })
+      const delivery = fulfilment === "delivery"
       const result = await beginCheckout({
         fulfilment,
-        address:
-          fulfilment === "delivery"
-            ? {
-                line1: address.line1,
-                line2: address.line2 || undefined,
-                city: address.city,
-                district: address.district || undefined,
-                pin: address.pin,
-              }
-            : undefined,
+        address: delivery
+          ? {
+              line1: address.line1,
+              line2: address.line2.trim() || undefined,
+              landmark: address.landmark.trim() || undefined,
+              city: address.city,
+              district: address.district,
+              pin: address.pin,
+            }
+          : undefined,
+        courierPhone: delivery
+          ? address.courierPhone.trim() || undefined
+          : undefined,
+        centre: delivery ? undefined : centre,
+        saveAddress: delivery ? saveAddress : undefined,
       })
       if (!result.ok) {
         setError(
@@ -405,111 +418,89 @@ function CheckoutForm() {
             </fieldset>
 
             {fulfilment === "collection" ? (
-              <p className="text-sm text-muted-foreground">
-                Collect at Impact Career Tutorials, {place.street}, {place.city}
-                , {place.region} <span className="tnum">{place.pin}</span>. Your
-                account shows when it&rsquo;s ready to collect.{" "}
-                <a
-                  href={place.maps}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="link"
-                >
-                  Open in Maps
-                </a>
-              </p>
+              <fieldset className="grid gap-3">
+                <legend className="mbe-3 text-sm font-medium">
+                  Collect from
+                </legend>
+                {centres.map((c) => (
+                  <label
+                    key={c.id}
+                    className={cn(
+                      "flex items-start gap-3 rounded-[20px] p-4 transition-[background-color,box-shadow] duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring",
+                      !c.at
+                        ? "cursor-not-allowed bg-secondary/60 text-muted-foreground"
+                        : centre === c.id
+                          ? "cursor-pointer bg-card shadow-[inset_0_0_0_2px_var(--primary)]"
+                          : "cursor-pointer bg-secondary hover:bg-secondary/70"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="centre"
+                      value={c.id}
+                      checked={centre === c.id}
+                      disabled={!c.at}
+                      onChange={() => setCentre(c.id)}
+                      className="mbs-1 size-4 accent-primary"
+                    />
+                    <span className="min-w-0 font-medium">
+                      {c.town} centre
+                      <span className="block text-sm font-normal text-muted-foreground">
+                        {c.at ? (
+                          <>
+                            {c.at.street}, {c.town}{" "}
+                            <span className="tnum">{c.at.pin}</span>.{" "}
+                            <a
+                              href={c.at.maps}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="link"
+                            >
+                              Open in Maps
+                            </a>
+                          </>
+                        ) : (
+                          "Collection opens here once the centre's address is set."
+                        )}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+                <p className="text-sm text-muted-foreground">
+                  Your account shows when it&rsquo;s ready to collect. Bring the
+                  order number.
+                </p>
+              </fieldset>
             ) : null}
 
             {fulfilment === "delivery" && (
-              <FieldGroup>
-                <Field data-invalid={Boolean(fieldErrors.line1)}>
-                  <FieldLabel htmlFor="line1">Address</FieldLabel>
-                  <Input
-                    id="line1"
-                    autoComplete="address-line1"
-                    value={address.line1}
-                    onChange={set("line1")}
-                    required
-                    aria-invalid={Boolean(fieldErrors.line1)}
-                    aria-describedby={
-                      fieldErrors.line1 ? "line1-error" : undefined
-                    }
+              <>
+                <DeliveryAddress
+                  value={address}
+                  errors={fieldErrors}
+                  onChange={(next, field) => {
+                    setAddress((a) => ({ ...a, ...next }))
+                    setFieldErrors((errors) => ({
+                      ...errors,
+                      [field]: undefined,
+                    }))
+                  }}
+                />
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={saveAddress}
+                    onChange={(e) => setSaveAddress(e.target.checked)}
+                    className="mbs-0.5 size-4 accent-primary"
                   />
-                  {fieldErrors.line1 ? (
-                    <FieldError id="line1-error">
-                      {fieldErrors.line1}
-                    </FieldError>
-                  ) : null}
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="line2">
-                    Landmark or street{" "}
-                    <span className="font-normal">(optional)</span>
-                  </FieldLabel>
-                  <Input
-                    id="line2"
-                    autoComplete="address-line2"
-                    value={address.line2}
-                    onChange={set("line2")}
-                  />
-                </Field>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field data-invalid={Boolean(fieldErrors.city)}>
-                    <FieldLabel htmlFor="city">Town or city</FieldLabel>
-                    <Input
-                      id="city"
-                      autoComplete="address-level2"
-                      value={address.city}
-                      onChange={set("city")}
-                      required
-                      aria-invalid={Boolean(fieldErrors.city)}
-                      aria-describedby={
-                        fieldErrors.city ? "city-error" : undefined
-                      }
-                    />
-                    {fieldErrors.city ? (
-                      <FieldError id="city-error">
-                        {fieldErrors.city}
-                      </FieldError>
-                    ) : null}
-                  </Field>
-                  <Field data-invalid={Boolean(fieldErrors.pin)}>
-                    <FieldLabel htmlFor="pin">PIN code</FieldLabel>
-                    <Input
-                      id="pin"
-                      autoComplete="postal-code"
-                      inputMode="numeric"
-                      pattern="\d{6}"
-                      maxLength={6}
-                      value={address.pin}
-                      onChange={set("pin")}
-                      required
-                      aria-invalid={Boolean(fieldErrors.pin)}
-                      aria-describedby={
-                        fieldErrors.pin ? "pin-error" : "pin-hint"
-                      }
-                    />
-                    {fieldErrors.pin ? (
-                      <FieldError id="pin-error">{fieldErrors.pin}</FieldError>
-                    ) : (
-                      <FieldDescription id="pin-hint">
-                        We deliver within Assam.
-                      </FieldDescription>
-                    )}
-                  </Field>
-                </div>
-                <Field>
-                  <FieldLabel htmlFor="district">
-                    District <span className="font-normal">(optional)</span>
-                  </FieldLabel>
-                  <Input
-                    id="district"
-                    autoComplete="address-level3"
-                    value={address.district}
-                    onChange={set("district")}
-                  />
-                </Field>
-              </FieldGroup>
+                  <span>
+                    Save this address for my next order
+                    <span className="block text-muted-foreground">
+                      Kept in your account; you can change it at checkout.
+                    </span>
+                  </span>
+                </label>
+              </>
             )}
           </div>
 
