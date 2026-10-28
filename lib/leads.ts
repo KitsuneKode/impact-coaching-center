@@ -43,6 +43,15 @@ export type ParseResult =
 const MOBILE = /^(?:\+?91)?0?([6-9]\d{9})$/
 
 /**
+ * Numbers nobody answers: the form's own placeholder, or two digits at most
+ * (9999999999, 9898989898). Typed to get past the form, never a person.
+ */
+export function unownedNumber(e164: string) {
+  const national = e164.slice(-10)
+  return national === "9876543210" || new Set(national).size <= 2
+}
+
+/**
  * Digits a mobile field is allowed to show: ten, national, nothing else.
  *
  * A pasted country code or trunk zero is unwrapped first. Anything past ten
@@ -67,10 +76,30 @@ export function toE164(input: string): E164 | null {
   return match ? (`+91${match[1]}` as E164) : null
 }
 
+/*
+ * A few digits of a number have no index to answer them, so the inbox walks
+ * the newest enquiries looking for them. Both bounds are stated in the inbox
+ * so a miss is never mistaken for "nobody has this number".
+ */
+/** Fewer digits than this match too many phones to be a lookup. */
+export const PHONE_FRAGMENT_MIN = 4
+/** Enquiries a fragment search reads at most, newest first. */
+export const FRAGMENT_SCAN_ROWS = 2000
+/** Matches a fragment search returns at most, in one page. */
+export const FRAGMENT_MATCHES_MAX = 50
+
+/** The digits of a search that is part of a number, or null. */
+export function phoneFragment(search: string): string | null {
+  const trimmed = search.trim()
+  if (!trimmed || /\p{L}/u.test(trimmed) || toE164(trimmed)) return null
+  const digits = trimmed.replace(/\D/g, "")
+  return digits.length >= PHONE_FRAGMENT_MIN ? digits : null
+}
+
 export function parseLead(input: Record<string, string>): ParseResult {
   const name = (input.name ?? "").trim()
   // Trimmed like the name: a pasted value with a trailing space otherwise
-  // fails with "Please pick an exam." after the user did pick one.
+  // fails with "Pick an exam." after the user did pick one.
   const track = (input.track ?? "").trim()
   const timing = (input.timing ?? "").trim()
   const phone = toE164(input.phone ?? "")
@@ -82,13 +111,15 @@ export function parseLead(input: Record<string, string>): ParseResult {
     errors.name = "Name must be 80 characters or fewer."
   }
   if (!phone) {
-    errors.phone = "Please enter a 10 digit mobile number."
+    errors.phone = "Enter a 10-digit mobile number."
+  } else if (unownedNumber(phone)) {
+    errors.phone = "Enter your own mobile number, so ICT can call you back."
   }
   if (!enquiryTracks.includes(track as (typeof enquiryTracks)[number])) {
-    errors.track = "Please pick an exam."
+    errors.track = "Pick an exam."
   }
   if (!enquiryTimings.includes(timing as (typeof enquiryTimings)[number])) {
-    errors.timing = "Please pick a time of day."
+    errors.timing = "Pick a time of day."
   }
 
   // `!phone` is not redundant with the error check: it is what narrows
@@ -102,8 +133,16 @@ export function parseLead(input: Record<string, string>): ParseResult {
 }
 
 /** Where a parsed Lead goes. */
+/** Where an enquiry came from: the page and the visit's first source. */
+export type LeadSource = {
+  page?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+}
+
 export interface LeadSink {
-  submit(lead: Lead): Promise<void>
+  submit(lead: Lead, source?: LeadSource): Promise<void>
 }
 
 /**

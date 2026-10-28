@@ -5,7 +5,9 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import { useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
+import { ConfirmAction } from "@/components/admin/confirm-action"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
   Field,
@@ -22,15 +24,8 @@ import {
 } from "@/components/ui/input-group"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { Spinner } from "@/components/ui/spinner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { api } from "@/convex/_generated/api"
+import { GRANT_LABELS, GRANTS } from "@/lib/grants"
 import { formatPhone } from "@/lib/brand"
 import { nationalMobileDraft, toE164 } from "@/lib/leads"
 
@@ -66,10 +61,12 @@ function People() {
 
   const grant = useMutation(api.people.grantStaffByPhone)
   const setRole = useMutation(api.people.setRole)
+  const setGrants = useMutation(api.people.setGrants)
 
   const [phone, setPhone] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [removing, setRemoving] = useState<(typeof admins)[number] | null>(null)
 
   if (allowed === undefined || status === "LoadingFirstPage")
     return (
@@ -138,8 +135,8 @@ function People() {
           <Field data-invalid={error ? true : undefined}>
             <FieldLabel htmlFor="grant-phone">Give staff access</FieldLabel>
             <InputGroup>
-              <InputGroupAddon className="pl-3.5">
-                <InputGroupText className="tnum border-r border-border pr-3 text-[0.9375rem] text-foreground">
+              <InputGroupAddon className="ps-3.5">
+                <InputGroupText className="tnum border-r border-border pe-3 text-[0.9375rem] text-foreground">
                   +91
                 </InputGroupText>
               </InputGroupAddon>
@@ -176,67 +173,88 @@ function People() {
         </FieldGroup>
       </form>
 
-      <div className="mt-12 overflow-x-auto">
-        <Table className="min-w-160">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Mobile</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Access</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {admins.map((person) => (
-              <TableRow key={person.id}>
-                <TableCell>
+      {/* One card per person: who they are, what they can open, and the one
+          action. Reads the same on a phone and a desk. */}
+      <ul className="mbs-12 grid gap-3 md:grid-cols-2">
+        {admins.map((person) => (
+          <li
+            key={person.id}
+            className="grid content-start gap-4 rounded-card border border-border bg-card p-4 md:p-5"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="grid min-w-0">
+                <span className="font-medium">
                   {person.name || (
-                    <span className="text-muted-foreground">Not given</span>
+                    <span className="text-muted-foreground">
+                      Name not given
+                    </span>
                   )}
-                </TableCell>
-                <TableCell className="tnum">
+                </span>
+                <span className="tnum text-sm text-muted-foreground">
                   {formatPhone(person.phone)}
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={person.role === "owner" ? "solid" : "neutral"}
+                </span>
+              </div>
+              <Badge variant={person.role === "owner" ? "solid" : "neutral"}>
+                {person.role === "owner" ? "Owner" : "Staff"}
+              </Badge>
+            </div>
+            {person.role === "owner" ? (
+              <p className="text-sm text-muted-foreground">
+                Can open everything, including this page.
+              </p>
+            ) : (
+              <fieldset className="grid gap-2">
+                <legend className="mbe-2 text-xs text-muted-foreground">
+                  Enquiries and orders, plus:
+                </legend>
+                {GRANTS.map((grant) => (
+                  <label
+                    key={grant}
+                    className="flex min-h-8 items-center gap-2.5 text-sm"
                   >
-                    {person.role === "owner" ? "Owner" : "Staff"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={async () => {
-                      setError(null)
-                      try {
-                        const result = await setRole({
-                          personId: person.id as never,
-                          role: "student",
-                          // The revision the row was read at. If somebody else
-                          // changed this person meanwhile, the mutation refuses
-                          // rather than overwriting their change.
-                          expectedRevision: person.revision,
-                        })
-                        if (!result.ok)
-                          setError(REFUSALS[result.reason] ?? "Refused.")
-                      } catch {
-                        setError("Could not reach the server. Try again.")
-                      }
-                    }}
-                  >
-                    Remove access
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                    <Checkbox
+                      checked={person.grants.includes(grant)}
+                      onCheckedChange={async (on) => {
+                        setError(null)
+                        const grants = on
+                          ? [...person.grants, grant]
+                          : person.grants.filter((g) => g !== grant)
+                        try {
+                          const result = await setGrants({
+                            personId: person.id as never,
+                            grants,
+                            expectedRevision: person.revision,
+                          })
+                          if (!result.ok)
+                            setError(REFUSALS[result.reason] ?? "Refused.")
+                        } catch {
+                          setError("Could not reach the server. Try again.")
+                        }
+                      }}
+                    />
+                    {GRANT_LABELS[grant]}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+            {person.role === "owner" ? null : (
+              <div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="text-destructive"
+                  onClick={() => setRemoving(person)}
+                >
+                  Remove access
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
 
       {status === "CanLoadMore" || status === "LoadingMore" ? (
-        <div className="mt-6">
+        <div className="mbs-6">
           <Button
             variant="secondary"
             size="md"
@@ -248,6 +266,33 @@ function People() {
           </Button>
         </div>
       ) : null}
+      <ConfirmAction
+        open={removing !== null}
+        onOpenChange={(open) => !open && setRemoving(null)}
+        title={`Remove ${removing?.name || "this person"}'s staff access?`}
+        description="They are signed out of the admin straight away and keep a student account. You can give access again later."
+        confirmLabel="Remove access"
+        word="REMOVE"
+        onConfirm={async () => {
+          if (!removing) return false
+          setError(null)
+          try {
+            const result = await setRole({
+              personId: removing.id as never,
+              role: "student",
+              // The revision the row was read at. If somebody else changed
+              // this person meanwhile, the mutation refuses rather than
+              // overwriting their change.
+              expectedRevision: removing.revision,
+            })
+            if (!result.ok) setError(REFUSALS[result.reason] ?? "Refused.")
+            return result.ok
+          } catch {
+            setError("Could not reach the server. Try again.")
+            return false
+          }
+        }}
+      />
     </PageShell>
   )
 }

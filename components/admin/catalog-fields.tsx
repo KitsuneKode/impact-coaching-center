@@ -4,29 +4,63 @@ import {
   IconArrowLeft,
   IconArrowRight,
   IconFileImport,
+  IconFileTypePdf,
   IconPhoto,
   IconPhotoPlus,
   IconTrash,
 } from "@tabler/icons-react"
-import { useMutation } from "convex/react"
+import { useUploadFile } from "@convex-dev/r2/react"
+import { useMutation, useQuery } from "convex/react"
 import Image from "next/image"
-import { useId, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
+import { Dropzone, DropToReplace } from "@/components/admin/dropzone"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { IMAGE_MAX_BYTES } from "@/lib/catalog"
+import { tracks } from "@/lib/brand"
 import { cn } from "@/lib/utils"
 
 /** An image held by a record: stored in Convex, plus something to show. */
 export type StoredImage = { id: Id<"_storage">; url: string | null }
 
+/** A record's image as the admin queries return it. */
+export const toStored = (image: {
+  id: Id<"_storage">
+  picture: { url: string }
+}): StoredImage => ({ id: image.id, url: image.picture.url })
+
+/**
+ * Width, height and a few-hundred-byte placeholder, measured in the browser
+ * so public pages can reserve space and blur in. Null if it cannot decode.
+ */
+async function measure(file: File) {
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = 16 / Math.max(bitmap.width, bitmap.height)
+    const canvas = document.createElement("canvas")
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale))
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    canvas
+      .getContext("2d")
+      ?.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    const size = { width: bitmap.width, height: bitmap.height }
+    bitmap.close()
+    return { ...size, blurDataUrl: canvas.toDataURL("image/webp", 0.6) }
+  } catch {
+    return null
+  }
+}
+
 export const CATALOG_REFUSALS: Record<string, string> = {
   anonymous: "Your session has ended. Log in again; your changes are kept.",
-  forbidden: "Only an owner can change books and resources.",
+  forbidden:
+    "Your account cannot change the catalogue. Ask the owner for access.",
   "missing-record": "This record no longer exists.",
   "revision-conflict":
     "This was changed in another tab. Reload to see that version, then make your change again.",
@@ -51,6 +85,7 @@ export const FIELD_LABELS: Record<string, string> = {
 /** Uploads one image to Convex storage and returns its id. */
 export function useImageUpload() {
   const uploadUrl = useMutation(api.catalogAdmin.uploadUrl)
+  const recordImage = useMutation(api.images.recordImage)
   return async (file: File): Promise<StoredImage | null> => {
     if (!file.type.startsWith("image/")) {
       toast.error(`${file.name} is not an image.`)
@@ -75,6 +110,9 @@ export function useImageUpload() {
       const { storageId } = (await response.json()) as {
         storageId: Id<"_storage">
       }
+      const size = await measure(file)
+      // Best effort: a missing size only costs the placeholder, not the image.
+      if (size) void recordImage({ storageId, ...size }).catch(() => {})
       return { id: storageId, url: URL.createObjectURL(file) }
     } catch {
       toast.error(
@@ -160,30 +198,36 @@ export function ImageField({
       <span id={id} className="text-sm font-medium">
         {label}
       </span>
-      <div className="flex items-start gap-4">
-        <div className="relative aspect-[3/4] w-28 shrink-0 overflow-hidden rounded-[3px] ring-1 ring-border">
-          <Thumb src={value?.url ?? null} alt={value ? label : ""} />
-          {busy ? (
-            <span className="absolute inset-0 grid place-items-center bg-background/70">
-              <Spinner />
-            </span>
-          ) : null}
-        </div>
-        <div className="grid gap-2">
-          <p className="text-xs text-muted-foreground">{hint}</p>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={busy}
-              aria-describedby={id}
-              onClick={() => input.current?.click()}
-            >
-              <IconPhotoPlus stroke={1.75} aria-hidden />
-              {value ? "Replace" : "Upload"}
-            </Button>
-            {value ? (
+      {value ? (
+        <DropToReplace
+          onFiles={(files) => void pick(files[0])}
+          disabled={busy}
+          className="flex items-start gap-4"
+        >
+          <div className="relative aspect-[3/4] w-28 shrink-0 overflow-clip rounded-[3px] ring-1 ring-border">
+            <Thumb src={value.url} alt={label} />
+            {busy ? (
+              <span className="absolute inset-0 grid place-items-center bg-background/70">
+                <Spinner />
+              </span>
+            ) : null}
+          </div>
+          <div className="grid gap-2">
+            <p className="text-xs text-muted-foreground">
+              {hint} Drop a new image here to replace it.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                aria-describedby={id}
+                onClick={() => input.current?.click()}
+              >
+                <IconPhotoPlus stroke={1.75} aria-hidden />
+                Replace
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -196,10 +240,23 @@ export function ImageField({
               >
                 Remove
               </Button>
-            ) : null}
+            </div>
           </div>
-        </div>
-      </div>
+        </DropToReplace>
+      ) : (
+        <Dropzone
+          accept="image/*"
+          disabled={busy}
+          icon={IconPhotoPlus}
+          title={busy ? "Uploading…" : "Drop the image here, or choose one"}
+          hint={hint}
+          describedBy={id}
+          className="max-w-md"
+          onFiles={(files) => void pick(files[0])}
+        >
+          {busy ? <Spinner className="mbs-1" /> : null}
+        </Dropzone>
+      )}
       <input
         ref={input}
         type="file"
@@ -234,11 +291,26 @@ export function PageImagesField({
   const upload = useImageUpload()
   const release = useReleaseUpload()
   const input = useRef<HTMLInputElement>(null)
-  const pdfInput = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState(0)
   const [rendering, setRendering] = useState(false)
+  // Pages of a PDF done so far, while one is being turned into images.
+  const [progress, setProgress] = useState<{
+    done: number
+    total: number
+  } | null>(null)
+  const stopper = useRef<AbortController | null>(null)
+  const alive = useRef(true)
   const id = useId()
   const room = max - value.length
+
+  // Leaving the editor stops a PDF mid-way rather than rendering on unseen.
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+      stopper.current?.abort()
+    }
+  }, [])
 
   async function uploadFiles(files: File[]) {
     setPending(files.length)
@@ -253,7 +325,7 @@ export function PageImagesField({
     onChange([...value, ...added])
   }
 
-  async function pick(list: FileList | null) {
+  async function pick(list: FileList | File[] | null) {
     const files = [...(list ?? [])].sort(byName)
     if (!files.length) return
     if (files.length > room)
@@ -261,35 +333,64 @@ export function PageImagesField({
     await uploadFiles(files.slice(0, room))
   }
 
-  /** A PDF becomes page images in the browser; only the images are stored. */
+  /**
+   * A PDF becomes page images in the browser; only the images are stored.
+   * One page at a time: page n uploads while page n+1 renders, so a long PDF
+   * never sits in memory whole. Stopping keeps the pages already done.
+   */
   async function pickPdf(file: File | undefined) {
     if (!file) return
     if (file.type !== "application/pdf") {
       toast.error(`${file.name} is not a PDF.`)
       return
     }
+    const controller = new AbortController()
+    stopper.current = controller
     setRendering(true)
     onBusyChange(true)
+    const added: StoredImage[] = []
+    let failed = false
     try {
-      const { renderPdfPages } = await import("@/lib/pdf-pages")
-      const pages = await renderPdfPages(file, room)
-      if (!pages.length) {
-        toast.error("That PDF has no pages.")
-        return
+      const { pdfPageImages } = await import("@/lib/pdf-pages")
+      let inflight: Promise<void> = Promise.resolve()
+      for await (const page of pdfPageImages(file, room, controller.signal)) {
+        await inflight
+        if (failed || controller.signal.aborted) break
+        setProgress({ done: page.number - 1, total: page.total })
+        inflight = upload(page.file).then((stored) => {
+          if (stored) added.push(stored)
+          else failed = true
+        })
       }
-      setRendering(false)
-      toast.success(
-        `${pages.length} page${pages.length === 1 ? "" : "s"} rendered - uploading.`
-      )
-      await uploadFiles(pages)
-      return
-    } catch {
+      await inflight
+      if (controller.signal.aborted) {
+        if (added.length) toast(`Stopped. Kept the first ${added.length}.`)
+      } else if (failed)
+        toast.error(
+          `Kept the first ${added.length} pages; the next did not upload. Add the rest as images, or remove these and try the PDF again.`
+        )
+      else if (!added.length) toast.error("That PDF has no pages.")
+      else
+        toast.success(
+          `${added.length} page${added.length === 1 ? "" : "s"} added.`
+        )
+    } catch (error) {
       toast.error(
-        "Could not read that PDF. Export the pages as images instead."
+        (error as Error | null)?.name === "PdfLockedError"
+          ? "That PDF is password-protected. Save a copy without the password and try again."
+          : "Could not read that PDF. Export the pages as images instead."
       )
     } finally {
-      setRendering(false)
-      onBusyChange(false)
+      stopper.current = null
+      if (alive.current) {
+        setRendering(false)
+        setProgress(null)
+        onBusyChange(false)
+        if (added.length) onChange([...value, ...added])
+      } else {
+        // The editor closed: nothing will save these, so take them back.
+        for (const image of added) release(image)
+      }
     }
   }
 
@@ -315,11 +416,11 @@ export function PageImagesField({
         <ol className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3">
           {value.map((image, i) => (
             <li key={image.id} className="grid gap-1.5">
-              <div className="relative aspect-[1/1.414] overflow-hidden rounded-[2px] ring-1 ring-border">
+              <div className="relative aspect-[1/1.414] overflow-clip rounded-[2px] ring-1 ring-border">
                 <Thumb src={image.url} alt={`Page ${i + 1}`} />
                 <Badge
                   variant="solid"
-                  className="absolute top-1.5 left-1.5 px-1.5 py-0.5"
+                  className="absolute inset-s-1.5 inset-bs-1.5 px-1.5 py-0.5"
                 >
                   {i + 1}
                 </Badge>
@@ -370,33 +471,55 @@ export function PageImagesField({
           ))}
         </ol>
       ) : null}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={pending > 0 || rendering || room <= 0}
-          aria-describedby={id}
-          onClick={() => input.current?.click()}
+      {room > 0 ? (
+        <Dropzone
+          accept="image/*,application/pdf"
+          multiple
+          disabled={pending > 0 || rendering}
+          icon={IconFileImport}
+          title={
+            rendering
+              ? progress
+                ? `Page ${progress.done + 1} of ${progress.total}…`
+                : "Reading the PDF…"
+              : pending > 0
+                ? `Uploading ${pending} page${pending === 1 ? "" : "s"}…`
+                : "Drop page images or a PDF, or choose them"
+          }
+          hint={`Room for ${room} more. Images go in file-name order; a PDF becomes its pages.`}
+          describedBy={id}
+          onFiles={(files) => {
+            const pdf = files.find((file) => file.type === "application/pdf")
+            if (pdf) void pickPdf(pdf)
+            else
+              void pick(files.filter((file) => file.type.startsWith("image/")))
+          }}
         >
-          <IconPhotoPlus stroke={1.75} aria-hidden />
-          Add pages
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          disabled={pending > 0 || rendering || room <= 0}
-          onClick={() => pdfInput.current?.click()}
-        >
-          {rendering ? (
-            <Spinner />
-          ) : (
-            <IconFileImport stroke={1.75} aria-hidden />
-          )}
-          {rendering ? "Reading PDF…" : "Import PDF"}
-        </Button>
-      </div>
+          {pending > 0 || rendering ? <Spinner className="mbs-1" /> : null}
+        </Dropzone>
+      ) : null}
+      {rendering ? (
+        <div className="flex flex-wrap items-center gap-3" aria-live="polite">
+          {progress ? (
+            <div className="h-1.5 min-w-40 flex-1 overflow-clip rounded-full bg-secondary">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-200"
+                style={{
+                  width: `${Math.round((progress.done / progress.total) * 100)}%`,
+                }}
+              />
+            </div>
+          ) : null}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => stopper.current?.abort()}
+          >
+            Stop
+          </Button>
+        </div>
+      ) : null}
       <input
         ref={input}
         type="file"
@@ -406,17 +529,6 @@ export function PageImagesField({
         aria-labelledby={id}
         onChange={(event) => {
           void pick(event.target.files)
-          event.target.value = ""
-        }}
-      />
-      <input
-        ref={pdfInput}
-        type="file"
-        accept="application/pdf"
-        hidden
-        aria-label="Import pages from a PDF"
-        onChange={(event) => {
-          void pickPdf(event.target.files?.[0])
           event.target.value = ""
         }}
       />
@@ -446,5 +558,241 @@ export function PublishState({
       </Badge>
       {sample ? <Badge>Sample</Badge> : null}
     </span>
+  )
+}
+
+/** A PDF in R2, as the editors hold it. */
+export type StoredPdf = {
+  key: string
+  pages: number
+  bytes: number
+  name: string
+}
+
+const megabytes = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))} KB`
+    : `${(bytes / 1024 / 1024).toFixed(1)} MB`
+
+/**
+ * The document itself, kept whole in R2 and read in the page-curl reader a
+ * few pages at a time. Shown only when R2 is configured; otherwise the page
+ * images field below does the job by rasterising the PDF in the browser.
+ */
+export function PdfField({
+  value,
+  onChange,
+  cover,
+  onCoverChange,
+  onBusyChange,
+}: {
+  value: StoredPdf | null
+  onChange: (next: StoredPdf | null) => void
+  /** Page one as an image: the public preview, made here on upload. */
+  cover: StoredImage | null
+  onCoverChange: (next: StoredImage | null) => void
+  onBusyChange: (busy: boolean) => void
+}) {
+  const ready = useQuery(api.files.r2Ready)
+  const upload = useUploadFile(api.files)
+  const uploadImage = useImageUpload()
+  const release = useReleaseUpload()
+  const input = useRef<HTMLInputElement>(null)
+  const [progress, setProgress] = useState<number | null>(null)
+  const id = useId()
+
+  if (ready === false)
+    return (
+      <p className="rounded-control bg-secondary px-4 py-3 text-sm text-muted-foreground">
+        Document storage (R2) is not set up here, so PDFs are turned into page
+        images below instead.
+      </p>
+    )
+
+  async function pick(file: File | undefined) {
+    if (!file) return
+    if (file.type !== "application/pdf") {
+      toast.error(`${file.name} is not a PDF.`)
+      return
+    }
+    if (file.size > PDF_UPLOAD_MAX_BYTES) {
+      toast.error(`${file.name} is over 60 MB. Compress it and try again.`)
+      return
+    }
+    onBusyChange(true)
+    setProgress(0)
+    try {
+      // One read gives the page count and page one, before the upload.
+      const { inspectPdf } = await import("@/lib/pdf-pages")
+      const inspected = await inspectPdf(file)
+      const key = await upload(file, {
+        onProgress: ({ loaded, total }) =>
+          setProgress(total ? Math.round((loaded / total) * 100) : null),
+      })
+      // A preview that fails to render or upload costs the preview only.
+      const preview = inspected.cover
+        ? await uploadImage(inspected.cover)
+        : null
+      release(cover)
+      onCoverChange(preview)
+      onChange({
+        key,
+        pages: inspected.pages,
+        bytes: file.size,
+        name: file.name,
+      })
+      toast.success(`${file.name} uploaded`)
+    } catch (error) {
+      toast.error(
+        (error as Error | null)?.name === "PdfLockedError"
+          ? `${file.name} is password-protected. Save a copy without the password and upload that.`
+          : `${file.name} did not upload. Check the connection and retry.`
+      )
+    } finally {
+      setProgress(null)
+      onBusyChange(false)
+    }
+  }
+
+  return (
+    <div className="grid gap-2">
+      <span id={id} className="text-sm font-medium">
+        PDF
+      </span>
+      {value ? (
+        <DropToReplace
+          onFiles={(files) => void pick(files[0])}
+          disabled={progress !== null}
+          className="flex flex-wrap items-center gap-3 rounded-control border border-border bg-card p-3"
+        >
+          {cover?.url ? (
+            <span className="relative block h-14 w-10 flex-none overflow-clip rounded-[2px] ring-1 ring-border">
+              <Thumb src={cover.url} alt="Page one, the public preview" />
+            </span>
+          ) : (
+            <IconFileTypePdf
+              stroke={1.5}
+              className="size-8 text-destructive"
+              aria-hidden
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{value.name}</p>
+            <p className="tnum text-xs text-muted-foreground">
+              {value.pages} pages · {megabytes(value.bytes)}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={progress !== null}
+            aria-describedby={id}
+            onClick={() => input.current?.click()}
+          >
+            Replace
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={progress !== null}
+            onClick={() => {
+              release(cover)
+              onCoverChange(null)
+              onChange(null)
+            }}
+          >
+            Remove
+          </Button>
+        </DropToReplace>
+      ) : (
+        <Dropzone
+          accept="application/pdf"
+          disabled={progress !== null || ready === undefined}
+          icon={IconFileTypePdf}
+          title={
+            progress !== null
+              ? "Uploading the PDF…"
+              : "Drop the PDF here, or choose it"
+          }
+          describedBy={id}
+          className="max-w-md"
+          onFiles={(files) => void pick(files[0])}
+        />
+      )}
+      {progress !== null ? (
+        <div className="grid gap-1" aria-live="polite">
+          <div className="h-1.5 overflow-clip rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="tnum text-xs text-muted-foreground">
+            Uploading… {progress}%
+          </span>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Up to 60 MB. Students read it in the page-turning reader, a few pages
+          at a time, so long books open fast.
+        </p>
+      )}
+      <input
+        ref={input}
+        type="file"
+        accept="application/pdf"
+        hidden
+        onChange={(event) => {
+          void pick(event.target.files?.[0])
+          event.target.value = ""
+        }}
+      />
+    </div>
+  )
+}
+
+/** The same cap the server checks (convex/files.ts). */
+const PDF_UPLOAD_MAX_BYTES = 60 * 1024 * 1024
+
+/**
+ * The exam a book or note belongs to. It is the group the site files it
+ * under, so the known groups are offered as you type; a new one is still
+ * allowed when ICT starts teaching a new exam.
+ */
+export function ExamInput({
+  id,
+  value,
+  onChange,
+  invalid,
+  extra = [],
+}: {
+  id: string
+  value: string
+  onChange: (next: string) => void
+  invalid?: boolean
+  extra?: readonly string[]
+}) {
+  const options = [...new Set([...tracks.map((track) => track.exam), ...extra])]
+  return (
+    <>
+      <Input
+        id={id}
+        list={`${id}-groups`}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-invalid={invalid}
+        autoComplete="off"
+        placeholder={tracks[0]?.exam}
+      />
+      <datalist id={`${id}-groups`}>
+        {options.map((exam) => (
+          <option key={exam} value={exam}>
+            {exam}
+          </option>
+        ))}
+      </datalist>
+    </>
   )
 }

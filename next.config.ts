@@ -1,4 +1,9 @@
+import createNextIntlPlugin from "next-intl/plugin"
 import type { NextConfig } from "next"
+
+// Validates the environment before anything builds; a missing variable fails here.
+import "./lib/env.client"
+import "./lib/env.server"
 
 /**
  * The Content-Security-Policy as a static header rather than a per-request
@@ -17,20 +22,38 @@ import type { NextConfig } from "next"
  *   img-src     Convex storage (covers, reader pages), ytimg thumbnails,
  *               blob: for upload previews, data: for inlined placeholders.
  *   connect-src Convex cloud (client websocket + HTTP actions) and the
- *               *.convex.site auth/enquiry endpoints; ws: only in dev for
- *               the dev server's HMR socket.
+ *               *.convex.site auth/enquiry endpoints; in dev, localhost and
+ *               127.0.0.1 (`convex dev` rewrites .env.local to 127.0.0.1
+ *               on every start) plus the HMR socket.
  *   frame-src   youtube-nocookie embeds, Google Maps, Turnstile challenges.
+ *   *.r2.cloudflarestorage.com in connect: PDFs upload straight to R2
+ *               on a presigned URL and the reader fetches them back the
+ *               same way (a local S3 server answers on *.localhost in dev).
+ *   *.razorpay.com in script, frame, connect and img: Checkout.js loads from
+ *               checkout.razorpay.com and pays in an api.razorpay.com frame;
+ *               Razorpay's own guidance is to allow its domain.
  */
+/*
+ * A production build pointed at a local Convex (testing `next start` on a
+ * laptop) gets dev's localhost allowances for its CSP and images. A deployed
+ * build's Convex URL is never local, so this never loosens production.
+ */
+const localConvex = /^http:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(
+  process.env.NEXT_PUBLIC_CONVEX_URL ?? ""
+)
+
 function contentSecurityPolicy(): string {
-  const dev = process.env.NODE_ENV === "development"
+  const dev = process.env.NODE_ENV === "development" || localConvex
   return [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${dev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://*.razorpay.com${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud",
+    `img-src 'self' data: blob: https://i.ytimg.com https://*.convex.cloud https://*.razorpay.com${dev ? " http://127.0.0.1:* http://localhost:*" : ""}`,
     "font-src 'self'",
-    `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site${dev ? " ws://localhost:* http://localhost:*" : ""}`,
-    "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com",
+    `connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.convex.site https://*.razorpay.com https://*.r2.cloudflarestorage.com${dev ? " ws://localhost:* http://localhost:* http://*.localhost:* ws://127.0.0.1:* http://127.0.0.1:*" : ""}`,
+    "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com https://challenges.cloudflare.com https://*.razorpay.com",
+    // Inline event-handler attributes (onclick="..."); React never writes them.
+    "script-src-attr 'none'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -39,7 +62,42 @@ function contentSecurityPolicy(): string {
   ].join("; ")
 }
 
+const isDev = process.env.NODE_ENV === "development"
+
+/** Wrong guesses at an address, and the page each one means. */
+const guessed = [
+  ["/blogs", "/blog"],
+  ["/blogs/:slug", "/blog/:slug"],
+  ["/news", "/blog"],
+  ["/articles", "/blog"],
+  ["/teacher", "/teachers"],
+  ["/teacher/:slug", "/teachers#:slug"],
+  ["/teachers/:slug", "/teachers#:slug"],
+  ["/faculty", "/teachers"],
+  // Not /faculty/raheef.jpg: the teachers' photos live in public/faculty.
+  ["/faculty/:slug([^./]+)", "/teachers#:slug"],
+  ["/course", "/courses"],
+  ["/course/:slug", "/courses/:slug"],
+  ["/book", "/books"],
+  ["/shop", "/books"],
+  ["/store", "/books"],
+  ["/notes", "/resources"],
+  ["/free-notes", "/resources"],
+  ["/results", "/success-stories"],
+  ["/toppers", "/success-stories"],
+  ["/reviews", "/success-stories"],
+  ["/scholarship", "/assist"],
+  ["/contact-us", "/contact"],
+] as const
+
 const nextConfig: NextConfig = {
+  /* Share cards read their fonts from disk when a post is regenerated. */
+  outputFileTracingIncludes: {
+    "/[locale]/blog/[slug]/opengraph-image": [
+      "./lib/og/*.ttf",
+      "./public/brand/ict-mark.png",
+    ],
+  },
   images: {
     remotePatterns: [
       {
@@ -53,7 +111,19 @@ const nextConfig: NextConfig = {
         hostname: "*.convex.cloud",
         pathname: "/api/storage/**",
       },
+      // A local Convex backend serves storage from loopback.
+      ...(isDev || localConvex
+        ? [
+            {
+              protocol: "http" as const,
+              hostname: "127.0.0.1",
+              port: "3210",
+              pathname: "/api/storage/**",
+            },
+          ]
+        : []),
     ],
+    dangerouslyAllowLocalIP: isDev || localConvex,
   },
   /**
    * /login and /register are the real routes, because those are the words
@@ -65,10 +135,38 @@ const nextConfig: NextConfig = {
    * /sign-in was live and may already be linked from somewhere we do not
    * control. Permanent, because this is the last time these move.
    */
+  // PostHog through our own domain (lib/analytics.ts). The path avoids the
+  // words blockers look for.
+  skipTrailingSlashRedirect: true,
+  async rewrites() {
+    return [
+      {
+        source: "/relay-ph/static/:path*",
+        destination: "https://us-assets.i.posthog.com/static/:path*",
+      },
+      {
+        source: "/relay-ph/array/:path*",
+        destination: "https://us-assets.i.posthog.com/array/:path*",
+      },
+      {
+        source: "/relay-ph/:path*",
+        destination: "https://us.i.posthog.com/:path*",
+      },
+    ]
+  },
   async redirects() {
     return [
       { source: "/sign-in", destination: "/login", permanent: true },
       { source: "/sign-up", destination: "/register", permanent: true },
+      // Addresses people guess or remember wrong land on the real page, in
+      // either language; a teacher's name lands on their row.
+      ...guessed.flatMap(([from, to]) =>
+        ["", "/as"].map((locale) => ({
+          source: `${locale}${from}`,
+          destination: `${locale}${to}`,
+          permanent: true,
+        }))
+      ),
     ]
   },
 
@@ -82,11 +180,27 @@ const nextConfig: NextConfig = {
             value: contentSecurityPolicy(),
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
+          // HTTPS only, for two years, subdomains too (not on a laptop).
+          ...(isDev || localConvex
+            ? []
+            : [
+                {
+                  key: "Strict-Transport-Security",
+                  value: "max-age=63072000; includeSubDomains",
+                },
+              ]),
+          // Our window cannot be reached by pages we open, except the
+          // pop-ups a bank or UPI app opens from Razorpay Checkout.
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin-allow-popups",
+          },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            // geolocation for "nearest centre", asked only when the reader taps it
+            value: "camera=(), microphone=(), geolocation=(self)",
           },
         ],
       },
@@ -94,4 +208,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default createNextIntlPlugin()(nextConfig)

@@ -3,11 +3,14 @@ import { describe, expect, test } from "bun:test"
 
 import {
   checkRevision,
+  hasGrant,
   ownerCount,
   revisionOf,
   sessionStale,
   STAFF_SESSION_MAX_MS,
 } from "./authz"
+import { applySetGrants } from "./people"
+import { findVerifiedPerson } from "./persons"
 import { internal } from "./_generated/api"
 import schema from "./schema"
 
@@ -131,15 +134,17 @@ describe("bootstrapOwner", () => {
 
     const audit = await t.run((ctx) =>
       ctx.db
-        .query("activities")
-        .withIndex("by_person", (q) => q.eq("personId", id))
+        .query("auditLog")
+        .withIndex("by_entity_and_entityId", (q) =>
+          q.eq("entity", "person").eq("entityId", id)
+        )
         .collect()
     )
     expect(audit).toHaveLength(1)
     expect(audit[0]).toMatchObject({
-      kind: "role_change",
-      fromRole: "student",
-      toRole: "owner",
+      action: "role_change",
+      from: "student",
+      to: "owner",
     })
   })
 
@@ -184,5 +189,61 @@ describe("paginated returns validator", () => {
     expect(Object.keys(fields)).toEqual(
       expect.arrayContaining(["splitCursor", "pageStatus"])
     )
+  })
+})
+
+describe("staff grants", () => {
+  const as = async (t: ReturnType<typeof convexTest>, phone: string) =>
+    (await t.run((ctx) =>
+      findVerifiedPerson(ctx, { phoneNumber: phone, phoneNumberVerified: true })
+    ))!
+
+  test("only the owner grants, only to staff, and it is audited", async () => {
+    const t = convexTest(schema, modules)
+    await person(t, "+919876543210", "owner")
+    const staffId = await person(t, "+919876543211", "staff")
+    const studentId = await person(t, "+919876543212", "student")
+    const owner = await as(t, "+919876543210")
+    const staff = await as(t, "+919876543211")
+
+    expect(
+      await t.run((ctx) =>
+        applySetGrants(ctx, staff, {
+          personId: staffId,
+          grants: ["catalog"],
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual({ ok: false, reason: "forbidden" })
+    expect(
+      await t.run((ctx) =>
+        applySetGrants(ctx, owner, {
+          personId: studentId,
+          grants: ["catalog"],
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "role" })
+
+    const granted = await t.run((ctx) =>
+      applySetGrants(ctx, owner, {
+        personId: staffId,
+        grants: ["promotions", "catalog", "catalog"],
+        expectedRevision: 0,
+      })
+    )
+    expect(granted).toEqual({ ok: true, revision: 1 })
+    const staffNow = await as(t, "+919876543211")
+    expect(staffNow.grants).toEqual(["catalog", "promotions"])
+    expect(hasGrant(staffNow, "catalog")).toBe(true)
+    expect(hasGrant(staffNow, "content")).toBe(false)
+    expect(hasGrant(owner, "content")).toBe(true)
+
+    const audit = await t.run((ctx) => ctx.db.query("auditLog").collect())
+    expect(audit.at(-1)).toMatchObject({
+      action: "grant_change",
+      entityId: staffId,
+      to: "catalog,promotions",
+    })
   })
 })

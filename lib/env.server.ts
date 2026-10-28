@@ -1,30 +1,32 @@
 import { createEnv } from "@t3-oss/env-nextjs"
 import { z } from "zod"
 
+import { launchBuild, skipEnvValidation } from "./env.mode"
+
 /**
- * Server-only variables for this Next.js process. Importing this module into
- * a client component throws by design - that is the point of keeping the
- * split: a secret cannot leak into the browser bundle by accident.
- *
- * Convex-side variables (SITE_URL, BETTER_AUTH_SECRET, OTP_TRANSPORT,
- * DEV_DEPLOYMENT_NAME) live on the Convex deployment and are read inside
- * convex/* function handlers; they deliberately do not appear here.
+ * Server-only variables for the Next.js process. Importing this into a client
+ * component throws, so a secret cannot reach the browser by accident.
+ * Convex-side variables live on the Convex deployment (docs/production.md).
  */
 export const serverEnv = createEnv({
   server: {
-    /* "true" invites search indexing; anything else keeps every route
-       noindex. lib/site.ts owns the indexing rules. */
+    /* "true" invites indexing; lib/site.ts owns the rules. */
     SITE_INDEXABLE: z.enum(["true", "false"]).optional(),
-    /* Shared with the Convex /enquiries route. 32+ chars because that is the
-       generation recipe (.env.example: openssl rand -hex 32 → 64 chars). */
-    LEAD_INGEST_SECRET: z.string().min(32).optional(),
-    /* Cloudflare Turnstile secret. When set, every enquiry submission must
-       carry a valid widget token; when unset, verification is skipped. */
-    TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+    /* Search Console and Bing Webmaster "HTML tag" codes, the content
+       value only. DNS verification needs neither. */
+    GOOGLE_SITE_VERIFICATION: z.string().min(1).optional(),
+    BING_SITE_VERIFICATION: z.string().min(1).optional(),
+    /* Shared with the Convex /enquiries route; `openssl rand -hex 32`. Off
+       production a missing one gives the honest WhatsApp fallback. */
+    LEAD_INGEST_SECRET: launchBuild
+      ? z.string().min(32)
+      : z.string().min(32).optional(),
+    /* Turnstile secret; unset off production means the check is skipped. */
+    TURNSTILE_SECRET_KEY: launchBuild
+      ? z.string().min(1)
+      : z.string().min(1).optional(),
   },
-  /* Server variables are read from process.env at validation time; the
-     strict runtimeEnv record is only needed where client keys must be
-     enumerated for bundler inlining. */
   experimental__runtimeEnv: process.env,
+  skipValidation: skipEnvValidation,
   emptyStringAsUndefined: true,
 })

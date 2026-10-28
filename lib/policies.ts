@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { openGraphFor } from "./site"
+import { alternatesFor, openGraphFor } from "./site"
 
 /** Visitor-facing policy text, loaded from `content/policies/<slug>.md`. */
 export type PolicySlug = "privacy" | "terms" | "shipping" | "refunds"
@@ -114,12 +114,12 @@ export function requirePolicy(slug: PolicySlug): PolicyDocument {
 }
 
 /** Metadata for one policy route. */
-export function policyMetadata(doc: PolicyDocument) {
+export function policyMetadata(doc: PolicyDocument, locale = "en") {
   return {
     title: doc.title,
     description: doc.description,
-    alternates: { canonical: `/${doc.slug}` },
-    openGraph: openGraphFor(`/${doc.slug}`, doc.title, doc.description),
+    alternates: alternatesFor(`/${doc.slug}`, locale),
+    openGraph: openGraphFor(`/${doc.slug}`, doc.title, doc.description, locale),
     ...(doc.approved ? {} : { robots: { index: false, follow: true } }),
   }
 }

@@ -37,6 +37,7 @@ const fields = {
   title: "Prelims dates to remember",
   excerpt: "The dates the 2027 cycle turns on.",
   body: "The commission publishes its calendar in January.\n\n## What changes\n\nEverything after the notification.",
+  language: "en" as const,
 }
 
 describe("editing posts", () => {
@@ -118,16 +119,16 @@ describe("editing posts", () => {
     )
     const rows = await t.run((ctx) =>
       ctx.db
-        .query("activities")
-        .withIndex("by_kind", (q) => q.eq("kind", "post_publish"))
+        .query("auditLog")
+        .withIndex("by_action", (q) => q.eq("action", "publish"))
         .collect()
     )
     expect(rows[0]).toMatchObject({
       actorId: owner!.id,
       entity: "post",
       entityId: created.id,
-      fromStatus: "draft",
-      toStatus: "published",
+      from: "draft",
+      to: "published",
     })
   })
 })
@@ -184,5 +185,63 @@ describe("the public read", () => {
     expect(JSON.stringify(cards[0])).not.toContain("commission publishes")
     const post = await t.run((ctx) => readPublishedPost(ctx, fields.slug))
     expect(post?.body).toContain("commission publishes")
+  })
+})
+
+describe("post language", () => {
+  test("a post saved in Assamese reads back as Assamese", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876700001", "owner")
+    const created = await t.run((ctx) =>
+      applySavePost(ctx, owner!, { ...fields, language: "as" })
+    )
+    if (!created.ok) throw new Error("expected a saved post")
+    await t.run((ctx) =>
+      applyPostPublished(ctx, owner!, {
+        id: created.id,
+        published: true,
+        expectedRevision: 0,
+      })
+    )
+    const [card] = await t.run((ctx) => readPublishedPosts(ctx))
+    expect(card.language).toBe("as")
+  })
+
+  test("a post from before the field existed reads as English", async () => {
+    const t = convexTest(schema, modules)
+    await t.run((ctx) =>
+      ctx.db.insert("posts", {
+        slug: "older",
+        title: "Older post",
+        excerpt: "",
+        body: "Text.",
+        published: true,
+        publishedAt: 1,
+        revision: 0,
+        updatedAt: 1,
+      })
+    )
+    const post = await t.run((ctx) => readPublishedPost(ctx, "older"))
+    expect(post?.language).toBe("en")
+  })
+
+  test("a save without a language keeps the post's current one", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876700001", "owner")
+    const created = await t.run((ctx) =>
+      applySavePost(ctx, owner!, { ...fields, language: "as" })
+    )
+    if (!created.ok) throw new Error("expected a saved post")
+    const { language: _, ...older } = fields
+    await t.run((ctx) =>
+      applySavePost(ctx, owner!, {
+        ...older,
+        id: created.id,
+        expectedRevision: 0,
+        title: "Edited by an older editor",
+      })
+    )
+    const row = await t.run((ctx) => ctx.db.get(created.id))
+    expect(row?.language).toBe("as")
   })
 })

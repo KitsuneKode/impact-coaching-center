@@ -9,6 +9,9 @@
  * docs/production.md records that.
  */
 
+/** The header a sign-in code request carries its Turnstile token in. */
+export const HUMAN_CHECK_HEADER = "x-ict-human-check"
+
 const SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
 export async function verifyTurnstile(

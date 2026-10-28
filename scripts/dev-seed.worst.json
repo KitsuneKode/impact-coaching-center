@@ -1,0 +1,570 @@
+{
+  "_README": [
+    "Worst-case fixture (break-ui). Same shapes as dev-seed.json; loaded by `bun run seed:dev --worst`.",
+    "Every value is plausible or sits at the limit the admin form and server accept."
+  ],
+  "people": [
+    {
+      "phone": "8134827648",
+      "name": "",
+      "role": "owner"
+    },
+    {
+      "phone": "9435279647",
+      "name": "",
+      "role": "student"
+    },
+    {
+      "phone": "9999900001",
+      "name": "Ritu Das",
+      "role": "staff"
+    }
+  ],
+  "enquiries": [
+    {
+      "name": "Dr. Bhaskar Jyoti Mahanta Borgohain Phukan Rajkhowa (Retd. Principal)",
+      "phone": "9999920001",
+      "leadStatus": "new",
+      "interestTrack": "APSC CCE 2027 and ADRE 3.0, both if the timings allow",
+      "daysAgo": 0.02,
+      "note": "Called three times today. Wants the fee for Lakhya 2027 and Victor 9.0 together, asks whether the ASSIST scholarship can be applied to both, whether the hostel has a separate kitchen for vegetarians, and whether classes are recorded if he misses the Saturday ones because of his shop in Dhakuakhana. Please call back after 7 PM only; before that he is at the shop and cannot talk. Prefers Assamese.",
+      "verified": true,
+      "channel": "website",
+      "page": "/as/courses/lakhya-2027",
+      "utm": {
+        "source": "facebook",
+        "medium": "paid",
+        "campaign": "victor-9-launch-october-retargeting-lookalike-1pc"
+      },
+      "timing": "Evening",
+      "followUpInDays": -2.5
+    },
+    {
+      "name": "Jo",
+      "phone": "9999920002",
+      "leadStatus": "new",
+      "interestTrack": "Not sure yet",
+      "daysAgo": 0.1,
+      "channel": "whatsapp",
+      "timing": "Online only"
+    },
+    {
+      "name": "প্ৰাঞ্জল শৰ্মা",
+      "phone": "9999920003",
+      "leadStatus": "contacted",
+      "interestTrack": "ADRE and Assam Police",
+      "daysAgo": 1.2,
+      "note": "অসমীয়াতে কথা পাতিব বিচাৰে।",
+      "channel": "walk_in",
+      "timing": "Morning",
+      "followUpInDays": 0
+    },
+    {
+      "name": "Mohammed Abdul Hakim Mazumdar Choudhury",
+      "phone": "9999920004",
+      "leadStatus": "interested",
+      "interestTrack": "Bank, SSC, Railway",
+      "daysAgo": 3,
+      "channel": "referral",
+      "referrer": "https://www.facebook.com/groups/assam.competitive.exams.preparation.group/permalink/1234567890123456/",
+      "timing": "Night",
+      "followUpInDays": 1
+    },
+    {
+      "name": "RUPJYOTI KALITA",
+      "phone": "9999920005",
+      "leadStatus": "enrolled",
+      "interestTrack": "APSC",
+      "daysAgo": 9,
+      "channel": "phone_call",
+      "timing": "Day"
+    },
+    {
+      "name": "Riya 🌸",
+      "phone": "9999920006",
+      "leadStatus": "lost",
+      "interestTrack": "ADRE and Assam Police",
+      "daysAgo": 64,
+      "note": "Joined another institute.",
+      "channel": "whatsapp",
+      "timing": "Evening"
+    },
+    {
+      "name": "Ankita Deka",
+      "phone": "9999920007",
+      "leadStatus": "contacted",
+      "interestTrack": "APSC",
+      "daysAgo": 400,
+      "channel": "other",
+      "followUpInDays": -30
+    }
+  ],
+  "orders": [
+    {
+      "phone": "9999920001",
+      "name": "Dr. Bhaskar Jyoti Mahanta Borgohain Phukan Rajkhowa (Retd. Principal)",
+      "status": "paid",
+      "fulfilment": "delivery",
+      "daysAgo": 0.05,
+      "seen": false,
+      "address": {
+        "line1": "House No. 123/B, Near Sri Sri Hari Mandir, Behind Lakhimpur Commerce College",
+        "line2": "Ward No. 12, Khelmati, Opposite the old Assam Type quarters",
+        "city": "North Lakhimpur",
+        "district": "Lakhimpur",
+        "pin": "787031"
+      },
+      "lines": [
+        {
+          "bundle": "everything-for-apsc-2027-complete-library",
+          "language": "en",
+          "quantity": 5
+        },
+        {
+          "bundle": "everything-for-apsc-2027-complete-library",
+          "language": "as",
+          "quantity": 5
+        },
+        {
+          "bundle": "gk-set",
+          "language": "en",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "phone": "9999920002",
+      "name": "Jo",
+      "status": "ready_for_collection",
+      "fulfilment": "collection",
+      "daysAgo": 2,
+      "seen": true,
+      "lines": [
+        {
+          "bundle": "gk-set",
+          "language": "en",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "phone": "9999920003",
+      "name": "প্ৰাঞ্জল শৰ্মা",
+      "status": "refunded",
+      "fulfilment": "delivery",
+      "daysAgo": 30,
+      "seen": true,
+      "address": {
+        "line1": "গাঁও: বৰবাৰী",
+        "city": "ঢকুৱাখনা",
+        "pin": "787055"
+      },
+      "lines": [
+        {
+          "bundle": "gk-set",
+          "language": "en",
+          "quantity": 1
+        }
+      ]
+    }
+  ],
+  "books": [
+    {
+      "slug": "gs-paper-1-complete",
+      "exam": "APSC",
+      "contents": [
+        "Chapter 1: Prehistoric Assam and the Kamarupa kingdom",
+        "Chapter 2: The Ahoms",
+        "Chapter 3: Moamoria rebellion",
+        "Chapter 4: Burmese invasions",
+        "Chapter 5: Treaty of Yandabo",
+        "Chapter 6: Tea and the colonial economy",
+        "Chapter 7: Prehistoric Assam and the Kamarupa kingdom",
+        "Chapter 8: The Ahoms",
+        "Chapter 9: Moamoria rebellion",
+        "Chapter 10: Burmese invasions",
+        "Chapter 11: Treaty of Yandabo",
+        "Chapter 12: Tea and the colonial economy",
+        "Chapter 13: Prehistoric Assam and the Kamarupa kingdom",
+        "Chapter 14: The Ahoms",
+        "Chapter 15: Moamoria rebellion",
+        "Chapter 16: Burmese invasions",
+        "Chapter 17: Treaty of Yandabo",
+        "Chapter 18: Tea and the colonial economy",
+        "Chapter 19: Prehistoric Assam and the Kamarupa kingdom",
+        "Chapter 20: The Ahoms",
+        "Chapter 21: Moamoria rebellion",
+        "Chapter 22: Burmese invasions",
+        "Chapter 23: Treaty of Yandabo",
+        "Chapter 24: Tea and the colonial economy"
+      ],
+      "editions": {
+        "en": {
+          "title": "General Studies Paper I: Indian and Assam History, Culture, Geography and the Freedom Movement, with Previous Years' Que",
+          "subtitle": "Prelims, Mains and the Interview, with ten years of previous questions explained in Assamese and English",
+          "edition": "Revised and enlarged 2026–27 edition",
+          "pages": 1248
+        },
+        "as": {
+          "title": "অসমৰ ইতিহাস, সংস্কৃতি আৰু ঐতিহ্য: প্ৰাচীন কালৰ পৰা আধুনিক যুগলৈ, পূৰ্বৰ বছৰৰ প্ৰশ্নসহ সম্পূৰ্ণ অধ্যয়ন সামগ্ৰী",
+          "subtitle": "প্ৰাৰম্ভিক, মুখ্য আৰু সাক্ষাৎকাৰ",
+          "edition": "সংশোধিত ২০২৬–২৭ সংস্কৰণ",
+          "pages": 1296
+        }
+      }
+    },
+    {
+      "slug": "gk",
+      "exam": "ADRE and Assam Police",
+      "contents": ["GK"],
+      "editions": {
+        "en": {
+          "title": "GK",
+          "edition": "1",
+          "pages": 1
+        }
+      }
+    },
+    {
+      "slug": "assam-history-culture",
+      "exam": "APSC",
+      "contents": [
+        "Ancient Assam",
+        "The Ahom kingdom",
+        "Colonial period",
+        "Freedom movement",
+        "Art, festivals and literature"
+      ],
+      "editions": {
+        "en": {
+          "title": "Assam History and Culture",
+          "subtitle": "Study notes for APSC Prelims and Mains",
+          "edition": "2026 edition",
+          "pages": 240
+        },
+        "as": {
+          "title": "অসমৰ ইতিহাস আৰু সংস্কৃতি",
+          "subtitle": "APSC প্ৰাৰম্ভিক আৰু মুখ্য পৰীক্ষাৰ বাবে টোকা",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 252
+        }
+      }
+    },
+    {
+      "slug": "polity-in-focus",
+      "exam": "APSC",
+      "contents": [
+        "The Constitution",
+        "Parliament",
+        "Judiciary",
+        "Federalism",
+        "Local government in Assam"
+      ],
+      "editions": {
+        "en": {
+          "title": "Polity in Focus",
+          "subtitle": "Indian polity for state exams",
+          "edition": "2026 edition",
+          "pages": 220
+        },
+        "as": {
+          "title": "ৰাজনীতি বিজ্ঞানৰ মূল কথা",
+          "subtitle": "ৰাজ্যিক পৰীক্ষাৰ বাবে ভাৰতীয় ৰাজনীতি",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 232
+        }
+      }
+    },
+    {
+      "slug": "apsc-prelims-solved-papers",
+      "exam": "APSC",
+      "contents": ["2015 to 2024 papers", "Answer keys", "Topic index"],
+      "editions": {
+        "en": {
+          "title": "APSC Prelims Solved Papers",
+          "subtitle": "Ten years, explained",
+          "edition": "2026 edition",
+          "pages": 310
+        },
+        "as": {
+          "title": "APSC প্ৰাৰম্ভিক সমাধানসহ প্ৰশ্নকাকত",
+          "subtitle": "দহ বছৰৰ প্ৰশ্ন, ব্যাখ্যাসহ",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 318
+        }
+      }
+    },
+    {
+      "slug": "assam-gk-capsule",
+      "exam": "ADRE and Assam Police",
+      "contents": [
+        "Districts and rivers",
+        "People and festivals",
+        "Schemes",
+        "Sports and awards"
+      ],
+      "editions": {
+        "en": {
+          "title": "Assam GK Capsule",
+          "subtitle": "Quick revision for ADRE and Assam Police",
+          "edition": "2026 edition",
+          "pages": 160
+        },
+        "as": {
+          "title": "অসমৰ সাধাৰণ জ্ঞান",
+          "subtitle": "ADRE আৰু অসম আৰক্ষীৰ বাবে দ্ৰুত পুনৰীক্ষণ",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 168
+        }
+      }
+    },
+    {
+      "slug": "adre-practice-papers",
+      "exam": "ADRE and Assam Police",
+      "contents": ["Twenty full mocks", "Answer keys", "Score tracker"],
+      "editions": {
+        "en": {
+          "title": "ADRE Practice Papers",
+          "subtitle": "Twenty full mocks",
+          "edition": "2026 edition",
+          "pages": 280
+        },
+        "as": {
+          "title": "ADRE অনুশীলন প্ৰশ্নকাকত",
+          "subtitle": "বিশটা সম্পূৰ্ণ নমুনা পৰীক্ষা",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 288
+        }
+      }
+    },
+    {
+      "slug": "quant-and-reasoning-drills",
+      "exam": "Bank, SSC, Railway",
+      "contents": [
+        "Number system",
+        "Percentages and ratios",
+        "Puzzles",
+        "Seating arrangement",
+        "Data interpretation"
+      ],
+      "editions": {
+        "en": {
+          "title": "Quant and Reasoning Drills",
+          "subtitle": "For Bank, SSC and Railway NTPC",
+          "edition": "2026 edition",
+          "pages": 300
+        }
+      }
+    },
+    {
+      "slug": "apsc-mains-answer-writing",
+      "exam": "APSC",
+      "contents": [
+        "Reading the question",
+        "Structure in 250 words",
+        "Diagrams and maps",
+        "Forty model answers"
+      ],
+      "editions": {
+        "en": {
+          "title": "Mains Answer Writing",
+          "subtitle": "From question to 250 words",
+          "edition": "2026 edition",
+          "pages": 196
+        },
+        "as": {
+          "title": "মুখ্য পৰীক্ষাৰ উত্তৰ লিখন",
+          "subtitle": "প্ৰশ্নৰ পৰা ২৫০ শব্দলৈ",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 204
+        }
+      }
+    },
+    {
+      "slug": "economy-of-assam",
+      "exam": "APSC",
+      "contents": [
+        "Agriculture and tea",
+        "Oil and industry",
+        "Budget and schemes",
+        "Flood and the economy"
+      ],
+      "editions": {
+        "en": {
+          "title": "Economy of Assam",
+          "subtitle": "State economy for Mains GS III",
+          "edition": "2026 edition",
+          "pages": 176
+        },
+        "as": {
+          "title": "অসমৰ অৰ্থনীতি",
+          "subtitle": "মুখ্য পৰীক্ষাৰ বাবে ৰাজ্যৰ অৰ্থনীতি",
+          "edition": "২০২৬ সংস্কৰণ",
+          "pages": 184
+        }
+      }
+    },
+    {
+      "slug": "current-affairs-yearbook-2026",
+      "exam": "APSC",
+      "contents": [
+        "Assam",
+        "India",
+        "World",
+        "Science and environment",
+        "Sports and awards"
+      ],
+      "editions": {
+        "en": {
+          "title": "Current Affairs Yearbook 2026",
+          "subtitle": "Twelve months, Assam first",
+          "edition": "2026",
+          "pages": 260
+        },
+        "as": {
+          "title": "সাম্প্ৰতিক ঘটনাৱলী ২০২৬",
+          "subtitle": "বাৰ মাহ, অসমক প্ৰাধান্য দি",
+          "edition": "২০২৬",
+          "pages": 268
+        }
+      }
+    }
+  ],
+  "resources": [
+    {
+      "slug": "apsc-prelims-gs-paper-1-2015-to-2024-with-answer-keys-and-explanations",
+      "title": "APSC Prelims General Studies Paper I, all papers from 2015 to 2024, with the commission's answer keys and ICT explanatio",
+      "exam": "APSC",
+      "kind": "Question paper",
+      "description": "Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. Every Prelims paper of the last ten years. "
+    },
+    {
+      "slug": "x",
+      "title": "GK",
+      "exam": "ADRE and Assam Police",
+      "kind": "Notes",
+      "description": ""
+    },
+    {
+      "slug": "assam-current-affairs-long-assamese",
+      "title": "অসমৰ সাম্প্ৰতিক ঘটনাৱলী: চেপ্টেম্বৰ ২০২৬, APSC, ADRE আৰু অসম আৰক্ষীৰ বাবে বিশেষ সংখ্যা",
+      "exam": "APSC",
+      "kind": "Current affairs",
+      "language": "as",
+      "description": "মাহটোৰ সকলো গুৰুত্বপূৰ্ণ বাতৰি।"
+    }
+  ],
+  "posts": [
+    {
+      "slug": "a",
+      "title": "APSC CCE 2026 Prelims result: the full list of selected candidates from Lakhimpur and Dhemaji, and what comes next",
+      "excerpt": "Everything the result means for Mains. Everything the result means for Mains. Everything the result means for Mains. Everything the result means for Mains. Everything the result means for Mains. Everything the result means for Mains.",
+      "daysAgo": 0,
+      "body": "Short."
+    }
+  ],
+  "bundles": [
+    {
+      "slug": "everything-for-apsc-2027-complete-library",
+      "exam": "APSC",
+      "sortOrder": 1,
+      "soldCount": 12450,
+      "title": {
+        "en": "Everything for APSC 2027: the Complete Library",
+        "as": "APSC ২০২৭ ৰ বাবে সকলো: সম্পূৰ্ণ পুথিভঁৰাল"
+      },
+      "tagline": {
+        "en": "Seven books for Prelims, Mains and the Interview, in the order ICT teaches them, with ten years of papers",
+        "as": "প্ৰাৰম্ভিক, মুখ্য আৰু সাক্ষাৎকাৰৰ বাবে সাতখন কিতাপ"
+      },
+      "description": {
+        "en": "Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year. Every book ICT uses across the APSC year.",
+        "as": "ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ। ICT ৰ সকলো কিতাপ।"
+      },
+      "books": [
+        "gs-paper-1-complete",
+        "assam-history-culture",
+        "polity-in-focus",
+        "apsc-prelims-solved-papers",
+        "apsc-mains-answer-writing",
+        "economy-of-assam",
+        "current-affairs-yearbook-2026"
+      ],
+      "variants": {
+        "en": {
+          "priceRupees": 12499,
+          "compareRupees": 15999,
+          "available": true
+        },
+        "as": {
+          "priceRupees": 11999,
+          "available": true
+        }
+      }
+    },
+    {
+      "slug": "gk-set",
+      "exam": "ADRE and Assam Police",
+      "sortOrder": 2,
+      "soldCount": 1,
+      "title": {
+        "en": "GK",
+        "as": "GK"
+      },
+      "description": {
+        "en": "One book.",
+        "as": "এখন কিতাপ।"
+      },
+      "books": ["gk"],
+      "variants": {
+        "en": {
+          "priceRupees": 0,
+          "available": true
+        },
+        "as": {
+          "priceRupees": 49,
+          "available": false
+        }
+      }
+    },
+    {
+      "slug": "out-of-stock-set",
+      "exam": "Bank, SSC, Railway",
+      "sortOrder": 3,
+      "soldCount": 0,
+      "title": {
+        "en": "Bank, SSC and Railway Set",
+        "as": "বেংক, SSC আৰু ৰেলৱে সংকলন"
+      },
+      "description": {
+        "en": "Both editions are sold out until the reprint.",
+        "as": "পুনৰ ছপা নোহোৱালৈকে দুয়োটা সংস্কৰণ শেষ।"
+      },
+      "books": ["quant-and-reasoning-drills"],
+      "variants": {
+        "en": {
+          "priceRupees": 499,
+          "available": false
+        },
+        "as": {
+          "priceRupees": 499,
+          "available": false
+        }
+      }
+    }
+  ],
+  "campaigns": [
+    {
+      "name": "Longest strip",
+      "kind": "bar",
+      "tag": "Admissions open",
+      "headline": "Lakhya 2027, Victor 9.0 and Target 2027 are open: book a free class this week",
+      "body": "",
+      "cta": "See every batch and fee",
+      "href": "/courses",
+      "restDays": 0,
+      "delaySeconds": 0,
+      "priority": 100
+    }
+  ]
+}

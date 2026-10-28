@@ -1,17 +1,23 @@
 import { v } from "convex/values"
 
 import { checkPost, type PostInput } from "../lib/blog"
+import { POST_LANGUAGE } from "./blog"
+import { recordAudit } from "./audit"
 import {
   checkRevision,
   forbidden,
   invalidInput,
   missingRecord,
   mutationResult,
-  requireOwner,
+  hasGrant,
+  requireGrant,
   type Viewer,
 } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
+import { PICTURE, pictureOf } from "./images"
+import { IMAGE_MAX_BYTES } from "../lib/catalog"
+import { tracks } from "../lib/brand"
 
 /**
  * Owner-only post editing, mirroring catalogAdmin: every save carries the
@@ -24,6 +30,7 @@ const POST_FIELDS = {
   title: v.string(),
   excerpt: v.string(),
   body: v.string(),
+  language: POST_LANGUAGE,
 }
 
 /**
@@ -41,14 +48,18 @@ async function recordPost(
     toStatus?: "draft" | "published"
   }
 ) {
-  await ctx.db.insert("activities", {
-    kind: entry.kind,
-    body: entry.body,
-    actorId: actor.id,
+  await recordAudit(ctx, actor, {
+    action:
+      entry.kind === "post_save"
+        ? "save"
+        : entry.toStatus === "published"
+          ? "publish"
+          : "unpublish",
     entity: "post",
     entityId: entry.entityId,
-    fromStatus: entry.fromStatus,
-    toStatus: entry.toStatus,
+    summary: entry.body,
+    from: entry.fromStatus,
+    to: entry.toStatus,
   })
 }
 
@@ -64,6 +75,7 @@ export const list = query({
         slug: v.string(),
         title: v.string(),
         excerpt: v.string(),
+        language: POST_LANGUAGE,
         published: v.boolean(),
         publishedAt: v.optional(v.number()),
         revision: v.number(),
@@ -74,7 +86,7 @@ export const list = query({
   }),
   handler: async (ctx) => {
     const empty = { rows: [], truncated: false }
-    if (!(await requireOwner(ctx)).ok) return empty
+    if (!(await requireGrant(ctx, "content")).ok) return empty
     const found = await ctx.db
       .query("posts")
       .order("desc")
@@ -87,6 +99,7 @@ export const list = query({
         slug: row.slug,
         title: row.title,
         excerpt: row.excerpt,
+        language: row.language ?? "en",
         published: row.published,
         publishedAt: row.publishedAt,
         revision: row.revision,
@@ -107,11 +120,14 @@ export const get = query({
       publishedAt: v.optional(v.number()),
       revision: v.number(),
       updatedAt: v.number(),
+      cover: v.optional(v.id("_storage")),
+      coverPicture: v.union(PICTURE, v.null()),
+      exam: v.optional(v.string()),
     }),
     v.null()
   ),
   handler: async (ctx, args) => {
-    if (!(await requireOwner(ctx)).ok) return null
+    if (!(await requireGrant(ctx, "content")).ok) return null
     const id = ctx.db.normalizeId("posts", args.id)
     const row = id && (await ctx.db.get(id))
     if (!row) return null
@@ -121,10 +137,14 @@ export const get = query({
       title: row.title,
       excerpt: row.excerpt,
       body: row.body,
+      language: row.language ?? "en",
+      exam: row.exam,
       published: row.published,
       publishedAt: row.publishedAt,
       revision: row.revision,
       updatedAt: row.updatedAt,
+      cover: row.cover,
+      coverPicture: await pictureOf(ctx, row.cover),
     }
   },
 })
@@ -135,10 +155,16 @@ export const save = mutation({
     id: v.optional(v.id("posts")),
     expectedRevision: v.optional(v.number()),
     ...POST_FIELDS,
+    /* Optional so an editor from before the field keeps saving. */
+    language: v.optional(POST_LANGUAGE),
+    /** Absent removes the cover. */
+    cover: v.optional(v.id("_storage")),
+    /** The exam it is about; absent is a general post. */
+    exam: v.optional(v.string()),
   },
   returns: mutationResult({ id: v.id("posts"), revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
+    const owner = await requireGrant(ctx, "content")
     if (!owner.ok) return owner
     return applySavePost(ctx, owner.value, args)
   },
@@ -155,17 +181,27 @@ export async function applySavePost(
     title: string
     excerpt: string
     body: string
+    /** Absent keeps the post's current language; a new post is English. */
+    language?: PostInput["language"]
+    cover?: Id<"_storage">
+    exam?: string
   }
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!hasGrant(viewer, "content")) return forbidden
+  const kept = args.id ? (await ctx.db.get(args.id))?.language : undefined
   const fields: PostInput = {
     slug: args.slug,
     title: args.title,
     excerpt: args.excerpt,
     body: args.body,
+    language: args.language ?? kept ?? "en",
   }
   const checked = checkPost(fields)
   if (!checked.ok) return invalidInput(checked.field)
+  if (args.cover && !(await isImage(ctx, args.cover)))
+    return invalidInput("cover")
+  if (args.exam !== undefined && !tracks.some((t) => t.exam === args.exam))
+    return invalidInput("exam")
 
   /* Same rule as saveBook: collect, and a clash is a *different* row. */
   const clash = await ctx.db
@@ -179,6 +215,8 @@ export async function applySavePost(
   if (!args.id) {
     const id = await ctx.db.insert("posts", {
       ...checked.value,
+      cover: args.cover,
+      exam: args.exam,
       authorId: viewer.id,
       published: false,
       revision: 0,
@@ -200,6 +238,11 @@ export async function applySavePost(
   const revision = current.revision + 1
   await ctx.db.patch(args.id, {
     ...checked.value,
+    cover: args.cover,
+    exam: args.exam,
+    // An edited fixture is real: the dev reseed must not overwrite it,
+    // exactly as books and resources do.
+    sample: false,
     revision,
     updatedAt: now,
   })
@@ -211,6 +254,33 @@ export async function applySavePost(
   return { ok: true as const, id: args.id, revision }
 }
 
+async function isImage(ctx: MutationCtx, id: Id<"_storage">) {
+  const file = await ctx.db.system.get("_storage", id)
+  return Boolean(
+    file?.contentType?.startsWith("image/") && file.size <= IMAGE_MAX_BYTES
+  )
+}
+
+/**
+ * The address of an image uploaded for a post's body, to put in its
+ * Markdown. The body names the file, so it counts as used and is never
+ * cleaned away (catalogAdmin's referencedElsewhere).
+ */
+export const imageLink = mutation({
+  args: { storageId: v.id("_storage") },
+  returns: mutationResult({ url: v.string() }),
+  handler: async (ctx, args) => {
+    const editor = await requireGrant(ctx, "content")
+    if (!editor.ok) return editor
+    if (!(await isImage(ctx, args.storageId))) return invalidInput("image")
+    const url = await ctx.storage.getUrl(args.storageId)
+    if (!url) return missingRecord
+    // The file's id rides in the fragment (browsers never send it), so the
+    // body names the file and cleanup can tell it is in use.
+    return { ok: true as const, url: `${url}#${args.storageId}` }
+  },
+})
+
 /** Flip a post between draft and live, first publish timestamping it. */
 export const setPublished = mutation({
   args: {
@@ -220,7 +290,7 @@ export const setPublished = mutation({
   },
   returns: mutationResult({ revision: v.number() }),
   handler: async (ctx, args) => {
-    const owner = await requireOwner(ctx)
+    const owner = await requireGrant(ctx, "content")
     if (!owner.ok) return owner
     return applyPostPublished(ctx, owner.value, args)
   },
@@ -233,7 +303,7 @@ export async function applyPostPublished(
   args: { id: Id<"posts">; published: boolean; expectedRevision: number },
   now = Date.now()
 ) {
-  if (viewer.role !== "owner") return forbidden
+  if (!hasGrant(viewer, "content")) return forbidden
   const current = await ctx.db.get(args.id)
   if (!current) return missingRecord
   const conflict = checkRevision(current, args.expectedRevision)

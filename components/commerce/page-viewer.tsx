@@ -1,31 +1,56 @@
 "use client"
 
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconZoomIn,
-  IconZoomOut,
+  IconBook,
+  IconLayoutRows,
+  IconShare2,
+  IconX,
 } from "@tabler/icons-react"
-import Image from "next/image"
-import { useState } from "react"
+import { useTranslations } from "next-intl"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
-import { PaperPage } from "@/components/commerce/paper-page"
-import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
+  BookPreview,
+  pageEngine,
+  type BookPreviewAnnotation,
+  type BookPreviewMode,
+  type BookPreviewPage,
+  type BookPreviewSource,
+} from "@/components/book-preview"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { curlEngine } from "@/components/book-preview/engines/curl-engine.meta"
+import { scrollEngine } from "@/components/book-preview/engines/scroll-engine.meta"
+import { PaperPage } from "@/components/commerce/paper-page"
+import {
+  documentId,
+  rememberedNotes,
+  rememberedPage,
+  rememberedMode,
+  rememberMode,
+  rememberNotes,
+  rememberPage,
+  rememberProgress,
+} from "@/components/commerce/reader-memory"
+import { track } from "@/lib/analytics"
 
 /** A page image when there is one, otherwise a placeholder sheet. */
 export type ViewerPage = { heading?: string; src?: string }
 
+const ENGINES = [pageEngine, curlEngine, scrollEngine]
+
 /**
- * A page-by-page reader: arrows, the keyboard's left and right keys, a zoom
- * for the dense pages, and a page count. Used for book samples and free
- * resources alike, so there is one reading experience on the site.
+ * The site's one reader, for book samples and free notes alike: the kitsu-lab
+ * BookPreview with its page-curl book, opened full screen over the page.
+ * A PDF (`pdfUrl`, e.g. a signed R2 link) is rasterised in the browser a few
+ * pages at a time, so length does not matter; stored page images and
+ * placeholder sheets read the same way.
+ *
+ * With `marks` (notes a student keeps) it reopens on the page they left and
+ * brings back their highlights, bookmarks and ink, on this device.
+ * `sharePath` adds a Share button that sends the public page, never the
+ * file, so a friend lands where they can sign in and read it themselves.
  */
 export function PageViewer({
   open,
@@ -33,146 +58,260 @@ export function PageViewer({
   title,
   note,
   pages,
-  startAt = 0,
+  pdfUrl,
+  pageCount,
+  startAt,
+  marks = false,
+  sharePath,
+  progressSlug,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   note: string
-  pages: readonly ViewerPage[]
+  pages?: readonly ViewerPage[]
+  pdfUrl?: string
+  /** Known before a PDF loads; decides whether a remembered page is the last. */
+  pageCount?: number
+  /** Opens here, instead of where this reader last stopped. */
   startAt?: number
+  /** Bookmarks and the pen: for notes a student keeps, not for a sample. */
+  marks?: boolean
+  /** The public page to share, locale prefix included, e.g. /as/resources/x. */
+  sharePath?: string
+  /** The note's slug, so the notes list can show "Page 5 of 12" and Continue. */
+  progressSlug?: string
 }) {
-  const [index, setIndex] = useState(startAt)
-  const [direction, setDirection] = useState<1 | -1>(1)
-  const [zoomed, setZoomed] = useState(false)
-  const [lastStart, setLastStart] = useState(startAt)
+  const t = useTranslations("Reader")
+  const popup = useRef<HTMLDivElement>(null)
+  const id = useMemo(
+    () =>
+      documentId(
+        pdfUrl,
+        (pages ?? []).flatMap((page) => page.src ?? [])
+      ),
+    [pdfUrl, pages]
+  )
+  // Read once per open: the viewer is mounted only while reading.
+  const [firstPage] = useState(
+    () =>
+      startAt ??
+      (marks ? rememberedPage(id, pageCount ?? pages?.length ?? 0) : 0)
+  )
+  const [notes, setNotes] = useState<BookPreviewAnnotation[]>(() =>
+    marks ? rememberedNotes(id) : []
+  )
+  const warned = useRef(false)
 
-  // Opening at a different thumbnail restarts from that page.
-  if (lastStart !== startAt) {
-    setLastStart(startAt)
-    setIndex(startAt)
-    setZoomed(false)
+  async function share() {
+    if (!sharePath) return
+    const url = new URL(sharePath, window.location.origin)
+    url.searchParams.set("utm_source", "share")
+    url.searchParams.set("utm_medium", "reader")
+    const link = url.toString()
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title,
+          text: t("shareText", { title }),
+          url: link,
+        })
+        track({ name: "reader_shared", path: sharePath, method: "share" })
+        return
+      } catch (error) {
+        // Closing the share sheet is a choice, not a failure.
+        if (error instanceof DOMException && error.name === "AbortError") return
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(link)
+      toast.success(t("linkCopied"))
+      track({ name: "reader_shared", path: sharePath, method: "copy" })
+    } catch {
+      toast(t("copyThis"), { description: link })
+    }
   }
+  // Two ways to read, for PDFs and page images alike: turn pages like a
+  // book, or scroll down them like a long document. The scroll engine keeps
+  // only the pages near the screen rendered, so length costs no memory.
+  const views: [BookPreviewMode, string][] = [
+    ["curl", t("book")],
+    ["scroll", t("scroll")],
+  ]
+  // Book by default, for the feel of a real book; Scroll once a reader
+  // has chosen it, on this device.
+  const [mode, setModeState] = useState<BookPreviewMode>(() => {
+    const kept = rememberedMode()
+    return views.some(([value]) => value === kept)
+      ? (kept as BookPreviewMode)
+      : "curl"
+  })
+  const setMode = (next: BookPreviewMode) => {
+    setModeState(next)
+    rememberMode(next)
+  }
+  const other = views.find(([value]) => value !== mode)
 
-  const go = (step: 1 | -1) => {
-    const next = index + step
-    if (next < 0 || next >= pages.length) return
-    setDirection(step)
-    setIndex(next)
-  }
-  const page = pages[index]
+  // The PDF engine mounts a beat after the dialog, so the initial focus may
+  // find no book yet. Hand focus to it once it exists, unless the reader has
+  // already put focus somewhere else inside the dialog.
+  useEffect(() => {
+    if (!open) return
+    let tries = 0
+    const timer = window.setInterval(() => {
+      const book = popup.current?.querySelector<HTMLElement>(".book-preview")
+      const active = document.activeElement
+      const settled = book && (active === book || book.contains(active))
+      if (book && !settled && !popup.current?.querySelector("input:focus")) {
+        book.focus({ preventScroll: true })
+      }
+      if (settled || ++tries > 20) window.clearInterval(timer)
+    }, 100)
+    return () => window.clearInterval(timer)
+  }, [open, pdfUrl])
+  const source = useMemo<BookPreviewSource>(() => {
+    if (pdfUrl) return { title, pdfUrl, revision: pdfUrl }
+    return {
+      title,
+      revision: (pages ?? []).map((page) => page.src ?? page.heading).join("|"),
+      pages: (pages ?? []).map((page, index): BookPreviewPage => ({
+        id: `p-${index + 1}`,
+        pageNumber: index + 1,
+        title: page.heading,
+        render: () =>
+          page.src ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a signed storage URL, sized by the reader
+            <img
+              src={page.src}
+              alt={`${title}, page ${index + 1}`}
+              className="block size-full object-contain"
+              draggable={false}
+            />
+          ) : (
+            <PaperPage
+              running={title}
+              heading={page.heading}
+              lines={18}
+              className="size-full"
+            />
+          ),
+      })),
+    }
+  }, [pdfUrl, pages, title])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="gap-5 p-5 sm:max-w-xl md:p-6"
-        onKeyDown={(event) => {
-          if (event.key === "ArrowRight") go(1)
-          if (event.key === "ArrowLeft") go(-1)
-          if (event.key === "+" || event.key === "=") setZoomed(true)
-          if (event.key === "-" || event.key === "0") setZoomed(false)
-        }}
-      >
-        <div className="pr-8">
-          <DialogTitle className="text-base font-medium">{title}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            {note}
-          </DialogDescription>
-          <p className="sr-only">
-            Use the left and right arrow keys to turn pages, + to zoom in and 0
-            to fit the page again.
-          </p>
-        </div>
-
-        <div
-          className={cn(
-            "rounded-control bg-surface p-4 md:p-6",
-            zoomed ? "max-h-[60vh] overflow-auto" : "overflow-hidden"
-          )}
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Backdrop data-reader-backdrop />
+        {/* Focus starts on the book itself, so the arrow keys turn pages
+            straight away; the close button is one Tab back. */}
+        <DialogPrimitive.Popup
+          ref={popup}
+          data-reader-popup
+          initialFocus={() =>
+            popup.current?.querySelector<HTMLElement>(".book-preview") ?? true
+          }
         >
-          <div
-            key={index}
-            className={cn(
-              "mx-auto animate-in duration-200 ease-out fade-in-0 motion-reduce:slide-in-from-left-0 motion-reduce:slide-in-from-right-0",
-              direction === 1
-                ? "slide-in-from-right-4"
-                : "slide-in-from-left-4",
-              zoomed
-                ? "w-[min(720px,180vw)]"
-                : "w-[min(100%,380px,calc(56vh/1.414))]"
-            )}
-          >
-            {page?.src ? (
-              <Image
-                src={page.src}
-                alt={`${title} - image of printed page ${index + 1} of ${pages.length}`}
-                width={760}
-                height={1075}
-                sizes={
-                  zoomed
-                    ? "(min-width: 720px) 720px, 180vw"
-                    : "(min-width: 640px) 380px, 90vw"
-                }
-                priority
-                className="h-auto w-full bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_10px_30px_-12px_rgb(0_0_0/0.25)] ring-1 ring-border"
-              />
-            ) : (
-              <PaperPage
-                running={title}
-                heading={page?.heading}
-                number={index + 1}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-3">
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => go(-1)}
-            disabled={index === 0}
-            aria-keyshortcuts="ArrowLeft"
-          >
-            <IconChevronLeft stroke={1.75} aria-hidden />
-            Previous
-          </Button>
-          <div className="flex items-center gap-2">
-            <p
-              aria-live="polite"
-              className="tnum text-sm text-muted-foreground"
+          <header className="flex items-center gap-3 ps-4 pe-2 pbs-2 pbe-2 sm:gap-4 sm:ps-6">
+            <div className="min-w-0 flex-1">
+              <DialogPrimitive.Title className="line-clamp-2 font-display text-base leading-snug font-semibold sm:line-clamp-1 sm:text-lg">
+                {title}
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="truncate text-xs text-muted-foreground">
+                {note}
+              </DialogPrimitive.Description>
+            </div>
+            <ToggleGroup
+              aria-label={t("howToRead")}
+              value={[mode]}
+              onValueChange={(value) => {
+                const next = value[0] as BookPreviewMode | undefined
+                if (next) setMode(next)
+              }}
+              spacing={1}
+              className="hidden flex-none rounded-full bg-secondary p-1 sm:flex"
             >
-              Page {index + 1} of {pages.length}
-            </p>
-            {page?.src ? (
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setZoomed((z) => !z)}
-                aria-pressed={zoomed}
-                aria-label={zoomed ? "Fit page to width" : "Zoom in"}
-                aria-keyshortcuts="+ - 0"
+              {views.map(([value, label]) => (
+                <ToggleGroupItem
+                  key={value}
+                  value={value}
+                  className="h-9 rounded-full px-3.5 text-sm font-medium text-muted-foreground aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-[0_1px_3px_color-mix(in_oklch,var(--foreground)_14%,transparent)]"
+                >
+                  {label}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            {/* Phones: one button to the other view, so the title keeps the
+                room the two-way switch would take. */}
+            {other ? (
+              <button
+                type="button"
+                data-press
+                onClick={() => setMode(other[0])}
+                aria-label={other[1]}
+                className="grid size-11 flex-none place-items-center rounded-full hover:bg-secondary sm:hidden"
               >
-                {zoomed ? (
-                  <IconZoomOut stroke={1.75} aria-hidden />
+                {other[0] === "curl" ? (
+                  <IconBook aria-hidden size={20} stroke={1.75} />
                 ) : (
-                  <IconZoomIn stroke={1.75} aria-hidden />
+                  <IconLayoutRows aria-hidden size={20} stroke={1.75} />
                 )}
-              </Button>
+              </button>
             ) : null}
+            {sharePath ? (
+              <button
+                type="button"
+                data-press
+                onClick={() => void share()}
+                aria-label={t("share")}
+                className="grid size-11 flex-none place-items-center rounded-full hover:bg-secondary"
+              >
+                <IconShare2 aria-hidden size={20} stroke={1.75} />
+              </button>
+            ) : null}
+            <DialogPrimitive.Close
+              data-press
+              aria-label={t("close")}
+              className="grid size-11 flex-none place-items-center rounded-full hover:bg-secondary"
+            >
+              <IconX aria-hidden size={20} stroke={1.75} />
+            </DialogPrimitive.Close>
+          </header>
+          <div className="min-h-0 flex-1">
+            <BookPreview
+              source={source}
+              engines={ENGINES}
+              enabledModes={views.map(([value]) => value)}
+              mode={mode}
+              onModeChange={setMode}
+              annotate={marks}
+              {...(marks
+                ? {
+                    annotations: notes,
+                    onAnnotationsChange: (next: BookPreviewAnnotation[]) => {
+                      setNotes(next)
+                      if (rememberNotes(id, next) || warned.current) return
+                      warned.current = true
+                      toast.error(t("notesNotKept"))
+                    },
+                    onPageChange: (page: number) => {
+                      rememberPage(id, page)
+                      const total = pageCount ?? pages?.length ?? 0
+                      if (progressSlug)
+                        rememberProgress(progressSlug, page, total)
+                    },
+                  }
+                : {})}
+              defaultPageIndex={firstPage}
+              layout="fill"
+              persistPreferences
+              share={false}
+              label={title}
+              className="size-full"
+            />
           </div>
-          <Button
-            variant="secondary"
-            size="md"
-            onClick={() => go(1)}
-            disabled={index === pages.length - 1}
-            aria-keyshortcuts="ArrowRight"
-          >
-            Next
-            <IconChevronRight stroke={1.75} aria-hidden />
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogPrimitive.Popup>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }

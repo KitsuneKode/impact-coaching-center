@@ -1,11 +1,13 @@
 import { paginationResultValidator } from "convex/server"
 import { v } from "convex/values"
-import type { PropertyValidators, Validator, Value } from "convex/values"
+import type { Infer, PropertyValidators, Validator, Value } from "convex/values"
 
 import { authComponent } from "./auth"
 import { findVerifiedPerson } from "./persons"
 import { components } from "./_generated/api"
 import type { MutationCtx, QueryCtx } from "./_generated/server"
+import type { GRANT } from "./schema"
+import { hasGrant } from "../lib/grants"
 
 /** One place that answers "may this caller do this". */
 export type Refusal =
@@ -87,6 +89,21 @@ export async function requireStaff(ctx: Ctx): Promise<Decision<Viewer>> {
   return viewer
 }
 
+type Grant = Infer<typeof GRANT>
+
+export { hasGrant }
+
+/** Owner, or staff holding `grant` (or, given a list, any one of them). */
+export async function requireGrant(
+  ctx: Ctx,
+  grant: Grant | readonly Grant[]
+): Promise<Decision<Viewer>> {
+  const viewer = await requireStaff(ctx)
+  if (!viewer.ok) return viewer
+  const wanted: readonly Grant[] = typeof grant === "string" ? [grant] : grant
+  return wanted.some((g) => hasGrant(viewer.value, g)) ? viewer : forbidden
+}
+
 /** Owner only. Every write that changes who may do what goes through this. */
 export async function requireOwner(ctx: Ctx): Promise<Decision<Viewer>> {
   const viewer = await viewerPerson(ctx)
@@ -107,6 +124,19 @@ export function sessionStale(createdAt: number, now: number): boolean {
   return now - createdAt > STAFF_SESSION_MAX_MS
 }
 
+/** Whether the caller signed in (with a WhatsApp code) within `maxAgeMs`. */
+export async function signedInWithin(ctx: Ctx, maxAgeMs: number) {
+  const identity = await ctx.auth.getUserIdentity()
+  if (!identity?.sessionId) return false
+  const session = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+    model: "session",
+    where: [{ field: "_id", value: identity.sessionId as string }],
+  })) as { createdAt?: number } | null
+  return Boolean(
+    session?.createdAt && Date.now() - session.createdAt <= maxAgeMs
+  )
+}
+
 /** Whether the caller's session is young enough for staff work. */
 async function privilegedSessionFresh(ctx: Ctx): Promise<boolean> {
   const identity = await ctx.auth.getUserIdentity()
@@ -119,12 +149,13 @@ async function privilegedSessionFresh(ctx: Ctx): Promise<boolean> {
   return !sessionStale(session.createdAt, Date.now())
 }
 
-/** How many owners exist. */
+/** How many owners exist, counted to two. */
 export async function ownerCount(ctx: Ctx): Promise<number> {
+  // Only "none", "one" or "more than one" is ever asked: two rows answer it.
   const owners = await ctx.db
     .query("persons")
     .withIndex("by_role", (q) => q.eq("role", "owner"))
-    .collect()
+    .take(2)
   return owners.length
 }
 

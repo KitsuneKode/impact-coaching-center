@@ -4,55 +4,205 @@ Every environment variable the deployment needs, where it is set, and which
 steps are manual provider work. Nothing here is done automatically — each
 "Set by" that names a provider is a step the operator runs.
 
-## Host project settings (Vercel, or whichever platform builds the site)
+## Vercel project settings (Production environment)
 
 Set in the host's dashboard; `NEXT_PUBLIC_*` values are inlined into the
-client bundle at build time, so changing them requires a redeploy.
+client bundle at build time, so changing them requires a redeploy. A missing
+required variable fails `next build` (t3-env in `lib/env.client.ts` and
+`lib/env.server.ts`; "Yes before launch" rows are required only when
+`VERCEL_ENV=production`). The Convex URLs are required only there too: a
+preview with them points at the dev deployment `peaceful-emu-861`, and a
+preview without them builds the static site with no backend (forms fall back
+to WhatsApp, the shop and log-in are off).
 
-| Variable                         | Required for production | Purpose                                                                                                                                                              |
-| -------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`           | Yes                     | Canonical/OG/sitemap origin. `lib/site.ts` refuses to build with a localhost fallback when `SITE_INDEXABLE` is true.                                                 |
-| `SITE_INDEXABLE`                 | Decide at launch        | `true` invites indexing. Keep unset/`false` until content is owner-approved (KIT-41).                                                                                |
-| `NEXT_PUBLIC_CONVEX_URL`         | Yes                     | Browser → Convex data connection (websocket + actions).                                                                                                              |
-| `NEXT_PUBLIC_CONVEX_SITE_URL`    | Yes                     | The `*.convex.site` endpoints: Better Auth routes and `/enquiries` ingest.                                                                                           |
-| `LEAD_INGEST_SECRET`             | Yes                     | Bearer secret the enquiry sink sends to the Convex `/enquiries` route. `openssl rand -hex 32`; the same value is set on Convex below. Never `NEXT_PUBLIC_`-prefixed. |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes before launch       | Renders the Turnstile widget on the enquiry form.                                                                                                                    |
-| `TURNSTILE_SECRET_KEY`           | Yes before launch       | Server-side siteverify in `app/actions/lead.ts`. Unset = check skipped (development only).                                                                           |
+| Variable                         | Required for production | Purpose                                                                                                                                                                                                                                                      |
+| -------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SITE_URL`           | Yes                     | Canonical/OG/sitemap origin. `lib/site.ts` refuses to build with a localhost fallback when `SITE_INDEXABLE` is true.                                                                                                                                         |
+| `SITE_INDEXABLE`                 | Decide at launch        | `true` invites indexing. Keep unset/`false` until content is owner-approved (KIT-41).                                                                                                                                                                        |
+| `GOOGLE_SITE_VERIFICATION`       | Optional                | Search Console "HTML tag" content value. Prefer the Domain property verified by a DNS TXT record; this is the fallback.                                                                                                                                      |
+| `BING_SITE_VERIFICATION`         | Optional                | Bing Webmaster `msvalidate.01` content value. Bing can also import the site from Search Console.                                                                                                                                                             |
+| `NEXT_PUBLIC_CONVEX_URL`         | Yes                     | Browser → Convex data connection (websocket + actions).                                                                                                                                                                                                      |
+| `NEXT_PUBLIC_CONVEX_SITE_URL`    | Yes                     | The `*.convex.site` endpoints: Better Auth routes and `/enquiries` ingest.                                                                                                                                                                                   |
+| `LEAD_INGEST_SECRET`             | Yes                     | Bearer secret the enquiry sink sends to the Convex `/enquiries` route. `openssl rand -hex 32`; the same value is set on Convex below. Never `NEXT_PUBLIC_`-prefixed.                                                                                         |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes before launch       | Renders the Turnstile widget on the enquiry form, the sign-in form and the delete-account dialog.                                                                                                                                                            |
+| `NEXT_PUBLIC_POSTHOG_KEY`        | Optional                | PostHog project token (US cloud). Unset means no analytics. Approve the analytics paragraph in the privacy policy first.                                                                                                                                     |
+| `REVALIDATE_SECRET`              | Yes                     | Bearer secret Convex sends to `/api/revalidate` when content changes with no admin on the site (ClassPlus sync, a promotion starting or ending). `openssl rand -hex 32`; the same value is set on Convex below.                                              |
+| `INDEXNOW_KEY`                   | Optional                | Any 8 to 128 letters, digits or dashes. When set on the indexable production site, every admin publish pings Bing and others (IndexNow) with the changed pages; ChatGPT search and Copilot read Bing's index.                                                |
+| `TURNSTILE_SECRET_KEY`           | Yes before launch       | Server-side siteverify in `app/actions/lead.ts` and, for every sign-in code request, in `lib/auth-server.ts`. Unset = check skipped (development only). Set it together with `AUTH_PROXY_SECRET`, or a script can ask Convex for codes directly and skip it. |
+| `DELHIVERY_TOKEN`                | Optional                | Delhivery API token. Set, checkout asks Delhivery whether it delivers to each PIN before taking payment (`app/api/pin/[pin]/route.ts`); unset, any Indian PIN is taken. Server only, never `NEXT_PUBLIC_`.                                                   |
+| `CONVEX_DEPLOY_KEY`              | Yes                     | Production deploy key from the Convex dashboard. Lets the build run `npx convex deploy` so functions and site ship together. Production environment only.                                                                                                    |
 
 ## Convex deployment settings
 
 Set with `npx convex env set NAME value` (dev) or the production deployment's
 dashboard/env UI — never in `.env.local`, never committed.
 
-| Variable                                | Required                | Purpose                                                                                                                                                                                                           |
-| --------------------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SITE_URL`                              | Yes                     | Comma-separated literal origins allowed to call auth routes (CORS + CSRF `trustedOrigins`). Must include the production origin; wildcards are rejected at startup.                                                |
-| `BETTER_AUTH_SECRET` (or `AUTH_SECRET`) | Yes                     | Hashes verification codes. `openssl rand -base64 32`.                                                                                                                                                             |
-| `OTP_TRANSPORT`                         | Yes                     | `logger` or `whatsapp`. No default — unset fails closed. `logger` is accepted only on localhost or the dev deployment named in `lib/dev-deployment.ts`; setting it on production is refused by `chooseTransport`. |
-| `LEAD_INGEST_SECRET`                    | Yes                     | Must equal the host-side value.                                                                                                                                                                                   |
-| `DEV_DEPLOYMENT_NAME`                   | **Never in production** | Exists only so a dev checkout can name its own deployment for the logger gate. Production must not carry it — `lib/dev-deployment.ts` documents why the name lives in code, not env.                              |
+| Variable                                | Required            | Purpose                                                                                                                                                                                                                                                      |
+| --------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SITE_URL`                              | Yes                 | Comma-separated literal origins allowed to call auth routes (CORS + CSRF `trustedOrigins`). Must include the production origin; wildcards are rejected at startup.                                                                                           |
+| `BETTER_AUTH_SECRET` (or `AUTH_SECRET`) | Yes                 | Hashes verification codes. `openssl rand -base64 32`.                                                                                                                                                                                                        |
+| `OTP_TRANSPORT`                         | Yes                 | `logger` or `whatsapp`. No default — unset fails closed. `logger` is accepted only on localhost or the dev deployment named in `lib/dev-deployment.ts`; setting it on production is refused by `chooseTransport`.                                            |
+| `LEAD_INGEST_SECRET`                    | Yes                 | Must equal the host-side value.                                                                                                                                                                                                                              |
+| `REVALIDATE_SECRET`                     | Yes                 | Must equal the host-side value. Convex posts to `/api/revalidate` on every origin in `SITE_URL`.                                                                                                                                                             |
+| `DEV_DEPLOYMENT_NAME`                   | **Never, anywhere** | Retired: no code reads it (a test enforces that). The one development deployment is the reviewed constant in `lib/dev-deployment.ts`, which a production URL cannot match, so setting this changes nothing. Remove it from dev (step 8) and never create it. |
+
+## Payments (Convex deployment settings)
+
+| Variable                  | Required           | Purpose                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PAYMENT_PROVIDER`        | Yes, to take money | `razorpay` on production. `simulated` walks the whole flow with an in-site test gateway and is refused anywhere but local or the dev deployment (`lib/payments.ts`). Unset, or `razorpay` without keys: the shop takes orders on WhatsApp instead (each set's button opens WhatsApp with the set named), so launch does not wait on Razorpay KYC. |
+| `RAZORPAY_KEY_ID`         | With `razorpay`    | Test (`rzp_test_…`) or live key id from the Razorpay dashboard. Sent to the browser for Checkout; not a secret.                                                                                                                                                                                                                                   |
+| `RAZORPAY_KEY_SECRET`     | With `razorpay`    | Creates orders, verifies Checkout signatures and reads payments. Never in the Next.js env.                                                                                                                                                                                                                                                        |
+| `RAZORPAY_WEBHOOK_SECRET` | With `razorpay`    | The secret typed when adding the webhook in the Razorpay dashboard; verifies `X-Razorpay-Signature`.                                                                                                                                                                                                                                              |
+
+Razorpay dashboard steps: turn on **auto-capture**; add a webhook to
+`https://<deployment>.convex.site/razorpay/webhook` with the events
+`order.paid` and `payment.captured` and the secret above; add the site's
+domain under the account's website details. Test mode first: card
+4100 2800 0000 1007 (any future expiry, any CVV, any OTP of 4+ digits) or UPI
+`success@razorpay`. Receipts number per financial year from the prefix in
+Settings, e.g. ICT/26-27/0001.
+
+## Documents in R2 (Convex deployment settings)
+
+Free notes are stored as whole PDFs in a Cloudflare R2 bucket through
+Convex's R2 component (`convex/files.ts`), and read in the page-curl reader a
+few pages at a time on a one-hour signed link. Images (covers, sample pages)
+stay in Convex storage.
+
+| Variable               | Purpose                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| `R2_ENDPOINT`          | `https://<account-id>.r2.cloudflarestorage.com`                   |
+| `R2_BUCKET`            | The bucket name, e.g. `ict-documents`                             |
+| `R2_ACCESS_KEY_ID`     | From an R2 API token with Object Read & Write on that bucket only |
+| `R2_SECRET_ACCESS_KEY` | Same token                                                        |
+| `R2_TOKEN`             | Same token's value                                                |
+
+Bucket CORS (R2 dashboard → bucket → Settings → CORS), so the browser can
+upload and the reader can fetch:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://<site domain>"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": [
+      "ETag",
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges"
+    ],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+Without these variables the admin hides the PDF upload and turns PDFs into
+page images instead, so nothing breaks. Locally any S3-compatible server
+works; a SeaweedFS container on `http://localhost:8333` with
+`-s3.domainName=localhost` was used in development.
+
+## WhatsApp sign-in codes (Convex deployment settings)
+
+`OTP_TRANSPORT=whatsapp` sends the 6-digit code through the WhatsApp Cloud
+API with an approved **copy-code authentication template**
+(`lib/otp-transport.ts`). The deployment refuses to start the auth instance
+when it is chosen without its settings, so a misconfiguration shows at once
+rather than as silent missing codes.
+
+| Variable                   | Purpose                                                                                                                                                                                                                                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WHATSAPP_ACCESS_TOKEN`    | A permanent system-user token with `whatsapp_business_messaging`                                                                                                                                                                                                                                          |
+| `WHATSAPP_PHONE_NUMBER_ID` | The ID of ICT's new sending number (not the number itself)                                                                                                                                                                                                                                                |
+| `WHATSAPP_OTP_TEMPLATE`    | The approved template's name; defaults to `verification_code`                                                                                                                                                                                                                                             |
+| `WHATSAPP_OTP_LANGUAGE`    | The template's language code; defaults to `en`                                                                                                                                                                                                                                                            |
+| `WHATSAPP_APP_SECRET`      | The Meta app's secret; signs the status webhook                                                                                                                                                                                                                                                           |
+| `WHATSAPP_VERIFY_TOKEN`    | Any long random string; Meta sends it back to verify the webhook                                                                                                                                                                                                                                          |
+| `AUTH_PROXY_SECRET`        | Any long random string, set on Convex AND the site host, the same value: lets sign-in limits see each visitor's address instead of the site server's, and makes Convex refuse code requests that did not come through the site. Set it on the site first: on Convex alone, every code request is refused. |
+
+**Webhook:** in the Meta app, subscribe the WhatsApp Business Account's
+`messages` field to `https://<deployment>.convex.site/whatsapp/webhook` with
+`WHATSAPP_VERIFY_TOKEN`. A code that fails because the number is not on
+WhatsApp then blocks that number for 30 days with a clear message (Meta does
+not bill undelivered messages, so the cost is the person's wait, not money).
+
+**Abuse ceilings** (`convex/otp.ts`): per number 3 codes in 10 minutes and
+10 a day; per network address 15 an hour, 40 a day and 6 different numbers
+an hour; the whole site 150 an hour and 500 a day; 5 guesses per code.
+
+Meta steps for ICT: a Meta Business portfolio verified with the GSTIN; a
+new number (not the one on the WhatsApp Business app) added to the
+WhatsApp Business Account; an authentication template with a copy-code
+button, submitted and approved; a system user with a permanent token. Codes
+are billed per message by Meta (authentication category, India rate).
 
 Convex sets `CONVEX_URL`, `CONVEX_SITE_URL` itself — do not set them.
 
-## Manual provider steps (approve before running)
+## Regions
 
-- **Convex production deployment**: `npx convex deploy` against a prod
-  deployment, then set the Convex-side variables above on it. Until then the
-  dev deployment `peaceful-emu-861` carries the functions.
-- **WhatsApp OTP transport (KIT-46)**: provider account + sender; implement
-  `sendOtp` in `lib/otp-transport.ts`, set `OTP_TRANSPORT=whatsapp`. The
-  per-phone send lease and ceilings already exist (KIT-53) so the first
-  billed send is rate-limited.
-- **Turnstile**: create the Cloudflare site, take site key + secret, set both
-  variables above. The CSP already allows `challenges.cloudflare.com`.
-- **Payments (KIT-60)**: Razorpay credentials, server-side order creation,
-  webhook signature verification, refunds — the checkout currently lands
-  orders as `awaiting_payment` and says so.
-- **Domain/DNS (KIT-42)**: point the domain at the host, set
-  `NEXT_PUBLIC_SITE_URL` + Convex `SITE_URL` to the real origin, redeploy,
-  then flip `SITE_INDEXABLE`.
-- **Google Business Profile / Search Console (KIT-43)**: manual verification
-  once the domain resolves.
+- **Convex: EU West (Ireland).** A deployment's region is fixed when it is
+  created and cannot be changed later (moving means a new deployment plus an
+  export and import), so create production in EU West from the start.
+- **Vercel functions: Dublin (`dub1`)**, pinned in `vercel.json`, next to the
+  Convex region.
+
+## Steps to approve, in order
+
+Nothing below has been run. Each step changes a provider account.
+
+1. **Convex region default.** Dashboard → team settings → default region →
+   EU West (Ireland).
+2. **Create the production deployment.** Dashboard → project
+   `impact-coaching-center` → create the Production deployment, region
+   EU West. Confirm the region shown on the deployment's settings page before
+   going on; it cannot be changed later.
+3. **Convex production variables.** On the production deployment
+   (dashboard → Settings → Environment Variables, or
+   `npx convex env set --prod NAME value`):
+   - `SITE_URL` = the production origin, for example `https://<domain>`
+   - `BETTER_AUTH_SECRET` = output of `openssl rand -base64 32`
+   - `LEAD_INGEST_SECRET` = output of `openssl rand -hex 32` (keep it for step 5)
+   - `OTP_TRANSPORT` = `whatsapp`, with the WhatsApp settings below, once
+     ICT's sending number and its code template are approved by Meta. Until
+     then production cannot sign anyone in: `logger` is refused there by
+     design.
+4. **Deploy key.** Dashboard → production deployment → Settings → Generate
+   production deploy key. Copy it for step 5.
+5. **Vercel production variables.** Project → Settings → Environment
+   Variables, scope **Production** only: `CONVEX_DEPLOY_KEY` (step 4),
+   `NEXT_PUBLIC_CONVEX_SITE_URL` (the production `https://<name>.convex.site`),
+   `NEXT_PUBLIC_SITE_URL`, `LEAD_INGEST_SECRET` (same value as step 3),
+   `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` (step 6).
+   `NEXT_PUBLIC_CONVEX_URL` is filled in by `convex deploy` during the build.
+6. **Turnstile.** Cloudflare → Turnstile → add site for the production
+   domain, managed mode. Copy the site key and secret into step 5.
+7. **Vercel build command** (Production): `npx convex deploy --cmd 'bun run
+   build'`. Check Project → Settings → Functions shows region `dub1` after the
+   first deploy.
+8. **Tidy dev.** `npx convex env remove DEV_DEPLOYMENT_NAME` on
+   `peaceful-emu-861` (unused, see the table above).
+9. **First owner.** After the first production deploy, with the owner's
+   number verified once on the live site:
+   `npx convex run --prod people:bootstrapOwner '{"phone":"<owner mobile>"}'`.
+   It refuses once any owner exists.
+
+Still separate work, not configuration: ICT's WhatsApp sending number and
+approved templates, Razorpay live keys (orders exist only once paid, ADR-0005), domain and DNS (KIT-42; then set `SITE_INDEXABLE=true`), Google
+Business Profile and Search Console (KIT-43).
+
+## Orders v2 migration (dev deployments only)
+
+Production starts on the v2 order shape and needs nothing. A deployment that
+already holds orders from before ADR-0005 refuses the new schema
+("missing the required field `checkoutId`"). Move them, in this order:
+
+1. Add `{ schemaValidation: false }` as the second argument of
+   `defineSchema` in `convex/schema.ts`; `npx convex dev --once`.
+2. `npx convex run internal.migrations.ordersToV2 '{}'` (logs how many moved;
+   pages itself 50 at a time).
+3. Remove the option again; `npx convex dev --once`. The push now validates
+   every document against the strict schema.
 
 ## Verifying after deploy
 
@@ -61,3 +211,19 @@ Convex sets `CONVEX_URL`, `CONVEX_SITE_URL` itself — do not set them.
 - Sign in with a real phone on the deployed build, place a collection order,
   and confirm it appears in `/admin` — the dev deployment is seeded with the
   owner account; production needs `people.bootstrapOwner` run once.
+
+## Owner locked out (lost phone or new number)
+
+ICT has one owner, and only an owner can manage staff, settings and refunds.
+Recovery is a developer step, run from a machine with the production deploy
+key; nothing on the site can do it.
+
+1. Confirm the request by calling ICT's main number and speaking to the owner.
+2. The owner signs in once on the site with the new number, so a verified
+   Person exists for it.
+3. Promote it: `npx convex run --prod people:bootstrapOwner '{"phone":"+91XXXXXXXXXX"}'`
+   only works while no owner exists, so first demote the old record in the
+   Convex dashboard (Data → persons → the old phone's row → `role: "student"`),
+   then run the command.
+4. Check the Convex logs for the `[audit] role_change` line, then ask the
+   owner to sign in and open People.

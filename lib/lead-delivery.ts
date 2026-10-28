@@ -20,7 +20,7 @@ export function createLeadSink(
   ip?: string
 ): LeadSink {
   return {
-    async submit(lead) {
+    async submit(lead, source) {
       const secret = env.LEAD_INGEST_SECRET
       const site = env.NEXT_PUBLIC_CONVEX_SITE_URL
       if (!secret || !site) throw new Error("Enquiry delivery is unavailable.")
@@ -37,6 +37,7 @@ export function createLeadSink(
           track: lead.track,
           timing: lead.timing,
           ...(ip ? { ip } : {}),
+          ...source,
         }),
         signal: AbortSignal.timeout(5000),
       })

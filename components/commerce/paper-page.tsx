@@ -40,13 +40,13 @@ export function PaperPage({
         <p
           className={cn(
             "font-display leading-tight",
-            compact ? "text-[0.5rem]" : "mt-2 text-xl md:text-2xl"
+            compact ? "text-[0.5rem]" : "mbs-2 text-xl md:text-2xl"
           )}
         >
           {heading}
         </p>
       ) : null}
-      <div className={cn("grid", compact ? "gap-1" : "mt-1 gap-2")}>
+      <div className={cn("grid", compact ? "gap-1" : "mbs-1 gap-2")}>
         {Array.from({ length: lines }, (_, i) => (
           <span
             key={i}

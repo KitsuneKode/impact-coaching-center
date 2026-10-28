@@ -1,11 +1,18 @@
 "use client"
 
-import { IconLogout } from "@tabler/icons-react"
+import { IconLogout, IconSearch } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
-import { COMMERCE_NAV, NAV, OWNER_NAV } from "@/components/admin/nav"
+import {
+  COMMERCE_NAV,
+  contentNavFor,
+  NAV,
+  OWNER_NAV,
+} from "@/components/admin/nav"
+import type { Grant } from "@/lib/grants"
+import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandDialog,
@@ -19,8 +26,14 @@ import {
 } from "@/components/ui/command"
 import { authClient } from "@/lib/auth-client"
 
+const OPEN_EVENT = "admin:command-menu"
+
 /** ⌘K / Ctrl+K in the admin. */
-export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
+export function AdminCommandMenu({
+  viewer,
+}: {
+  viewer: { role: "student" | "staff" | "owner"; grants: Grant[] }
+}) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
@@ -31,8 +44,13 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
       event.preventDefault()
       setOpen((previous) => !previous)
     }
+    const onOpen = () => setOpen(true)
     document.addEventListener("keydown", onKeyDown)
-    return () => document.removeEventListener("keydown", onKeyDown)
+    window.addEventListener(OPEN_EVENT, onOpen)
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      window.removeEventListener(OPEN_EVENT, onOpen)
+    }
   }, [])
 
   /** Close first, then act. */
@@ -41,9 +59,12 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
     action()
   }
 
-  const destinations = isOwner
-    ? [...NAV, ...COMMERCE_NAV, ...OWNER_NAV]
-    : [...NAV, ...COMMERCE_NAV]
+  const destinations = [
+    ...NAV,
+    ...COMMERCE_NAV,
+    ...contentNavFor(viewer),
+    ...(viewer.role === "owner" ? OWNER_NAV : []),
+  ]
 
   return (
     <CommandDialog
@@ -100,11 +121,19 @@ export function AdminCommandMenu({ isOwner }: { isOwner: boolean }) {
   )
 }
 
-/** The hint in the admin header, so the shortcut is discoverable at all. */
+/** The header's search button: the menu on a tap, the shortcut shown beside. */
 export function CommandHint() {
   return (
-    <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex">
-      <CommandShortcut>⌘K</CommandShortcut>
-    </span>
+    <Button
+      variant="secondary"
+      size="sm"
+      aria-keyshortcuts="Control+K Meta+K"
+      className="gap-2 font-normal text-muted-foreground shadow-none sm:w-52 sm:justify-start"
+      onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}
+    >
+      <IconSearch stroke={1.75} />
+      <span className="sr-only sm:not-sr-only">Go to…</span>
+      <CommandShortcut className="ms-auto hidden sm:inline">⌘K</CommandShortcut>
+    </Button>
   )
 }

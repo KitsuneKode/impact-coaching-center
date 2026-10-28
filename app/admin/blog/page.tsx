@@ -61,7 +61,7 @@ function Posts() {
             <IconNews stroke={1.5} className="size-4" aria-hidden />
           </span>
         ),
-        meta: p.excerpt || p.slug,
+        meta: `${p.language === "as" ? "Assamese · " : ""}${p.excerpt || p.slug}`,
         detail: publishedOn(p.publishedAt),
         published: p.published,
         sample: false,

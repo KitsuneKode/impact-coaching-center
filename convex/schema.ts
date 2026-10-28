@@ -1,12 +1,17 @@
 import { defineSchema, defineTable } from "convex/server"
 import { v } from "convex/values"
 
-/** How a book cover is coloured until it has a photographed cover. */
-export const BOOK_TONE = v.union(
-  v.literal("primary"),
-  v.literal("highlight"),
-  v.literal("muted")
-)
+import { CALENDAR_EXAMS, DATE_KINDS } from "../lib/calendar"
+import { GRANTS } from "../lib/grants"
+
+/** Interface and edition languages. */
+export const LOCALE = v.union(v.literal("en"), v.literal("as"))
+
+/** English always; Assamese when written. */
+export const LOCALISED = v.object({
+  en: v.string(),
+  as: v.optional(v.string()),
+})
 
 export const RESOURCE_KIND = v.union(
   v.literal("Notes"),
@@ -15,17 +20,16 @@ export const RESOURCE_KIND = v.union(
   v.literal("Practice set")
 )
 
-/** Who a Person is, as a closed set. `student` is the default, not a grant. */
+/** Who a Person is. `student` is the default, not a grant. */
 export const PERSON_ROLE = v.union(
   v.literal("student"),
   v.literal("staff"),
   v.literal("owner")
 )
 
-/**
- * Where a lead is in the follow-up queue, as a closed set - same reasoning
- * as ORDER_STATUS: an open string is a state nobody can exhaustively render.
- */
+/** Extra areas the owner can open to a staff member. The owner has all. */
+export const GRANT = v.union(...GRANTS.map((grant) => v.literal(grant)))
+
 export const LEAD_STATUS = v.union(
   v.literal("new"),
   v.literal("contacted"),
@@ -34,11 +38,24 @@ export const LEAD_STATUS = v.union(
   v.literal("lost")
 )
 
-/** Where an order can be, as a closed set. */
+/** A PDF in R2: its object key, page count, size and the name it was uploaded as. */
+export const CAMPAIGN_WORDS = v.object({
+  tag: v.string(),
+  headline: v.string(),
+  body: v.string(),
+  cta: v.string(),
+})
+
+export const PDF_DOCUMENT = v.object({
+  key: v.string(),
+  pages: v.number(),
+  bytes: v.number(),
+  name: v.string(),
+})
+
+/** An order exists only once paid (ADR-0005); these are its moves after. */
 export const ORDER_STATUS = v.union(
-  v.literal("awaiting_payment"),
   v.literal("paid"),
-  v.literal("packed"),
   v.literal("shipped"),
   v.literal("delivered"),
   v.literal("ready_for_collection"),
@@ -47,51 +64,184 @@ export const ORDER_STATUS = v.union(
   v.literal("refunded")
 )
 
-/** One record per mobile number. */
+/** How an enquiry reached ICT. */
+export const ENQUIRY_CHANNEL = v.union(
+  v.literal("website"),
+  v.literal("walk_in"),
+  v.literal("phone_call"),
+  v.literal("whatsapp"),
+  v.literal("referral"),
+  v.literal("other")
+)
+
+/** Things that happen to one Person, shown on their lead sheet. */
+export const ACTIVITY_KIND = v.union(
+  v.literal("enquiry"),
+  v.literal("status_change"),
+  v.literal("follow_up_change"),
+  v.literal("note"),
+  v.literal("call"),
+  v.literal("whatsapp_handoff"),
+  v.literal("resource_open"),
+  v.literal("order_placed"),
+  v.literal("order_status"),
+  v.literal("courier_update")
+)
+
+/** Privileged changes, for "who did what" rather than a lead's story. */
+export const AUDIT_ACTION = v.union(
+  v.literal("role_change"),
+  v.literal("grant_change"),
+  v.literal("account_deleted"),
+  v.literal("export"),
+  v.literal("save"),
+  v.literal("publish"),
+  v.literal("unpublish"),
+  v.literal("course_sync"),
+  v.literal("settings_change"),
+  v.literal("payment")
+)
+
+export const AUDIT_ENTITY = v.union(
+  v.literal("person"),
+  v.literal("book"),
+  v.literal("bundle"),
+  v.literal("resource"),
+  v.literal("post"),
+  v.literal("examDate"),
+  v.literal("course"),
+  v.literal("campaign"),
+  v.literal("settings"),
+  v.literal("order")
+)
+
+/** One language edition of a book. */
+export const EDITION = v.object({
+  title: v.string(),
+  subtitle: v.optional(v.string()),
+  edition: v.string(),
+  pages: v.number(),
+  cover: v.optional(v.id("_storage")),
+  samplePages: v.array(v.id("_storage")),
+})
+
+/** One language of a bundle: its own price and its own on/off switch. */
+export const VARIANT = v.object({
+  pricePaise: v.number(),
+  /** Struck-through price, when there is one. */
+  comparePaise: v.optional(v.number()),
+  available: v.boolean(),
+})
+
+/** What was bought, frozen at checkout so later edits cannot rewrite it. */
+export const ORDER_LINE = v.object({
+  bundleId: v.id("bundles"),
+  slug: v.string(),
+  title: v.string(),
+  language: LOCALE,
+  books: v.array(v.string()),
+  quantity: v.number(),
+  unitPaise: v.number(),
+})
+
+export const ADDRESS = v.object({
+  line1: v.string(),
+  line2: v.optional(v.string()),
+  /** "Near the Namghar": how a courier finds a house without a number. */
+  landmark: v.optional(v.string()),
+  city: v.string(),
+  /** Required at checkout; optional here for orders placed before it was. */
+  district: v.optional(v.string()),
+  pin: v.string(),
+})
+
+/** Who an order is for; the courier rings `courierPhone` when it is set. */
+export const CONTACT = v.object({
+  name: v.string(),
+  phone: v.string(),
+  courierPhone: v.optional(v.string()),
+})
+
+export const COURIER = v.object({
+  name: v.string(),
+  trackingNumber: v.string(),
+})
+
+/** One status an order took, when, and who moved it (none for the payment). */
+export const ORDER_STEP = v.object({
+  status: ORDER_STATUS,
+  at: v.number(),
+  by: v.optional(v.id("persons")),
+})
+
+export const CHECKOUT_STATUS = v.union(
+  v.literal("open"),
+  v.literal("paid"),
+  v.literal("replaced")
+)
+
+/** Order messages on WhatsApp; each is a Meta template (lib/order-messages.ts). */
+export const MESSAGE_TEMPLATE = v.union(
+  v.literal("order_paid"),
+  v.literal("order_shipped"),
+  v.literal("order_ready"),
+  v.literal("desk_new_order")
+)
+
+export const CAMPAIGN_KIND = v.union(
+  v.literal("bar"),
+  v.literal("banner"),
+  v.literal("modal"),
+  v.literal("reel")
+)
+
+/** "Scheduled" and "ended" are derived from the dates, never stored. */
+export const CAMPAIGN_STATUS = v.union(
+  v.literal("draft"),
+  v.literal("live"),
+  v.literal("paused")
+)
+
+/** One line of a ClassPlus sync's diff. */
+export const COURSE_CHANGE = v.object({
+  classplusId: v.number(),
+  name: v.string(),
+  kind: v.union(
+    v.literal("added"),
+    v.literal("changed"),
+    v.literal("gone"),
+    v.literal("back")
+  ),
+  /** For "changed": which of price, name, poster, description, listing. */
+  fields: v.optional(v.array(v.string())),
+})
+
 export default defineSchema({
+  /** One row per mobile number: who they are and where they are as a lead. */
   persons: defineTable({
-    /** E.164. The natural key, and the only phone shape stored. */
+    /** E.164, the natural key. */
     phone: v.string(),
     name: v.string(),
-    /** A real address, never the synthetic one Better Auth requires. */
     email: v.optional(v.string()),
-    verifiedAt: v.optional(v.number()),
-    updatedAt: v.optional(v.number()),
-    lastEnquiryAt: v.optional(v.number()),
-    lastEnquiryKey: v.optional(v.string()),
     role: PERSON_ROLE,
-    /**
-     * Optimistic-concurrency counter, the convention the execution runbook
-     * asks every editable record to share.
-     */
-    revision: v.optional(v.number()),
-    /**
-     * Absent until the Person shows intent. Reading a Resource creates a
-     * Person but not a lead, or staff drown in casual readers and stop
-     * trusting the queue.
-     */
-    leadStatus: v.optional(LEAD_STATUS),
-    assigneeId: v.optional(v.id("persons")),
-    nextFollowUpAt: v.optional(v.number()),
-    source: v.string(),
-    campaignId: v.optional(v.string()),
-    /** Which Track the Person asked about, from their latest enquiry. */
-    interestTrack: v.optional(v.string()),
-    consent: v.optional(
-      v.object({
-        granted: v.boolean(),
-        at: v.number(),
-        /** Which wording they agreed to, so consent stays auditable. */
-        wordingVersion: v.string(),
-      })
+    grants: v.optional(v.array(GRANT)),
+    locale: v.optional(LOCALE),
+    verifiedAt: v.optional(v.number()),
+    /** When they ticked "I agree" to the Terms and Privacy Policy, and which
+        version (lib/terms.ts) they agreed to. */
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
+    /** The address and courier number they asked checkout to remember. */
+    savedDelivery: v.optional(
+      v.object({ address: ADDRESS, courierPhone: v.optional(v.string()) })
     ),
-    /** When WhatsApp's free 24-hour reply window closes. */
-    waWindowExpiresAt: v.optional(v.number()),
-    /**
-     * The three onboarding answers (lib/questionnaire.ts). Absent until the
-     * Person is asked; `skippedAt` and `answeredAt` keep "skipped" and "not yet
-     * seen" distinguishable, which the resumption banner depends on.
-     */
+    /** First way we heard of them, e.g. "website" or "staff_walk_in". */
+    source: v.string(),
+    /** Absent until they show intent: a reader is not a lead. */
+    leadStatus: v.optional(LEAD_STATUS),
+    interestTrack: v.optional(v.string()),
+    lastEnquiryAt: v.optional(v.number()),
+    nextFollowUpAt: v.optional(v.number()),
     questionnaire: v.optional(
       v.object({
         targetExam: v.optional(v.string()),
@@ -101,241 +251,293 @@ export default defineSchema({
         skippedAt: v.optional(v.number()),
       })
     ),
-    /**
-     * Set when the Person erased their account (convex/account.ts). The row
-     * stays as a tombstone so orders and the audit trail still point at
-     * something, but it holds no name, number or answers.
-     */
+    /** Erased accounts stay as tombstones with no personal data. */
     deletedAt: v.optional(v.number()),
+    revision: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_phone", ["phone"])
-    // Status, then time within that status. Not the inbox order: the status
-    // string would put "lost" ahead of "interested".
-    .index("by_leadStatus", ["leadStatus", "lastEnquiryAt"])
-    /*
-     * The inbox order: most recently active first, across every status.
-     * Persons with no enquiry carry no lastEnquiryAt and sort to the end of
-     * a descending scan; the query filters them out regardless.
-     */
+    .index("by_leadStatus_and_lastEnquiryAt", ["leadStatus", "lastEnquiryAt"])
     .index("by_lastEnquiryAt", ["lastEnquiryAt"])
-    // Follow-ups due, for the admin home and the queue's "due" view.
     .index("by_nextFollowUpAt", ["nextFollowUpAt"])
-    /* Staff and owners, for the admin surface and for last-owner protection. */
     .index("by_role", ["role"])
-    /* Name lookup for the inbox search box, scoped to lead fields only. */
     .searchIndex("search_name", {
       searchField: "name",
       filterFields: ["leadStatus", "interestTrack"],
     }),
 
-  /**
-   * Status changes, notes and handoffs. Free text lives here and never on the
-   * Person, so an export of persons cannot leak staff notes.
-   */
-  activities: defineTable({
-    /**
-     * Who the row is about. Absent on catalogue rows: a price change is about
-     * a book, not a person, and `actorId` already names who did it.
-     */
-    personId: v.optional(v.id("persons")),
-    kind: v.union(
-      v.literal("status_change"),
-      v.literal("role_change"),
-      v.literal("note"),
-      v.literal("call"),
-      v.literal("enquiry"),
-      v.literal("whatsapp_handoff"),
-      v.literal("account_deleted"),
-      v.literal("export"),
-      v.literal("courier_update"),
-      v.literal("order_placed"),
-      v.literal("resource_open"),
-      v.literal("catalog_save"),
-      v.literal("catalog_publish"),
-      v.literal("post_save"),
-      v.literal("post_publish")
-    ),
-    body: v.optional(v.string()),
-    actorId: v.optional(v.id("persons")),
+  /** Every enquiry as it arrived, with where it came from. */
+  enquiries: defineTable({
+    personId: v.id("persons"),
+    channel: ENQUIRY_CHANNEL,
+    /** The name given with this enquiry. Families share a phone, so it can
+        differ from the Person's name: a mother asking for two children. */
+    name: v.optional(v.string()),
     track: v.optional(v.string()),
     timing: v.optional(v.string()),
-    /** Which catalogue record a catalog_* or post_* row changed. */
-    entity: v.optional(
-      v.union(v.literal("book"), v.literal("resource"), v.literal("post"))
+    /** Path the form was on, e.g. "/as/courses/lakhya-2027". */
+    page: v.optional(v.string()),
+    utm: v.optional(
+      v.object({
+        source: v.optional(v.string()),
+        medium: v.optional(v.string()),
+        campaign: v.optional(v.string()),
+      })
     ),
-    entityId: v.optional(
-      v.union(v.id("books"), v.id("resources"), v.id("posts"))
-    ),
-    /*
-     * The structured half of an audit row. `body` is for reading; these are for
-     * asking questions - "every role change this owner made" cannot be answered
-     * from a sentence.
-     */
-    fromRole: v.optional(
-      v.union(v.literal("student"), v.literal("staff"), v.literal("owner"))
-    ),
-    toRole: v.optional(
-      v.union(v.literal("student"), v.literal("staff"), v.literal("owner"))
-    ),
-    fromStatus: v.optional(v.string()),
-    toStatus: v.optional(v.string()),
-  })
-    .index("by_person", ["personId"])
-    /* "Every catalogue change", "every publish" - questions with no Person. */
-    .index("by_kind", ["kind"]),
+    referrer: v.optional(v.string()),
+    /** Staff member who entered a desk enquiry. */
+    actorId: v.optional(v.id("persons")),
+  }).index("by_person", ["personId"]),
 
-  /** Fixed-window counters for public submission paths. */
-  /** Book orders, and the fulfilment trail staff work from. */
-  orders: defineTable({
+  /** A Person's story for the lead sheet. Free text never sits on `persons`. */
+  activities: defineTable({
     personId: v.id("persons"),
-    /** Short human-readable reference, spoken over the phone. */
-    reference: v.string(),
-    status: ORDER_STATUS,
-    fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
-    items: v.array(
-      v.object({
-        title: v.string(),
-        edition: v.optional(v.string()),
-        quantity: v.number(),
-        /** Paise, at the moment of ordering. */
-        unitPaise: v.number(),
-      })
-    ),
-    itemsPaise: v.number(),
-    deliveryPaise: v.number(),
-    totalPaise: v.number(),
-    /**
-     * Absent for collection. Kept on the order rather than the Person because
-     * an address is where *this parcel* went, and a Person who moves must not
-     * silently rewrite where last month's order was delivered.
-     */
-    address: v.optional(
-      v.object({
-        line1: v.string(),
-        line2: v.optional(v.string()),
-        city: v.string(),
-        district: v.optional(v.string()),
-        pin: v.string(),
-      })
-    ),
-    /**
-     * Who is carrying the parcel, written when the order ships. A tracking
-     * number is the only "where is my book" answer that survives a phone
-     * call, so `shipped` refuses to apply without it (convex/orders.ts).
-     */
-    courier: v.optional(
-      v.object({
-        name: v.string(),
-        trackingNumber: v.string(),
-      })
-    ),
-    /** Provider identifiers. Ours is `reference`; these are Razorpay's. */
-    paymentOrderId: v.optional(v.string()),
-    paymentId: v.optional(v.string()),
-    placedAt: v.number(),
-    updatedAt: v.optional(v.number()),
-    /** Cleared when a staff member first opens it. Drives the new-order badge. */
-    seenAt: v.optional(v.number()),
-    /**
-     * Client-generated key that makes a retried or double-submitted checkout
-     * one order, not two. Unique per order.
-     */
-    idempotencyKey: v.optional(v.string()),
-    revision: v.optional(v.number()),
+    kind: ACTIVITY_KIND,
+    actorId: v.optional(v.id("persons")),
+    body: v.optional(v.string()),
+    track: v.optional(v.string()),
+    timing: v.optional(v.string()),
+    from: v.optional(v.string()),
+    to: v.optional(v.string()),
+  }).index("by_person", ["personId"]),
+
+  auditLog: defineTable({
+    actorId: v.optional(v.id("persons")),
+    action: AUDIT_ACTION,
+    entity: AUDIT_ENTITY,
+    /** The changed record's id, as a string across tables. */
+    entityId: v.optional(v.string()),
+    summary: v.string(),
+    from: v.optional(v.string()),
+    to: v.optional(v.string()),
   })
-    /*
-     * The fulfilment queue: status first, then oldest-first within it, because
-     * the question staff ask is "what is waiting to be packed" and the answer
-     * should start with whoever has waited longest.
-     */
-    .index("by_status", ["status", "placedAt"])
-    .index("by_person", ["personId", "placedAt"])
-    /* The queue order. */
-    .index("by_placedAt", ["placedAt"])
-    .index("by_reference", ["reference"])
-    .index("by_idempotency", ["idempotencyKey"]),
+    .index("by_action", ["action"])
+    .index("by_entity_and_entityId", ["entity", "entityId"]),
 
-  rateLimits: defineTable({
-    key: v.string(),
-    count: v.number(),
-    windowStart: v.number(),
+  /** Width, height and a tiny placeholder for every uploaded image. */
+  images: defineTable({
+    storageId: v.id("_storage"),
+    width: v.number(),
+    height: v.number(),
+    /** A few-hundred-byte data URL shown while the real image loads. */
+    blurDataUrl: v.optional(v.string()),
+  }).index("by_storageId", ["storageId"]),
+
+  /** Courses mirrored from ClassPlus. ClassPlus owns everything in `source`. */
+  courses: defineTable({
+    classplusId: v.number(),
+    slug: v.string(),
+    source: v.object({
+      name: v.string(),
+      description: v.string(),
+      pricePaise: v.number(),
+      finalPricePaise: v.number(),
+      free: v.boolean(),
+      enrolled: v.number(),
+      category: v.optional(v.string()),
+      tags: v.array(v.string()),
+      imageUrl: v.optional(v.string()),
+      createdAt: v.optional(v.number()),
+      /** On ICT's storefront front page, so on sale now. */
+      listed: v.optional(v.boolean()),
+      /** In the storefront's "Featured" row. */
+      classplusFeatured: v.optional(v.boolean()),
+    }),
+    /** Our copy of the ClassPlus cover, refreshed when `imageUrl` changes. */
+    cover: v.optional(v.id("_storage")),
+    /** Only what ClassPlus does not hold, set by ICT in the admin. */
+    local: v.object({
+      track: v.optional(v.string()),
+      hidden: v.boolean(),
+      sortOrder: v.optional(v.number()),
+      batchStarts: v.optional(v.string()),
+      timing: v.optional(v.string()),
+      offlineFeePaise: v.optional(v.number()),
+      /** Students at the centre ClassPlus does not count; added on the site. */
+      offlineStudents: v.optional(v.number()),
+      /** The course the home page leads its exam with. */
+      featured: v.optional(v.boolean()),
+    }),
+    syncedAt: v.number(),
+    /** Set when a sync no longer sees it; hidden from the site from then on. */
+    missingSince: v.optional(v.number()),
+    revision: v.number(),
   })
-    .index("by_key", ["key"])
-    // Counters are disposable once their window has passed. Without a way to
-    // find the stale ones this table only ever grows, one row per bucket ever
-    // seen.
-    .index("by_window", ["windowStart"]),
+    .index("by_classplusId", ["classplusId"])
+    .index("by_slug", ["slug"]),
 
-  /** One in-flight send and one acceptable code per phone. */
-  otpSendLeases: defineTable({
-    /** E.164. One row per number. */
-    phone: v.string(),
-    generation: v.number(),
-    /** Epoch ms. Zero means nobody is mid-send. */
-    inflightUntil: v.number(),
-    /** HMAC of the live code. Absent once the code is used, expired or aborted. */
-    codeHash: v.optional(v.string()),
-    codeExpiresAt: v.optional(v.number()),
-    attempts: v.number(),
-  }).index("by_phone", ["phone"]),
+  courseSyncs: defineTable({
+    trigger: v.union(v.literal("schedule"), v.literal("owner")),
+    status: v.union(v.literal("ok"), v.literal("failed")),
+    seen: v.number(),
+    added: v.number(),
+    changed: v.number(),
+    missing: v.number(),
+    error: v.optional(v.string()),
+    /** What this run changed on the site, course by course. */
+    changes: v.optional(v.array(COURSE_CHANGE)),
+  }),
 
-  /**
-   * Books ICT sells. Prices are integer paise and are read by the server when
-   * an order is priced, never taken from the browser. `sample` marks the
-   * placeholder titles seeded for demos so a page can say so.
-   */
+  /** A title ICT prints, in up to two language editions. Sold only in bundles. */
   books: defineTable({
     slug: v.string(),
-    title: v.string(),
-    subtitle: v.string(),
     exam: v.string(),
-    edition: v.string(),
-    pages: v.number(),
-    pricePaise: v.number(),
-    tone: BOOK_TONE,
-    description: v.string(),
+    editions: v.object({ en: v.optional(EDITION), as: v.optional(EDITION) }),
+    description: v.optional(LOCALISED),
     contents: v.array(v.string()),
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  }).index("by_slug", ["slug"]),
+
+  /** What a visitor buys: a set of books, in an English or an Assamese set. */
+  bundles: defineTable({
+    slug: v.string(),
+    exam: v.string(),
+    title: LOCALISED,
+    tagline: v.optional(LOCALISED),
+    description: LOCALISED,
+    /** In shelf order. Capped in lib/bundles.ts. */
+    bookIds: v.array(v.id("books")),
     cover: v.optional(v.id("_storage")),
-    samplePages: v.array(v.id("_storage")),
+    variants: v.object({ en: VARIANT, as: VARIANT }),
+    /** Paid copies across both languages, bumped when an order is paid. */
+    soldCount: v.number(),
+    /** Copies sold over the counter, entered by ICT; the site shows both. */
+    soldOffline: v.optional(v.number()),
+    sortOrder: v.number(),
     published: v.boolean(),
     sample: v.optional(v.boolean()),
     revision: v.number(),
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_published", ["published"]),
+    .index("by_published_and_sortOrder", ["published", "sortOrder"]),
 
-  /**
-   * Free study material. Pages are images uploaded by staff (ADR-0003: the
-   * reader serves page images, never the PDF).
-   */
+  /** Free study material, read as page images (ADR-0003). */
   resources: defineTable({
     slug: v.string(),
     title: v.string(),
     exam: v.string(),
     kind: RESOURCE_KIND,
+    language: v.optional(LOCALE),
     description: v.string(),
     pageImages: v.array(v.id("_storage")),
+    /** The original PDF in R2 (convex/files.ts), read page by page in the browser. */
+    pdf: v.optional(PDF_DOCUMENT),
+    /**
+     * The PDF's first page as an image, rendered when it is uploaded: the
+     * public preview on the note's page and in its link card.
+     */
+    cover: v.optional(v.id("_storage")),
     published: v.boolean(),
     sample: v.optional(v.boolean()),
     revision: v.number(),
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
-    .index("by_published", ["published"]),
+    .index("by_published", ["published"])
+    .index("by_pdfKey", ["pdf.key"]),
 
-  /**
-   * The signed-in shopper's cart. Guests keep theirs in localStorage; at
-   * sign-in the two merge here, union by slug keeping the newer `at`
-   * (commerce plan, 22 September). Emptied when it becomes an order.
-   */
+  /** First open per Person per resource, for staff to see. */
+  resourceOpens: defineTable({
+    personId: v.id("persons"),
+    resourceId: v.id("resources"),
+    at: v.number(),
+  }).index("by_personId_and_resourceId", ["personId", "resourceId"]),
+
+  posts: defineTable({
+    slug: v.string(),
+    language: v.optional(LOCALE),
+    /** The exam it is about, as `tracks` names it: ties it to its courses. */
+    exam: v.optional(v.string()),
+    title: v.string(),
+    excerpt: v.string(),
+    body: v.string(),
+    cover: v.optional(v.id("_storage")),
+    published: v.boolean(),
+    publishedAt: v.optional(v.number()),
+    authorId: v.optional(v.id("persons")),
+    sample: v.optional(v.boolean()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_published_and_publishedAt", ["published", "publishedAt"]),
+
+  /** How often each post has been read: one row per post, kept apart from
+      the post so counting never conflicts with an edit. */
+  postStats: defineTable({
+    postId: v.id("posts"),
+    reads: v.number(),
+  }).index("by_postId", ["postId"]),
+
+  /** Exam dates from official notices. Days are IST `yyyy-mm-dd`. */
+  examDates: defineTable({
+    exam: v.union(...CALENDAR_EXAMS.map((exam) => v.literal(exam))),
+    kind: v.union(...DATE_KINDS.map((kind) => v.literal(kind))),
+    title: v.string(),
+    titleAs: v.optional(v.string()),
+    starts: v.string(),
+    ends: v.optional(v.string()),
+    tentative: v.boolean(),
+    source: v.string(),
+    published: v.boolean(),
+    revision: v.number(),
+    updatedAt: v.number(),
+  }).index("by_published_and_starts", ["published", "starts"]),
+
+  /** Promotions the owner (or a granted staff member) runs on the site. */
+  campaigns: defineTable({
+    name: v.string(),
+    /** Where it shows; older rows have only `kind`. Read with kindsOf. */
+    kinds: v.optional(v.array(CAMPAIGN_KIND)),
+    kind: v.optional(CAMPAIGN_KIND),
+    status: CAMPAIGN_STATUS,
+    tag: v.string(),
+    headline: v.string(),
+    body: v.string(),
+    cta: v.string(),
+    /** Assamese wording, shown on /as pages when set. */
+    as: v.optional(CAMPAIGN_WORDS),
+    href: v.string(),
+    image: v.optional(v.id("_storage")),
+    coupon: v.string(),
+    /** YouTube ids for a reel. Capped in lib/campaigns.ts. */
+    reelIds: v.array(v.string()),
+    /** Paths it shows on; empty means everywhere. */
+    routes: v.array(v.string()),
+    /** Exams whose pages it also shows on (lib/campaigns.ts showsOn). */
+    exams: v.optional(v.array(v.string())),
+    startsAt: v.optional(v.number()),
+    endsAt: v.optional(v.number()),
+    delaySeconds: v.number(),
+    /** Days it stays away after a visitor closes it. */
+    restDays: v.number(),
+    priority: v.number(),
+    revision: v.number(),
+    updatedAt: v.number(),
+  }).index("by_status_and_priority", ["status", "priority"]),
+
+  /** Per promotion, per India day: how often it was seen, clicked, closed. */
+  campaignStats: defineTable({
+    campaignId: v.id("campaigns"),
+    /** India date, e.g. "2026-10-14". */
+    day: v.string(),
+    views: v.number(),
+    clicks: v.number(),
+    closes: v.number(),
+  }).index("by_campaignId_and_day", ["campaignId", "day"]),
+
+  /** The signed-in shopper's cart; guests keep theirs in the browser. */
   carts: defineTable({
     personId: v.id("persons"),
     lines: v.array(
       v.object({
         slug: v.string(),
+        language: LOCALE,
         quantity: v.number(),
-        /** Write time, so the merge knows which copy is newer. */
+        /** Write time, so a merge knows which copy is newer. */
         at: v.number(),
       })
     ),
@@ -343,30 +545,219 @@ export default defineSchema({
   }).index("by_person", ["personId"]),
 
   /**
-   * Owner-written posts for /blog. `body` is Markdown rendered by the same
-   * component the policy pages use; `publishedAt` is set once, the first
-   * time the post goes live, and kept across unpublishes.
+   * One attempt to pay: the cart frozen at a price, with its Razorpay order.
+   * Nobody but the buyer sees it; an order is made from it only when the
+   * money is captured (ADR-0005). Abandoned ones are swept after 30 days.
    */
-  posts: defineTable({
-    slug: v.string(),
-    title: v.string(),
-    excerpt: v.string(),
-    body: v.string(),
-    published: v.boolean(),
-    publishedAt: v.optional(v.number()),
-    authorId: v.optional(v.id("persons")),
-    /** Dev-seeded filler, same convention as books and resources. */
-    sample: v.optional(v.boolean()),
-    revision: v.number(),
+  checkouts: defineTable({
+    personId: v.id("persons"),
+    status: CHECKOUT_STATUS,
+    fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+    contact: CONTACT,
+    lines: v.array(ORDER_LINE),
+    itemsPaise: v.number(),
+    deliveryPaise: v.number(),
+    totalPaise: v.number(),
+    address: v.optional(ADDRESS),
+    /** For collection: which centre (lib/brand.ts `centres`). */
+    pickupCentre: v.optional(v.string()),
+    /** What was priced, so an unchanged cart reuses this attempt. */
+    signature: v.string(),
+    gatewayOrderId: v.optional(v.string()),
+    /** The order the captured payment made. */
+    orderId: v.optional(v.id("orders")),
+    /** Last time the gateway declined a payment on it. */
+    declinedAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
-    .index("by_slug", ["slug"])
-    .index("by_published", ["published", "publishedAt"]),
+    .index("by_personId_and_status", ["personId", "status"])
+    .index("by_gatewayOrderId", ["gatewayOrderId"])
+    .index("by_status_and_updatedAt", ["status", "updatedAt"]),
 
-  /** One row per Person per resource: the first open, for staff to see. */
-  resourceOpens: defineTable({
+  orders: defineTable({
     personId: v.id("persons"),
-    resourceId: v.id("resources"),
+    /** Short reference read out over the phone, e.g. ICT-7K3F9. */
+    reference: v.string(),
+    status: ORDER_STATUS,
+    /** Delivered, collected, cancelled or refunded: nothing left to do. */
+    closed: v.boolean(),
+    /** Every status it has had, oldest first; a handful at most. */
+    history: v.array(ORDER_STEP),
+    fulfilment: v.union(v.literal("delivery"), v.literal("collection")),
+    contact: CONTACT,
+    lines: v.array(ORDER_LINE),
+    itemsPaise: v.number(),
+    deliveryPaise: v.number(),
+    totalPaise: v.number(),
+    /** Where this parcel went; a Person who moves must not rewrite it. */
+    address: v.optional(ADDRESS),
+    /** For collection: which centre (lib/brand.ts `centres`). */
+    pickupCentre: v.optional(v.string()),
+    courier: v.optional(COURIER),
+    checkoutId: v.id("checkouts"),
+    payment: v.object({
+      razorpayOrderId: v.string(),
+      razorpayPaymentId: v.string(),
+      method: v.string(),
+      paidAt: v.number(),
+    }),
+    /** Sequential per financial year, e.g. ICT/26-27/0001. */
+    receiptNumber: v.string(),
+    /** Unguessable: opens the receipt without signing in, from WhatsApp. */
+    receiptToken: v.string(),
+    /** The seller as the receipt names them, frozen when it was paid. */
+    seller: v.object({
+      legalName: v.string(),
+      gstin: v.optional(v.string()),
+      address: v.string(),
+    }),
+    /** Money ICT holds for a cancelled order; cleared when marked refunded. */
+    refundDueAt: v.optional(v.number()),
+    placedAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    /** First time a staff member opened it; drives the new-order badge. */
+    seenAt: v.optional(v.number()),
+    revision: v.number(),
+  })
+    .index("by_status_and_placedAt", ["status", "placedAt"])
+    .index("by_closed_and_placedAt", ["closed", "placedAt"])
+    .index("by_personId_and_placedAt", ["personId", "placedAt"])
+    .index("by_placedAt", ["placedAt"])
+    .index("by_reference", ["reference"])
+    .index("by_receiptToken", ["receiptToken"])
+    .index("by_razorpayOrderId", ["payment.razorpayOrderId"])
+    .index("by_refundDueAt", ["refundDueAt"]),
+
+  /**
+   * Files a save stopped pointing at. Kept for 30 days so an editor can put
+   * the old PDF back, then deleted by the weekly sweep if still unused.
+   */
+  releasedFiles: defineTable({
+    owner: v.object({ table: v.string(), id: v.string() }),
+    image: v.optional(v.id("_storage")),
+    pdf: v.optional(PDF_DOCUMENT),
+    /** The PDF's page-one preview, restored with it. */
+    cover: v.optional(v.id("_storage")),
+    releasedAt: v.number(),
+  })
+    .index("by_owner_and_releasedAt", ["owner.table", "owner.id", "releasedAt"])
+    .index("by_releasedAt", ["releasedAt"])
+    .index("by_image", ["image"])
+    .index("by_pdfKey", ["pdf.key"]),
+
+  /** Razorpay webhook events already handled, so a retry is a no-op. */
+  paymentEvents: defineTable({
+    eventId: v.string(),
+    type: v.string(),
+    orderId: v.optional(v.id("orders")),
+  }).index("by_eventId", ["eventId"]),
+
+  /**
+   * WhatsApp messages about orders, one row per order event and recipient,
+   * so a payment confirmed twice never sends two. Sent by a scheduled action.
+   */
+  messages: defineTable({
+    /** e.g. "ICT-7K3F9:paid:buyer". */
+    key: v.string(),
+    to: v.string(),
+    template: MESSAGE_TEMPLATE,
+    language: LOCALE,
+    params: v.array(v.string()),
+    status: v.union(
+      v.literal("queued"),
+      v.literal("sent"),
+      v.literal("failed")
+    ),
+    attempts: v.number(),
+    error: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+  })
+    .index("by_key", ["key"])
+    .index("by_status", ["status"]),
+
+  /**
+   * Taps on WhatsApp and phone links, as daily totals per page and source.
+   * No person, no number: just which pages and campaigns bring contact.
+   */
+  /**
+   * Website visits as daily totals per source (Google, Facebook, direct...),
+   * counted once per browser session. No person, page or address: just which
+   * channels bring people, to set beside the enquiries they turn into.
+   */
+  visits: defineTable({
+    /** India date, e.g. "2026-10-27". */
+    day: v.string(),
+    source: v.string(),
+    count: v.number(),
+  }).index("by_day_and_source", ["day", "source"]),
+
+  contactTaps: defineTable({
+    /** India date, e.g. "2026-10-13". */
+    day: v.string(),
+    kind: v.union(v.literal("whatsapp"), v.literal("call")),
+    page: v.string(),
+    source: v.string(),
+    count: v.number(),
+  }).index("by_day_and_kind_and_page_and_source", [
+    "day",
+    "kind",
+    "page",
+    "source",
+  ]),
+
+  /** Named counters, e.g. receipt numbers per financial year. */
+  counters: defineTable({
+    name: v.string(),
+    value: v.number(),
+  }).index("by_name", ["name"]),
+
+  /** One row of owner-editable shop and business details. */
+  siteSettings: defineTable({
+    /** Delivery within Assam; also every zone left blank (lib/shipping.ts). */
+    shippingPaise: v.number(),
+    shippingNortheastPaise: v.optional(v.number()),
+    shippingIndiaPaise: v.optional(v.number()),
+    pickupAddress: v.string(),
+    legalName: v.string(),
+    gstin: v.optional(v.string()),
+    receiptPrefix: v.string(),
+    /** Where new-order alerts go on WhatsApp, E.164; none means no alerts. */
+    deskPhone: v.optional(v.string()),
+    revision: v.number(),
+    updatedAt: v.number(),
+  }),
+
+  /** Fixed-window counters for public submission paths. */
+  rateLimits: defineTable({
+    key: v.string(),
+    count: v.number(),
+    windowStart: v.number(),
+  })
+    .index("by_key", ["key"])
+    .index("by_windowStart", ["windowStart"]),
+
+  /** Numbers WhatsApp could not deliver a code to (not on WhatsApp), from
+      Meta's status webhook; sends to them are refused for a while. */
+  otpUndeliverable: defineTable({
+    phone: v.string(),
+    /** Meta's error code, e.g. 131026 "message undeliverable". */
+    code: v.number(),
     at: v.number(),
-  }).index("by_person_resource", ["personId", "resourceId"]),
+  })
+    .index("by_phone", ["phone"])
+    .index("by_at", ["at"]),
+
+  /** One in-flight send and one acceptable code per phone. */
+  otpSendLeases: defineTable({
+    phone: v.string(),
+    generation: v.number(),
+    /** Epoch ms. Zero means nobody is mid-send. */
+    inflightUntil: v.number(),
+    /** HMAC of the live code; absent once used, expired or aborted. */
+    codeHash: v.optional(v.string()),
+    codeExpiresAt: v.optional(v.number()),
+    attempts: v.number(),
+    /** No new code before this (epoch ms): set when one was delivered. */
+    resendAfter: v.optional(v.number()),
+  }).index("by_phone", ["phone"]),
 })

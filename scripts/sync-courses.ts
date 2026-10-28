@@ -48,10 +48,15 @@ async function main() {
   await Bun.$`mkdir -p public/courses`.quiet()
   const keep = new Set<string>()
 
-  const rows = []
-  for (const course of [...byId.values()].sort(
+  const courses = [...byId.values()].sort(
     (a, b) => (b.price ?? 0) - (a.price ?? 0)
-  )) {
+  )
+  // Before anything on disk changes: a collision would hide a course page and
+  // hand one course's cover to another.
+  assertUniqueSlugs(courses.map(toCatalogueRow))
+
+  const rows = []
+  for (const course of courses) {
     const row = toCatalogueRow(course)
 
     let cover: string | null = null
@@ -77,11 +82,6 @@ async function main() {
 
     rows.push({ ...row, cover })
   }
-
-  // Before anything on disk changes: a collision here would silently hide a
-  // course page, and failing while a human is reading the output is cheaper
-  // than shipping it.
-  assertUniqueSlugs(rows)
 
   // Now that every cover has been fetched or preserved, art belonging to no
   // current course is safe to remove.

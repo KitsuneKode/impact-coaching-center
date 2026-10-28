@@ -15,8 +15,7 @@ export function AboutYouCard() {
   const data = useQuery(api.profile.ownQuestionnaire)
   const [editing, setEditing] = useState(false)
 
-  if (data === undefined)
-    return <Skeleton className="h-40 max-w-160 rounded-card" />
+  if (data === undefined) return <Skeleton className="h-40 rounded-[24px]" />
   if (data === null) return null
 
   const answers = data.answers
@@ -26,14 +25,14 @@ export function AboutYouCard() {
   return (
     <section
       aria-labelledby="about-you"
-      className="max-w-160 rounded-card border border-border p-6"
+      className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="about-you" className="font-medium">
             Your preparation
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mbs-1 text-sm text-muted-foreground">
             Optional. Helps us suggest the right batch.
           </p>
         </div>
@@ -49,7 +48,7 @@ export function AboutYouCard() {
         ) : null}
       </div>
 
-      <div className="mt-5">
+      <div className="mbs-5">
         {editing ? (
           <QuestionnaireForm
             initial={answers}
@@ -61,11 +60,11 @@ export function AboutYouCard() {
           <dl className="grid gap-4 sm:grid-cols-3">
             <div>
               <dt className="text-sm text-muted-foreground">Preparing for</dt>
-              <dd className="mt-1">{answers?.targetExam ?? "Not answered"}</dd>
+              <dd className="mbs-1">{answers?.targetExam ?? "Not answered"}</dd>
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Attempt</dt>
-              <dd className="mt-1">
+              <dd className="mbs-1">
                 {answers?.attempt
                   ? attemptLabel(answers.attempt)
                   : "Not answered"}
@@ -73,7 +72,7 @@ export function AboutYouCard() {
             </div>
             <div>
               <dt className="text-sm text-muted-foreground">Batch</dt>
-              <dd className="mt-1">
+              <dd className="mbs-1">
                 {answers?.preferredBatch ?? "Not answered"}
               </dd>
             </div>

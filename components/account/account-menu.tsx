@@ -1,12 +1,12 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import {
   IconInbox,
   IconLogout,
   IconUser,
   IconUserCircle,
 } from "@tabler/icons-react"
-import { useQuery } from "convex/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
@@ -24,42 +24,71 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Spinner } from "@/components/ui/spinner"
-import { api } from "@/convex/_generated/api"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useStalled } from "@/components/ui/use-stalled"
 import { authClient } from "@/lib/auth-client"
 import { formatPhone } from "@/lib/brand"
+import { resetAnalytics } from "@/lib/analytics"
 import { initials } from "@/lib/person"
+import { useViewer } from "@/hooks/use-viewer"
 
-/** Who you are, and the way out. */
-export function AccountMenu({ className }: { className?: string }) {
-  if (!convexConfigured) return null
-  return <Menu className={className} />
+type Props = {
+  className?: string
+  /** "icon" in the header: a person icon to log in, the same size as the
+   *  avatar that replaces it. "text" in the phone menu's dock. */
+  variant?: "icon" | "text"
 }
 
-function Menu({ className }: { className?: string }) {
-  const viewer = useQuery(api.auth.getCurrentPerson)
+/** Who you are, and the way out. */
+export function AccountMenu(props: Props) {
+  if (!convexConfigured) return null
+  return <Menu {...props} />
+}
+
+function Menu({ className, variant = "text" }: Props) {
+  const t = useTranslations("Account")
+  const viewer = useViewer()
   const router = useRouter()
   const [leaving, setLeaving] = useState(false)
+  // A session check that never answers must not hide the way in.
+  const stalled = useStalled(viewer === undefined, 3000)
 
   /*
    * `undefined` is "still asking", `null` is "asked, nobody is signed in".
    * Collapsing the two would flash a Log in link at someone who is already
    * signed in, on every page load.
    */
-  if (viewer === undefined)
+  if (viewer === undefined && !stalled)
     return (
-      <div
+      // As wide as what replaces it, so nothing shifts when it arrives.
+      <Skeleton
         aria-hidden="true"
-        className={`size-9 shrink-0 ${className ?? ""}`}
+        className={`shrink-0 rounded-full ${variant === "icon" ? "size-10" : "h-9 w-16"} ${className ?? ""}`}
       />
     )
 
-  if (viewer === null)
+  if (!viewer && variant === "icon")
     return (
       <Link
         href="/login"
-        className={`rounded-control px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground ${className ?? ""}`}
+        aria-label={t("login")}
+        title={t("login")}
+        data-site-account
+        data-arrive
+        data-press
+        className={className}
       >
-        Log in
+        <IconUserCircle aria-hidden size={21} stroke={1.6} />
+      </Link>
+    )
+
+  if (!viewer)
+    return (
+      <Link
+        href="/login"
+        className={`rounded-control px-3 py-1.5 text-sm whitespace-nowrap text-[color-mix(in_oklch,currentColor_80%,transparent)] transition-[background-color] hover:bg-secondary hover:text-foreground ${className ?? ""}`}
+      >
+        {t("login")}
       </Link>
     )
 
@@ -75,11 +104,12 @@ function Menu({ className }: { className?: string }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label={`Account: ${label}`}
-        className={`relative inline-flex size-9 items-center justify-center rounded-full transition-colors after:absolute after:-inset-1 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
+        aria-label={t("account", { name: label })}
+        data-arrive
+        className={`relative inline-flex size-10 items-center justify-center rounded-full transition-colors after:absolute after:-inset-0.5 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
       >
         <Avatar className="size-8">
-          <AvatarFallback className="text-xs">
+          <AvatarFallback className="bg-primary/12 text-xs font-semibold text-primary">
             {mark ?? <IconUser stroke={1.75} className="size-4" />}
           </AvatarFallback>
         </Avatar>
@@ -104,12 +134,12 @@ function Menu({ className }: { className?: string }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem render={<Link href="/account" />}>
             <IconUserCircle stroke={1.75} />
-            Your details
+            {t("details")}
           </DropdownMenuItem>
           {viewer.role === "staff" || viewer.role === "owner" ? (
             <DropdownMenuItem render={<Link href="/admin/leads" />}>
               <IconInbox stroke={1.75} />
-              Enquiries
+              {t("enquiries")}
             </DropdownMenuItem>
           ) : null}
           <DropdownMenuItem
@@ -117,10 +147,11 @@ function Menu({ className }: { className?: string }) {
             onClick={async () => {
               setLeaving(true)
               try {
+                resetAnalytics()
                 await authClient.signOut()
               } catch {
                 setLeaving(false)
-                toast.error("Couldn't log you out. Try again.")
+                toast.error(t("logoutFailed"))
                 return
               }
               // `refresh` as well as `push`: the server components above this
@@ -131,7 +162,7 @@ function Menu({ className }: { className?: string }) {
             }}
           >
             {leaving ? <Spinner /> : <IconLogout stroke={1.75} />}
-            Log out
+            {t("logout")}
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

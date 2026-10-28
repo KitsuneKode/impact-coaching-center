@@ -14,7 +14,13 @@ declare global {
     turnstile?: {
       render: (
         el: HTMLElement,
-        options: { sitekey: string; "refresh-expired"?: "auto" }
+        options: {
+          sitekey: string
+          "refresh-expired"?: "auto"
+          callback?: (token: string) => void
+          "expired-callback"?: () => void
+          "error-callback"?: () => void
+        }
       ) => string
       reset: (widgetId?: string) => void
       remove: (widgetId?: string) => void
@@ -29,12 +35,19 @@ const SCRIPT_SRC =
 export function Turnstile({
   siteKey,
   resetKey,
+  onToken,
 }: {
   siteKey: string
   resetKey: number
+  /** For requests that are not a form post: the token, or "" once spent. */
+  onToken?: (token: string) => void
 }) {
   const host = useRef<HTMLDivElement>(null)
   const widget = useRef<string | undefined>(undefined)
+  const tokenTo = useRef(onToken)
+  useEffect(() => {
+    tokenTo.current = onToken
+  }, [onToken])
 
   useEffect(() => {
     const render = () => {
@@ -43,6 +56,9 @@ export function Turnstile({
           sitekey: siteKey,
           // Slow form-filling must not die on the 300s token lifetime.
           "refresh-expired": "auto",
+          callback: (token) => tokenTo.current?.(token),
+          "expired-callback": () => tokenTo.current?.(""),
+          "error-callback": () => tokenTo.current?.(""),
         })
     }
     if (window.turnstile) {
@@ -74,8 +90,10 @@ export function Turnstile({
   }, [])
 
   useEffect(() => {
-    if (resetKey > 0 && widget.current !== undefined)
+    if (resetKey > 0 && widget.current !== undefined) {
+      tokenTo.current?.("")
       window.turnstile?.reset(widget.current)
+    }
   }, [resetKey])
 
   /* No cf-turnstile class: that marker is only for Turnstile's implicit

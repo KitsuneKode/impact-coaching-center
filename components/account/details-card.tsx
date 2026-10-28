@@ -24,11 +24,11 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
 
   if (!editing)
     return (
-      <div className="max-w-160 rounded-card border border-border p-6">
+      <div className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]">
         <dl className="grid gap-5">
           <div>
             <dt className="text-sm text-muted-foreground">Name</dt>
-            <dd className="mt-1">
+            <dd className="mbs-1">
               {viewer.name.trim() || (
                 <span className="text-muted-foreground">Not added</span>
               )}
@@ -36,8 +36,8 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
           </div>
           <div>
             <dt className="text-sm text-muted-foreground">Mobile number</dt>
-            <dd className="tnum mt-1">{formatPhone(viewer.phone)}</dd>
-            <dd className="mt-1 text-sm text-muted-foreground">
+            <dd className="tnum mbs-1">{formatPhone(viewer.phone)}</dd>
+            <dd className="mbs-1 text-sm text-muted-foreground">
               To change your number, call or WhatsApp ICT.
             </dd>
           </div>
@@ -45,7 +45,7 @@ export function DetailsCard({ viewer }: { viewer: Viewer }) {
         <Button
           variant="secondary"
           size="md"
-          className="mt-6"
+          className="mbs-6"
           onClick={() => setEditing(true)}
         >
           <IconPencil stroke={1.75} />
@@ -81,7 +81,7 @@ function NameEditor({
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setError("Please enter your name.")
+      setError("Enter your name.")
       return
     }
     setError(null)
@@ -106,8 +106,8 @@ function NameEditor({
         result.reason === "revision-conflict"
           ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Please log in again."
-            : "Couldn't save your name. Please try again."
+            ? "Your session expired. Log in again to save."
+            : "Couldn't save your name. Check your connection and try again."
       )
       // What they typed stays on screen. A conflict is precisely when
       // discarding it is least forgivable.
@@ -120,7 +120,7 @@ function NameEditor({
     <form
       onSubmit={submit}
       noValidate
-      className="max-w-160 rounded-card border border-border p-6"
+      className="rounded-[24px] bg-card p-6 shadow-[0_0_0_1px_color-mix(in_oklch,var(--foreground)_6%,transparent),0_12px_32px_-24px_color-mix(in_oklch,var(--foreground)_30%,transparent)]"
     >
       <FieldGroup>
         <Field data-invalid={error ? true : undefined}>

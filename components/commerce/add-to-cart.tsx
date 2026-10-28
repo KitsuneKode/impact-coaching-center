@@ -1,12 +1,15 @@
 "use client"
 
+import { useTranslations } from "next-intl"
+
 import { IconCheck, IconShoppingBag } from "@tabler/icons-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { track } from "@/lib/analytics"
-import { useCartActions } from "@/lib/cart-store"
+import { CART_ADDED_TOAST, useCartActions } from "@/lib/cart-store"
+import type { Language } from "@/lib/catalog"
 import { cn } from "@/lib/utils"
 
 /**
@@ -15,17 +18,22 @@ import { cn } from "@/lib/utils"
  */
 export function AddToCart({
   slug,
+  language,
   title,
+  disabled,
   onOpenCart,
   className,
   size = "md",
 }: {
   slug: string
+  language: Language
   title: string
+  disabled?: boolean
   onOpenCart?: () => void
   className?: string
   size?: "sm" | "md" | "lg"
 }) {
+  const t = useTranslations("Shop")
   const { add } = useCartActions()
   const [added, setAdded] = useState(false)
 
@@ -33,29 +41,36 @@ export function AddToCart({
     <Button
       size={size}
       className={cn("min-w-36", className)}
+      disabled={disabled}
       onClick={() => {
+        // At the cap nothing goes in; the cart has already said why.
+        if (!add({ slug, language })) return
         track({ name: "add_to_cart", slug })
-        add(slug)
         setAdded(true)
         window.setTimeout(() => setAdded(false), 1400)
-        toast.success(`${title} added to your cart`, {
+        toast.success(t("addedToast", { title }), {
+          // One at a time, and gone once the cart itself opens.
+          id: CART_ADDED_TOAST,
           action: onOpenCart
-            ? { label: "View cart", onClick: onOpenCart }
+            ? { label: t("viewCart"), onClick: onOpenCart }
             : undefined,
         })
       }}
     >
-      {added ? (
-        <>
-          <IconCheck stroke={2} aria-hidden />
-          Added
-        </>
-      ) : (
-        <>
-          <IconShoppingBag stroke={1.75} aria-hidden />
-          Add to cart
-        </>
-      )}
+      {/* keyed, so each state enters with the swap animation in app/pulse.css */}
+      <span key={added ? "added" : "add"} data-swap="each" className="contents">
+        {added ? (
+          <>
+            <IconCheck stroke={2} aria-hidden />
+            <span>{t("added")}</span>
+          </>
+        ) : (
+          <>
+            <IconShoppingBag stroke={1.75} aria-hidden />
+            <span>{t("addToCart")}</span>
+          </>
+        )}
+      </span>
     </Button>
   )
 }

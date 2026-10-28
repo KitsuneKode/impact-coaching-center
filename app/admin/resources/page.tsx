@@ -4,7 +4,7 @@ import { IconFileText } from "@tabler/icons-react"
 import { useMutation, useQuery } from "convex/react"
 
 import { convexConfigured } from "@/app/providers"
-import { OwnerOnly } from "@/components/admin/book-editor"
+import { CatalogOnly } from "@/components/admin/book-editor"
 import { CatalogList } from "@/components/admin/catalog-list"
 import { PaperPage } from "@/components/commerce/paper-page"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
@@ -35,7 +35,7 @@ function Resources() {
         <ListSkeleton rows={5} />
       </PageShell>
     )
-  if (!allowed) return <OwnerOnly />
+  if (!allowed) return <CatalogOnly />
 
   return (
     <CatalogList
@@ -50,13 +50,13 @@ function Resources() {
         href: `/admin/resources/${r.id}`,
         thumb: <PaperPage running="" lines={6} compact className="h-full" />,
         meta: `${r.kind} · ${r.exam}`,
-        detail: r.pages ? `${r.pages}` : "None yet",
+        detail: r.pages ? `${r.pages}${r.pdf ? " (PDF)" : ""}` : "None yet",
         published: r.published,
         sample: r.sample,
         updatedAt: r.updatedAt,
         publishBlocked: r.pages
           ? undefined
-          : "Add page images before publishing.",
+          : "Add a PDF or the page images before publishing.",
       }))}
       onTogglePublished={(row) => {
         const resource = resources.rows.find((r) => r.id === row.id)!

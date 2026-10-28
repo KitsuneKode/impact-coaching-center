@@ -156,7 +156,7 @@ describe("phone verification flow", () => {
     })
     response.resolve({ error: { code: "INVALID_OTP" } })
     await verifying
-    expect(flow.getSnapshot()).toMatchObject({ code: "123456", pending: null })
+    expect(flow.getSnapshot()).toMatchObject({ code: "", pending: null })
     flow.changeNumber()
     expect(flow.getSnapshot()).toMatchObject({
       step: "phone",
@@ -195,6 +195,21 @@ describe("phone verification flow", () => {
 })
 
 describe("errorMessage", () => {
+  test("a refused code clears, so the right one is typed fresh", async () => {
+    const flow = createPhoneAuthFlow({
+      send: async () => success,
+      verify: async () => ({ error: { code: "INVALID_OTP" } }),
+    })
+    flow.setPhone("9876543210")
+    await flow.send()
+    flow.setCode("000000")
+    await flow.verify(() => {
+      throw new Error("must not navigate")
+    })
+    expect(flow.getSnapshot()).toMatchObject({ code: "", step: "code" })
+    expect(flow.getSnapshot().error).not.toBeNull()
+  })
+
   test("never shows a library's own wording", async () => {
     const { errorMessage } = await import("./phone-auth-flow")
     const { GENERIC_AUTH_FAILURE, SEND_REFUSALS } =

@@ -27,28 +27,29 @@ const noindexRoutes = [
   "/admin",
   "/admin/leads",
   "/admin/orders",
+  "/admin/orders/labels",
   "/admin/people",
   // Sample content, labelled as such and noindexed by its layout.
   "/admin/books",
   "/admin/books/new",
+  "/admin/courses",
+  "/admin/settings",
+  "/admin/bundles",
+  "/admin/bundles/new",
   "/admin/resources",
   "/admin/resources/new",
   "/admin/blog",
   "/admin/blog/new",
+  "/admin/calendar",
+  "/admin/calendar/new",
+  "/admin/promotions",
+  "/admin/promotions/new",
   // A buyer's own order flow - nothing public, nothing to rank.
   "/checkout",
+  "/receipt/[token]",
   // Noindexed while every title is a sample; list them once ICT's are in.
   "/books",
   "/resources",
-  // Design concepts for review, noindexed by their layout.
-  "/redesign",
-  "/redesign/1",
-  "/redesign/2",
-  "/redesign/3",
-  "/redesign/4",
-  "/redesign/5",
-  "/redesign/6",
-  "/redesign/7",
 ]
 
 /** Every route allowed to exist on disk and be absent from the sitemap. */
@@ -64,7 +65,15 @@ function staticRoutesOnDisk(): string[] {
   return (
     [...glob.scanSync(".")]
       .map(
-        (file) => "/" + file.replace(/^app\//, "").replace(/\/?page\.tsx$/, "")
+        (file) =>
+          "/" +
+          file
+            .replace(/^app\//, "")
+            .replace(/\/?page\.tsx$/, "")
+            // Route groups add no URL segment; [locale] is the language
+            // prefix, and English (the default) is served without it.
+            .replace(/\([^)./]+\)\/?/g, "")
+            .replace(/^\[locale\]\/?/, "")
       )
       .map((route) => (route === "/" ? "/" : route.replace(/\/$/, "")))
       .filter((route) => !route.includes("["))
@@ -111,6 +120,14 @@ describe("sitemap", () => {
     expect((await pathnames()).some((p) => p.startsWith("/courses/"))).toBe(
       true
     )
+  })
+
+  test("every public page also has its Assamese version", async () => {
+    const listed = await pathnames()
+    expect(listed).toContain("/as")
+    expect(listed).toContain("/as/courses")
+    for (const entry of await sitemap())
+      expect(entry.alternates?.languages).toBeDefined()
   })
 
   test("contains no duplicate entries", async () => {

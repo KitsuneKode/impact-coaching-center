@@ -27,10 +27,17 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server"
+import { recordAudit } from "./audit"
 import { upsertPersonByPhone } from "./persons"
 import { LEAD_STATUS } from "./schema"
 import { endOfTodayIst } from "../lib/ist"
-import { enquiryTracks, toE164 } from "../lib/leads"
+import {
+  enquiryTracks,
+  FRAGMENT_MATCHES_MAX,
+  FRAGMENT_SCAN_ROWS,
+  PHONE_FRAGMENT_MIN,
+  toE164,
+} from "../lib/leads"
 
 /** The inbox projection. Never the whole Person document. */
 const INBOX_ROW = v.object({
@@ -135,16 +142,6 @@ function viewExpr(
     : inViewExpr
 }
 
-/** Fewer digits than this match too many phones to be a lookup. */
-const PHONE_FRAGMENT_MIN = 4
-
-/**
- * A phone fragment has no index to answer it, so the queue order is walked
- * in bounded chunks: at most this many pages of 200 persons.
- */
-const FRAGMENT_SCAN_PAGES = 10
-const FRAGMENT_SCAN_PAGE_ROWS = 200
-
 /** One page of the queue. */
 export async function readInboxPage(
   ctx: Pick<QueryCtx, "db">,
@@ -214,31 +211,35 @@ export async function readInboxPage(
     /* Too few digits matches phones freely rather than naming anyone. */
     if (digits.length < PHONE_FRAGMENT_MIN)
       return { page: [], isDone: true, continueCursor: "" }
+    /* Streamed, not paginated: Convex allows one .paginate() per query,
+       and a second page threw. A cursor would have to name where the scan
+       stopped rather than a row, so the answer is one flat page of up to
+       FRAGMENT_MATCHES_MAX, whatever page size was asked for: a page of 25
+       marked done would hide the 26th match. The inbox states both bounds. */
     const matches: Doc<"persons">[] = []
-    let cursor: string | null = null
-    for (let pages = 0; pages < FRAGMENT_SCAN_PAGES; pages++) {
-      const chunk = await ctx.db
-        .query("persons")
-        .withIndex("by_lastEnquiryAt")
-        .order("desc")
-        .filter((q) => viewExpr(q, view, track, endOfToday))
-        .paginate({ numItems: FRAGMENT_SCAN_PAGE_ROWS, cursor })
-      for (const person of chunk.page) {
-        if (matches.length >= paginationOpts.numItems) break
-        if (person.phone.includes(digits)) matches.push(person)
-      }
-      if (matches.length >= paginationOpts.numItems || chunk.isDone) break
-      cursor = chunk.continueCursor
+    let scanned = 0
+    for await (const person of ctx.db
+      .query("persons")
+      .withIndex("by_lastEnquiryAt")
+      .order("desc")
+      .filter((q) => viewExpr(q, view, track, endOfToday))) {
+      if (person.phone.includes(digits)) matches.push(person)
+      scanned += 1
+      if (
+        matches.length >= FRAGMENT_MATCHES_MAX ||
+        scanned >= FRAGMENT_SCAN_ROWS
+      )
+        break
     }
-    /* A fragment answer is one flat page: a cursor would have to name where
-       the scan stopped rather than a row, so no continueCursor is kept. */
     return { page: matches.map(toRow), isDone: true, continueCursor: "" }
   }
 
   const base = status
     ? ctx.db
         .query("persons")
-        .withIndex("by_leadStatus", (q) => q.eq("leadStatus", status))
+        .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
+          q.eq("leadStatus", status)
+        )
         .order("desc")
     : ctx.db.query("persons").withIndex("by_lastEnquiryAt").order("desc")
 
@@ -255,16 +256,21 @@ export const inboxPage = query({
     view: v.optional(INBOX_VIEW),
     track: v.optional(v.string()),
     search: v.optional(v.string()),
+    // "Due" depends on today; the clock comes from the caller, refreshed,
+    // because time alone never re-runs a subscribed query.
+    now: v.number(),
   },
   returns: paginated(INBOX_ROW),
   handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { page: [], isDone: true, continueCursor: "" }
-    return readInboxPage(ctx, staff.value, args.paginationOpts, {
-      view: args.view,
-      track: args.track,
-      search: args.search,
-    })
+    return readInboxPage(
+      ctx,
+      staff.value,
+      args.paginationOpts,
+      { view: args.view, track: args.track, search: args.search },
+      args.now
+    )
   },
 })
 
@@ -342,12 +348,21 @@ export async function applyCreateLead(
     revision,
     updatedAt: now,
   })
+  await ctx.db.insert("enquiries", {
+    personId,
+    channel: args.source,
+    name,
+    track: args.track,
+    actorId: viewer.id,
+  })
+  const forSomeoneElse =
+    existing?.name && existing.name !== name ? ` for ${name}` : ""
   await ctx.db.insert("activities", {
     personId,
     kind: "enquiry",
     actorId: viewer.id,
     track: args.track,
-    body: `Added by staff (${STAFF_SOURCE_LABELS[args.source]})`,
+    body: `Added by staff (${STAFF_SOURCE_LABELS[args.source]})${forSomeoneElse}`,
   })
   if (note)
     await ctx.db.insert("activities", {
@@ -430,6 +445,16 @@ const LEAD_DETAIL = v.object({
   preferredBatch: v.optional(v.string()),
   deletedAt: v.optional(v.number()),
   revision: v.number(),
+  /** Where this person first reached ICT: the form's page and campaign. */
+  firstTouch: v.optional(
+    v.object({
+      channel: v.string(),
+      page: v.optional(v.string()),
+      source: v.optional(v.string()),
+      campaign: v.optional(v.string()),
+      referrer: v.optional(v.string()),
+    })
+  ),
 })
 
 /** How much history the detail sheet shows. Older rows stay in the table. */
@@ -461,8 +486,22 @@ export async function readLeadDetail(
     )
   )
 
+  const first = await ctx.db
+    .query("enquiries")
+    .withIndex("by_person", (q) => q.eq("personId", personId))
+    .first()
+
   return allow({
     lead: {
+      firstTouch: first
+        ? {
+            channel: first.channel,
+            page: first.page,
+            source: first.utm?.source,
+            campaign: first.utm?.campaign,
+            referrer: first.referrer,
+          }
+        : undefined,
       id: person._id,
       name: person.name,
       phone: person.phone,
@@ -484,8 +523,8 @@ export async function readLeadDetail(
       at: row._creationTime,
       body: row.body,
       actorName: row.actorId ? actors.get(row.actorId) : undefined,
-      fromStatus: row.fromStatus,
-      toStatus: row.toStatus,
+      fromStatus: row.from,
+      toStatus: row.to,
       track: row.track,
       timing: row.timing,
     })),
@@ -520,24 +559,29 @@ export async function applyLeadStatus(
 ) {
   if (!isStaff(viewer)) return forbidden
   const person = await ctx.db.get(args.personId)
-  if (!person) return missingRecord
+  // An erased account's row is a tombstone: nothing new is written onto it.
+  if (!person || person.deletedAt) return missingRecord
   const conflict = checkRevision(person, args.expectedRevision)
   if (conflict) return conflict
   if (person.leadStatus === args.status)
     return { ok: true as const, revision: revisionOf(person) }
 
   const revision = revisionOf(person) + 1
+  // A closed lead needs no call back: left set, its date would sit in the
+  // due index forever and every count would read past it.
+  const closed = args.status === "enrolled" || args.status === "lost"
   await ctx.db.patch(args.personId, {
     leadStatus: args.status,
     revision,
     updatedAt: Date.now(),
+    ...(closed ? { nextFollowUpAt: undefined } : {}),
   })
   await ctx.db.insert("activities", {
     personId: args.personId,
     kind: "status_change",
     actorId: viewer.id,
-    fromStatus: person.leadStatus,
-    toStatus: args.status,
+    from: person.leadStatus,
+    to: args.status,
   })
   return { ok: true as const, revision }
 }
@@ -564,7 +608,8 @@ export async function appendLeadActivity(
 ) {
   if (!isStaff(viewer)) return forbidden
   const person = await ctx.db.get(args.personId)
-  if (!person) return missingRecord
+  // An erased account's row is a tombstone: nothing new is written onto it.
+  if (!person || person.deletedAt) return missingRecord
   const body = args.body?.trim()
   if (args.kind === "note" && !body) return invalidInput("body")
   if (body && body.length > NOTE_MAX) return invalidInput("body")
@@ -607,7 +652,8 @@ export async function applyFollowUp(
 ) {
   if (!isStaff(viewer)) return forbidden
   const person = await ctx.db.get(args.personId)
-  if (!person) return missingRecord
+  // An erased account's row is a tombstone: nothing new is written onto it.
+  if (!person || person.deletedAt) return missingRecord
   const conflict = checkRevision(person, args.expectedRevision)
   if (conflict) return conflict
   if (
@@ -621,6 +667,13 @@ export async function applyFollowUp(
     nextFollowUpAt: args.at,
     revision,
     updatedAt: now,
+  })
+  await ctx.db.insert("activities", {
+    personId: args.personId,
+    kind: "follow_up_change",
+    actorId: viewer.id,
+    from: person.nextFollowUpAt?.toString(),
+    to: args.at?.toString(),
   })
   return { ok: true as const, revision }
 }
@@ -644,6 +697,9 @@ export const setLeadFollowUp = mutation({
  * that have come due. Bounded reads, capped counts - a home screen needs to
  * know "some" versus "none", not an exact total over the whole table.
  */
+/** Follow-up rows a count reads at most; past it the badge says "99+". */
+const DUE_SCAN_ROWS = 2000
+
 export async function readLeadCounts(
   ctx: Pick<QueryCtx, "db">,
   viewer: Viewer,
@@ -652,33 +708,29 @@ export async function readLeadCounts(
   if (!isStaff(viewer)) return { fresh: 0, due: 0, capped: false }
   const fresh = await ctx.db
     .query("persons")
-    .withIndex("by_leadStatus", (q) => q.eq("leadStatus", "new"))
+    .withIndex("by_leadStatus_and_lastEnquiryAt", (q) =>
+      q.eq("leadStatus", "new")
+    )
     .take(COUNT_CAP + 1)
-  /* The follow-up index range also matches enrolled/lost leads, and they are
-     filtered after the read - a plain `take` can fill its window on closed
-     leads and under-count what is actually due. Page through instead and stop
-     as soon as the cap is reached. */
+  /* The follow-up index range also matches enrolled/lost leads, filtered
+     after the read, so a plain `take` could fill on closed leads and
+     under-count. Streamed rather than paginated (one .paginate() per query
+     is a Convex limit), stopping at the cap or the scan bound. */
   let due = 0
   let capped = fresh.length > COUNT_CAP
-  let cursor: string | null = null
-  while (true) {
-    const chunk = await ctx.db
-      .query("persons")
-      .withIndex("by_nextFollowUpAt", (q) =>
-        q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfTodayIst(now))
-      )
-      .paginate({ numItems: 200, cursor })
-    due += chunk.page.filter(
-      (person) =>
-        person.leadStatus !== "enrolled" && person.leadStatus !== "lost"
-    ).length
-    if (due >= COUNT_CAP) {
-      due = COUNT_CAP
+  let scanned = 0
+  for await (const person of ctx.db
+    .query("persons")
+    .withIndex("by_nextFollowUpAt", (q) =>
+      q.gte("nextFollowUpAt", 0).lt("nextFollowUpAt", endOfTodayIst(now))
+    )) {
+    if (person.leadStatus !== "enrolled" && person.leadStatus !== "lost")
+      due += 1
+    scanned += 1
+    if (due >= COUNT_CAP || scanned >= DUE_SCAN_ROWS) {
       capped = true
       break
     }
-    if (chunk.isDone) break
-    cursor = chunk.continueCursor
   }
   return {
     fresh: Math.min(fresh.length, COUNT_CAP),
@@ -688,16 +740,18 @@ export async function readLeadCounts(
 }
 
 export const leadCounts = query({
-  args: {},
+  // The browser passes the minute: a query that reads the clock is cached
+  // on the time it first ran, so "due today" would go stale.
+  args: { now: v.number() },
   returns: v.object({
     fresh: v.number(),
     due: v.number(),
     capped: v.boolean(),
   }),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const staff = await requireStaff(ctx)
     if (!staff.ok) return { fresh: 0, due: 0, capped: false }
-    return readLeadCounts(ctx, staff.value, Date.now())
+    return readLeadCounts(ctx, staff.value, args.now)
   },
 })
 
@@ -714,11 +768,10 @@ export const recordExport = mutation({
     if (!owner.ok) return owner
     if (!Number.isInteger(args.count) || args.count < 1)
       return invalidInput("count")
-    await ctx.db.insert("activities", {
-      personId: owner.value.id,
-      kind: "export",
-      body: `Exported ${args.count} enquir${args.count === 1 ? "y" : "ies"} as CSV`,
-      actorId: owner.value.id,
+    await recordAudit(ctx, owner.value, {
+      action: "export",
+      entity: "person",
+      summary: `Exported ${args.count} enquir${args.count === 1 ? "y" : "ies"} as CSV`,
     })
     return { ok: true as const }
   },

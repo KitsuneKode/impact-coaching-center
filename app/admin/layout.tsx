@@ -1,4 +1,7 @@
 import type { Metadata } from "next"
+import { NextIntlClientProvider } from "next-intl"
+
+import en from "@/messages/en.json"
 
 import { AdminShell } from "@/components/admin/admin-shell"
 import type { ReactNode } from "react"
@@ -13,5 +16,13 @@ export const metadata: Metadata = {
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <AdminShell>{children}</AdminShell>
+  // The admin is English. Shared shop components read the "Shop" strings.
+  return (
+    <NextIntlClientProvider
+      locale="en"
+      messages={{ Shop: en.Shop, Promos: en.Promos }}
+    >
+      <AdminShell>{children}</AdminShell>
+    </NextIntlClientProvider>
+  )
 }

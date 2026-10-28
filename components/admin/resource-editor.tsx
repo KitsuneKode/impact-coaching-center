@@ -7,13 +7,18 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
-import { OwnerOnly } from "@/components/admin/book-editor"
+import { refreshSite } from "@/app/admin/refresh-site"
+import { CatalogOnly } from "@/components/admin/book-editor"
 import {
   CATALOG_REFUSALS,
+  ExamInput,
   FIELD_LABELS,
   PageImagesField,
   PublishState,
+  toStored,
+  PdfField,
   type StoredImage,
+  type StoredPdf,
 } from "@/components/admin/catalog-fields"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
@@ -45,14 +50,22 @@ import {
 } from "@/lib/catalog"
 
 const KIND_ITEMS = RESOURCE_KINDS.map((value) => ({ value, label: value }))
+const LANGUAGE_ITEMS = [
+  { value: "en", label: "English" },
+  { value: "as", label: "Assamese" },
+]
 
 type Draft = {
   title: string
   slug: string
   exam: string
   kind: ResourceKind
+  language: "en" | "as"
   description: string
   pageImages: StoredImage[]
+  pdf: StoredPdf | null
+  /** The PDF's page one, made on upload: the public preview. */
+  cover: StoredImage | null
 }
 
 const EMPTY: Draft = {
@@ -60,12 +73,19 @@ const EMPTY: Draft = {
   slug: "",
   exam: "",
   kind: "Notes",
+  language: "en",
   description: "",
   pageImages: [],
+  pdf: null,
+  cover: null,
 }
 
 const snapshot = (draft: Draft) =>
-  JSON.stringify({ ...draft, pageImages: draft.pageImages.map((p) => p.id) })
+  JSON.stringify({
+    ...draft,
+    pageImages: draft.pageImages.map((p) => p.id),
+    cover: draft.cover?.id ?? null,
+  })
 
 /** Owner-only: create a resource, or edit the one at `id`. */
 export function ResourceEditor({ id }: { id?: string }) {
@@ -81,7 +101,7 @@ export function ResourceEditor({ id }: { id?: string }) {
         <ListSkeleton rows={6} />
       </Shell>
     )
-  if (!allowed) return <OwnerOnly />
+  if (!allowed) return <CatalogOnly />
   if (id && !resource)
     return (
       <Shell title="Not found.">
@@ -110,8 +130,11 @@ export function ResourceEditor({ id }: { id?: string }) {
         slug: resource.slug,
         exam: resource.exam,
         kind: resource.kind,
+        language: resource.language ?? "en",
         description: resource.description,
-        pageImages: resource.pageImages,
+        pageImages: resource.pageImages.map(toStored),
+        pdf: resource.pdf ?? null,
+        cover: resource.cover ? toStored(resource.cover) : null,
       }}
     />
   )
@@ -130,6 +153,9 @@ function ResourceForm({
 }) {
   const router = useRouter()
   const save = useMutation(api.catalogAdmin.saveResource)
+  const list = useQuery(api.catalogAdmin.adminResources)
+  const knownExams = [...new Set(list?.rows.map((row) => row.exam) ?? [])]
+  const [showImages, setShowImages] = useState(initial.pageImages.length > 0)
   const setPublished = useMutation(api.catalogAdmin.setResourcePublished)
 
   const [draft, setDraft] = useState(initial)
@@ -160,6 +186,7 @@ function ResourceForm({
       title: draft.title,
       exam: draft.exam,
       kind: draft.kind,
+      language: draft.language,
       description: draft.description,
     })
     if (!checked.ok) {
@@ -173,6 +200,8 @@ function ResourceForm({
         ...(id ? { id, expectedRevision: revision } : {}),
         fields: checked.value,
         pageImages: draft.pageImages.map((p) => p.id),
+        pdf: draft.pdf,
+        cover: draft.cover?.id ?? null,
       })
       if (!result.ok) {
         if (result.reason === "invalid-input" && result.field)
@@ -190,6 +219,7 @@ function ResourceForm({
         toast.success("Saved as a draft")
         router.replace(`/admin/resources/${result.id}`)
       } else toast.success("Saved")
+      if (published) void refreshSite("catalog")
     } catch {
       setFormError("Could not reach the server. Your changes are still here.")
     } finally {
@@ -212,6 +242,7 @@ function ResourceForm({
       }
       setRevision(result.revision)
       toast.success(published ? "Unpublished" : "Published on /resources")
+      void refreshSite("catalog")
     } catch {
       setFormError("Could not reach the server. Try again.")
     } finally {
@@ -257,22 +288,27 @@ function ResourceForm({
               <FieldError>{errors.slug}</FieldError>
             ) : (
               <FieldDescription>
-                Used to link straight to it: /resources?open=
-                {draft.slug || "…"}
+                Direct link: /resources?open={draft.slug || "your-title"}
               </FieldDescription>
             )}
           </Field>
-          <div className="grid gap-6 sm:grid-cols-2">
+          <div className="grid gap-6 sm:grid-cols-3">
             <Field data-invalid={invalid("exam")}>
               <FieldLabel htmlFor="resource-exam">Exam</FieldLabel>
-              <Input
+              <ExamInput
                 id="resource-exam"
                 value={draft.exam}
-                onChange={(e) => set("exam", e.target.value)}
-                aria-invalid={!!errors.exam}
-                autoComplete="off"
+                onChange={(next) => set("exam", next)}
+                invalid={!!errors.exam}
+                extra={knownExams}
               />
-              <FieldError>{errors.exam}</FieldError>
+              {errors.exam ? (
+                <FieldError>{errors.exam}</FieldError>
+              ) : (
+                <FieldDescription>
+                  The group it is filed under on the site.
+                </FieldDescription>
+              )}
             </Field>
             <Field>
               <FieldLabel htmlFor="resource-kind">Type</FieldLabel>
@@ -288,6 +324,28 @@ function ResourceForm({
                 </SelectTrigger>
                 <SelectContent>
                   {KIND_ITEMS.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldDescription>The folder it sits in.</FieldDescription>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="resource-language">Language</FieldLabel>
+              <Select
+                value={draft.language}
+                onValueChange={(next) =>
+                  next && set("language", next as Draft["language"])
+                }
+                items={LANGUAGE_ITEMS}
+              >
+                <SelectTrigger id="resource-language" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGE_ITEMS.map((item) => (
                     <SelectItem key={item.value} value={item.value}>
                       {item.label}
                     </SelectItem>
@@ -313,20 +371,42 @@ function ResourceForm({
               </FieldDescription>
             )}
           </Field>
-          <div data-invalid={invalid("pages")} className="grid gap-2">
-            <PageImagesField
-              label="Pages"
-              hint="Every page as an image, in reading order. Export the PDF as images (one per page) and add them all at once; they are sorted by file name."
-              max={RESOURCE_PAGES_MAX}
-              value={draft.pageImages}
-              onChange={(next) => set("pageImages", next)}
+          <div data-invalid={invalid("pdf")} className="grid gap-2">
+            <PdfField
+              value={draft.pdf}
+              onChange={(next) => set("pdf", next)}
+              cover={draft.cover}
+              onCoverChange={(next) => set("cover", next)}
               onBusyChange={(on) => setUploading((n) => n + (on ? 1 : -1))}
             />
-            <FieldError>{errors.pages}</FieldError>
+            <FieldError>{errors.pdf}</FieldError>
           </div>
+          {draft.pdf && !showImages && !draft.pageImages.length ? (
+            <button
+              type="button"
+              className="link justify-self-start text-sm"
+              onClick={() => setShowImages(true)}
+            >
+              Add page images instead of the PDF
+            </button>
+          ) : (
+            <div data-invalid={invalid("pages")} className="grid gap-2">
+              <PageImagesField
+                label={
+                  draft.pdf ? "Page images (not needed with a PDF)" : "Pages"
+                }
+                hint="Every page as an image, in reading order. Export the PDF as images (one per page) and add them all at once; they are sorted by file name."
+                max={RESOURCE_PAGES_MAX}
+                value={draft.pageImages}
+                onChange={(next) => set("pageImages", next)}
+                onBusyChange={(on) => setUploading((n) => n + (on ? 1 : -1))}
+              />
+              <FieldError>{errors.pages}</FieldError>
+            </div>
+          )}
         </FieldGroup>
 
-        <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:top-6">
+        <aside className="grid content-start gap-4 rounded-card border border-border p-5 lg:sticky lg:inset-bs-6">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-medium">Status</span>
             <PublishState published={published} />
@@ -384,7 +464,9 @@ function messageFor(field: string) {
     case "exam":
       return "Name the exam it is for."
     case "pages":
-      return "Every page must be an image under 8 MB."
+      return "Add a PDF or the page images before publishing; images must be under 8 MB."
+    case "pdf":
+      return "That PDF did not finish uploading, or is not a PDF under 60 MB. Upload it again."
     default:
       return `Check the ${FIELD_LABELS[field] ?? field}.`
   }

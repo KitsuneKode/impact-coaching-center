@@ -167,7 +167,7 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
 
   return (
     <>
-      <SheetHeader className="gap-3 border-b border-border p-6 pr-14">
+      <SheetHeader className="gap-3 border-b border-border p-6 pe-14">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={lead.leadStatus} />
           {lead.interestTrack ? (
@@ -183,8 +183,13 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
         <SheetDescription className="tnum text-base text-foreground">
           {lead.deletedAt ? "Number erased" : formatPhone(lead.phone)}
         </SheetDescription>
+        {lead.firstTouch ? (
+          <p className="text-sm text-muted-foreground">
+            Came from {firstTouchText(lead.firstTouch)}
+          </p>
+        ) : null}
         {lead.deletedAt ? null : (
-          <div className="grid grid-cols-2 gap-2 pt-1">
+          <div className="grid grid-cols-2 gap-2 pbs-1">
             <ButtonAnchor
               href={`tel:${lead.phone}`}
               variant="primary"
@@ -390,7 +395,7 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
               <IconPhoneCall stroke={1.75} />
               Log a call
             </Button>
-            <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+            <span className="ms-auto text-xs text-muted-foreground tabular-nums">
               {note.length}/{NOTE_MAX}
             </span>
           </div>
@@ -401,12 +406,12 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
           {activities.length === 0 ? (
             <p className="text-muted-foreground">Nothing recorded yet.</p>
           ) : (
-            <ol className="grid gap-4 border-l border-border pl-4">
+            <ol className="grid gap-4 border-l border-border ps-4">
               {activities.map((activity) => (
                 <li key={activity.id} className="relative grid gap-0.5">
                   <span
                     aria-hidden
-                    className="absolute top-1.5 -left-[1.3rem] size-2 rounded-full bg-border"
+                    className="absolute -inset-s-[1.3rem] inset-bs-1.5 size-2 rounded-full bg-border"
                   />
                   <span className="font-medium">
                     {describe(
@@ -433,4 +438,38 @@ function LeadDetail({ personId }: { personId: Id<"persons"> }) {
       </div>
     </>
   )
+}
+
+const CHANNEL_WORDS: Record<string, string> = {
+  website: "the website",
+  walk_in: "a walk-in",
+  phone_call: "a phone call",
+  whatsapp: "WhatsApp",
+  referral: "a referral",
+  other: "elsewhere",
+}
+
+/**
+ * "the website, /as/courses/lakhya-2027 · facebook / october-batch": the
+ * channel, then the page and campaign or referring site when there were any.
+ */
+function firstTouchText(touch: {
+  channel: string
+  page?: string
+  source?: string
+  campaign?: string
+  referrer?: string
+}) {
+  const parts = [CHANNEL_WORDS[touch.channel] ?? touch.channel]
+  if (touch.page) parts.push(touch.page)
+  const campaign = [touch.source, touch.campaign].filter(Boolean).join(" / ")
+  if (campaign) parts.push(campaign)
+  else if (touch.referrer) {
+    try {
+      parts.push(new URL(touch.referrer).hostname.replace(/^www\./, ""))
+    } catch {
+      parts.push(touch.referrer.slice(0, 40))
+    }
+  }
+  return parts.join(" · ")
 }

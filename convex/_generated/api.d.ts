@@ -9,22 +9,39 @@
  */
 
 import type * as account from "../account.js";
+import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
 import type * as blog from "../blog.js";
 import type * as blogAdmin from "../blogAdmin.js";
+import type * as calendar from "../calendar.js";
+import type * as calendarAdmin from "../calendarAdmin.js";
+import type * as campaigns from "../campaigns.js";
 import type * as carts from "../carts.js";
 import type * as catalog from "../catalog.js";
 import type * as catalogAdmin from "../catalogAdmin.js";
 import type * as checkout from "../checkout.js";
+import type * as cleanup from "../cleanup.js";
+import type * as contactTaps from "../contactTaps.js";
+import type * as courses from "../courses.js";
+import type * as crons from "../crons.js";
+import type * as dashboard from "../dashboard.js";
 import type * as devSeed from "../devSeed.js";
+import type * as files from "../files.js";
 import type * as http from "../http.js";
+import type * as images from "../images.js";
 import type * as leads from "../leads.js";
+import type * as messages from "../messages.js";
+import type * as migrations from "../migrations.js";
 import type * as orders from "../orders.js";
 import type * as otp from "../otp.js";
+import type * as payments from "../payments.js";
 import type * as people from "../people.js";
 import type * as persons from "../persons.js";
 import type * as profile from "../profile.js";
+import type * as settings from "../settings.js";
+import type * as site from "../site.js";
+import type * as visits from "../visits.js";
 
 import type {
   ApiFromModules,
@@ -34,22 +51,39 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   account: typeof account;
+  audit: typeof audit;
   auth: typeof auth;
   authz: typeof authz;
   blog: typeof blog;
   blogAdmin: typeof blogAdmin;
+  calendar: typeof calendar;
+  calendarAdmin: typeof calendarAdmin;
+  campaigns: typeof campaigns;
   carts: typeof carts;
   catalog: typeof catalog;
   catalogAdmin: typeof catalogAdmin;
   checkout: typeof checkout;
+  cleanup: typeof cleanup;
+  contactTaps: typeof contactTaps;
+  courses: typeof courses;
+  crons: typeof crons;
+  dashboard: typeof dashboard;
   devSeed: typeof devSeed;
+  files: typeof files;
   http: typeof http;
+  images: typeof images;
   leads: typeof leads;
+  messages: typeof messages;
+  migrations: typeof migrations;
   orders: typeof orders;
   otp: typeof otp;
+  payments: typeof payments;
   people: typeof people;
   persons: typeof persons;
   profile: typeof profile;
+  settings: typeof settings;
+  site: typeof site;
+  visits: typeof visits;
 }>;
 
 /**
@@ -80,4 +114,5 @@ export declare const internal: FilterApi<
 
 export declare const components: {
   betterAuth: import("@convex-dev/better-auth/_generated/component.js").ComponentApi<"betterAuth">;
+  r2: import("@convex-dev/r2/_generated/component.js").ComponentApi<"r2">;
 };

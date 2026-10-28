@@ -34,7 +34,7 @@ export function RowsPerPage({
         }}
         items={items}
       >
-        <SelectTrigger id={id} className="w-20">
+        <SelectTrigger id={id} size="sm" className="w-20">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

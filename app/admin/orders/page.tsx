@@ -2,12 +2,16 @@
 
 import { IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
+import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 
 import { convexConfigured } from "@/app/providers"
 import { OrdersTable } from "@/components/admin/orders-table"
-import { ButtonLink } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
+import { useViewer } from "@/hooks/use-viewer"
+import { ORDER_TAB_LABELS, ORDER_TABS, type OrderTab } from "@/lib/order-status"
 
 /** The fulfilment queue. */
 export default function AdminOrdersPage() {
@@ -32,29 +36,29 @@ function Unavailable() {
 
 function Orders() {
   const allowed = useQuery(api.orders.canSeeOrders)
-  // The viewer's own Person, for the one role split the screen needs: the
-  // refund move is offered only to an owner, matching the server gate.
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  // Cancel and refund are offered only to an owner, matching the server.
+  const viewer = useViewer()
+  const params = useSearchParams()
+  const asked = params.get("tab")
+  const tab: OrderTab = ORDER_TABS.includes(asked as OrderTab)
+    ? (asked as OrderTab)
+    : "to_send"
+  const counts = useQuery(api.orders.orderCounts, allowed ? {} : "skip")
   const {
     results: orders,
     status,
     loadMore,
-  } = usePaginatedQuery(api.orders.adminOrdersPage, {}, { initialNumItems: 25 })
-
-  if (
-    allowed === undefined ||
-    viewer === undefined ||
-    status === "LoadingFirstPage"
+  } = usePaginatedQuery(
+    api.orders.adminOrdersPage,
+    allowed ? { tab } : "skip",
+    { initialNumItems: 25 }
   )
+
+  if (allowed === undefined || viewer === undefined)
     return (
       <PageShell
         density="working"
-        title={
-          <>
-            <span className="text-foreground">Orders.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
+        title={<span className="text-foreground">Orders.</span>}
       >
         <ListSkeleton rows={6} />
       </PageShell>
@@ -71,9 +75,15 @@ function Orders() {
           title="This page is for ICT staff"
           description="If you are staff and seeing this, log in with the number ICT has on file for you."
           action={
-            <ButtonLink href="/login?next=/admin/orders" size="md">
+            // A plain link: a full sign-in page, never the public site's
+            // pop-up over the admin with the admin loading behind it.
+            <ButtonAnchor
+              href="/login?next=/admin/orders"
+              target="_self"
+              size="md"
+            >
               Log in
-            </ButtonLink>
+            </ButtonAnchor>
           }
         />
       </PageShell>
@@ -82,20 +92,52 @@ function Orders() {
   return (
     <PageShell
       density="working"
-      /*
-       * No count in the heading, for the reason the inbox has none: a number derived
-       * from the page that happens to be loaded looks authoritative and stops being
-       * true at the second page.
-       */
       title={<span className="text-foreground">Orders.</span>}
     >
-      <OrdersTable
-        orders={orders}
-        isOwner={viewer?.role === "owner"}
-        canLoadMore={status === "CanLoadMore"}
-        loadingMore={status === "LoadingMore"}
-        onLoadMore={() => loadMore(25)}
-      />
+      {/* Links, not a widget: each queue has its own URL to share or bookmark. */}
+      <nav aria-label="Order queues" className="-mx-1 overflow-x-auto px-1">
+        <ul className="flex w-max gap-1 border-b border-border">
+          {ORDER_TABS.map((key) => {
+            const count = key === "done" ? undefined : counts?.[key]
+            return (
+              <li key={key}>
+                <Link
+                  href={
+                    key === "to_send"
+                      ? "/admin/orders"
+                      : `/admin/orders?tab=${key}`
+                  }
+                  aria-current={key === tab ? "page" : undefined}
+                  className="relative -mbe-px inline-flex h-11 items-center gap-2 border-b-2 border-transparent px-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:border-foreground aria-[current=page]:text-foreground"
+                >
+                  {ORDER_TAB_LABELS[key]}
+                  {count ? (
+                    <span className="tnum rounded-full bg-muted px-1.5 text-xs leading-5 text-foreground">
+                      {count}
+                      {counts?.capped ? "+" : ""}
+                    </span>
+                  ) : null}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
+      <div className="mbs-6">
+        {status === "LoadingFirstPage" ? (
+          <ListSkeleton rows={6} />
+        ) : (
+          <OrdersTable
+            key={tab}
+            tab={tab}
+            orders={orders}
+            isOwner={viewer?.role === "owner"}
+            canLoadMore={status === "CanLoadMore"}
+            loadingMore={status === "LoadingMore"}
+            onLoadMore={() => loadMore(25)}
+          />
+        )}
+      </div>
     </PageShell>
   )
 }

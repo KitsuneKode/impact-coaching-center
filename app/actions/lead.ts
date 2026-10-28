@@ -94,7 +94,12 @@ export async function submitLead(
   }
 
   try {
-    await createLeadSink(process.env, fetch, ip).submit(parsed.lead)
+    await createLeadSink(process.env, fetch, ip).submit(parsed.lead, {
+      page: text(formData, "page") || undefined,
+      utmSource: text(formData, "utmSource") || undefined,
+      utmMedium: text(formData, "utmMedium") || undefined,
+      utmCampaign: text(formData, "utmCampaign") || undefined,
+    })
   } catch (error) {
     // A shared-IP ceiling may reject a first-time visitor. A limit response
     // does not establish receipt of this enquiry or any previous enquiry.

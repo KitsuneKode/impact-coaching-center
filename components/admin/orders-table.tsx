@@ -1,30 +1,30 @@
 "use client"
 
 import {
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsLeft,
-  IconChevronsRight,
-  IconDotsVertical,
+  IconBuildingStore,
+  IconChevronDown,
+  IconPrinter,
   IconSearch,
   IconTruck,
-  IconBuildingStore,
 } from "@tabler/icons-react"
 import { useMutation } from "convex/react"
-import { useMemo, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useId, useMemo, useState } from "react"
 
-import { RowsPerPage } from "@/components/admin/rows-per-page"
+import {
+  ago,
+  CourierNames,
+  exact,
+  OrderDetail,
+  OrderMovesMenu,
+  refusalText,
+  useOrderActions,
+  type OrderRow,
+} from "@/components/admin/order-actions"
 import { OrderStatusBadge } from "@/components/admin/order-status"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
   InputGroup,
@@ -49,319 +49,231 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { formatPhone } from "@/lib/brand"
 import { formatPaise } from "@/lib/money"
-import { nextStatuses, ORDER_STATUS_LABELS } from "@/lib/order-status"
+import { isOrderReference, normaliseReference } from "@/lib/order-reference"
+import type { OrderTab } from "@/lib/order-status"
 
-export type OrderRow = {
-  id: Id<"orders">
-  reference: string
-  status: string
-  fulfilment: "delivery" | "collection"
-  items: {
-    title: string
-    edition?: string
-    quantity: number
-    unitPaise: number
-  }[]
-  itemsPaise: number
-  deliveryPaise: number
-  totalPaise: number
-  address?: {
-    line1: string
-    line2?: string
-    city: string
-    district?: string
-    pin: string
-  }
-  placedAt: number
-  seen: boolean
-  revision: number
-  courier?: { name: string; trackingNumber: string }
-  buyerName: string
-  buyerPhone: string
-  buyerDeleted: boolean
+/** What a selection in each open tab can become, all at once. */
+type BulkMove = "shipped" | "ready_for_collection" | "delivered" | "collected"
+
+const EMPTY: Record<OrderTab, string> = {
+  to_send: "Nothing to send. Paid orders land here first.",
+  on_the_way: "No parcels on the way.",
+  to_collect: "Nobody is due to collect.",
+  refund_due: "No refunds owed.",
+  done: "No finished orders yet.",
 }
 
-/** The filter row, grouped by the question being asked. */
-const FILTERS = [
-  { value: "open", label: "Needs you" },
-  { value: "all", label: "All" },
-  { value: "awaiting_payment", label: "Awaiting payment" },
-  { value: "paid", label: "Paid" },
-  { value: "packed", label: "Packed" },
-  { value: "shipped", label: "Shipped" },
-  { value: "ready_for_collection", label: "To collect" },
-  { value: "delivered", label: "Delivered" },
-  { value: "collected", label: "Collected" },
-  { value: "cancelled", label: "Cancelled" },
-  { value: "refunded", label: "Refunded" },
-] as const
-
-const OPEN = new Set([
-  "awaiting_payment",
-  "paid",
-  "packed",
-  "shipped",
-  "ready_for_collection",
-])
-
-function ago(at: number) {
-  const minutes = Math.round((Date.now() - at) / 60000)
-  const hours = Math.round(minutes / 60)
-  const days = Math.round(hours / 24)
-  if (minutes < 2) return "just now"
-  if (minutes < 60) return `${minutes} min ago`
-  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`
-  if (days < 31) return `${days} ${days === 1 ? "day" : "days"} ago`
-  const months = Math.round(days / 30)
-  return `${months} ${months === 1 ? "month" : "months"} ago`
-}
-
-function exact(at: number) {
-  return new Date(at).toLocaleString("en-IN", {
-    timeZone: "Asia/Kolkata",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  })
-}
-
-/** The fulfilment queue. */
+/** One tab of the fulfilment queue. */
 export function OrdersTable({
+  tab,
   orders,
   isOwner,
   canLoadMore,
   loadingMore,
   onLoadMore,
 }: {
+  tab: OrderTab
   orders: OrderRow[]
-  /** Drives whether "refunded" is offered - the server gates it to owners. */
   isOwner: boolean
   canLoadMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
 }) {
-  const setOrderStatus = useMutation(api.orders.setOrderStatus)
-  const setOrderCourier = useMutation(api.orders.setOrderCourier)
+  const router = useRouter()
   const markSeen = useMutation(api.orders.markOrderSeen)
+  const actions = useOrderActions()
 
-  const [filter, setFilter] = useState<string>("open")
   const [search, setSearch] = useState("")
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [pageSize, setPageSize] = useState(20)
-  const [pageIndex, setPageIndex] = useState(0)
-  const [busy, setBusy] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [courierFor, setCourierFor] = useState<{
-    order: OrderRow
-    /** Shipping writes courier and status together; correcting only fixes the details. */
-    mode: "ship" | "correct"
+  const [picked, setPicked] = useState<ReadonlySet<Id<"orders">>>(new Set())
+  const [bulk, setBulk] = useState<{
+    move: BulkMove
+    orders: OrderRow[]
   } | null>(null)
 
+  const selectable = tab !== "done" && tab !== "refund_due"
   const matching = useMemo(() => {
-    const needle = search.toLowerCase().replaceAll(/\s/g, "")
-    return orders.filter((order) => {
-      if (filter === "open" && !OPEN.has(order.status)) return false
-      if (filter !== "open" && filter !== "all" && order.status !== filter)
-        return false
-      if (!needle) return true
-      return (
-        order.reference.toLowerCase().includes(needle) ||
-        order.buyerName.toLowerCase().includes(search.toLowerCase()) ||
-        order.buyerPhone.replaceAll(/\s/g, "").includes(needle)
-      )
+    const words = search.trim().toLowerCase()
+    const digits = words.replaceAll(/\D/g, "")
+    if (!words) return orders
+    return orders.filter(
+      (order) =>
+        order.reference.toLowerCase().includes(words.replace(/\s/g, "")) ||
+        order.buyerName.toLowerCase().includes(words) ||
+        (digits.length >= 3 && order.buyerPhone.includes(digits))
+    )
+  }, [orders, search])
+
+  // Rows that left the tab (moved elsewhere) leave the selection too.
+  const selected = orders.filter((order) => picked.has(order.id))
+  const toShip = selected.filter((o) => o.fulfilment === "delivery")
+  const toHand = selected.filter((o) => o.fulfilment === "collection")
+  const allPicked =
+    matching.length > 0 && matching.every((order) => picked.has(order.id))
+
+  function pick(id: Id<"orders">, on: boolean) {
+    setPicked((current) => {
+      const next = new Set(current)
+      if (on) next.add(id)
+      else next.delete(id)
+      return next
     })
-  }, [orders, filter, search])
-
-  const pageCount = Math.max(1, Math.ceil(matching.length / pageSize))
-  const safePage = Math.min(pageIndex, pageCount - 1)
-  const page = matching.slice(
-    safePage * pageSize,
-    safePage * pageSize + pageSize
-  )
-
-  function changeFilter(value: string) {
-    setFilter(value)
-    setPageIndex(0)
   }
 
-  async function move(
-    order: OrderRow,
-    status: string,
-    courier?: { name: string; trackingNumber: string }
-  ) {
-    setBusy(order.id)
-    setError(null)
-    try {
-      const result = await setOrderStatus({
-        orderId: order.id,
-        status: status as never,
-        expectedRevision: order.revision,
-        courier,
-      })
-      // Discriminate on the value: `Refusal` carries an `ok` key too.
-      if (!result.ok) {
-        setError(
-          result.reason === "revision-conflict"
-            ? `${order.reference} changed somewhere else. It has been refreshed - check it and try again.`
-            : result.reason === "invalid-input"
-              ? `That is not a move ${order.reference} can make from ${ORDER_STATUS_LABELS[order.status]}.`
-              : "That change was refused. You may not have permission any more."
-        )
-        return false
-      }
-      return true
-    } catch {
-      setError(
-        "Could not reach the server. The order is unchanged - try again."
-      )
-      return false
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  /* The staff answer to "it went out today" is always the same two facts:
-     who has it, and how anyone asks where it is. */
-  async function applyCourier(
-    order: OrderRow,
-    courier: { name: string; trackingNumber: string },
-    mode: "ship" | "correct"
-  ) {
-    if (mode === "ship") return move(order, "shipped", courier)
-    setBusy(order.id)
-    setError(null)
-    try {
-      const result = await setOrderCourier({
-        orderId: order.id,
-        courier,
-        expectedRevision: order.revision,
-      })
-      if (!result.ok) {
-        setError(
-          result.reason === "revision-conflict"
-            ? `${order.reference} changed somewhere else. It has been refreshed - check it and try again.`
-            : "That change was refused. You may not have permission any more."
-        )
-        return false
-      }
-      return true
-    } catch {
-      setError(
-        "Could not reach the server. The order is unchanged - try again."
-      )
-      return false
-    } finally {
-      setBusy(null)
-    }
+  function pickAll(on: boolean) {
+    setPicked(on ? new Set(matching.map((order) => order.id)) : new Set())
   }
 
   function toggle(order: OrderRow) {
     const opening = expanded !== order.id
     setExpanded(opening ? order.id : null)
-    // Opening one order is what "seen" means. Loading the list does not count,
-    // or the badge would measure scrolling rather than attention.
+    // Opening an order is what "seen" means; loading the list is not.
     if (opening && !order.seen) void markSeen({ orderId: order.id })
   }
 
+  function printLabels(rows: OrderRow[]) {
+    const refs = rows.map((order) => order.reference).join(",")
+    window.open(`/admin/orders/labels?refs=${refs}`, "_blank", "noopener")
+  }
+
+  const rowProps = (order: OrderRow) => ({
+    order,
+    isOwner,
+    selectable,
+    picked: picked.has(order.id),
+    onPick: (on: boolean) => pick(order.id, on),
+    expanded: expanded === order.id,
+    busy: actions.busy === order.id,
+    onToggle: () => toggle(order),
+    onMove: (status: Parameters<typeof actions.request>[1]) =>
+      actions.request(order, status),
+    onCourier:
+      order.status === "shipped" || order.status === "delivered"
+        ? () => actions.correctCourier(order)
+        : undefined,
+  })
+
+  const empty =
+    orders.length === 0 ? (
+      <span className="text-muted-foreground">{EMPTY[tab]}</span>
+    ) : (
+      <div className="flex flex-col items-start gap-3">
+        <span className="text-muted-foreground">
+          Nothing loaded matches “{search.trim()}”.
+        </span>
+        <Button variant="secondary" size="md" onClick={() => setSearch("")}>
+          Clear the search
+        </Button>
+      </div>
+    )
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <InputGroup className="w-full max-w-xs">
-          <InputGroupAddon className="pl-3">
-            <IconSearch
-              stroke={1.75}
-              className="size-4 text-muted-foreground"
-            />
-          </InputGroupAddon>
-          <InputGroupInput
-            placeholder="Search reference, name or number"
-            aria-label="Search orders by reference, buyer name or number"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setPageIndex(0)
-            }}
-          />
-        </InputGroup>
-        <p aria-live="polite" className="ml-auto text-sm text-muted-foreground">
-          {matching.length} of {orders.length} loaded
-        </p>
-      </div>
-
-      <ToggleGroup
-        value={[filter]}
-        onValueChange={(value) => changeFilter(value[0] ?? "open")}
-        aria-label="Filter orders"
-        className="flex-wrap"
-      >
-        {FILTERS.map((option) => (
-          <ToggleGroupItem key={option.value} value={option.value}>
-            {option.label}
-          </ToggleGroupItem>
-        ))}
-      </ToggleGroup>
-
-      {error ? (
-        <p
-          role="alert"
-          className="rounded-card border border-destructive/30 px-4 py-3 text-sm text-destructive"
+      <search>
+        <form
+          className="flex flex-wrap items-center gap-x-4 gap-y-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const reference = normaliseReference(search)
+            if (isOrderReference(reference))
+              router.push(`/admin/orders/${reference}`)
+          }}
         >
-          {error}
-        </p>
-      ) : null}
+          <InputGroup className="w-full max-w-sm">
+            <InputGroupAddon className="ps-3">
+              <IconSearch
+                stroke={1.75}
+                className="size-4 text-muted-foreground"
+              />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="search"
+              placeholder="ICT-7K3F9, a name or a number"
+              aria-label="Find an order by reference, buyer name or number"
+              aria-describedby="orders-search-hint"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </InputGroup>
+          <p id="orders-search-hint" className="text-sm text-muted-foreground">
+            Enter on a reference opens it from any tab.
+          </p>
+        </form>
+      </search>
 
-      {/*
-        Two renderings of the same page of orders. Below md a row of cells
-        does not fit a phone, so each order is a card - same expansion, same
-        status moves, same courier dialog.
-      */}
-      <div className="flex flex-col gap-3 md:hidden">
-        {page.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 rounded-card border border-border p-4">
-            <span className="text-muted-foreground">
-              {orders.length === 0
-                ? "No orders yet. They appear here as soon as somebody buys a book."
-                : "Nothing matched that filter."}
-            </span>
-            {orders.length > 0 ? (
+      <p role="alert" className="text-sm text-destructive empty:hidden">
+        {actions.error ?? ""}
+      </p>
+
+      {selectable && selected.length > 0 ? (
+        <section
+          aria-label="Selected orders"
+          className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-card border border-border bg-card p-2 ps-4 shadow-frame"
+        >
+          <span className="tnum me-auto text-sm font-medium">
+            {selected.length} selected
+          </span>
+          {tab === "to_send" && toShip.length > 0 ? (
+            <>
               <Button
                 variant="secondary"
-                size="md"
-                onClick={() => {
-                  setSearch("")
-                  changeFilter("all")
-                }}
+                size="sm"
+                onClick={() => printLabels(toShip)}
               >
-                Show all orders
+                <IconPrinter stroke={1.75} />
+                Print {toShip.length} {toShip.length === 1 ? "label" : "labels"}
               </Button>
-            ) : null}
-          </div>
-        ) : (
-          page.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              isOwner={isOwner}
-              expanded={expanded === order.id}
-              busy={busy === order.id}
-              onToggle={() => toggle(order)}
-              onMove={(status) => {
-                if (status === "shipped") setCourierFor({ order, mode: "ship" })
-                else void move(order, status)
-              }}
-              onCourier={
-                order.status === "shipped" || order.status === "delivered"
-                  ? () => setCourierFor({ order, mode: "correct" })
-                  : undefined
+              <Button
+                size="sm"
+                onClick={() => setBulk({ move: "shipped", orders: toShip })}
+              >
+                Ship {toShip.length}…
+              </Button>
+            </>
+          ) : null}
+          {tab === "to_send" && toHand.length > 0 ? (
+            <Button
+              size="sm"
+              onClick={() =>
+                setBulk({ move: "ready_for_collection", orders: toHand })
               }
-            />
+            >
+              Mark {toHand.length} ready to collect
+            </Button>
+          ) : null}
+          {tab === "on_the_way" ? (
+            <Button
+              size="sm"
+              onClick={() => setBulk({ move: "delivered", orders: selected })}
+            >
+              Mark {selected.length} delivered
+            </Button>
+          ) : null}
+          {tab === "to_collect" ? (
+            <Button
+              size="sm"
+              onClick={() => setBulk({ move: "collected", orders: selected })}
+            >
+              Mark {selected.length} collected
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="sm" onClick={() => pickAll(false)}>
+            Clear
+          </Button>
+        </section>
+      ) : null}
+
+      {/* Below md a row of cells does not fit a phone: each order is a card. */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {matching.length === 0 ? (
+          <div className="rounded-card border border-border p-4">{empty}</div>
+        ) : (
+          matching.map((order) => (
+            <OrderCard key={order.id} {...rowProps(order)} />
           ))
         )}
       </div>
@@ -370,536 +282,291 @@ export function OrdersTable({
         <Table className="min-w-200">
           <TableHeader className="bg-muted/40">
             <TableRow>
+              {selectable ? (
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allPicked}
+                    indeterminate={selected.length > 0 && !allPicked}
+                    onCheckedChange={(on) => pickAll(Boolean(on))}
+                    aria-label="Select every order shown"
+                  />
+                </TableHead>
+              ) : null}
               <TableHead>Order</TableHead>
               <TableHead>Buyer</TableHead>
               <TableHead>Route</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Placed</TableHead>
+              <TableHead>Paid</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {page.length === 0 ? (
+            {matching.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24">
-                  <div className="flex flex-col items-start gap-3">
-                    <span className="text-muted-foreground">
-                      {orders.length === 0
-                        ? "No orders yet. They appear here as soon as somebody buys a book."
-                        : "Nothing matched that filter."}
-                    </span>
-                    {orders.length > 0 ? (
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={() => {
-                          setSearch("")
-                          changeFilter("all")
-                        }}
-                      >
-                        Show all orders
-                      </Button>
-                    ) : null}
-                  </div>
+                <TableCell colSpan={selectable ? 8 : 7} className="h-24">
+                  {empty}
                 </TableCell>
               </TableRow>
             ) : (
-              page.map((order) => (
-                <OrderRows
-                  key={order.id}
-                  order={order}
-                  isOwner={isOwner}
-                  expanded={expanded === order.id}
-                  busy={busy === order.id}
-                  onToggle={() => toggle(order)}
-                  onMove={(status) => {
-                    /* "Shipped" is not a bare status - it needs the courier
-                       details the buyer will ask for, so it goes through
-                       the dialog rather than straight to the mutation. */
-                    if (status === "shipped")
-                      setCourierFor({ order, mode: "ship" })
-                    else void move(order, status)
-                  }}
-                  onCourier={
-                    order.status === "shipped" || order.status === "delivered"
-                      ? () => setCourierFor({ order, mode: "correct" })
-                      : undefined
-                  }
-                />
+              matching.map((order) => (
+                <OrderRows key={order.id} {...rowProps(order)} />
               ))
             )}
           </TableBody>
         </Table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4">
-        <RowsPerPage
-          id="orders-per-page"
-          value={pageSize}
-          onChange={(size) => {
-            setPageSize(size)
-            setPageIndex(0)
+      {canLoadMore || loadingMore ? (
+        <Button
+          variant="secondary"
+          size="md"
+          className="self-start"
+          onClick={onLoadMore}
+          disabled={loadingMore}
+        >
+          {loadingMore ? <Spinner /> : null}
+          Load more orders
+        </Button>
+      ) : null}
+
+      {actions.dialogs}
+
+      {bulk ? (
+        <BulkDialog
+          move={bulk.move}
+          orders={bulk.orders}
+          onClose={() => setBulk(null)}
+          onDone={(moved) => {
+            setPicked((current) => {
+              const next = new Set(current)
+              for (const id of moved) next.delete(id)
+              return next
+            })
           }}
-        />
-
-        <p className="text-sm text-muted-foreground">
-          Page {safePage + 1} of {pageCount}
-          {canLoadMore ? <span aria-hidden="true">+</span> : null}
-          {loadingMore ? (
-            <Spinner className="ml-2 inline align-[-2px]" />
-          ) : null}
-        </p>
-
-        <div className="flex items-center gap-1">
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="First page"
-            onClick={() => setPageIndex(0)}
-            disabled={safePage === 0}
-          >
-            <IconChevronsLeft stroke={1.75} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Previous page"
-            onClick={() => setPageIndex(safePage - 1)}
-            disabled={safePage === 0}
-          >
-            <IconChevronLeft stroke={1.75} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Next page"
-            onClick={() => {
-              if (safePage < pageCount - 1) setPageIndex(safePage + 1)
-              else if (canLoadMore) onLoadMore()
-            }}
-            disabled={
-              (safePage >= pageCount - 1 && !canLoadMore) || loadingMore
-            }
-          >
-            <IconChevronRight stroke={1.75} />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            aria-label="Last loaded page"
-            onClick={() => setPageIndex(pageCount - 1)}
-            disabled={safePage >= pageCount - 1}
-          >
-            <IconChevronsRight stroke={1.75} />
-          </Button>
-        </div>
-      </div>
-
-      {courierFor ? (
-        <CourierDialog
-          order={courierFor.order}
-          mode={courierFor.mode}
-          busy={busy === courierFor.order.id}
-          onClose={() => setCourierFor(null)}
-          onSubmit={async (courier) => {
-            const done = await applyCourier(
-              courierFor.order,
-              courier,
-              courierFor.mode
-            )
-            if (done) setCourierFor(null)
-          }}
+          onPrint={printLabels}
         />
       ) : null}
     </div>
   )
 }
 
-/** Courier name and tracking number - the two facts "shipped" is made of. */
-function CourierDialog({
-  order,
-  mode,
-  busy,
+const BULK_VERB: Record<BulkMove, string> = {
+  shipped: "shipped",
+  ready_for_collection: "ready to collect",
+  delivered: "delivered",
+  collected: "collected",
+}
+
+/**
+ * The review before a batch: every order it touches, by reference and
+ * buyer, and for shipping the tracking number each parcel carries. Applied
+ * one order at a time on the server; anything refused stays listed.
+ */
+function BulkDialog({
+  move,
+  orders,
   onClose,
-  onSubmit,
+  onDone,
+  onPrint,
 }: {
-  order: OrderRow
-  mode: "ship" | "correct"
-  busy: boolean
+  move: BulkMove
+  orders: OrderRow[]
   onClose: () => void
-  onSubmit: (courier: { name: string; trackingNumber: string }) => void
+  onDone: (moved: Id<"orders">[]) => void
+  onPrint: (rows: OrderRow[]) => void
 }) {
-  const [name, setName] = useState(order.courier?.name ?? "")
-  const [tracking, setTracking] = useState(order.courier?.trackingNumber ?? "")
-  const ready = name.trim() !== "" && tracking.trim() !== ""
+  const id = useId()
+  const apply = useMutation(api.orders.setOrderStatuses)
+  const [courier, setCourier] = useState("")
+  const [tracking, setTracking] = useState<Record<string, string>>({})
+  const [left, setLeft] = useState(orders)
+  const [refused, setRefused] = useState<Record<string, string>>({})
+  const [working, setWorking] = useState(false)
+  const [error, setError] = useState("")
+  const shipping = move === "shipped"
+
+  async function run() {
+    if (shipping) {
+      if (!courier.trim()) return setError("Enter the courier.")
+      const blank = left.find((order) => !tracking[order.id]?.trim())
+      if (blank)
+        return setError(`Enter the tracking number for ${blank.reference}.`)
+    }
+    setError("")
+    setWorking(true)
+    try {
+      const result = await apply({
+        moves: left.map((order) => ({
+          orderId: order.id,
+          status: move,
+          expectedRevision: order.revision,
+          courier: shipping
+            ? {
+                name: courier.trim(),
+                trackingNumber: (tracking[order.id] ?? "").trim(),
+              }
+            : undefined,
+        })),
+      })
+      if (!result.ok) {
+        setError(refusalText("These orders", result.reason))
+        return
+      }
+      const moved = result.results.filter((r) => r.ok).map((r) => r.orderId)
+      onDone(moved)
+      const failed = result.results.filter((r) => !r.ok)
+      if (failed.length === 0) return onClose()
+      setLeft(left.filter((order) => !moved.includes(order.id)))
+      setRefused(
+        Object.fromEntries(
+          failed.map((r) => {
+            const order = left.find((o) => o.id === r.orderId)
+            return [r.orderId, refusalText(order?.reference ?? "", r.reason)]
+          })
+        )
+      )
+      setError(
+        `${moved.length} done. ${failed.length} refused: see below, then try again or close.`
+      )
+    } catch {
+      setError("Couldn't reach the server. Nothing changed. Try again.")
+    } finally {
+      setWorking(false)
+    }
+  }
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {mode === "ship" ? `Ship ${order.reference}` : "Courier details"}
-          </DialogTitle>
-          <DialogDescription>
-            {mode === "ship"
-              ? "Who is carrying it, and the tracking number the buyer can quote. Both are required before an order counts as shipped."
-              : `Fix who is carrying ${order.reference}, or the tracking number.`}
-          </DialogDescription>
-        </DialogHeader>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="courier-name">Courier</FieldLabel>
-            <Input
-              id="courier-name"
-              autoComplete="off"
-              placeholder="DTDC, India Post, Delhivery…"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="courier-tracking">Tracking number</FieldLabel>
-            <Input
-              id="courier-tracking"
-              autoComplete="off"
-              placeholder="As on the receipt or label"
-              value={tracking}
-              onChange={(event) => setTracking(event.target.value)}
-            />
-          </Field>
-        </FieldGroup>
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!ready || busy}
-            onClick={() =>
-              onSubmit({
-                name: name.trim(),
-                trackingNumber: tracking.trim(),
-              })
-            }
-          >
-            {busy ? <Spinner /> : null}
-            {mode === "ship" ? "Mark shipped" : "Save"}
-          </Button>
-        </DialogFooter>
+    <Dialog open onOpenChange={(open) => !open && !working && onClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <form
+          className="contents"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void run()
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>
+              Mark {left.length} {left.length === 1 ? "order" : "orders"}{" "}
+              {BULK_VERB[move]}?
+            </DialogTitle>
+            <DialogDescription>
+              {move === "shipped"
+                ? "Each buyer gets a WhatsApp message with the courier and their own tracking number."
+                : move === "ready_for_collection"
+                  ? "Each buyer gets a WhatsApp message saying their books are ready, with the centre's address."
+                  : "These orders close and move to Done. Buyers are not sent a message."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {shipping ? (
+            <Field>
+              <FieldLabel htmlFor={`${id}-courier`}>
+                Courier, for all of them
+              </FieldLabel>
+              <Input
+                id={`${id}-courier`}
+                list={`${id}-couriers`}
+                autoComplete="off"
+                placeholder="India Post"
+                value={courier}
+                onChange={(event) => setCourier(event.target.value)}
+              />
+              <CourierNames id={`${id}-couriers`} />
+            </Field>
+          ) : null}
+
+          <ul className="-mx-1 flex max-h-[50dvh] flex-col divide-y divide-border overflow-y-auto px-1">
+            {left.map((order) => (
+              <li key={order.id} className="grid gap-2 py-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                  <span className="tnum font-medium">{order.reference}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {order.buyerName || "Name not given"}
+                    {order.address
+                      ? ` · ${order.address.city} ${order.address.pin}`
+                      : ""}
+                  </span>
+                </div>
+                {shipping ? (
+                  <Input
+                    aria-label={`Tracking number for ${order.reference}`}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="Tracking number"
+                    value={tracking[order.id] ?? ""}
+                    onChange={(event) =>
+                      setTracking((current) => ({
+                        ...current,
+                        [order.id]: event.target.value,
+                      }))
+                    }
+                  />
+                ) : null}
+                {refused[order.id] ? (
+                  <p className="text-sm text-destructive">
+                    {refused[order.id]}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+
+          <p role="alert" className="text-sm text-destructive empty:hidden">
+            {error}
+          </p>
+
+          <DialogFooter className="flex-wrap">
+            {shipping ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="me-auto"
+                onClick={() => onPrint(left)}
+              >
+                <IconPrinter stroke={1.75} />
+                Print labels
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={working}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={working || left.length === 0}>
+              {working ? <Spinner /> : null}
+              Mark {left.length} {BULK_VERB[move]}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
 }
 
-/** One order: the summary row, and the detail row when it is open. */
-function OrderRows({
-  order,
-  isOwner,
-  expanded,
-  busy,
-  onToggle,
-  onMove,
-  onCourier,
-}: {
+type RowProps = {
   order: OrderRow
   isOwner: boolean
+  selectable: boolean
+  picked: boolean
+  onPick: (on: boolean) => void
   expanded: boolean
   busy: boolean
   onToggle: () => void
-  onMove: (status: string) => void
-  /** Offered once the order is on its way - for fixing a mistyped number. */
+  onMove: Parameters<typeof OrderMovesMenu>[0]["onMove"]
   onCourier?: () => void
-}) {
-  const moves = nextStatuses(order.status, isOwner, order.fulfilment)
+}
 
+function Buyer({ order }: { order: OrderRow }) {
   return (
     <>
-      <TableRow data-state={expanded ? "selected" : undefined}>
-        <TableCell>
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-expanded={expanded}
-            className="tnum font-medium underline-offset-4 hover:underline focus-visible:underline"
-          >
-            {order.reference}
-          </button>
-          {/*
-            An unopened order gets a mark, not a colour. It is the same
-            information the sidebar badge counts, in the place the reader is
-            already looking.
-          */}
-          {order.seen ? null : (
-            <span className="ml-2 align-middle text-xs text-muted-foreground">
-              new
-            </span>
-          )}
-        </TableCell>
-        <TableCell>
-          <span className="block">
-            {order.buyerDeleted ? (
-              <span className="text-muted-foreground">Account deleted</span>
-            ) : (
-              order.buyerName || (
-                <span className="text-muted-foreground">Not given</span>
-              )
-            )}
-          </span>
-          {order.buyerPhone ? (
-            <a
-              href={`tel:${order.buyerPhone}`}
-              className="tnum text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
-            >
-              {formatPhone(order.buyerPhone)}
-            </a>
-          ) : null}
-        </TableCell>
-        <TableCell>
-          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-            {order.fulfilment === "delivery" ? (
-              <IconTruck stroke={1.75} className="size-4" />
-            ) : (
-              <IconBuildingStore stroke={1.75} className="size-4" />
-            )}
-            {order.fulfilment === "delivery" ? "Delivery" : "Collection"}
-          </span>
-        </TableCell>
-        <TableCell className="tnum text-right">
-          {formatPaise(order.totalPaise)}
-        </TableCell>
-        <TableCell>
-          <OrderStatusBadge status={order.status} />
-        </TableCell>
-        <TableCell>
-          <time
-            dateTime={new Date(order.placedAt).toISOString()}
-            title={exact(order.placedAt)}
-            className="whitespace-nowrap text-muted-foreground"
-          >
-            {ago(order.placedAt)}
-          </time>
-        </TableCell>
-        <TableCell className="text-right">
-          <OrderActions
-            order={order}
-            moves={moves}
-            busy={busy}
-            onMove={onMove}
-          />
-        </TableCell>
-      </TableRow>
-
-      {expanded ? (
-        <TableRow>
-          <TableCell colSpan={7} className="bg-muted/30">
-            <OrderDetail order={order} busy={busy} onCourier={onCourier} />
-          </TableCell>
-        </TableRow>
-      ) : null}
-    </>
-  )
-}
-
-/** The status moves menu - same set on the table row and the phone card. */
-function OrderActions({
-  order,
-  moves,
-  busy,
-  onMove,
-}: {
-  order: OrderRow
-  moves: string[]
-  busy: boolean
-  onMove: (status: string) => void
-}) {
-  if (moves.length === 0)
-    return <span className="text-sm text-muted-foreground">—</span>
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="icon" />}
-        aria-label={`Change status of ${order.reference}`}
-        disabled={busy}
-      >
-        {busy ? <Spinner /> : <IconDotsVertical stroke={1.75} />}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-52">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>Mark as</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {moves.map((status) => (
-            <DropdownMenuItem key={status} onClick={() => onMove(status)}>
-              {ORDER_STATUS_LABELS[status] ?? status}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-/** Items, money and destination - what "expand" means on either rendering. */
-function OrderDetail({
-  order,
-  busy,
-  onCourier,
-}: {
-  order: OrderRow
-  busy: boolean
-  onCourier?: () => void
-}) {
-  return (
-    <div className="grid gap-8 py-2 md:grid-cols-2">
-      <div>
-        <h3 className="text-sm font-medium">Items</h3>
-        <ul className="mt-3 flex flex-col gap-2">
-          {order.items.map((item, index) => (
-            <li
-              key={`${item.title}-${index}`}
-              className="flex items-baseline justify-between gap-4"
-            >
-              <span>
-                {item.title}
-                {item.edition ? (
-                  <span className="text-muted-foreground">
-                    {" "}
-                    · {item.edition}
-                  </span>
-                ) : null}
-                <span className="tnum text-muted-foreground">
-                  {" "}
-                  × {item.quantity}
-                </span>
-              </span>
-              <span className="tnum whitespace-nowrap text-muted-foreground">
-                {formatPaise(item.unitPaise * item.quantity)}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <dl className="mt-4 flex flex-col gap-1 border-t border-border pt-3 text-sm">
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">Items</dt>
-            <dd className="tnum">{formatPaise(order.itemsPaise)}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-muted-foreground">
-              {order.fulfilment === "delivery" ? "Delivery" : "Collection"}
-            </dt>
-            <dd className="tnum">
-              {order.deliveryPaise === 0
-                ? "Free"
-                : formatPaise(order.deliveryPaise)}
-            </dd>
-          </div>
-          <div className="flex justify-between gap-4 font-medium">
-            <dt>Total</dt>
-            <dd className="tnum">{formatPaise(order.totalPaise)}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium">
-          {order.fulfilment === "delivery" ? "Deliver to" : "Collection"}
-        </h3>
-        {order.address ? (
-          <address className="mt-3 not-italic">
-            {order.address.line1}
-            <br />
-            {order.address.line2 ? (
-              <>
-                {order.address.line2}
-                <br />
-              </>
-            ) : null}
-            {order.address.city}
-            {order.address.district ? `, ${order.address.district}` : ""}
-            <br />
-            <span className="tnum">{order.address.pin}</span>
-          </address>
-        ) : (
-          <p className="mt-3 text-muted-foreground">
-            {/*
-              A collection order has no address, and that is a fact
-              rather than missing data. Saying so is better than an
-              empty panel that reads like something failed to load.
-            */}
-            Collecting from the centre. No delivery address was taken.
-          </p>
-        )}
-
-        {order.courier ? (
-          <div className="mt-6">
-            <h3 className="text-sm font-medium">Courier</h3>
-            <p className="mt-3 text-muted-foreground">
-              {order.courier.name}
-              {" · "}
-              <span className="tnum">{order.courier.trackingNumber}</span>
-            </p>
-            {onCourier ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mt-3"
-                onClick={onCourier}
-                disabled={busy}
-              >
-                Fix courier details
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
-/** One order as a phone-width card - the md-down rendering of OrderRows. */
-function OrderCard({
-  order,
-  isOwner,
-  expanded,
-  busy,
-  onToggle,
-  onMove,
-  onCourier,
-}: {
-  order: OrderRow
-  isOwner: boolean
-  expanded: boolean
-  busy: boolean
-  onToggle: () => void
-  onMove: (status: string) => void
-  onCourier?: () => void
-}) {
-  const moves = nextStatuses(order.status, isOwner, order.fulfilment)
-
-  return (
-    <div
-      data-state={expanded ? "selected" : undefined}
-      className="rounded-card border border-border p-4 data-[state=selected]:bg-muted/40"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={expanded}
-          className="tnum font-medium underline-offset-4 hover:underline focus-visible:underline"
-        >
-          {order.reference}
-        </button>
-        <div className="flex items-center gap-2">
-          {order.seen ? null : (
-            <span className="text-xs text-muted-foreground">new</span>
-          )}
-          <OrderStatusBadge status={order.status} />
-        </div>
-      </div>
-
-      <div className="mt-1 text-sm">
+      <span className="block">
         {order.buyerDeleted ? (
           <span className="text-muted-foreground">Account deleted</span>
         ) : (
@@ -907,26 +574,168 @@ function OrderCard({
             <span className="text-muted-foreground">Not given</span>
           )
         )}
-        {order.buyerPhone ? (
-          <a
-            href={`tel:${order.buyerPhone}`}
-            className="tnum block text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
-          >
-            {formatPhone(order.buyerPhone)}
-          </a>
+      </span>
+      {order.buyerPhone ? (
+        <a
+          href={`tel:${order.buyerPhone}`}
+          className="tnum text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
+        >
+          {formatPhone(order.buyerPhone)}
+        </a>
+      ) : null}
+    </>
+  )
+}
+
+function Route({ order }: { order: OrderRow }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      {order.fulfilment === "delivery" ? (
+        <IconTruck aria-hidden stroke={1.75} className="size-4" />
+      ) : (
+        <IconBuildingStore aria-hidden stroke={1.75} className="size-4" />
+      )}
+      {order.fulfilment === "delivery"
+        ? (order.address?.city ?? "Delivery")
+        : "Collection"}
+    </span>
+  )
+}
+
+function Placed({ at }: { at: number }) {
+  return (
+    <time
+      dateTime={new Date(at).toISOString()}
+      title={exact(at)}
+      className="whitespace-nowrap text-muted-foreground"
+    >
+      {ago(at)}
+    </time>
+  )
+}
+
+/** One order on a wide screen: the summary row, and its slip when open. */
+function OrderRows(props: RowProps) {
+  const { order, expanded } = props
+  return (
+    <>
+      <TableRow data-state={expanded || props.picked ? "selected" : undefined}>
+        {props.selectable ? (
+          <TableCell>
+            <Checkbox
+              checked={props.picked}
+              onCheckedChange={(on) => props.onPick(Boolean(on))}
+              aria-label={`Select ${order.reference}`}
+            />
+          </TableCell>
         ) : null}
+        <TableCell>
+          <span className="flex items-center gap-1">
+            <Link
+              href={`/admin/orders/${order.reference}`}
+              className="tnum font-medium underline-offset-4 hover:underline focus-visible:underline"
+            >
+              {order.reference}
+            </Link>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={props.onToggle}
+              aria-expanded={expanded}
+              aria-label={`${expanded ? "Hide" : "Show"} the packing slip for ${order.reference}`}
+            >
+              <IconChevronDown
+                stroke={1.75}
+                className="transition-transform data-[open]:rotate-180"
+                data-open={expanded ? "" : undefined}
+              />
+            </Button>
+            {order.seen ? null : (
+              <span className="text-xs text-muted-foreground">new</span>
+            )}
+          </span>
+        </TableCell>
+        <TableCell>
+          <Buyer order={order} />
+        </TableCell>
+        <TableCell>
+          <Route order={order} />
+        </TableCell>
+        <TableCell className="tnum text-right">
+          {formatPaise(order.totalPaise)}
+        </TableCell>
+        <TableCell>
+          <OrderStatusBadge status={order.status} refundDue={order.refundDue} />
+        </TableCell>
+        <TableCell>
+          <Placed at={order.placedAt} />
+        </TableCell>
+        <TableCell className="text-right">
+          <OrderMovesMenu
+            order={order}
+            isOwner={props.isOwner}
+            busy={props.busy}
+            onMove={props.onMove}
+          />
+        </TableCell>
+      </TableRow>
+
+      {expanded ? (
+        <TableRow>
+          <TableCell colSpan={props.selectable ? 8 : 7} className="bg-muted/30">
+            <OrderDetail
+              order={order}
+              busy={props.busy}
+              onCourier={props.onCourier}
+            />
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
+  )
+}
+
+/** One order as a phone-width card. */
+function OrderCard(props: RowProps) {
+  const { order, expanded } = props
+  return (
+    <div
+      data-state={expanded || props.picked ? "selected" : undefined}
+      className="rounded-card border border-border p-4 data-[state=selected]:bg-muted/40"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-3">
+          {props.selectable ? (
+            <Checkbox
+              checked={props.picked}
+              onCheckedChange={(on) => props.onPick(Boolean(on))}
+              aria-label={`Select ${order.reference}`}
+            />
+          ) : null}
+          <Link
+            href={`/admin/orders/${order.reference}`}
+            className="tnum font-medium underline-offset-4 hover:underline focus-visible:underline"
+          >
+            {order.reference}
+          </Link>
+        </span>
+        <span className="flex items-center gap-2">
+          {order.seen ? null : (
+            <span className="text-xs text-muted-foreground">new</span>
+          )}
+          <OrderStatusBadge status={order.status} refundDue={order.refundDue} />
+        </span>
       </div>
 
-      <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-        <div className="flex items-center gap-1.5">
-          <dt className="sr-only">Fulfilment</dt>
-          <dd className="inline-flex items-center gap-1.5">
-            {order.fulfilment === "delivery" ? (
-              <IconTruck stroke={1.75} className="size-4" />
-            ) : (
-              <IconBuildingStore stroke={1.75} className="size-4" />
-            )}
-            {order.fulfilment === "delivery" ? "Delivery" : "Collection"}
+      <div className="mbs-2 text-sm">
+        <Buyer order={order} />
+      </div>
+
+      <dl className="mbs-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+        <div>
+          <dt className="sr-only">Route</dt>
+          <dd>
+            <Route order={order} />
           </dd>
         </div>
         <div className="flex gap-1.5">
@@ -936,33 +745,37 @@ function OrderCard({
           </dd>
         </div>
         <div className="flex gap-1.5">
-          <dt>Placed</dt>
+          <dt>Paid</dt>
           <dd>
-            <time
-              dateTime={new Date(order.placedAt).toISOString()}
-              title={exact(order.placedAt)}
-            >
-              {ago(order.placedAt)}
-            </time>
+            <Placed at={order.placedAt} />
           </dd>
         </div>
       </dl>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mbs-3 flex items-center justify-between gap-3">
         <Button
           variant="secondary"
           size="sm"
-          onClick={onToggle}
+          onClick={props.onToggle}
           aria-expanded={expanded}
         >
-          {expanded ? "Hide details" : "Details"}
+          {expanded ? "Hide the slip" : "Packing slip"}
         </Button>
-        <OrderActions order={order} moves={moves} busy={busy} onMove={onMove} />
+        <OrderMovesMenu
+          order={order}
+          isOwner={props.isOwner}
+          busy={props.busy}
+          onMove={props.onMove}
+        />
       </div>
 
       {expanded ? (
-        <div className="mt-4 border-t border-border pt-4">
-          <OrderDetail order={order} busy={busy} onCourier={onCourier} />
+        <div className="mbs-4 border-t border-border pbs-4">
+          <OrderDetail
+            order={order}
+            busy={props.busy}
+            onCourier={props.onCourier}
+          />
         </div>
       ) : null}
     </div>

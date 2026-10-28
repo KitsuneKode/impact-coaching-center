@@ -24,11 +24,11 @@ const record = internal.persons.recordVerifiedPerson
 describe("recordVerifiedPerson", () => {
   test("creates a Person on first verification", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna Das" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna Das" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people).toHaveLength(1)
-    expect(people[0]!.phone).toBe("+919876543210")
+    expect(people[0]!.phone).toBe("+919812345670")
     expect(people[0]!.name).toBe("Rituparna Das")
     expect(people[0]!.role).toBe("student")
     expect(people[0]!.source).toBe("verification")
@@ -39,7 +39,7 @@ describe("recordVerifiedPerson", () => {
     // ADR-0001: reading a Resource makes someone known, not a lead, or the
     // staff queue floods with casual readers.
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people[0]!.leadStatus).toBeUndefined()
@@ -47,8 +47,8 @@ describe("recordVerifiedPerson", () => {
 
   test("verifying the same number twice does not create a second Person", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna" })
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people).toHaveLength(1)
@@ -56,8 +56,8 @@ describe("recordVerifiedPerson", () => {
 
   test("a later verification does not overwrite a name we already have", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna Das" })
-    await t.mutation(record, { phone: "+919876543210", name: "R" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna Das" })
+    await t.mutation(record, { phone: "+919812345670", name: "R" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people[0]!.name).toBe("Rituparna Das")
@@ -65,8 +65,8 @@ describe("recordVerifiedPerson", () => {
 
   test("a later verification fills a name we did not have", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "" })
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna Das" })
+    await t.mutation(record, { phone: "+919812345670", name: "" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna Das" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people).toHaveLength(1)
@@ -75,11 +75,11 @@ describe("recordVerifiedPerson", () => {
 
   test("re-verifying refreshes verifiedAt on the same record", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna" })
     const first = await t.run(async (ctx) => ctx.db.query("persons").collect())
 
     await new Promise((resolve) => setTimeout(resolve, 5))
-    await t.mutation(record, { phone: "+919876543210", name: "Rituparna" })
+    await t.mutation(record, { phone: "+919812345670", name: "Rituparna" })
     const second = await t.run(async (ctx) => ctx.db.query("persons").collect())
 
     expect(second[0]!._id).toBe(first[0]!._id)
@@ -88,7 +88,7 @@ describe("recordVerifiedPerson", () => {
 
   test("two different numbers are two different People", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "A" })
+    await t.mutation(record, { phone: "+919812345670", name: "A" })
     await t.mutation(record, { phone: "+919876500011", name: "B" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
@@ -98,13 +98,13 @@ describe("recordVerifiedPerson", () => {
   test("the same number written differently lands on one Person", async () => {
     // The natural key only works if every entry point normalises first.
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210", name: "A" })
-    await t.mutation(record, { phone: "09876543210", name: "A" })
-    await t.mutation(record, { phone: "98765 43210", name: "A" })
+    await t.mutation(record, { phone: "+919812345670", name: "A" })
+    await t.mutation(record, { phone: "09812345670", name: "A" })
+    await t.mutation(record, { phone: "98123 45670", name: "A" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people).toHaveLength(1)
-    expect(people[0]!.phone).toBe("+919876543210")
+    expect(people[0]!.phone).toBe("+919812345670")
   })
 
   test("refuses a number that is not an Indian mobile", async () => {
@@ -119,7 +119,7 @@ describe("recordVerifiedPerson", () => {
 
   test("a missing name is stored as empty rather than undefined", async () => {
     const t = convexTest(schema, modules)
-    await t.mutation(record, { phone: "+919876543210" })
+    await t.mutation(record, { phone: "+919812345670" })
 
     const people = await t.run(async (ctx) => ctx.db.query("persons").collect())
     expect(people[0]!.name).toBe("")
@@ -128,11 +128,23 @@ describe("recordVerifiedPerson", () => {
 
 describe("domain identity and enquiries", () => {
   const lead = {
-    phone: "+919876543210",
+    phone: "+919812345670",
     name: "Rituparna",
     track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }
+  test("two children asked for from one phone are two enquiries, each named", async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.persons.recordEnquiry, lead)
+    await t.mutation(internal.persons.recordEnquiry, { ...lead, name: "Arjun" })
+    const enquiries = await t.run((ctx) => ctx.db.query("enquiries").collect())
+    expect(enquiries.map((e) => e.name)).toEqual(["Rituparna", "Arjun"])
+    const notes = await t.run((ctx) => ctx.db.query("activities").collect())
+    expect(notes.map((n) => n.body)).toEqual([undefined, "For Arjun"])
+    const people = await t.run((ctx) => ctx.db.query("persons").collect())
+    expect(people).toHaveLength(1)
+  })
+
   test("an enquiry creates one unverified Person; retry creates no duplicate activity", async () => {
     const t = convexTest(schema, modules)
     expect(await t.mutation(internal.persons.recordEnquiry, lead)).toBe(
@@ -161,6 +173,31 @@ describe("domain identity and enquiries", () => {
     expect(
       await t.run((ctx) => ctx.db.query("persons").collect())
     ).toHaveLength(1)
+  })
+  test("each enquiry is kept with the page and campaign it came from", async () => {
+    const t = convexTest(schema, modules)
+    await t.mutation(internal.persons.recordEnquiry, {
+      ...lead,
+      page: "/as/courses/lakhya-2027",
+      utmSource: "facebook",
+      utmCampaign: "victor-9",
+      referrer: "https://m.facebook.com/",
+    })
+    await t.mutation(internal.persons.recordEnquiry, {
+      ...lead,
+      timing: enquiryTimings[1]!,
+      utmSource: "  ",
+    })
+    const rows = await t.run((ctx) => ctx.db.query("enquiries").collect())
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      channel: "website",
+      page: "/as/courses/lakhya-2027",
+      utm: { source: "facebook", campaign: "victor-9" },
+      referrer: "https://m.facebook.com/",
+    })
+    // Blank tracking is absent, not an empty object.
+    expect(rows[1]!.utm).toBeUndefined()
   })
   test("verification and enquiry retain the same Person and existing staff workflow", async () => {
     const t = convexTest(schema, modules)
@@ -234,7 +271,7 @@ describe("domain identity and enquiries", () => {
     for (let n = 0; n < 20; n++)
       await t.mutation(internal.persons.recordEnquiry, {
         ...lead,
-        phone: `98765${String(43210 + n).padStart(5, "0")}`,
+        phone: `98123${String(45670 + n).padStart(5, "0")}`,
         ip,
       })
     await expect(
@@ -264,5 +301,33 @@ describe("domain identity and enquiries", () => {
     expect(
       await t.run((ctx) => ctx.db.query("activities").collect())
     ).toHaveLength(0)
+  })
+})
+
+describe("consumeAuthRateLimit", () => {
+  const consume = internal.persons.consumeAuthRateLimit
+  const rule = { max: 2, windowMs: 60_000 }
+
+  test("counts per address and path, then refuses with a wait", async () => {
+    const t = convexTest(schema, modules)
+    const key = "203.0.113.7|/phone-number/send-otp"
+    expect(await t.mutation(consume, { key, ...rule })).toEqual({
+      allowed: true,
+      retryAfter: null,
+    })
+    await t.mutation(consume, { key, ...rule })
+    const refused = await t.mutation(consume, { key, ...rule })
+    expect(refused.allowed).toBe(false)
+    expect(refused.retryAfter).toBeGreaterThan(0)
+    expect(refused.retryAfter).toBeLessThanOrEqual(60)
+    // Another address has its own count.
+    expect(
+      (
+        await t.mutation(consume, {
+          key: "198.51.100.4|/phone-number/send-otp",
+          ...rule,
+        })
+      ).allowed
+    ).toBe(true)
   })
 })

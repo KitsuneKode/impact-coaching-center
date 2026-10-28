@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import {
   IconArrowRight,
   IconBrandWhatsapp,
@@ -13,10 +14,11 @@ import { useActionState, useEffect, useId, useRef, useState } from "react"
 
 import { submitLead, type LeadState } from "@/app/actions/lead"
 import { Turnstile } from "@/components/marketing/turnstile"
-import { Button, ButtonAnchor } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { contact, formatPhone, timings } from "@/lib/brand"
 import { track } from "@/lib/analytics"
-import { clientEnv } from "@/lib/env.client"
+import { visitAttribution } from "@/lib/attribution"
+import { publicEnv } from "@/lib/public-env"
 import { contactHref } from "@/lib/contact"
 import {
   enquiryTracks,
@@ -28,14 +30,6 @@ import { cn } from "@/lib/utils"
 
 /** Document order, so focus lands on the first thing the visitor sees. */
 const FIELD_ORDER: readonly LeadField[] = ["name", "phone", "track", "timing"]
-
-/** What the summary calls each field, matching its visible label. */
-const FIELD_LABELS: Record<LeadField, string> = {
-  name: "Your name",
-  phone: "Mobile number",
-  track: "Which exam",
-  timing: "When can you study",
-}
 
 const field =
   "h-12 w-full rounded-control border border-input bg-card px-3.5 text-[0.9375rem] text-foreground shadow-frame transition-colors placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring aria-[invalid=true]:border-destructive"
@@ -54,11 +48,12 @@ function ChoiceGroup({
   defaultValue?: string
   error?: string
 }) {
+  const t = useTranslations("Lead")
   const id = useId()
   return (
     <fieldset aria-describedby={error ? `${id}-error` : undefined}>
       <legend className="text-sm font-medium">{legend}</legend>
-      <div className="mt-2.5 flex flex-wrap gap-2">
+      <div className="mbs-2.5 flex flex-wrap gap-2">
         {options.map((option) => (
           <label key={option} className="relative">
             <input
@@ -68,14 +63,18 @@ function ChoiceGroup({
               defaultChecked={defaultValue === option}
               className="peer sr-only"
             />
-            <span className="inline-flex h-10 cursor-pointer items-center rounded-control border border-input bg-card px-3.5 text-sm shadow-frame transition-colors select-none peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring hover:bg-secondary peer-checked:hover:bg-primary">
-              {option}
+            <span
+              data-choice
+              className="inline-flex h-10 cursor-pointer items-center rounded-full border border-input bg-card px-4 text-sm select-none peer-checked:border-foreground peer-checked:bg-foreground peer-checked:text-background peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring"
+            >
+              {/* The value sent stays English so the staff inbox does not change. */}
+              {t.has(`options.${option}`) ? t(`options.${option}`) : option}
             </span>
           </label>
         ))}
       </div>
       {error ? (
-        <p id={`${id}-error`} className="mt-2 text-sm text-destructive">
+        <p id={`${id}-error`} className="mbs-2 text-sm text-destructive">
           {error}
         </p>
       ) : null}
@@ -83,7 +82,16 @@ function ChoiceGroup({
   )
 }
 
-export function LeadForm() {
+/** `bare` drops the form's own panel, for a card that already provides one. */
+export function LeadForm({
+  bare = false,
+  defaultTrack,
+}: {
+  bare?: boolean
+  /** Pre-selects the exam, e.g. on a course page, so asking is one tap shorter. */
+  defaultTrack?: string
+}) {
+  const t = useTranslations("Lead")
   const [state, action, pending] = useActionState<LeadState, FormData>(
     submitLead,
     {
@@ -138,7 +146,13 @@ export function LeadForm() {
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-6 md:p-8">
+    <div
+      className={
+        bare
+          ? undefined
+          : "rounded-card border border-border bg-surface p-6 md:p-8"
+      }
+    >
       <AnimatePresence mode="wait" initial={false}>
         {state.status !== "idle" && state.status !== "error" && !again ? (
           <m.div key="done" {...swap} role="status" aria-live="polite">
@@ -155,28 +169,30 @@ export function LeadForm() {
                 aria-hidden
               />
             )}
-            <p className="type-lede mt-4">
-              Thank you, {state.name.split(" ")[0]}.
+            <p className="type-lede mbs-4">
+              {t("thanks", { name: state.name.split(" ")[0] ?? "" })}
               <span className="text-muted-foreground">
                 {" "}
                 {state.status === "ok"
-                  ? "Your enquiry was received. Your callback number is "
+                  ? t("ok")
                   : state.status === "throttled"
-                    ? "A temporary submission limit was reached. Please try again later or contact ICT directly. Your number is "
-                    : "We could not confirm receipt. Send your enquiry on WhatsApp or call ICT. Your number is "}
-                <span className="tnum">{formatPhone(state.phone)}</span> about{" "}
-                {state.track === "Not sure yet"
-                  ? "the right course for you"
-                  : state.track}
-                .
+                    ? t("throttled")
+                    : t("unconfirmed")}{" "}
+                <span className="tnum">{formatPhone(state.phone)}</span>{" "}
+                {t("about", {
+                  track:
+                    state.track === "Not sure yet"
+                      ? t("rightCourse")
+                      : t.has(`options.${state.track}`)
+                        ? t(`options.${state.track}`)
+                        : state.track,
+                })}
               </span>
             </p>
-            <p className="mt-6 text-sm text-muted-foreground">
-              {state.status === "handoff"
-                ? "Continue below to send your details to ICT."
-                : "You can also contact ICT directly."}
+            <p className="mbs-6 text-sm text-muted-foreground">
+              {state.status === "handoff" ? t("handoff") : t("direct")}
             </p>
-            <div className="mt-3 flex flex-wrap gap-3">
+            <div className="mbs-3 flex flex-wrap gap-3">
               <ButtonAnchor
                 href={contactHref({
                   kind: "whatsapp-handoff",
@@ -189,43 +205,57 @@ export function LeadForm() {
                 size="lg"
               >
                 <IconBrandWhatsapp stroke={1.6} />
-                Continue on WhatsApp
+                {t("whatsapp")}
               </ButtonAnchor>
               <ButtonAnchor
                 href={contactHref({ kind: "call" })}
                 variant="secondary"
                 size="lg"
               >
-                Call{" "}
+                {t("call")}{" "}
                 <span className="tnum">{formatPhone(contact.phones[0])}</span>
               </ButtonAnchor>
             </div>
             <button
               type="button"
               onClick={() => setAgain(true)}
-              className="mt-4 inline-flex min-h-11 items-center rounded-control text-sm font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              className="mbs-4 inline-flex min-h-11 items-center rounded-control text-sm font-medium text-foreground underline underline-offset-4 transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              Ask about another exam
+              {t("again")}
             </button>
           </m.div>
         ) : (
           <m.div key="form" {...swap}>
-            <form ref={formRef} action={action} noValidate className="relative">
+            <form
+              ref={formRef}
+              action={(data) => {
+                // Where this enquiry came from, read at submit time.
+                const visit = visitAttribution()
+                data.set("page", window.location.pathname)
+                data.set("utmSource", visit.utmSource)
+                if (visit.utmMedium) data.set("utmMedium", visit.utmMedium)
+                if (visit.utmCampaign)
+                  data.set("utmCampaign", visit.utmCampaign)
+                return action(data)
+              }}
+              noValidate
+              className="relative"
+            >
               {invalid.length > 0 ||
               (state.status === "error" && state.formError) ? (
                 <div
                   id={summaryId}
                   role="alert"
-                  className="mb-6 rounded-control border border-destructive/40 bg-destructive/5 p-4"
+                  className="mbe-6 rounded-control border border-destructive/40 bg-destructive/5 p-4"
                 >
                   <p className="text-sm font-medium text-destructive">
                     {state.status === "error" && state.formError
-                      ? state.formError
+                      ? t("errors.verification")
                       : invalid.length === 1
-                        ? "One field needs attention before we can send this:"
-                        : `${invalid.length} fields need attention before we can send this:`}
+                        ? t("oneField")
+                        : t("manyFields", { count: invalid.length })}
                   </p>
-                  <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                  <ul className="mbs-2 flex flex-wrap gap-x-4 gap-y-1">
                     {invalid.map((name) => (
                       <li key={name}>
                         <button
@@ -233,7 +263,7 @@ export function LeadForm() {
                           onClick={() => focusField(name)}
                           className="min-h-11 text-sm text-destructive underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                         >
-                          {FIELD_LABELS[name]}
+                          {t(`fields.${name}`)}
                         </button>
                       </li>
                     ))}
@@ -243,7 +273,7 @@ export function LeadForm() {
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <label htmlFor={nameId} className="text-sm font-medium">
-                    Your name
+                    {t("fields.name")}
                   </label>
                   <input
                     id={nameId}
@@ -262,13 +292,13 @@ export function LeadForm() {
                       id={`${nameId}-error`}
                       className="text-sm text-destructive"
                     >
-                      {errors.name}
+                      {t("errors.name")}
                     </p>
                   ) : null}
                 </div>
                 <div className="grid gap-2">
                   <label htmlFor={phoneId} className="text-sm font-medium">
-                    Mobile number
+                    {t("fields.phone")}
                   </label>
                   <input
                     id={phoneId}
@@ -297,38 +327,38 @@ export function LeadForm() {
                       id={`${phoneId}-error`}
                       className="text-sm text-destructive"
                     >
-                      {errors.phone}
+                      {t("errors.phone")}
                     </p>
                   ) : null}
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div className="mbs-6">
                 <ChoiceGroup
                   name="track"
-                  legend="Which exam"
+                  legend={t("fields.track")}
                   options={enquiryTracks}
-                  defaultValue={values.track}
-                  error={errors.track}
+                  defaultValue={values.track ?? defaultTrack}
+                  error={errors.track ? t("errors.track") : undefined}
                 />
               </div>
-              <div className="mt-6">
+              <div className="mbs-6">
                 <ChoiceGroup
                   name="timing"
-                  legend="When can you study"
+                  legend={t("fields.timing")}
                   options={timings}
                   defaultValue={values.timing}
-                  error={errors.timing}
+                  error={errors.timing ? t("errors.timing") : undefined}
                 />
               </div>
 
               {/* honeypot, hidden from people and assistive tech */}
               <div
                 aria-hidden
-                className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
+                className="absolute -inset-s-[9999px] h-0 w-0 overflow-clip"
               >
                 <label>
-                  Leave this field empty
+                  {t("honeypot")}
                   <input
                     name={HONEYPOT_FIELD}
                     tabIndex={-1}
@@ -337,37 +367,36 @@ export function LeadForm() {
                 </label>
               </div>
 
-              {clientEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ? (
-                <div className="mt-6">
+              {publicEnv.turnstileSiteKey ? (
+                <div className="mbs-6">
                   <Turnstile
-                    siteKey={clientEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    siteKey={publicEnv.turnstileSiteKey}
                     resetKey={turnstileEpoch}
                   />
                 </div>
               ) : null}
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  We only use your number to call you back.
-                </p>
-                <Button
+              <div className="mbs-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">{t("privacy")}</p>
+                <button
                   type="submit"
-                  size="lg"
+                  data-press
+                  data-cta="amber"
                   disabled={pending}
-                  className="sm:min-w-56"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink disabled:opacity-70 sm:min-w-56"
                 >
                   {pending ? (
                     <>
                       <IconLoader2 className="animate-spin" stroke={1.75} />
-                      Sending
+                      {t("sending")}
                     </>
                   ) : (
                     <>
-                      Request a call back
-                      <IconArrowRight data-nudge stroke={1.75} />
+                      {t("submit")}
+                      <IconArrowRight data-nudge size={18} stroke={2} />
                     </>
                   )}
-                </Button>
+                </button>
               </div>
             </form>
           </m.div>

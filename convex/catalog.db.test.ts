@@ -1,14 +1,20 @@
 import { convexTest } from "convex-test"
 import { describe, expect, test } from "bun:test"
 
-import type { BookInput } from "../lib/catalog"
+import type { BookInput, BundleInput } from "../lib/catalog"
 import { openResourceAs } from "./catalog"
-import { applyPublish, applySaveBook, applySaveResource } from "./catalogAdmin"
+import {
+  applyDiscardUpload,
+  applyPublish,
+  applySaveBook,
+  applySaveBundle,
+  applySaveResource,
+} from "./catalogAdmin"
 import { findVerifiedPerson } from "./persons"
 import { internal } from "./_generated/api"
 import schema from "./schema"
 
-/** The resource gate and the owner's book editor. */
+/** The resource gate and the catalogue editors. */
 const modules: Record<string, () => Promise<unknown>> = {}
 for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
   if (file.endsWith(".test.ts")) continue
@@ -18,6 +24,13 @@ for (const file of new Bun.Glob("**/*.ts").scanSync({ cwd: import.meta.dir })) {
 type T = ReturnType<typeof convexTest>
 
 /** A Person as the session would resolve them, or null if it would not. */
+/** Push every released file past its thirty-day restore window. */
+const expire = (t: ReturnType<typeof convexTest>) =>
+  t.run(async (ctx) => {
+    for (const row of await ctx.db.query("releasedFiles").collect())
+      await ctx.db.patch(row._id, { releasedAt: 0 })
+  })
+
 async function viewer(
   t: T,
   phone: string,
@@ -136,60 +149,103 @@ describe("openResource", () => {
 
 const fields: BookInput = {
   slug: "assam-gk-capsule",
-  title: "Assam GK Capsule",
-  subtitle: "",
   exam: "APSC",
-  edition: "2026",
-  pages: 120,
-  pricePaise: 19900,
-  tone: "muted",
-  description: "",
   contents: [],
+  editions: {
+    en: { title: "Assam GK Capsule", edition: "2026", pages: 120 },
+    as: { title: "অসমৰ সাধাৰণ জ্ঞান", edition: "২০২৬", pages: 120 },
+  },
 }
+const noImages = {}
 
 const booksIn = (t: T) => t.run((ctx) => ctx.db.query("books").collect())
+const auditOf = (t: T, action: "save" | "publish") =>
+  t.run(async (ctx) =>
+    (await ctx.db.query("auditLog").collect()).filter(
+      (row) => row.action === action
+    )
+  )
+
+async function staffWith(t: T, phone: string, grants: "catalog"[]) {
+  const who = await viewer(t, phone, "staff")
+  await t.run((ctx) => ctx.db.patch(who!.id, { grants }))
+  return { ...who!, grants }
+}
 
 describe("saveBook", () => {
-  test("only an owner can save", async () => {
+  test("staff need the catalogue grant; students never edit", async () => {
     const t = convexTest(schema, modules)
     const staff = await viewer(t, "+919876543210", "staff")
     const student = await viewer(t, "+919876543211", "student")
 
     for (const who of [staff!, student!])
-      expect(await t.run((ctx) => applySaveBook(ctx, who, { fields }))).toEqual(
-        { ok: false, reason: "forbidden" }
-      )
+      expect(
+        await t.run((ctx) =>
+          applySaveBook(ctx, who, { fields, images: noImages })
+        )
+      ).toEqual({ ok: false, reason: "forbidden" })
     expect(await booksIn(t)).toHaveLength(0)
+
+    const granted = await staffWith(t, "+919876543212", ["catalog"])
+    expect(
+      await t.run((ctx) =>
+        applySaveBook(ctx, granted, { fields, images: noImages })
+      )
+    ).toMatchObject({ ok: true, revision: 0 })
   })
 
-  test("an owner creates an unpublished book at revision 0", async () => {
+  test("an owner creates a book with both language editions", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
-    const result = await t.run((ctx) => applySaveBook(ctx, owner!, { fields }))
+    const result = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, { fields, images: noImages })
+    )
     expect(result).toMatchObject({ ok: true, revision: 0 })
     const [book] = await booksIn(t)
-    expect(book).toMatchObject({ published: false, pricePaise: 19900 })
+    expect(book.editions.en?.title).toBe("Assam GK Capsule")
+    expect(book.editions.as?.title).toBe("অসমৰ সাধাৰণ জ্ঞান")
+  })
+
+  test("a book needs at least one edition", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    expect(
+      await t.run((ctx) =>
+        applySaveBook(ctx, owner!, {
+          fields: { ...fields, editions: {} },
+          images: noImages,
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "editions" })
   })
 
   test("a save from a stale revision is refused and changes nothing", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
-    const created = await t.run((ctx) => applySaveBook(ctx, owner!, { fields }))
+    const created = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, { fields, images: noImages })
+    )
     if (!created.ok) throw new Error("create failed")
+    const titled = (title: string): BookInput => ({
+      ...fields,
+      editions: { en: { ...fields.editions.en!, title } },
+    })
 
     // Tab A saves first; tab B still holds revision 0.
     await t.run((ctx) =>
       applySaveBook(ctx, owner!, {
         id: created.id,
         expectedRevision: 0,
-        fields: { ...fields, title: "Tab A" },
+        fields: titled("Tab A"),
+        images: noImages,
       })
     )
     const stale = await t.run((ctx) =>
       applySaveBook(ctx, owner!, {
         id: created.id,
         expectedRevision: 0,
-        fields: { ...fields, title: "Tab B" },
+        fields: titled("Tab B"),
+        images: noImages,
       })
     )
     expect(stale).toEqual({
@@ -198,17 +254,17 @@ describe("saveBook", () => {
       current: 1,
     })
     const [book] = await booksIn(t)
-    expect(book.title).toBe("Tab A")
+    expect(book.editions.en?.title).toBe("Tab A")
   })
 
   test("a slug another book already has is refused", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
-    await t.run((ctx) => applySaveBook(ctx, owner!, { fields }))
+    await t.run((ctx) =>
+      applySaveBook(ctx, owner!, { fields, images: noImages })
+    )
     const second = await t.run((ctx) =>
-      applySaveBook(ctx, owner!, {
-        fields: { ...fields, title: "Another book" },
-      })
+      applySaveBook(ctx, owner!, { fields, images: noImages })
     )
     expect(second).toEqual({
       ok: false,
@@ -218,26 +274,50 @@ describe("saveBook", () => {
     expect(await booksIn(t)).toHaveLength(1)
   })
 
-  test("a cover must be an uploaded image", async () => {
+  test("covers must be uploaded images, and only for an edition that exists", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
     const pdf = await upload(t, "application/pdf")
     const png = await upload(t, "image/png")
     expect(
-      await t.run((ctx) => applySaveBook(ctx, owner!, { fields, cover: pdf }))
-    ).toEqual({ ok: false, reason: "invalid-input", field: "cover" })
+      await t.run((ctx) =>
+        applySaveBook(ctx, owner!, {
+          fields,
+          images: { en: { cover: pdf, samplePages: [] } },
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "en.images" })
     expect(
-      await t.run((ctx) => applySaveBook(ctx, owner!, { fields, cover: png }))
+      await t.run((ctx) =>
+        applySaveBook(ctx, owner!, {
+          fields: { ...fields, editions: { en: fields.editions.en } },
+          images: { as: { cover: png, samplePages: [] } },
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "as.images" })
+    expect(
+      await t.run((ctx) =>
+        applySaveBook(ctx, owner!, {
+          fields,
+          images: { en: { cover: png, samplePages: [] } },
+        })
+      )
     ).toMatchObject({ ok: true })
   })
 
-  test("replacing a cover deletes the old file", async () => {
+  test("replacing a cover deletes the old file and its size record", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
     const first = await upload(t, "image/png", "a")
     const second = await upload(t, "image/png", "b")
+    await t.run((ctx) =>
+      ctx.db.insert("images", { storageId: first, width: 600, height: 800 })
+    )
     const created = await t.run((ctx) =>
-      applySaveBook(ctx, owner!, { fields, cover: first })
+      applySaveBook(ctx, owner!, {
+        fields,
+        images: { en: { cover: first, samplePages: [] } },
+      })
     )
     if (!created.ok) throw new Error("create failed")
     await t.run((ctx) =>
@@ -245,32 +325,37 @@ describe("saveBook", () => {
         id: created.id,
         expectedRevision: 0,
         fields,
-        cover: second,
+        images: { en: { cover: second, samplePages: [] } },
       })
     )
+    // Released, not deleted: it can be restored for thirty days.
+    expect(await t.run((ctx) => ctx.storage.getUrl(first))).not.toBeNull()
+    await expire(t)
+    await t.mutation(internal.files.sweep, {})
     expect(await t.run((ctx) => ctx.storage.getUrl(first))).toBeNull()
     expect(await t.run((ctx) => ctx.storage.getUrl(second))).not.toBeNull()
+    expect(await t.run((ctx) => ctx.db.query("images").collect())).toHaveLength(
+      0
+    )
   })
 
-  test("a cover another book still uses survives the replace", async () => {
+  test("a cover a bundle still uses survives the replace", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
     const shared = await upload(t, "image/png", "a")
     const fresh = await upload(t, "image/png", "b")
     const created = await t.run((ctx) =>
-      applySaveBook(ctx, owner!, { fields, cover: shared })
+      applySaveBook(ctx, owner!, {
+        fields,
+        images: { en: { cover: shared, samplePages: [] } },
+      })
     )
     if (!created.ok) throw new Error("create failed")
-    /* A console write or future caller pointed a second book at the file. */
     await t.run((ctx) =>
-      ctx.db.insert("books", {
-        ...fields,
-        slug: "other-title",
+      applySaveBundle(ctx, owner!, {
+        fields: bundleFields,
+        bookIds: [created.id],
         cover: shared,
-        samplePages: [],
-        published: false,
-        revision: 0,
-        updatedAt: 0,
       })
     )
     await t.run((ctx) =>
@@ -278,64 +363,256 @@ describe("saveBook", () => {
         id: created.id,
         expectedRevision: 0,
         fields,
-        cover: fresh,
+        images: { en: { cover: fresh, samplePages: [] } },
       })
     )
     expect(await t.run((ctx) => ctx.storage.getUrl(shared))).not.toBeNull()
   })
 })
 
-describe("catalogue audit trail", () => {
-  test("saving a book writes a catalog_save row naming the owner", async () => {
+const bundleFields: BundleInput = {
+  slug: "apsc-foundation-set",
+  exam: "APSC",
+  title: { en: "APSC Foundation Set", as: "APSC ভেটি সংকলন" },
+  description: { en: "Three books for APSC." },
+  variants: {
+    en: { pricePaise: 89900, comparePaise: 104700, available: true },
+    as: { pricePaise: 84900, available: true },
+  },
+  sortOrder: 1,
+}
+
+async function book(
+  t: T,
+  owner: NonNullable<Awaited<ReturnType<typeof viewer>>>
+) {
+  const created = await t.run((ctx) =>
+    applySaveBook(ctx, owner, { fields, images: noImages })
+  )
+  if (!created.ok) throw new Error("book failed")
+  return created.id
+}
+
+describe("bundles", () => {
+  test("a bundle holds known books, once each", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
-    const created = await t.run((ctx) => applySaveBook(ctx, owner!, { fields }))
+    const bookId = await book(t, owner!)
+    expect(
+      await t.run((ctx) =>
+        applySaveBundle(ctx, owner!, {
+          fields: bundleFields,
+          bookIds: [bookId, bookId],
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "books" })
+    expect(
+      await t.run((ctx) =>
+        applySaveBundle(ctx, owner!, {
+          fields: bundleFields,
+          bookIds: [bookId],
+        })
+      )
+    ).toMatchObject({ ok: true, revision: 0 })
+  })
+
+  test("a struck price must be above the price", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const result = await t.run((ctx) =>
+      applySaveBundle(ctx, owner!, {
+        fields: {
+          ...bundleFields,
+          variants: {
+            ...bundleFields.variants,
+            as: { pricePaise: 84900, comparePaise: 80000, available: true },
+          },
+        },
+        bookIds: [],
+      })
+    )
+    expect(result).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "as.comparePrice",
+    })
+  })
+
+  test("an empty bundle cannot be published", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const created = await t.run((ctx) =>
+      applySaveBundle(ctx, owner!, { fields: bundleFields, bookIds: [] })
+    )
+    if (!created.ok) throw new Error("create failed")
+    expect(
+      await t.run((ctx) =>
+        applyPublish(ctx, owner!, {
+          entity: "bundle",
+          id: created.id,
+          published: true,
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual({ ok: false, reason: "invalid-input", field: "books" })
+  })
+})
+
+describe("files a save stops using", () => {
+  test("a cover removed in one language survives while the book uses it elsewhere", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const shared = await upload(t, "image/png")
+    const other = await upload(t, "image/png")
+    const created = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        fields,
+        images: {
+          en: { cover: shared, samplePages: [other] },
+          as: { samplePages: [shared] },
+        },
+      })
+    )
+    if (!created.ok) throw new Error("book failed")
+    // The English cover goes; the Assamese edition still shows that image.
+    const saved = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        id: created.id,
+        expectedRevision: 0,
+        fields,
+        images: {
+          en: { samplePages: [other] },
+          as: { samplePages: [shared] },
+        },
+      })
+    )
+    expect(saved).toMatchObject({ ok: true })
+    const file = await t.run((ctx) => ctx.db.system.get("_storage", shared))
+    expect(file).not.toBeNull()
+  })
+
+  test("a cover nothing else uses is deleted with the save", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const cover = await upload(t, "image/png")
+    const created = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        fields,
+        images: { en: { cover, samplePages: [] } },
+      })
+    )
+    if (!created.ok) throw new Error("book failed")
+    await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        id: created.id,
+        expectedRevision: 0,
+        fields,
+        images: { en: { samplePages: [] } },
+      })
+    )
+    const released = await t.run((ctx) =>
+      ctx.db.query("releasedFiles").collect()
+    )
+    expect(released.map((row) => row.image)).toEqual([cover])
+    await expire(t)
+    await t.mutation(internal.files.sweep, {})
+    const file = await t.run((ctx) => ctx.db.system.get("_storage", cover))
+    expect(file).toBeNull()
+  })
+})
+
+describe("languages a bundle sells in", () => {
+  test("a language whose books have no edition cannot go on sale", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const englishOnly = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, {
+        fields: {
+          ...fields,
+          editions: { en: fields.editions.en },
+        },
+        images: noImages,
+      })
+    )
+    if (!englishOnly.ok) throw new Error("book failed")
+    const created = await t.run((ctx) =>
+      applySaveBundle(ctx, owner!, {
+        fields: bundleFields,
+        bookIds: [englishOnly.id],
+      })
+    )
+    if (!created.ok) throw new Error("bundle failed")
+    // Saving a draft is fine; selling Assamese with no Assamese book is not.
+    const publish = () =>
+      t.run((ctx) =>
+        applyPublish(ctx, owner!, {
+          entity: "bundle",
+          id: created.id,
+          published: true,
+          expectedRevision: 0,
+        })
+      )
+    expect(await publish()).toEqual({
+      ok: false,
+      reason: "invalid-input",
+      field: "editions",
+    })
+    await t.run((ctx) =>
+      ctx.db.patch(created.id, {
+        variants: {
+          ...bundleFields.variants,
+          as: { ...bundleFields.variants.as, available: false },
+        },
+      })
+    )
+    expect(await publish()).toMatchObject({ ok: true })
+  })
+})
+
+describe("catalogue audit trail", () => {
+  test("saving a book writes an audit row naming the editor", async () => {
+    const t = convexTest(schema, modules)
+    const owner = await viewer(t, "+919876543210", "owner")
+    const created = await t.run((ctx) =>
+      applySaveBook(ctx, owner!, { fields, images: noImages })
+    )
     if (!created.ok) throw new Error("create failed")
 
-    const rows = await t.run((ctx) =>
-      ctx.db
-        .query("activities")
-        .withIndex("by_kind", (q) => q.eq("kind", "catalog_save"))
-        .collect()
-    )
+    const rows = await auditOf(t, "save")
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       actorId: owner!.id,
       entity: "book",
       entityId: created.id,
-      body: "Added book “Assam GK Capsule”.",
+      summary: "Added book “Assam GK Capsule”.",
     })
-    /* Catalogue rows are about a record, not a Person. */
-    expect(rows[0].personId).toBeUndefined()
   })
 
-  test("publishing a book writes a catalog_publish row with the flip", async () => {
+  test("publishing a bundle writes the flip", async () => {
     const t = convexTest(schema, modules)
     const owner = await viewer(t, "+919876543210", "owner")
-    const created = await t.run((ctx) => applySaveBook(ctx, owner!, { fields }))
+    const bookId = await book(t, owner!)
+    const created = await t.run((ctx) =>
+      applySaveBundle(ctx, owner!, { fields: bundleFields, bookIds: [bookId] })
+    )
     if (!created.ok) throw new Error("create failed")
 
     await t.run((ctx) =>
       applyPublish(ctx, owner!, {
-        entity: "book",
+        entity: "bundle",
         id: created.id,
         published: true,
         expectedRevision: 0,
       })
     )
-    const rows = await t.run((ctx) =>
-      ctx.db
-        .query("activities")
-        .withIndex("by_kind", (q) => q.eq("kind", "catalog_publish"))
-        .collect()
-    )
+    const rows = await auditOf(t, "publish")
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       actorId: owner!.id,
-      entity: "book",
+      entity: "bundle",
       entityId: created.id,
-      fromStatus: "draft",
-      toStatus: "published",
+      from: "draft",
+      to: "published",
     })
   })
 
@@ -423,5 +700,80 @@ describe("catalogue audit trail", () => {
         })
       )
     ).toMatchObject({ ok: true })
+  })
+})
+
+describe("discardUpload", () => {
+  test("an upload nothing uses is deleted", async () => {
+    const t = convexTest(schema, modules)
+    const orphan = await upload(t, "image/png")
+    const result = await t.run((ctx) => applyDiscardUpload(ctx, orphan))
+    expect(result.ok).toBe(true)
+    expect(
+      await t.run((ctx) => ctx.db.system.get("_storage", orphan))
+    ).toBeNull()
+  })
+
+  test("a file a promotion, a course or a post uses is refused and kept", async () => {
+    const t = convexTest(schema, modules)
+    const promo = await upload(t, "image/png")
+    const course = await upload(t, "image/png")
+    const post = await upload(t, "image/png")
+    await t.run(async (ctx) => {
+      await ctx.db.insert("campaigns", {
+        name: "Free workshop",
+        kind: "modal",
+        tag: "",
+        headline: "Start with a free workshop.",
+        body: "Two days, on the app.",
+        cta: "Join",
+        href: "/contact",
+        coupon: "",
+        reelIds: [],
+        routes: [],
+        delaySeconds: 0,
+        restDays: 7,
+        priority: 10,
+        image: promo,
+        status: "live",
+        revision: 0,
+        updatedAt: 0,
+      })
+      await ctx.db.insert("courses", {
+        classplusId: 1,
+        slug: "lakhya-2027",
+        source: {
+          name: "Lakhya 2027",
+          description: "",
+          pricePaise: 0,
+          finalPricePaise: 0,
+          free: false,
+          enrolled: 0,
+          tags: [],
+        },
+        cover: course,
+        local: { hidden: false },
+        syncedAt: 0,
+        revision: 0,
+      })
+      await ctx.db.insert("posts", {
+        slug: "notice",
+        title: "Notice",
+        excerpt: "",
+        body: "Text.",
+        cover: post,
+        published: true,
+        publishedAt: 1,
+        revision: 0,
+        updatedAt: 1,
+      })
+    })
+    for (const id of [promo, course, post]) {
+      const result = await t.run((ctx) => applyDiscardUpload(ctx, id))
+      expect(result).toMatchObject({ ok: false, reason: "invalid-input" })
+      expect(
+        await t.run((ctx) => ctx.db.system.get("_storage", id))
+      ).not.toBeNull()
+    }
   })
 })

@@ -1,0 +1,8 @@
+/* TEAM */
+Client: Impact Career Tutorials, North Lakhimpur, Assam
+Website: designed, built and looked after by KitsuneKode
+Contact: https://github.com/KitsuneKode
+
+/* SITE */
+Languages: English, Assamese
+Built with: Next.js, Convex, Better Auth, Tailwind CSS

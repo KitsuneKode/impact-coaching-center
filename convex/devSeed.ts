@@ -2,15 +2,22 @@ import { v } from "convex/values"
 
 import { isDevelopmentDeployment } from "../lib/dev-deployment"
 import { toE164 } from "../lib/leads"
+import type { Id } from "./_generated/dataModel"
 import { internalMutation } from "./_generated/server"
+import { allocateOrderReference, newReceiptToken } from "./orders"
+import { CLOSED_STATUSES, type OrderStatus } from "../lib/order-status"
+import { financialYear } from "../lib/payments"
 import {
-  BOOK_TONE,
+  ADDRESS,
+  CAMPAIGN_KIND,
+  ENQUIRY_CHANNEL,
   LEAD_STATUS,
+  LOCALE,
+  LOCALISED,
   ORDER_STATUS,
   PERSON_ROLE,
   RESOURCE_KIND,
 } from "./schema"
-import { allocateOrderReference } from "./orders"
 
 /** Development fixtures: Persons at each role, without a handset each. */
 
@@ -41,6 +48,22 @@ export const seedEnquiries = internalMutation({
         /** Goes on the activity, not the Person - staff notes never sit on an exportable row. */
         note: v.optional(v.string()),
         verified: v.optional(v.boolean()),
+        /** How they reached ICT; website when absent. */
+        channel: v.optional(ENQUIRY_CHANNEL),
+        /** The page the form was on, for website enquiries. */
+        page: v.optional(v.string()),
+        utm: v.optional(
+          v.object({
+            source: v.optional(v.string()),
+            medium: v.optional(v.string()),
+            campaign: v.optional(v.string()),
+          })
+        ),
+        referrer: v.optional(v.string()),
+        /** Morning, Day, Evening, Night or Online only. */
+        timing: v.optional(v.string()),
+        /** Days until the next follow-up; negative is overdue. */
+        followUpInDays: v.optional(v.number()),
       })
     ),
   },
@@ -69,6 +92,9 @@ export const seedEnquiries = internalMutation({
         interestTrack: enquiry.interestTrack,
         lastEnquiryAt: at,
         updatedAt: at,
+        ...(enquiry.followUpInDays === undefined
+          ? {}
+          : { nextFollowUpAt: now + enquiry.followUpInDays * day }),
         ...(enquiry.verified ? { verifiedAt: at } : {}),
       }
 
@@ -86,11 +112,22 @@ export const seedEnquiries = internalMutation({
             ...fields,
           })
 
+      const channel = enquiry.channel ?? "website"
+      await ctx.db.insert("enquiries", {
+        personId,
+        channel,
+        track: enquiry.interestTrack,
+        timing: enquiry.timing,
+        page: channel === "website" ? (enquiry.page ?? "/") : undefined,
+        utm: enquiry.utm,
+        referrer: enquiry.referrer,
+      })
       await ctx.db.insert("activities", {
         personId,
         kind: "enquiry",
         body: enquiry.note,
         track: enquiry.interestTrack,
+        timing: enquiry.timing,
       })
       written += 1
     }
@@ -99,13 +136,26 @@ export const seedEnquiries = internalMutation({
   },
 })
 
-/** Orders, so the fulfilment queue can be designed against something. */
+/** The statuses an order passed through to reach `status`. */
+function stepsTo(
+  status: OrderStatus,
+  fulfilment: "delivery" | "collection"
+): OrderStatus[] {
+  const route: OrderStatus[] =
+    fulfilment === "delivery"
+      ? ["paid", "shipped", "delivered"]
+      : ["paid", "ready_for_collection", "collected"]
+  if (status === "cancelled") return ["paid", "cancelled"]
+  if (status === "refunded") return ["paid", "cancelled", "refunded"]
+  return route.slice(0, route.indexOf(status) + 1)
+}
+
+/** Orders, priced from the seeded bundles exactly as checkout would. */
 export const seedOrders = internalMutation({
   args: {
     orders: v.array(
       v.object({
-        /* Fixtures may pin a reference for demos; absent, one is allocated
-           the same collision-checked way a real order would get it. */
+        /* Fixtures may pin a reference; absent, one is allocated. */
         reference: v.optional(v.string()),
         phone: v.string(),
         name: v.string(),
@@ -116,25 +166,14 @@ export const seedOrders = internalMutation({
         ),
         daysAgo: v.number(),
         seen: v.optional(v.boolean()),
-        items: v.array(
+        lines: v.array(
           v.object({
-            title: v.string(),
-            edition: v.optional(v.string()),
+            bundle: v.string(),
+            language: LOCALE,
             quantity: v.number(),
-            /** Rupees in the fixture, paise in the database. */
-            unitRupees: v.number(),
           })
         ),
-        deliveryRupees: v.number(),
-        address: v.optional(
-          v.object({
-            line1: v.string(),
-            line2: v.optional(v.string()),
-            city: v.string(),
-            district: v.optional(v.string()),
-            pin: v.string(),
-          })
-        ),
+        address: v.optional(ADDRESS),
       })
     ),
   },
@@ -144,6 +183,7 @@ export const seedOrders = internalMutation({
 
     const now = Date.now()
     const day = 24 * 60 * 60 * 1000
+    const shippingPaise = 60_00
     let written = 0
 
     for (const order of args.orders) {
@@ -168,23 +208,36 @@ export const seedOrders = internalMutation({
           updatedAt: placedAt,
         }))
 
-      // Rupees in the fixture because that is how a person writes a price;
-      // paise in the database because that is the only way to add them up
-      // without a rounding error turning into a wrong charge.
-      const items = order.items.map((item) => ({
-        title: item.title,
-        edition: item.edition,
-        quantity: item.quantity,
-        unitPaise: Math.round(item.unitRupees * 100),
-      }))
-      const itemsPaise = items.reduce(
-        (sum, item) => sum + item.unitPaise * item.quantity,
+      const lines = []
+      for (const line of order.lines) {
+        const bundle = await ctx.db
+          .query("bundles")
+          .withIndex("by_slug", (q) => q.eq("slug", line.bundle))
+          .first()
+        if (!bundle) throw new Error(`Seed the catalogue first: ${line.bundle}`)
+        const books = await Promise.all(
+          bundle.bookIds.map((id) => ctx.db.get(id))
+        )
+        lines.push({
+          bundleId: bundle._id,
+          slug: bundle.slug,
+          title: bundle.title.en,
+          language: line.language,
+          books: books.flatMap((book) => {
+            const edition = book?.editions[line.language]
+            return edition ? [edition.title] : []
+          }),
+          quantity: line.quantity,
+          unitPaise: bundle.variants[line.language].pricePaise,
+        })
+      }
+      const itemsPaise = lines.reduce(
+        (sum, line) => sum + line.unitPaise * line.quantity,
         0
       )
-      const deliveryPaise = Math.round(order.deliveryRupees * 100)
+      const deliveryPaise = order.fulfilment === "delivery" ? shippingPaise : 0
 
-      /* A shipped/delivered parcel order must carry courier details, same
-         rule the staff mutation enforces. */
+      /* Shipped parcels carry courier details, as the staff mutation insists. */
       const courier =
         order.courier ??
         (order.fulfilment === "delivery" &&
@@ -195,22 +248,65 @@ export const seedOrders = internalMutation({
             }
           : undefined)
 
-      await ctx.db.insert("orders", {
+      /* Every order is a paid checkout, as payments.settleCheckout makes
+         them; the steps after payment are spread over the days since. */
+      const totalPaise = itemsPaise + deliveryPaise
+      const contact = { name: order.name, phone }
+      const gatewayOrderId = `order_SEED${String(written + 1).padStart(6, "0")}`
+      const checkoutId = await ctx.db.insert("checkouts", {
+        personId,
+        status: "paid",
+        fulfilment: order.fulfilment,
+        contact,
+        lines,
+        itemsPaise,
+        deliveryPaise,
+        totalPaise,
+        address: order.address,
+        signature: gatewayOrderId,
+        gatewayOrderId,
+        updatedAt: placedAt,
+      })
+      const steps = stepsTo(order.status, order.fulfilment)
+      const history = steps.map((status, i) => ({
+        status,
+        at: placedAt + (i * (now - placedAt)) / Math.max(steps.length, 2),
+      }))
+      const refundDue = order.status === "cancelled"
+      const orderId = await ctx.db.insert("orders", {
         personId,
         reference: order.reference ?? (await allocateOrderReference(ctx)),
         status: order.status,
+        closed: CLOSED_STATUSES.has(order.status),
+        history,
         fulfilment: order.fulfilment,
+        contact,
         courier,
-        items,
+        lines,
         itemsPaise,
         deliveryPaise,
-        totalPaise: itemsPaise + deliveryPaise,
+        totalPaise,
         address: order.address,
+        checkoutId,
+        payment: {
+          razorpayOrderId: gatewayOrderId,
+          razorpayPaymentId: gatewayOrderId.replace("order_", "pay_"),
+          method: "upi",
+          paidAt: placedAt,
+        },
+        receiptNumber: `ICT/${financialYear(placedAt)}/${String(written + 1).padStart(4, "0")}`,
+        receiptToken: newReceiptToken(),
+        seller: {
+          legalName: "Impact Career Tutorials",
+          address: "Impact Career Tutorials, North Lakhimpur, Assam",
+        },
+        refundDueAt: refundDue ? history.at(-1)!.at : undefined,
         placedAt,
-        updatedAt: placedAt,
+        updatedAt: history.at(-1)!.at,
         seenAt: order.seen ? placedAt : undefined,
-        revision: 0,
+        revision: steps.length - 1,
       })
+      await ctx.db.patch(checkoutId, { orderId })
       written += 1
     }
 
@@ -218,25 +314,51 @@ export const seedOrders = internalMutation({
   },
 })
 
+const SEED_EDITION = v.object({
+  title: v.string(),
+  subtitle: v.optional(v.string()),
+  edition: v.string(),
+  pages: v.number(),
+})
+
+const SEED_VARIANT = v.object({
+  /** Rupees in the fixture, paise in the database. */
+  priceRupees: v.number(),
+  compareRupees: v.optional(v.number()),
+  available: v.boolean(),
+})
+
+const toPaise = (rupees: number) => Math.round(rupees * 100)
+
 /**
- * Sample books and resources, published and marked `sample` so the public
- * pages say so. A title the owner has since edited is real and left alone.
+ * Sample books, bundles and resources, published and marked `sample` so the
+ * public pages say so. A record the owner has since edited is left alone.
  */
 export const seedCatalog = internalMutation({
   args: {
     books: v.array(
       v.object({
         slug: v.string(),
-        title: v.string(),
-        subtitle: v.string(),
         exam: v.string(),
-        edition: v.string(),
-        pages: v.number(),
-        /** Rupees in the fixture, paise in the database. */
-        priceRupees: v.number(),
-        tone: BOOK_TONE,
-        description: v.string(),
+        description: v.optional(LOCALISED),
         contents: v.array(v.string()),
+        editions: v.object({
+          en: v.optional(SEED_EDITION),
+          as: v.optional(SEED_EDITION),
+        }),
+      })
+    ),
+    bundles: v.array(
+      v.object({
+        slug: v.string(),
+        exam: v.string(),
+        title: LOCALISED,
+        tagline: v.optional(LOCALISED),
+        description: LOCALISED,
+        books: v.array(v.string()),
+        variants: v.object({ en: SEED_VARIANT, as: SEED_VARIANT }),
+        sortOrder: v.number(),
+        soldCount: v.number(),
       })
     ),
     resources: v.array(
@@ -246,41 +368,82 @@ export const seedCatalog = internalMutation({
         exam: v.string(),
         kind: RESOURCE_KIND,
         description: v.string(),
+        language: v.optional(LOCALE),
       })
     ),
   },
-  returns: v.object({ books: v.number(), resources: v.number() }),
+  returns: v.object({
+    books: v.number(),
+    bundles: v.number(),
+    resources: v.number(),
+  }),
   handler: async (ctx, args) => {
     assertLocalDeployment()
     const now = Date.now()
-    let books = 0
-    let resources = 0
+    const counts = { books: 0, bundles: 0, resources: 0 }
+    const bookIds = new Map<string, Id<"books">>()
 
-    for (const { priceRupees, ...book } of args.books) {
+    for (const book of args.books) {
       const existing = await ctx.db
         .query("books")
         .withIndex("by_slug", (q) => q.eq("slug", book.slug))
         .unique()
+      if (existing) {
+        bookIds.set(book.slug, existing._id)
+        if (!existing.sample) continue
+      }
+      const editions = {
+        en: book.editions.en && { ...book.editions.en, samplePages: [] },
+        as: book.editions.as && { ...book.editions.as, samplePages: [] },
+      }
+      const fields = { ...book, editions, sample: true, updatedAt: now }
+      if (existing)
+        await ctx.db.replace(existing._id, {
+          ...fields,
+          revision: existing.revision + 1,
+        })
+      else
+        bookIds.set(
+          book.slug,
+          await ctx.db.insert("books", { ...fields, revision: 0 })
+        )
+      counts.books += 1
+    }
+
+    for (const { books, variants, ...bundle } of args.bundles) {
+      const existing = await ctx.db
+        .query("bundles")
+        .withIndex("by_slug", (q) => q.eq("slug", bundle.slug))
+        .unique()
       if (existing && !existing.sample) continue
+      const variant = (seed: typeof variants.en) => ({
+        pricePaise: toPaise(seed.priceRupees),
+        comparePaise:
+          seed.compareRupees === undefined
+            ? undefined
+            : toPaise(seed.compareRupees),
+        available: seed.available,
+      })
       const fields = {
-        ...book,
-        pricePaise: Math.round(priceRupees * 100),
+        ...bundle,
+        bookIds: books.map((slug) => {
+          const id = bookIds.get(slug)
+          if (!id)
+            throw new Error(`Bundle ${bundle.slug} names unknown book ${slug}`)
+          return id
+        }),
+        variants: { en: variant(variants.en), as: variant(variants.as) },
         published: true,
         sample: true,
         updatedAt: now,
       }
       if (existing)
-        await ctx.db.patch(existing._id, {
+        await ctx.db.replace(existing._id, {
           ...fields,
           revision: existing.revision + 1,
         })
-      else
-        await ctx.db.insert("books", {
-          ...fields,
-          samplePages: [],
-          revision: 0,
-        })
-      books += 1
+      else await ctx.db.insert("bundles", { ...fields, revision: 0 })
+      counts.bundles += 1
     }
 
     for (const resource of args.resources) {
@@ -306,10 +469,10 @@ export const seedCatalog = internalMutation({
           pageImages: [],
           revision: 0,
         })
-      resources += 1
+      counts.resources += 1
     }
 
-    return { books, resources }
+    return counts
   },
 })
 
@@ -325,6 +488,8 @@ export const seedPosts = internalMutation({
         title: v.string(),
         excerpt: v.string(),
         body: v.string(),
+        /** The exam it is about, as `tracks` names it. */
+        exam: v.optional(v.string()),
         /** How long ago the post went live. Fractions are fine. */
         daysAgo: v.number(),
       })
@@ -363,6 +528,50 @@ export const seedPosts = internalMutation({
   },
 })
 
+/** Sample promotions, live straight away. Marked by name so they come back out. */
+export const seedCampaigns = internalMutation({
+  args: {
+    campaigns: v.array(
+      v.object({
+        name: v.string(),
+        kind: CAMPAIGN_KIND,
+        tag: v.string(),
+        headline: v.string(),
+        body: v.string(),
+        cta: v.string(),
+        href: v.string(),
+        restDays: v.number(),
+        delaySeconds: v.number(),
+        priority: v.number(),
+        /** YouTube Shorts ids for a reel. */
+        reelIds: v.optional(v.array(v.string())),
+        /** Paths it shows on; none means everywhere. */
+        routes: v.optional(v.array(v.string())),
+      })
+    ),
+  },
+  returns: v.object({ campaigns: v.number() }),
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+    for await (const row of ctx.db.query("campaigns"))
+      if (row.name.startsWith(SAMPLE_PREFIX)) await ctx.db.delete(row._id)
+    for (const campaign of args.campaigns)
+      await ctx.db.insert("campaigns", {
+        ...campaign,
+        name: `${SAMPLE_PREFIX}${campaign.name}`,
+        status: "live",
+        coupon: "",
+        reelIds: campaign.reelIds ?? [],
+        routes: campaign.routes ?? [],
+        revision: 0,
+        updatedAt: Date.now(),
+      })
+    return { campaigns: args.campaigns.length }
+  },
+})
+
+const SAMPLE_PREFIX = "Sample: "
+
 /** Take back what this module wrote, without destroying what a person earned. */
 export const clearSeed = internalMutation({
   args: {},
@@ -378,22 +587,30 @@ export const clearSeed = internalMutation({
 
     /* Sample titles, and who opened the sample resources. */
     let catalog = 0
-    for (const book of await ctx.db.query("books").collect()) {
-      if (!book.sample) continue
+    for await (const bundle of ctx.db.query("bundles")) {
+      if (!bundle.sample) continue
+      await ctx.db.delete(bundle._id)
+      catalog += 1
+    }
+    // A sample book a real set still lists stays, or that set loses it.
+    const inRealSets = new Set<string>()
+    for await (const bundle of ctx.db.query("bundles"))
+      if (!bundle.sample) for (const id of bundle.bookIds) inRealSets.add(id)
+    for await (const book of ctx.db.query("books")) {
+      if (!book.sample || inRealSets.has(book._id)) continue
       await ctx.db.delete(book._id)
       catalog += 1
     }
-    for (const resource of await ctx.db.query("resources").collect()) {
+    const sampleResources = new Set<string>()
+    for await (const resource of ctx.db.query("resources")) {
       if (!resource.sample) continue
-      const opens = await ctx.db
-        .query("resourceOpens")
-        .filter((q) => q.eq(q.field("resourceId"), resource._id))
-        .collect()
-      for (const open of opens) await ctx.db.delete(open._id)
+      sampleResources.add(resource._id)
       await ctx.db.delete(resource._id)
       catalog += 1
     }
-    for (const post of await ctx.db.query("posts").collect()) {
+    for await (const open of ctx.db.query("resourceOpens"))
+      if (sampleResources.has(open.resourceId)) await ctx.db.delete(open._id)
+    for await (const post of ctx.db.query("posts")) {
       if (!post.sample) continue
       await ctx.db.delete(post._id)
       catalog += 1
@@ -418,11 +635,18 @@ export const clearSeed = internalMutation({
         await ctx.db.delete(activity._id)
         activities += 1
       }
+      const enquiries = await ctx.db
+        .query("enquiries")
+        .withIndex("by_person", (q) => q.eq("personId", person._id))
+        .collect()
+      for (const enquiry of enquiries) await ctx.db.delete(enquiry._id)
 
       /* Orders go with the Person whether or not the Person survives. */
       const placed = await ctx.db
         .query("orders")
-        .withIndex("by_person", (q) => q.eq("personId", person._id))
+        .withIndex("by_personId_and_placedAt", (q) =>
+          q.eq("personId", person._id)
+        )
         .collect()
       for (const order of placed) {
         await ctx.db.delete(order._id)
@@ -512,5 +736,25 @@ export const seedPeople = internalMutation({
       results.push({ phone, role: person.role, created: true })
     }
     return results
+  },
+})
+
+/**
+ * Make one sample set buyable, so checkout and payment can be walked through
+ * locally (sample sets are refused at checkout on purpose). Development only;
+ * `sample: true` again puts it back.
+ */
+export const setSampleSellable = internalMutation({
+  args: { slug: v.string(), sellable: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    assertLocalDeployment()
+    const bundle = await ctx.db
+      .query("bundles")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first()
+    if (!bundle) throw new Error(`No set with slug ${args.slug}`)
+    await ctx.db.patch(bundle._id, { sample: !args.sellable })
+    return null
   },
 })

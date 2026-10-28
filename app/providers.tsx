@@ -7,18 +7,21 @@ import {
 import { ConvexReactClient } from "convex/react"
 import { LazyMotion } from "motion/react"
 import { ThemeProvider } from "next-themes"
-import type { ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
 
 import { Toaster } from "@/components/ui/sonner"
+import { api } from "@/convex/_generated/api"
+import { visitAttribution } from "@/lib/attribution"
 import { authClient } from "@/lib/auth-client"
-import { clientEnv } from "@/lib/env.client"
+import { publicEnv } from "@/lib/public-env"
 import { defaultTheme, themes } from "@/lib/theme"
+import { track } from "@/lib/analytics"
 
 /**
  * Built once at module scope, not per render: a new ConvexReactClient means a
  * new websocket, and React would open one on every re-render of the tree.
  */
-const convexUrl = clientEnv.NEXT_PUBLIC_CONVEX_URL
+const convexUrl = publicEnv.convexUrl
 
 const convex = convexUrl ? new ConvexReactClient(convexUrl) : null
 
@@ -39,7 +42,7 @@ function Themed({ children }: { children: ReactNode }) {
       attribute="data-theme"
       defaultTheme={defaultTheme}
       themes={[...themes]}
-      enableSystem={false}
+      enableSystem
       disableTransitionOnChange
     >
       {children}
@@ -54,6 +57,62 @@ function Themed({ children }: { children: ReactNode }) {
  */
 const loadFeatures = () =>
   import("@/components/motion/features").then((res) => res.default)
+
+/** Notes where this visit came from, once, on the page it landed on. */
+function VisitSource() {
+  useEffect(() => {
+    const visit = visitAttribution()
+    if (!convex) return
+    const client = convex
+    /* One visit per browser session, counted for its source on the admin
+       overview. Staff working in the admin are not visitors. */
+    const counted = "ict-visit-counted"
+    try {
+      if (
+        !sessionStorage.getItem(counted) &&
+        !/^\/(admin|account|checkout|receipt)(\/|$)/.test(
+          window.location.pathname
+        )
+      ) {
+        sessionStorage.setItem(counted, "1")
+        void client
+          .mutation(api.visits.record, { source: visit.utmSource })
+          .catch(() => {})
+      }
+    } catch {
+      /* storage blocked: the visit goes uncounted */
+    }
+    /*
+     * Count taps on WhatsApp and phone links: most of ICT's enquiries start
+     * there, and nothing else records them. Anonymous daily totals per page
+     * and source (convex/contactTaps.ts); a failed count is simply dropped.
+     */
+    function onClick(event: MouseEvent) {
+      const link = (event.target as Element | null)?.closest("a")
+      const href = link?.getAttribute("href") ?? ""
+      const kind = href.startsWith("tel:")
+        ? "call"
+        : href.startsWith("https://wa.me/")
+          ? "whatsapp"
+          : null
+      // Staff calling leads from the admin are not visitors reaching ICT.
+      const page = window.location.pathname
+      if (!kind || /^\/(admin|account|checkout)(\/|$)/.test(page)) return
+      track({ name: "contact_tapped", kind, page })
+      void client
+        .mutation(api.contactTaps.record, {
+          kind,
+          page,
+          source: visitAttribution().utmSource ?? "direct",
+        })
+        .catch(() => {})
+    }
+    document.addEventListener("click", onClick, { capture: true })
+    return () =>
+      document.removeEventListener("click", onClick, { capture: true })
+  }, [])
+  return null
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -71,6 +130,7 @@ export function Providers({ children }: { children: ReactNode }) {
         )}
         {/* Bottom-right on desktop; lifted on phones above the call bar. */}
         <Toaster position="bottom-right" mobileOffset={{ bottom: 88 }} />
+        <VisitSource />
       </Themed>
     </LazyMotion>
   )

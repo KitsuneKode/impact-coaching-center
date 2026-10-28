@@ -13,6 +13,7 @@ export function VideoDialog({
   title,
   subtitle,
   vertical = false,
+  label,
   className,
   children,
   ...trigger
@@ -22,9 +23,14 @@ export function VideoDialog({
   subtitle?: string
   /** shorts are filmed vertically and look wrong in a 16:9 frame */
   vertical?: boolean
+  /**
+   * The button's name when its visible text says more than the title; null
+   * lets the visible text name it (add a hidden verb to the children).
+   */
+  label?: string | null
   className?: string
   children: ReactNode
-} & Pick<ComponentProps<"button">, "onPointerEnter" | "onFocus">) {
+} & Pick<ComponentProps<"button">, "onPointerEnter" | "onFocus" | "onClick">) {
   const [open, setOpen] = useState(false)
   /*
    * An iframe is focusable, so without this the player takes focus the moment
@@ -36,19 +42,20 @@ export function VideoDialog({
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
+        data-press
         className={cn("group block cursor-pointer text-left", className)}
-        aria-label={`Play: ${title}`}
+        aria-label={label === null ? undefined : (label ?? `Play: ${title}`)}
         {...trigger}
       >
         {children}
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0" />
+        <Dialog.Backdrop className="fixed inset-0 z-70 bg-black/70 backdrop-blur-sm transition-opacity duration-300 data-ending-style:opacity-0 data-starting-style:opacity-0" />
         <Dialog.Popup
           initialFocus={closeRef}
           className={cn(
-            "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
+            "fixed inset-bs-1/2 left-1/2 z-71 max-h-[calc(100dvh-2rem)] w-[min(94vw,64rem,calc((100dvh-10rem)*1.7778))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto outline-none",
             "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
             "data-ending-style:scale-95 data-ending-style:opacity-0",
             "data-starting-style:scale-95 data-starting-style:opacity-0",
@@ -57,7 +64,7 @@ export function VideoDialog({
         >
           <div
             className={cn(
-              "relative overflow-hidden rounded-card bg-black shadow-lift",
+              "relative overflow-clip rounded-card bg-black shadow-lift",
               vertical ? "aspect-[9/16]" : "aspect-video"
             )}
           >
@@ -72,7 +79,7 @@ export function VideoDialog({
             ) : null}
           </div>
 
-          <div className="mt-3 flex items-start justify-between gap-4">
+          <div className="mbs-3 flex items-start justify-between gap-4">
             <div className="min-w-0">
               <Dialog.Title className="text-[0.9375rem] font-medium text-white">
                 {title}
@@ -84,7 +91,7 @@ export function VideoDialog({
                 href={youtubeWatch(id)}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
+                className="mbs-1.5 inline-flex items-center gap-1.5 text-sm text-white/60 underline-offset-4 hover:text-white hover:underline"
               >
                 <IconBrandYoutube size={15} stroke={1.75} />
                 Watch on YouTube

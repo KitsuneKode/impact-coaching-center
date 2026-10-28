@@ -66,7 +66,12 @@ import { api } from "@/convex/_generated/api"
 import type { InboxView } from "@/convex/leads"
 import { formatPhone } from "@/lib/brand"
 import { isDueIst } from "@/lib/ist"
-import { enquiryTracks } from "@/lib/leads"
+import {
+  enquiryTracks,
+  FRAGMENT_MATCHES_MAX,
+  FRAGMENT_SCAN_ROWS,
+  phoneFragment,
+} from "@/lib/leads"
 
 export type Lead = {
   id: string
@@ -171,7 +176,9 @@ function OpenLead({ lead }: { lead: Lead }) {
     <button
       type="button"
       onClick={() => open(lead.id)}
-      className="rounded-control text-left font-medium underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      // Names wrap rather than widen the table: a full Assamese name with
+      // titles runs to eighty characters.
+      className="block max-w-64 min-w-36 rounded-control text-left font-medium text-pretty whitespace-normal underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
       {lead.name || (
         <span className="font-normal text-muted-foreground">Not given</span>
@@ -229,7 +236,10 @@ const columns = columnHelper.columns([
   columnHelper.accessor("interestTrack", {
     header: "Exam",
     cell: ({ row }) => (
-      <span className="text-muted-foreground">
+      <span
+        title={row.original.interestTrack}
+        className="line-clamp-2 max-w-56 whitespace-normal text-muted-foreground"
+      >
         {row.original.interestTrack ?? "—"}
       </span>
     ),
@@ -450,8 +460,8 @@ export function LeadsTable({
     <OpenLeadContext.Provider value={onOpen}>
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-3">
-          <InputGroup className="w-full max-w-xs">
-            <InputGroupAddon className="pl-3">
+          <InputGroup className="w-full sm:max-w-xs">
+            <InputGroupAddon className="ps-3">
               <IconSearch
                 stroke={1.75}
                 className="size-4 text-muted-foreground"
@@ -477,7 +487,7 @@ export function LeadsTable({
             items={TRACK_ITEMS}
           >
             <SelectTrigger
-              className="h-11 w-44 rounded-control px-3 text-[0.9375rem]"
+              className="w-full sm:w-44"
               aria-label="Filter by exam"
             >
               <SelectValue />
@@ -548,11 +558,19 @@ export function LeadsTable({
 
           <p
             aria-live="polite"
-            className="ml-auto text-sm text-muted-foreground"
+            className="ms-auto text-sm text-muted-foreground"
           >
             {selected > 0 ? `${selected} selected` : `${leads.length} loaded`}
           </p>
         </div>
+        {phoneFragment(search) ? (
+          <p className="text-sm text-muted-foreground">
+            Part of a number searches the latest{" "}
+            {FRAGMENT_SCAN_ROWS.toLocaleString("en-IN")} enquiries and shows up
+            to {FRAGMENT_MATCHES_MAX} matches. Type all ten digits to find
+            anyone.
+          </p>
+        ) : null}
 
         {/*
           Status as a row of filters rather than a dropdown. There are five, they
@@ -566,7 +584,7 @@ export function LeadsTable({
             table.setPageIndex(0)
           }}
           aria-label="Filter by status"
-          className="flex-wrap"
+          className="-mx-5 scrollbar-none w-auto flex-nowrap overflow-x-auto px-5 *:shrink-0 md:mx-0 md:w-fit md:flex-wrap md:overflow-visible md:px-0"
         >
           {STATUS_FILTERS.map((option) => (
             <ToggleGroupItem key={option.value} value={option.value}>
@@ -609,7 +627,7 @@ export function LeadsTable({
                       checked={row.getIsSelected()}
                       onCheckedChange={(value) => row.toggleSelected(!!value)}
                       aria-label={`Select ${lead.name || lead.phone}`}
-                      className="mt-1"
+                      className="mbs-1"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-3">
@@ -618,11 +636,11 @@ export function LeadsTable({
                       </div>
                       <a
                         href={`tel:${lead.phone}`}
-                        className="tnum mt-1 block text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
+                        className="tnum mbs-1 block text-sm text-muted-foreground underline-offset-4 hover:underline focus-visible:underline"
                       >
                         {formatPhone(lead.phone)}
                       </a>
-                      <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      <dl className="mbs-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                         <div className="flex gap-1.5">
                           <dt>Exam</dt>
                           <dd>{lead.interestTrack ?? "—"}</dd>
@@ -784,7 +802,7 @@ export function LeadsTable({
               </>
             ) : null}
             {loadingMore ? (
-              <Spinner className="ml-2 inline align-[-2px]" />
+              <Spinner className="ms-2 inline align-[-2px]" />
             ) : null}
           </p>
 

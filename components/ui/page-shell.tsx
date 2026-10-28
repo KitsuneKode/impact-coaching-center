@@ -17,26 +17,56 @@ import { Skeleton } from "@/components/ui/skeleton"
 /** A page that can always say what it is. */
 function PageShell({
   title,
+  description,
+  actions,
   children,
   className,
   density = "editorial",
   ...props
 }: Omit<ComponentProps<typeof Section>, "title"> & {
   title: ReactNode
+  /** One line under the title: what this screen is for. */
+  description?: ReactNode
+  /** The screen's main buttons, beside the title (under it on phones). */
+  actions?: ReactNode
   /** How much room the heading gets. */
   density?: "editorial" | "working"
 }) {
   const working = density === "working"
+  const heading = (
+    <h1 className={working ? "type-display-sm" : "type-display"}>{title}</h1>
+  )
   const body = (
     <>
-      <h1 className={working ? "type-display-sm" : "type-display"}>{title}</h1>
-      <div className={working ? "mt-6" : "mt-10"}>{children}</div>
+      {description || actions ? (
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="grid max-w-160 gap-1.5">
+            {heading}
+            {description ? (
+              <p className="text-sm text-pretty text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          {actions ? (
+            <div className="flex flex-wrap items-center gap-2">{actions}</div>
+          ) : null}
+        </div>
+      ) : (
+        heading
+      )}
+      {/* Every state of an editorial page holds the same height, so the
+          footer stays put while one state replaces another. */}
+      <div className={working ? "mt-6" : "mt-10 min-h-[55dvh]"}>{children}</div>
     </>
   )
 
-  /* A working screen fills its inset; an editorial one keeps the measure. */
+  /* A working screen fills its inset; an editorial one keeps the measure.
+     Working screens live in the admin, whose sidebar inset is already the
+     page's <main>, so they must not open a second one. */
+  const Root = working ? "div" : "main"
   return (
-    <main>
+    <Root>
       <Section
         size="sm"
         bleed={working}
@@ -45,7 +75,7 @@ function PageShell({
       >
         {working ? <div className="w-full px-5 md:px-8">{body}</div> : body}
       </Section>
-    </main>
+    </Root>
   )
 }
 
@@ -109,4 +139,25 @@ function ListSkeleton({
   )
 }
 
-export { ListSkeleton, PageShell, StatePanel }
+/** A first-load skeleton in the shape of a StatePanel: the usual answer. */
+function PanelSkeleton({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      aria-hidden="true"
+      className={cn(
+        "grid max-w-160 justify-items-start gap-4 rounded-card border border-dashed border-border p-6",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="size-8 rounded-lg" />
+      <div className="grid w-full justify-items-start gap-2">
+        <Skeleton className="h-4 w-48 max-w-full" />
+        <Skeleton className="h-3.5 w-96 max-w-full" />
+      </div>
+      <Skeleton className="h-11 w-20 rounded-xl" />
+    </div>
+  )
+}
+
+export { ListSkeleton, PageShell, PanelSkeleton, StatePanel }

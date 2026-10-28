@@ -2,17 +2,20 @@
 
 import { IconLock, IconPlugConnectedX } from "@tabler/icons-react"
 import { usePaginatedQuery, useQuery } from "convex/react"
+import { useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
 import { AddEnquiry } from "@/components/admin/add-enquiry"
 import { LeadSheet } from "@/components/admin/lead-sheet"
 import { LeadsTable } from "@/components/admin/leads-table"
-import { ButtonLink } from "@/components/ui/button"
+import { ButtonAnchor } from "@/components/ui/button"
 import { ListSkeleton, PageShell, StatePanel } from "@/components/ui/page-shell"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import type { InboxView } from "@/convex/leads"
+import { useIstDay } from "@/hooks/use-minute"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** The follow-up queue. */
 export default function AdminLeadsPage() {
@@ -53,23 +56,37 @@ function Inbox() {
   // fetching a page of enquiries and discarding it, so a student who opens
   // this URL costs one boolean rather than a read of the follow-up queue.
   const allowed = useQuery(api.leads.canSeeInbox)
-  const [openId, setOpenId] = useState<Id<"persons"> | null>(null)
+  // ?lead=<id> opens that person's sheet: links from the overview land here.
+  const params = useSearchParams()
+  const linked = params.get("lead") as Id<"persons"> | null
+  // ?view=due or ?view=new: the overview's queue rows land on that list.
+  const linkedView = params.get("view")
+  const [chosen, setChosen] = useState<Id<"persons"> | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+  const openId = chosen ?? (dismissed ? null : linked)
+  const setOpenId = (id: Id<"persons"> | null) => {
+    setChosen(id)
+    if (!id) setDismissed(true)
+  }
   /*
    * Read here rather than inside the table: export is owner-only, and the
    * table should be told what the viewer may do rather than work it out. The
    * decision itself lives in convex/authz.ts - this only chooses chrome.
    */
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
 
   /*
    * The filters live here because they are the query: changing them asks the
    * server for a different slice rather than hiding rows already fetched.
    * The queue opens on the work - new enquiries and due follow-ups.
    */
-  const [view, setView] = useState<InboxView>("action")
+  const [view, setView] = useState<InboxView>(
+    linkedView === "due" || linkedView === "new" ? linkedView : "action"
+  )
   const [track, setTrack] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState("")
   const debouncedSearch = useDebounced(search.trim(), 300)
+  const today = useIstDay()
 
   const {
     results: leads,
@@ -80,7 +97,7 @@ function Inbox() {
     // The server refuses non-staff anyway; skipping keeps a student who lands
     // here from spending a subscription on a queue they may not read.
     allowed === true
-      ? { view, track, search: debouncedSearch || undefined }
+      ? { view, track, search: debouncedSearch || undefined, now: today }
       : "skip",
     { initialNumItems: 25 }
   )
@@ -98,12 +115,7 @@ function Inbox() {
     return (
       <PageShell
         density="working"
-        title={
-          <>
-            <span className="text-foreground">Enquiries.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
+        title={<span className="text-foreground">Enquiries.</span>}
       >
         <ListSkeleton rows={5} />
       </PageShell>
@@ -120,10 +132,15 @@ function Inbox() {
           title="This page is for ICT staff"
           description="If you are staff and seeing this, log in with the number ICT has on file for you."
           action={
-            <ButtonLink href="/login?next=/admin/leads" size="md">
-              {" "}
-              Log in{" "}
-            </ButtonLink>
+            // A plain link: a full sign-in page, never the public site's
+            // pop-up over the admin with the admin loading behind it.
+            <ButtonAnchor
+              href="/login?next=/admin/leads"
+              target="_self"
+              size="md"
+            >
+              Log in
+            </ButtonAnchor>
           }
         />
       </PageShell>
@@ -135,12 +152,7 @@ function Inbox() {
     return (
       <PageShell
         density="working"
-        title={
-          <>
-            <span className="text-foreground">Enquiries.</span>{" "}
-            <span className="text-muted-foreground">Loading…</span>
-          </>
-        }
+        title={<span className="text-foreground">Enquiries.</span>}
       >
         <ListSkeleton rows={5} />
       </PageShell>
@@ -153,10 +165,8 @@ function Inbox() {
       density="working"
       /* No count in the heading. */
       title={<span className="text-foreground">Enquiries.</span>}
+      actions={<AddEnquiry onCreated={(id) => setOpenId(id)} />}
     >
-      <div className="mb-4 flex justify-end">
-        <AddEnquiry onCreated={(id) => setOpenId(id)} />
-      </div>
       <LeadsTable
         leads={leads}
         canLoadMore={status === "CanLoadMore"}

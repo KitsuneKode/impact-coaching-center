@@ -1,10 +1,11 @@
 "use client"
 
-import { IconArrowRight, IconLoader2 } from "@tabler/icons-react"
+import { IconArrowRight, IconCheck, IconLoader2 } from "@tabler/icons-react"
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 
 import { NameStep } from "@/components/account/name-step"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
@@ -23,7 +24,11 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp"
+import { Turnstile } from "@/components/marketing/turnstile"
 import { authClient } from "@/lib/auth-client"
+import { publicEnv } from "@/lib/public-env"
+import { HUMAN_CHECK_HEADER } from "@/lib/turnstile"
+import { TERMS_VERSION } from "@/lib/terms"
 import { nationalMobileDraft, toE164 } from "@/lib/leads"
 import {
   CODE_LENGTH,
@@ -32,16 +37,31 @@ import {
 } from "@/lib/phone-auth-flow"
 
 /** One flow, not two. */
-export function SignInForm({ next }: { next: string }) {
+export function SignInForm({
+  next,
+  onVerified,
+}: {
+  next: string
+  /** The code was right; what follows is the name and questions, not a log-in. */
+  onVerified?: () => void
+}) {
   const phoneId = useId()
   const codeId = useId()
 
   // One flow per mounted form. It owns every request, so a late answer for a
   // number that has since been edited, or for a form that has gone, is dropped
   // instead of moving the wrong number into the code step.
+  // Each code request carries a fresh Turnstile token; the server checks it
+  // before Convex is asked (lib/auth-server.ts). A token works once.
+  const [humanToken] = useState(tokenBox)
+  const [humanEpoch, setHumanEpoch] = useState(0)
   const [flow] = useState(() =>
     createPhoneAuthFlow({
-      send: (phoneNumber) => authClient.phoneNumber.sendOtp({ phoneNumber }),
+      send: (phoneNumber) =>
+        authClient.phoneNumber.sendOtp(
+          { phoneNumber },
+          { headers: { [HUMAN_CHECK_HEADER]: humanToken.get() } }
+        ),
       verify: (input) => authClient.phoneNumber.verify(input),
     })
   )
@@ -52,7 +72,15 @@ export function SignInForm({ next }: { next: string }) {
       flow.getServerSnapshot
     )
   const [verified, setVerified] = useState(false)
+  const [accepted, setAccepted] = useState(false)
   const [phoneError, setPhoneError] = useState<string | null>(null)
+  // Ticked already for someone who agreed to this version on this device,
+  // until they untick it.
+  const remembered = useSyncExternalStore(noSubscribe, agreedHere, () => false)
+  const [choice, setAgreed] = useState<boolean | null>(null)
+  const agreed = choice ?? remembered
+  const [termsError, setTermsError] = useState(false)
+  const termsId = useId()
   const cooldown = useSecondsUntil(resendAt)
   const codeRef = useRef<HTMLInputElement>(null)
 
@@ -66,6 +94,12 @@ export function SignInForm({ next }: { next: string }) {
     if (step === "code") codeRef.current?.focus()
   }, [step])
 
+  // A refused code clears itself (see the flow); put the cursor back in the
+  // first box so the right one can simply be typed.
+  useEffect(() => {
+    if (step === "code" && error && code === "") codeRef.current?.focus()
+  }, [step, error, code])
+
   /**
    * Validated on blur, never on keystroke: a ten-digit number is wrong for nine
    * of the ten characters it takes to type it, and saying so each time is
@@ -73,7 +107,7 @@ export function SignInForm({ next }: { next: string }) {
    */
   function checkPhone(value: string) {
     const ok = Boolean(toE164(value))
-    setPhoneError(ok ? null : "Please enter a 10 digit mobile number.")
+    setPhoneError(ok ? null : "Enter a 10-digit mobile number.")
     return ok
   }
 
@@ -84,12 +118,42 @@ export function SignInForm({ next }: { next: string }) {
     // cleared on failure: whatever went wrong, the visitor should not have to
     // type their number again to find out what.
     if (step === "phone" && !checkPhone(phone)) return
-    void flow.send()
+    if (step === "phone" && !agreed) {
+      setTermsError(true)
+      return
+    }
+    try {
+      localStorage.setItem(TERMS_KEY, TERMS_VERSION)
+    } catch {}
+    void flow.send().finally(() => setHumanEpoch((epoch) => epoch + 1))
   }
 
-  /* Hand over to the name step rather than redirecting here. */
+  const humanCheck = publicEnv.turnstileSiteKey ? (
+    <Turnstile
+      siteKey={publicEnv.turnstileSiteKey}
+      resetKey={humanEpoch}
+      onToken={humanToken.set}
+    />
+  ) : null
+
+  /*
+   * Hand over to the name step rather than redirecting here, after the
+   * boxes have had a moment to show the code was right.
+   */
   function verify() {
-    void flow.verify(() => setVerified(true))
+    void flow.verify(() => {
+      setAccepted(true)
+      const still = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches
+      window.setTimeout(
+        () => {
+          setVerified(true)
+          onVerified?.()
+        },
+        still ? 0 : 650
+      )
+    })
   }
 
   const formError = error
@@ -102,7 +166,7 @@ export function SignInForm({ next }: { next: string }) {
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          verify()
+          if (!accepted) verify()
         }}
         noValidate
       >
@@ -118,16 +182,19 @@ export function SignInForm({ next }: { next: string }) {
               onChange={flow.setCode}
               onComplete={verify}
               ref={codeRef}
-              disabled={busy}
+              // Read-only, not disabled, while it is checked: the digits keep
+              // their colour and run the checking wave instead of greying out.
+              readOnly={busy || accepted}
+              success={accepted}
               aria-invalid={formError ? true : undefined}
               aria-describedby={
                 formError ? `${codeId}-error` : `${codeId}-hint`
               }
-              containerClassName="justify-start"
+              containerClassName={formError ? "otp-shake" : undefined}
             >
               <InputOTPGroup>
                 {Array.from({ length: CODE_LENGTH }, (_, index) => (
-                  <InputOTPSlot key={index} index={index} className="size-11" />
+                  <InputOTPSlot key={index} index={index} />
                 ))}
               </InputOTPGroup>
             </InputOTP>
@@ -144,13 +211,25 @@ export function SignInForm({ next }: { next: string }) {
                 >
                   Change number
                 </button>
+                {cooldown === 0 ? (
+                  <span className="mbs-1 block">
+                    No message? The code only reaches a number that has
+                    WhatsApp.
+                  </span>
+                ) : null}
               </FieldDescription>
             )}
           </Field>
 
+          {humanCheck}
           <Field orientation="horizontal">
-            <Button type="submit" size="md" disabled={busy}>
-              {busy ? (
+            <Button type="submit" size="md" disabled={busy && !accepted}>
+              {accepted ? (
+                <>
+                  <IconCheck stroke={2} />
+                  Logged in
+                </>
+              ) : busy ? (
                 <>
                   <IconLoader2 className="animate-spin" stroke={1.75} />
                   Checking
@@ -188,8 +267,8 @@ export function SignInForm({ next }: { next: string }) {
               choice: ADR-0001 keys a Person by an Indian mobile number, so a
               country field would offer a freedom the system does not have.
             */}
-            <InputGroupAddon className="pl-3.5">
-              <InputGroupText className="tnum border-r border-border pr-3 text-[0.9375rem] text-foreground">
+            <InputGroupAddon className="ps-3.5">
+              <InputGroupText className="tnum border-r border-border pe-3 text-[0.9375rem] text-foreground">
                 +91
               </InputGroupText>
             </InputGroupAddon>
@@ -228,8 +307,57 @@ export function SignInForm({ next }: { next: string }) {
           )}
         </Field>
 
+        <Field
+          orientation="horizontal"
+          data-invalid={termsError || undefined}
+          className="items-start"
+        >
+          <Checkbox
+            id={termsId}
+            checked={agreed}
+            onCheckedChange={(checked) => {
+              setAgreed(checked)
+              if (checked) setTermsError(false)
+            }}
+            aria-invalid={termsError || undefined}
+            aria-describedby={termsError ? `${termsId}-error` : undefined}
+            className="mbs-0.5"
+          />
+          <div className="grid gap-1">
+            <FieldLabel htmlFor={termsId} className="font-normal">
+              <span>
+                I agree to the{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Terms
+                </a>{" "}
+                and the{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener"
+                  className="font-medium underline underline-offset-4"
+                >
+                  Privacy Policy
+                </a>
+                .
+              </span>
+            </FieldLabel>
+            {termsError ? (
+              <FieldError id={`${termsId}-error`}>
+                Tick the box to continue.
+              </FieldError>
+            ) : null}
+          </div>
+        </Field>
+
+        {humanCheck}
         <Field>
-          <Button type="submit" size="md" disabled={busy}>
+          <Button type="submit" size="md" disabled={busy && !accepted}>
             {busy ? (
               <>
                 <IconLoader2 className="animate-spin" stroke={1.75} />
@@ -246,6 +374,28 @@ export function SignInForm({ next }: { next: string }) {
       </FieldGroup>
     </form>
   )
+}
+
+/** The widget's latest token, read when a request goes out. */
+function tokenBox() {
+  let token = ""
+  return {
+    get: () => token,
+    set: (next: string) => {
+      token = next
+    },
+  }
+}
+
+/** This device's record of the terms version its visitor agreed to. */
+const TERMS_KEY = "ict-terms"
+const noSubscribe = () => () => {}
+function agreedHere() {
+  try {
+    return localStorage.getItem(TERMS_KEY) === TERMS_VERSION
+  } catch {
+    return false
+  }
 }
 
 /** "+919876543210" as the visitor typed it: "+91 98765 43210". */

@@ -26,7 +26,7 @@ function form() {
   const data = new FormData()
   for (const [key, value] of Object.entries({
     name: "Rituparna",
-    phone: "98765 43210",
+    phone: "98123 45670",
     track: enquiryTracks[0]!,
     timing: enquiryTimings[0]!,
   }))
@@ -58,7 +58,7 @@ describe("enquiry action delivery", () => {
         const state = await submitLead({ status: "idle" }, form())
         expect(state.status).toBe("handoff")
         if (state.status === "handoff")
-          expect(state.phone).toBe("+919876543210")
+          expect(state.phone).toBe("+919812345670")
       }
       expect(mocked).not.toHaveBeenCalled()
     } finally {

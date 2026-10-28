@@ -13,18 +13,24 @@ import type { DataModel } from "./_generated/dataModel"
 import { query } from "./_generated/server"
 import authConfig from "./auth.config"
 import { findVerifiedPerson } from "./persons"
-import { PERSON_ROLE } from "./schema"
+import { GRANT, LOCALE, PERSON_ROLE } from "./schema"
 
 export const authComponent = createClient<DataModel>(components.betterAuth)
 
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   /**
-   * Resolved before the plugin is constructed. Fail-closed means refusing to
-   * build the auth instance at all when the transport is not explicitly local
-   * or is not implemented yet.
+   * Fail-closed for sending only: with no usable transport, a code request is
+   * refused before any code is stored, while sessions, sign-out and the
+   * Convex token keep working. Refusing to build the instance at all made
+   * every page's session check a 500.
    */
   const siteUrl = process.env.CONVEX_SITE_URL
-  const transport = chooseTransport(process.env.OTP_TRANSPORT, siteUrl)
+  let transport: ReturnType<typeof chooseTransport> | null = null
+  try {
+    transport = chooseTransport(process.env.OTP_TRANSPORT, siteUrl)
+  } catch (error) {
+    console.error(`[auth] sign-in codes are off: ${(error as Error).message}`)
+  }
   const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET
   if (!secret)
     throw new Error(
@@ -38,10 +44,15 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   const phone = phoneAuthOptions({
     secret,
     // Awaited deliberately.
-    send: (target) => sendOtp(transport, target),
+    send: (target) => {
+      if (!transport) throw new Error("No OTP transport on this deployment.")
+      return sendOtp(transport, target)
+    },
     // Ceilings and the per-phone lease are one mutation. The hash is computed
     // here, in the action, so the raw code is never a mutation argument.
     claim: async ({ phone, ip }) => {
+      if (!transport)
+        return { ok: false as const, reason: "deployment" as const }
       return await requireMutation().runMutation(internal.otp.claimOtpSend, {
         phone,
         ip: ip ?? undefined,
@@ -98,6 +109,59 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       expiresIn: 60 * 60 * 24 * 90,
       updateAge: 60 * 60 * 24,
     },
+    // Memory storage resets on every function call here, and the component's
+    // own table prunes with an unindexed scan, so counts live in our indexed
+    // rateLimits table, checked and counted in one mutation. The per-phone
+    // lease in otp.ts stays the main guard; this caps a single address
+    // hammering the endpoints. Per address, and Indian mobile carriers put
+    // many people behind one (carrier-grade NAT), so the ceiling is loose
+    // enough for a crowded classroom on the same network signing in at once.
+    rateLimit: {
+      enabled: true,
+      customRules: {
+        "/phone-number/send-otp": { window: 60, max: 10 },
+        "/phone-number/verify": { window: 60, max: 20 },
+        // Convex's own backend fetching the token keys, server to server:
+        // no visitor behind it, and it must never be throttled.
+        "/convex/jwks": false,
+      },
+      customStorage: {
+        // Unused while consume exists; Better Auth still asks for them.
+        get: async () => null,
+        set: async () => {},
+        consume: async (key, rule) => {
+          // Rate limiting only runs inside the HTTP actions.
+          if (!("runMutation" in ctx))
+            return { allowed: true, retryAfter: null }
+          // Better Auth's own warning also fires for the server-to-server
+          // jwks fetch, so it is muted below and said here, where it means
+          // a visitor's request arrived without an address.
+          if (key.startsWith("no-trusted-ip|"))
+            console.warn(`[auth] no client address for ${key.slice(14)}`)
+          return await ctx.runMutation(internal.persons.consumeAuthRateLimit, {
+            key,
+            max: rule.max,
+            windowMs: rule.window * 1000,
+          })
+        },
+      },
+    },
+    logger: {
+      log: (level, message, ...args) => {
+        if (message.startsWith("Rate limiting could not determine")) return
+        console[level === "debug" ? "log" : level](
+          `[Better Auth] ${message}`,
+          ...args
+        )
+      },
+    },
+    // The visitor's address as our Next.js server forwards it
+    // (lib/auth-server.ts), then the forwarded chain. Without one, every
+    // visitor shares a single bucket per path, and one noisy client would
+    // lock everyone out of codes.
+    advanced: {
+      ipAddress: { ipAddressHeaders: ["x-ict-client-ip", "x-forwarded-for"] },
+    },
     ...phone,
     plugins: [...phone.plugins, convex({ authConfig })],
   })
@@ -115,6 +179,8 @@ export const getCurrentPerson = query({
       name: v.string(),
       phone: v.string(),
       role: PERSON_ROLE,
+      grants: v.array(GRANT),
+      locale: v.optional(LOCALE),
       verifiedAt: v.number(),
       revision: v.number(),
     }),

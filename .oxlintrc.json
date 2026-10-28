@@ -72,6 +72,17 @@
       "rules": {
         "react/set-state-in-effect": "off"
       }
+    },
+    {
+      "files": ["components/book-preview/**"],
+      "rules": {
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/no-noninteractive-tabindex": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "shadcn/no-unknown-classes": "off",
+        "shadcn/no-raw-colors": "off",
+        "shadcn/require-static-classes": "off"
+      }
     }
   ]
 }

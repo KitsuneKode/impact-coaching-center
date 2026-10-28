@@ -16,6 +16,12 @@ export function endOfTodayIst(now: number): number {
   return Date.UTC(year, month, day + 1) - IST_OFFSET_MS
 }
 
+/** The first instant of today in IST. */
+export function startOfTodayIst(now: number): number {
+  const { year, month, day } = istParts(now)
+  return Date.UTC(year, month, day) - IST_OFFSET_MS
+}
+
 /** Whether a follow-up is due today or overdue. */
 export function isDueIst(at: number | undefined, now: number): boolean {
   return at !== undefined && at < endOfTodayIst(now)

@@ -18,6 +18,9 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { useStalled } from "@/components/ui/use-stalled"
 import { api } from "@/convex/_generated/api"
+import { identify, track } from "@/lib/analytics"
+import { TERMS_VERSION } from "@/lib/terms"
+import { useViewer } from "@/hooks/use-viewer"
 
 /** What the form needs, which is less than the whole Person. */
 type Viewer = { name: string; revision: number; role?: string }
@@ -25,9 +28,23 @@ type Viewer = { name: string; revision: number; role?: string }
 /** "What should ICT call you?" - asked once, immediately after verification. */
 export function NameStep({ next }: { next: string }) {
   const router = useRouter()
-  const viewer = useQuery(api.auth.getCurrentPerson)
+  const viewer = useViewer()
   const questionnaire = useQuery(api.profile.ownQuestionnaire)
   const [done, setDone] = useState(false)
+  const acceptTerms = useMutation(api.profile.acceptTerms)
+  const recorded = useRef(false)
+
+  // They ticked "I agree" to get here; record it on the account once the
+  // session is live (a returning Person keeps the first acceptance).
+  useEffect(() => {
+    if (!viewer || recorded.current) return
+    recorded.current = true
+    identify(viewer.id)
+    track({ name: "signed_in" })
+    void acceptTerms({ version: TERMS_VERSION }).catch((error) =>
+      console.error("[terms] not recorded", error)
+    )
+  }, [viewer, acceptTerms])
 
   /*
    * `null` here does NOT mean "signed out", and treating it as if it did was a
@@ -123,7 +140,7 @@ function NameForm({ viewer }: { viewer: Viewer }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (!name.trim()) {
-      setError("Please enter your name.")
+      setError("Enter your name.")
       return
     }
     setError(null)
@@ -153,8 +170,8 @@ function NameForm({ viewer }: { viewer: Viewer }) {
         result.reason === "revision-conflict"
           ? "This changed in another tab. Check your name and save again."
           : result.reason === "anonymous"
-            ? "Your session expired. Please log in again."
-            : "Couldn't save your name. Please try again."
+            ? "Your session expired. Log in again to save."
+            : "Couldn't save your name. Check your connection and try again."
       )
       // Input is deliberately not cleared. The runbook makes preserving what
       // somebody typed an acceptance gate, and a conflict is exactly when

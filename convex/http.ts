@@ -6,9 +6,15 @@ import { internal } from "./_generated/api"
 import { httpAction } from "./_generated/server"
 import { parseClientAddress } from "../lib/client-address"
 import { parseLead } from "../lib/leads"
+import { webhookSignatureValid } from "../lib/payments"
+import { undeliverableFrom } from "../lib/whatsapp-status"
 import { ENQUIRY_RATE_LIMITED } from "./persons"
 
 const http = httpRouter()
+
+/** A string field from an untrusted body, or nothing. */
+const optionalString = (value: unknown) =>
+  typeof value === "string" ? value : undefined
 
 http.route({
   path: "/enquiries",
@@ -49,6 +55,11 @@ http.route({
         ip:
           (typeof data.ip === "string" ? parseClientAddress(data.ip) : null) ??
           undefined,
+        page: optionalString(data.page),
+        utmSource: optionalString(data.utmSource),
+        utmMedium: optionalString(data.utmMedium),
+        utmCampaign: optionalString(data.utmCampaign),
+        referrer: optionalString(data.referrer),
       })
     } catch (error) {
       // A ceiling is the one failure the caller can act on by backing off.
@@ -63,6 +74,126 @@ http.route({
     return new Response(null, { status: 204 })
   }),
 })
+
+/**
+ * Razorpay's word that money arrived, for when the shopper's browser never
+ * came back. Verified over the raw body with the webhook secret (not the key
+ * secret), recorded once per event id, then settled like a checkout.
+ * Acknowledged with 200 even when there is nothing to do, so Razorpay stops
+ * retrying; only a bad signature is refused.
+ */
+/*
+ * Meta's WhatsApp webhook. GET answers the subscription check with the verify
+ * token; POST carries message statuses, signed with the app secret. A code
+ * that failed because the number is not on WhatsApp marks that number, so
+ * the next sign-in attempt is refused with the reason instead of a silent
+ * wait (Meta does not bill undelivered messages).
+ */
+http.route({
+  path: "/whatsapp/webhook",
+  method: "GET",
+  handler: httpAction(async (_ctx, request) => {
+    const token = process.env.WHATSAPP_VERIFY_TOKEN
+    const url = new URL(request.url)
+    if (
+      !token ||
+      url.searchParams.get("hub.mode") !== "subscribe" ||
+      !secretsMatch(url.searchParams.get("hub.verify_token") ?? "", token)
+    )
+      return new Response(null, { status: 403 })
+    return new Response(url.searchParams.get("hub.challenge") ?? "", {
+      status: 200,
+    })
+  }),
+})
+
+http.route({
+  path: "/whatsapp/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.WHATSAPP_APP_SECRET
+    if (!secret) return new Response(null, { status: 503 })
+    const body = await request.text()
+    if (body.length > 256 * 1024) return new Response(null, { status: 413 })
+    const signature = (
+      request.headers.get("x-hub-signature-256") ?? ""
+    ).replace(/^sha256=/, "")
+    if (!(await webhookSignatureValid({ body, signature, secret })))
+      return new Response(null, { status: 401 })
+    let payload: unknown
+    try {
+      payload = JSON.parse(body)
+    } catch {
+      return new Response(null, { status: 400 })
+    }
+    const failures = undeliverableFrom(payload)
+    if (failures.length)
+      await ctx.runMutation(internal.otp.markUndeliverable, { failures })
+    return new Response(null, { status: 200 })
+  }),
+})
+
+http.route({
+  path: "/razorpay/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET
+    if (!secret) return new Response(null, { status: 503 })
+    const body = await request.text()
+    if (body.length > 64 * 1024) return new Response(null, { status: 413 })
+    const signature = request.headers.get("x-razorpay-signature") ?? ""
+    if (!(await webhookSignatureValid({ body, signature, secret })))
+      return new Response(null, { status: 401 })
+    const eventId = request.headers.get("x-razorpay-event-id")
+    let event: RazorpayEvent
+    try {
+      event = JSON.parse(body) as RazorpayEvent
+    } catch {
+      return new Response(null, { status: 400 })
+    }
+    if (!eventId || typeof event.event !== "string")
+      return new Response(null, { status: 400 })
+    const payment = event.payload?.payment?.entity
+    const refund = event.payload?.refund?.entity
+    const text = (value: unknown) =>
+      typeof value === "string" && value.length <= 100 ? value : undefined
+    const paise = (value: unknown) =>
+      typeof value === "number" && Number.isSafeInteger(value)
+        ? value
+        : undefined
+    // Recorded and settled in one transaction: if settling fails, the event
+    // is not marked seen, the route answers 500 and Razorpay retries it.
+    await ctx.runMutation(internal.payments.handleWebhook, {
+      eventId: eventId.slice(0, 100),
+      type: event.event.slice(0, 60),
+      gatewayOrderId:
+        text(event.payload?.order?.entity?.id) ?? text(payment?.order_id),
+      paymentId: text(payment?.id),
+      method: text(payment?.method),
+      amountPaise: paise(payment?.amount),
+      refundId: text(refund?.id),
+      refundPaise: paise(refund?.amount),
+    })
+    return new Response(null, { status: 200 })
+  }),
+})
+
+/** The few fields of a Razorpay webhook body this route reads. */
+type RazorpayEvent = {
+  event?: unknown
+  payload?: {
+    order?: { entity?: { id?: unknown } }
+    payment?: {
+      entity?: {
+        id?: unknown
+        order_id?: unknown
+        amount?: unknown
+        method?: unknown
+      }
+    }
+    refund?: { entity?: { id?: unknown; amount?: unknown } }
+  }
+}
 
 /**
  * Lazy registration: Better Auth is not constructed while routes are being

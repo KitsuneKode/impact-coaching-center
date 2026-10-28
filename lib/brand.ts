@@ -20,6 +20,41 @@ export const place = {
   maps: "https://goo.gl/maps/GibauAfFg2BBtdRu9",
 } as const
 
+/**
+ * ICT's centres. North Lakhimpur is the main one. Dhemaji is confirmed by the
+ * owner but its address and map pin are not on file yet, so it carries no
+ * location and the site says so rather than guessing. Fill `at` to switch on
+ * its distance, directions and map.
+ */
+export type Centre = {
+  id: string
+  town: string
+  main: boolean
+  at: {
+    street: string
+    pin: string
+    lat: number
+    lng: number
+    maps: string
+  } | null
+}
+
+export const centres: readonly Centre[] = [
+  {
+    id: "north-lakhimpur",
+    town: place.city,
+    main: true,
+    at: {
+      street: place.street,
+      pin: place.pin,
+      lat: place.lat,
+      lng: place.lng,
+      maps: place.maps,
+    },
+  },
+  { id: "dhemaji", town: "Dhemaji", main: false, at: null },
+]
+
 export const contact = {
   phones: ["+918638061175", "+918134995880"] as const,
   whatsapp: "+918638061175",
@@ -395,7 +430,7 @@ export const timings = [
 export const faqs = [
   {
     q: "What are the fees?",
-    a: "The complete APSC course (Lakhya 2027) is Rs 25,009. ADRE and Assam Police (VICTOR 8.0) is Rs 6,009, and the Banking, SSC and Railway batch is Rs 7,009. One fee covers classes, tests, notes and the app. Scholarships are available through ICT's ASSIST test.",
+    a: "The complete APSC course ({apsc}) is {apscFee}. ADRE and Assam Police ({adre}) is {adreFee}, and the Banking, SSC and Railway batch ({banking}) is {bankingFee}. One fee covers classes, tests, notes and the app. Scholarships are available through ICT's ASSIST test.",
   },
   {
     q: "Can I attend a class before I pay?",
@@ -403,7 +438,7 @@ export const faqs = [
   },
   {
     q: "I have a job. Is there a batch that fits?",
-    a: "Two. PRAGATI 2027 is ICT's APSC batch built for working professionals, and VICTOR 8.0 runs 8 to 10 AM for ADRE and Assam Police.",
+    a: "Two. PRAGATI 2027 is ICT's APSC batch built for working professionals, and {adre} runs the ADRE and Assam Police batch.",
   },
   {
     q: "What happens if I miss a class?",
@@ -477,9 +512,21 @@ export const toConfirm = [
   "Radiant 2.0 and Diamond 3.0 timings are not on their posters",
   "Whether the Play Store listing is still live (Classplus reports the Android app as delisted)",
   "Opening hours for the centre; /contact omits them because none is recorded anywhere",
+  "ASSIST scholarship test: next date, who can sit it, fee, format, and scholarship amounts",
+  "Dhemaji centre: street address, PIN, map pin, opening date, and whether it has its own phone number",
   "Whether ICT has a Telegram channel; the spec lists one as a contact channel and no link exists",
   "Wording of the four policy documents in content/policies/*.md; all four are drafts and stay noindex until approved",
   "Delivery areas, charges and dispatch times, and the cancellation and refund policy, before online ordering opens",
   // The library page has its own list, kept beside the content it gates:
   // `libraryQuestions` in lib/library.ts.
 ] as const
+
+/**
+ * The agency that builds and looks after the site, credited once in the
+ * footer (a branded link, never keyword anchor text), in the admin sidebar
+ * and in /humans.txt.
+ */
+export const agency = {
+  name: "KitsuneKode",
+  url: "https://github.com/KitsuneKode",
+} as const

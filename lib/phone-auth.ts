@@ -1,7 +1,8 @@
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { phoneNumber } from "better-auth/plugins"
 
-import { SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
+import { SEND_FROM_SITE, SEND_REFUSALS, WHATSAPP_ONLY } from "./auth-messages"
+import { secretsMatch } from "./env"
 import { parseClientAddress } from "./client-address"
 import { toE164 } from "./leads"
 
@@ -12,25 +13,28 @@ import { toE164 } from "./leads"
  */
 const REFUSAL_MESSAGES = SEND_REFUSALS
 
-const BLOCKED_AUTH_PATHS = new Set([
-  "/sign-in/phone-number",
-  "/phone-number/request-password-reset",
-  "/phone-number/reset-password",
-  "/sign-in/email",
-  "/sign-up/email",
-  "/sign-in/social",
-  "/change-email",
-  "/send-verification-email",
-  "/verify-email",
-  "/request-password-reset",
-  "/reset-password",
-  "/change-password",
-  "/verify-password",
+/*
+ * Better Auth serves forty-odd routes: email and password, social sign-in,
+ * account linking, profile edits. This site uses a handful. Every other
+ * route is closed, so one added by a library upgrade arrives closed too.
+ * The dangerous ones are those that edit the auth user: its verified phone
+ * number is the whole of a person's identity here (convex/persons.ts
+ * findVerifiedPerson), and roles hang off that. `/update-user` would clear
+ * or replace it, which locked an owner out for good. A changed number is
+ * staff's job (docs/production.md).
+ */
+const OPEN_AUTH_PATHS = new Set([
+  "/phone-number/send-otp",
+  "/phone-number/verify",
+  "/get-session",
+  "/sign-out",
+  // Convex: the browser's token, and the keys Convex checks it against.
+  "/convex/token",
+  "/convex/jwks",
+  "/convex/.well-known/openid-configuration",
+  "/ok",
+  "/error",
 ])
-
-function isOutsideWhatsApp(path: string) {
-  return BLOCKED_AUTH_PATHS.has(path) || path.startsWith("/reset-password/")
-}
 
 export type OtpSendRefusal = keyof typeof REFUSAL_MESSAGES
 
@@ -124,7 +128,7 @@ export function phoneAuthOptions(delivery: {
   return {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        if (isOutsideWhatsApp(ctx.path)) {
+        if (!OPEN_AUTH_PATHS.has(ctx.path)) {
           throw new APIError("FORBIDDEN", { message: WHATSAPP_ONLY })
         }
         if (!ctx.path.startsWith("/phone-number/")) return
@@ -146,11 +150,28 @@ export function phoneAuthOptions(delivery: {
              one the client controls. parseClientAddress takes the last
              well-formed entry - the address the edge actually saw - and
              canonicalises it, so the ip bucket cannot be moved by spoofing. */
-          const forwarded =
+          const header = (name: string) =>
             ctx.request instanceof Request
-              ? ctx.request.headers.get("x-forwarded-for")
-              : (ctx.headers?.get("x-forwarded-for") ?? null)
-          const ip = parseClientAddress(forwarded)
+              ? ctx.request.headers.get(name)
+              : (ctx.headers?.get(name) ?? null)
+          /* Our own Next.js server vouches for the visitor's address with a
+             shared secret (lib/auth-server.ts); otherwise the forwarded
+             chain, which may only name that server. */
+          const proxySecret = process.env.AUTH_PROXY_SECRET
+          const fromOurSite = Boolean(
+            proxySecret &&
+            secretsMatch(header("x-ict-proxy-key") ?? "", proxySecret)
+          )
+          /* With the secret set, codes are only sent for requests our site
+             forwarded. A script calling the Convex address directly would
+             otherwise choose the address its ceilings are counted against,
+             and step around any check the site adds in front. */
+          if (proxySecret && !fromOurSite)
+            throw new APIError("FORBIDDEN", { message: SEND_FROM_SITE })
+          const vouched = fromOurSite
+            ? parseClientAddress(header("x-ict-client-ip"))
+            : null
+          const ip = vouched ?? parseClientAddress(header("x-forwarded-for"))
           const decision = await delivery.claim({ phone, ip })
           if (!decision.ok) {
             throw new APIError("TOO_MANY_REQUESTS", {
@@ -197,7 +218,7 @@ export function phoneAuthOptions(delivery: {
             : undefined
           if (!phone || generation === undefined)
             throw new APIError("INTERNAL_SERVER_ERROR", {
-              message: "Could not start verification. Please try again.",
+              message: "Couldn't start logging you in. Try again.",
             })
           const committed = await delivery.commit({
             phone,

@@ -1,41 +1,46 @@
 import type { Metadata, Viewport } from "next"
-import { Fraunces, Inter, Noto_Sans_Bengali } from "next/font/google"
+import localFont from "next/font/local"
 
 import "./globals.css"
+import { InlineScript } from "@/components/site/inline-script"
 import { Providers } from "@/app/providers"
-import { ThemePreview } from "@/components/dev/theme-preview"
-import { SiteChrome } from "@/components/marketing/site-chrome"
 import { brand, contact, links, place } from "@/lib/brand"
-import { indexable, openGraphFor, siteUrl } from "@/lib/site"
+import { indexable, openGraphFor, siteUrl, siteVerification } from "@/lib/site"
 import { themeInitScript } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 
-/* Inter, the variable cut kobbe.io ships. One family: hierarchy comes from
-   tone and size, and headings stay at regular weight, which is most of what
-   makes that site read so calm. */
-const sans = Inter({
-  subsets: ["latin"],
+/*
+ * Pulse: Figtree for reading, Unbounded for headings, Anek Bangla for
+ * Assamese. Served from our own files (fontsource), so a build never depends
+ * on reaching Google Fonts.
+ */
+const sans = localFont({
+  src: [
+    {
+      path: "../node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2",
+    },
+    {
+      path: "../node_modules/@fontsource-variable/figtree/files/figtree-latin-ext-wght-normal.woff2",
+    },
+  ],
   variable: "--font-sans",
+  weight: "300 900",
   display: "swap",
 })
 
-/* Fraunces for headings only. */
-const display = Fraunces({
-  subsets: ["latin"],
+const display = localFont({
+  src: "../node_modules/@fontsource-variable/unbounded/files/unbounded-latin-wght-normal.woff2",
   variable: "--font-display",
+  weight: "200 900",
   display: "swap",
-  // Only the axis that is actually varied. SOFT and WONK were requested and
-  // then pinned to 0 in the stylesheet, which is payload bought for nothing -
-  // on this audience's connections that is the difference that matters.
-  axes: ["opsz"],
 })
 
-/* Loaded because ICT genuinely teaches in Assamese. */
-const assamese = Noto_Sans_Bengali({
-  subsets: ["bengali"],
+const assamese = localFont({
+  src: "../node_modules/@fontsource-variable/anek-bangla/files/anek-bangla-bengali-wght-normal.woff2",
   variable: "--font-as",
-  weight: ["400", "500"],
+  weight: "100 800",
   display: "swap",
+  // English pages rarely need it; Assamese pages fetch it on first use.
   preload: false,
 })
 
@@ -54,13 +59,16 @@ export const metadata: Metadata = {
     "Assam Police coaching Lakhimpur",
     "Impact Career Tutorials",
   ],
-  alternates: { canonical: "/" },
+  // No canonical here: it would reach the account, checkout, admin and
+  // receipt pages, telling search engines each of them is the home page.
+  // Public pages set their own (app/[locale]/layout.tsx and each page).
   openGraph: openGraphFor(
     "/",
     "Crack APSC from North Lakhimpur",
     "Classroom, night batch, and the ICT app, with faculty you can watch teach on YouTube before you pay anything."
   ),
   twitter: { card: "summary_large_image" },
+  verification: siteVerification,
   robots: indexable
     ? { index: true, follow: true }
     : { index: false, follow: false },
@@ -130,7 +138,7 @@ export default function RootLayout({
           here, in the server layout: the same script inside ThemeProvider is
           a client render, and React 19 will not execute it.
         */}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript() }} />
+        <InlineScript code={themeInitScript()} />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -138,38 +146,13 @@ export default function RootLayout({
           }}
         />
         <Providers>
-          {/*
-            WCAG 2.4.1, Level A. The header renders the whole navigation before the
-            content on every page, so without this a keyboard or switch user tabs
-            through it again on each route.
-          */}
-          <a
-            href="#main"
-            className="sr-only rounded-control bg-primary px-4 py-2 text-primary-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-100"
-          >
-            Skip to content
-          </a>
-          {/*
-            SiteChrome decides whether this route gets the public header, footer, edge
-            blur and call bar. /admin gets none of them:
-          */}
-          <SiteChrome>
-            <div id="main" tabIndex={-1} className="outline-none">
-              {children}
-            </div>
-          </SiteChrome>
+          {children}
           {/*
             The intercepted /login and /register routes render here, over the
             page the visitor was already on. app/@authModal/default.tsx keeps
             this empty the rest of the time.
           */}
           {authModal}
-          {/*
-            Palette comparison harness, development only. Never reaches a
-            visitor; delete with components/dev/theme-preview.tsx once KIT-67
-            picks a palette.
-          */}
-          {process.env.NODE_ENV === "development" ? <ThemePreview /> : null}
         </Providers>
       </body>
     </html>

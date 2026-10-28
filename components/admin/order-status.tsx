@@ -1,18 +1,25 @@
 import { Badge } from "@/components/ui/badge"
 
 /** Where an order is, weighted by whether it still needs someone. */
-export function OrderStatusBadge({ status }: { status: string }) {
+export function OrderStatusBadge({
+  status,
+  refundDue = false,
+}: {
+  status: string
+  /** Cancelled after payment: still the owner's to settle, so not quiet. */
+  refundDue?: boolean
+}) {
+  if (status === "cancelled" && refundDue)
+    return (
+      <Badge variant="solid" className="gap-1.5">
+        <span
+          aria-hidden="true"
+          className="size-1.5 shrink-0 rounded-full bg-foreground"
+        />
+        Cancelled · refund owed
+      </Badge>
+    )
   switch (status) {
-    case "awaiting_payment":
-      return (
-        <Badge className="gap-1.5">
-          <span
-            aria-hidden="true"
-            className="size-1.5 shrink-0 rounded-full border border-muted-foreground"
-          />
-          Awaiting payment
-        </Badge>
-      )
     case "paid":
       return (
         <Badge variant="solid" className="gap-1.5">
@@ -21,16 +28,6 @@ export function OrderStatusBadge({ status }: { status: string }) {
             className="size-1.5 shrink-0 rounded-full bg-foreground"
           />
           Paid
-        </Badge>
-      )
-    case "packed":
-      return (
-        <Badge variant="solid" className="gap-1.5">
-          <span
-            aria-hidden="true"
-            className="size-1.5 shrink-0 rounded-full bg-foreground"
-          />
-          Packed
         </Badge>
       )
     case "ready_for_collection":

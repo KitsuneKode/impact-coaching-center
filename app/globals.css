@@ -1,68 +1,80 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./typeset.css";
+@import "./pulse.css";
+
+/* dark: utilities follow the site's theme switch, not the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
- * ICT design system.
+ * ICT design system: Pulse.
  *
- * Register: calm editorial, after kobbe.io. Near-white ground, Inter only,
- * two-tone paragraphs instead of shouting headlines, hairlines instead of
- * boxes, and colour spent only where it carries meaning.
+ * Blue, amber and ink on a cool paper ground. Unbounded for headings,
+ * Figtree for reading, Anek Bangla for Assamese.
  *
- * Colour roles, all taken from the ICT logo:
- *   ink     the "CAREER TUTORIALS" graphite, deepened  -> text and every CTA
- *   blue    #1B72C4, the I-beam and IMPACT wordmark    -> links, focus, brand
- *   amber   #F9AE42, the pen nib                       -> the highlighter mark only
- *   green   #2FB04A, the two bars                      -> "verified" results only
+ * Colour roles:
+ *   blue   #1F5FD1  actions, links, focus, the hero field
+ *   amber  #FFC24A  one highlight per view: the main call to action, marks
+ *   ink    #0B1633  text, and the dark panels
+ *   green           "verified" results only
+ * Measured on the paper ground: ink 16.9:1, muted 6.0:1, blue 5.3:1;
+ * white on blue 5.7:1. Amber is never text on paper.
  *
  * Radius rule, no exceptions:
- *   control (button, input, chip) -> --radius-control 10px
- *   surface (card, panel, frame)  -> --radius-card    16px
+ *   control (button, input, chip) -> --radius-control 12px
+ *   surface (card, panel, frame)  -> --radius-card    20px
  */
 
 :root {
-  --background: oklch(0.984 0.003 85);
-  --foreground: oklch(0.205 0.006 262);
+  --background: oklch(97.6% 0.006 264.5);
+  --foreground: oklch(20.9% 0.059 265.9);
 
-  /* panels sit one step below the ground, the way kobbe's pricing panels do */
-  --surface: oklch(0.962 0.004 85);
-  --card: oklch(0.997 0.001 85);
+  /* panels sit one step into the blue */
+  --surface: oklch(95.4% 0.015 260.7);
+  --card: oklch(100% 0 none);
   --card-foreground: var(--foreground);
   --popover: var(--card);
   --popover-foreground: var(--foreground);
 
-  --primary: oklch(0.225 0.006 262);
-  --primary-foreground: oklch(0.985 0.002 85);
+  --primary: oklch(51.6% 0.188 261);
+  /* Blue as text or a thin mark. The same blue in light mode; in dark the
+     surfaces need a deep blue (white on it) and text a bright one (on the
+     dark ground), which no single blue gives both. */
+  --primary-ink: var(--primary);
+  --primary-foreground: oklch(100% 0 none);
+  /* the pressed blue, and the muted text that sits on a blue field */
+  --primary-deep: oklch(42.1% 0.151 261.2);
+  --on-primary: oklch(94% 0.028 262.8);
 
-  --secondary: oklch(0.945 0.004 85);
+  --secondary: oklch(94.7% 0.015 260.7);
   --secondary-foreground: var(--foreground);
 
-  --muted: oklch(0.945 0.004 85);
-  --muted-foreground: oklch(0.5 0.008 262);
+  --muted: var(--secondary);
+  --muted-foreground: oklch(48.8% 0.049 262.7);
 
-  --accent: oklch(0.945 0.004 85);
+  --accent: var(--secondary);
   --accent-foreground: var(--foreground);
 
-  --brand: oklch(0.52 0.155 253);
-  --highlight: oklch(0.85 0.14 78);
+  --brand: var(--primary);
+  /* The brand ink as a material, the same in both themes: text on amber,
+     ink panels, the strip. --foreground is the reading colour and flips. */
+  --ink-fixed: oklch(20.9% 0.059 265.9);
+  /* What shadows are tinted with: the ink here, near-black in dark. */
+  --shade: var(--foreground);
+  --highlight: oklch(84.9% 0.149 80.9);
+  /* the highlight, lifted for hover */
+  --highlight-hover: color-mix(in oklch, var(--highlight), white 22%);
   --verified: oklch(0.56 0.14 150);
 
   --destructive: oklch(0.56 0.2 27);
-  --destructive-foreground: oklch(0.985 0.002 85);
+  --destructive-foreground: oklch(100% 0 none);
 
-  --border: oklch(0.205 0.006 262 / 9%);
-  --input: oklch(0.205 0.006 262 / 14%);
+  --border: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --input: color-mix(in oklch, var(--foreground) 16%, transparent);
   --ring: var(--brand);
 
-  /*
-   * The sidebar family the registry block expects.
-   *
-   * Declared as references rather than values, so every theme variant -
-   * elegance, twilight and both dark cuts - reaches the admin chrome without
-   * a second set of overrides. @shadcn/lint caught their absence: undeclared
-   * theme colours generate no CSS, so the sidebar would have rendered
-   * completely unstyled rather than merely off-palette.
-   */
+  /* The sidebar family the shadcn sidebar block expects. */
   --sidebar: var(--surface);
   --sidebar-foreground: var(--foreground);
   --sidebar-primary: var(--primary);
@@ -72,144 +84,115 @@
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
 
-  --radius: 0.625rem;
-  --radius-control: 0.625rem;
-  --radius-card: 1rem;
+  --radius: 0.75rem;
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  /* For something moving across the screen, not entering or leaving. */
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  /* A critically damped spring, response 0.175 s, settled in 0.24 s
+     (hooks/use-draw-in.ts). */
+  --ease-spring: linear(
+    0,
+    0.0596,
+    0.186,
+    0.3294,
+    0.4656,
+    0.584,
+    0.6819,
+    0.7601,
+    0.821,
+    0.8677,
+    0.9029,
+    0.9292,
+    0.9487,
+    0.963,
+    0.9734,
+    0.9809,
+    0.9864,
+    0.9903,
+    0.9931,
+    0.9951,
+    0.9966,
+    0.9976,
+    1
+  );
 
   /* shadows tinted to the ink, never pure black */
   --shadow-frame:
-    0 1px 1px oklch(0.205 0.006 262 / 0.04),
-    0 8px 24px -12px oklch(0.205 0.006 262 / 0.12);
+    0 1px 1px color-mix(in oklch, var(--foreground) 4%, transparent),
+    0 8px 24px -12px color-mix(in oklch, var(--foreground) 14%, transparent);
   --shadow-lift:
-    0 2px 4px oklch(0.205 0.006 262 / 0.05),
-    0 24px 48px -20px oklch(0.205 0.006 262 / 0.22);
+    0 2px 4px color-mix(in oklch, var(--foreground) 5%, transparent),
+    0 26px 48px -20px color-mix(in oklch, var(--foreground) 24%, transparent);
+
+  /* The sticky header's height; in-page links scroll clear of it. */
+  --header-height: 76px;
+  /* The promo strip's height while it shows; the header sticks under it. */
+  --strip-height: 0px;
 }
 
 /*
- * The two candidate palettes ICT picked, side by side, so the choice is made
- * by looking rather than by describing. Applied with `data-theme` on <html>;
- * the dev-only switcher in components/dev/theme-preview.tsx sets it.
- *
- * Both keep the near-white editorial ground. The palettes are dark-first, but
- * making navy the *ground* is a redesign rather than a palette swap - every
- * photograph, every course poster and the full-colour logo raster would have
- * to be re-judged. This shows the reversible half of the decision, which is
- * the half worth seeing first.
- *
- * Measured against the ground, not guessed:
- *   #14213D 15.3:1   #000814 19.3:1   #003566 11.8:1   -> body text
- *   #FCA311  1.94:1  #FFC300  1.54:1  #FFD60A  1.35:1  -> NEVER text
- * The golds are a surface, a highlighter and an accent. Nothing else.
+ * Dark: the same ink, paper and blue, turned over. The ground is the brand
+ * ink a step deeper, cards one step lighter than it, text the paper. Blue
+ * and green lift so they still read on ink; amber stays the one highlight.
+ * Shadows go to near-black, since the ink-tinted ones would glow.
+ * Measured on the dark ground: text 15.6:1, muted 7.1:1, blue links 4.9:1;
+ * white on the blue fill 4.6:1.
  */
+:root[data-theme="dark"] {
+  --background: oklch(16.5% 0.037 266);
+  --foreground: oklch(95.5% 0.012 262);
 
-/* Black & Gold Elegance: white ground, grey panels, black ink, navy actions. */
-:root[data-theme="elegance"] {
-  --background: oklch(1 0 89.9);
-  --surface: oklch(0.922 0 89.9);
-  --card: oklch(1 0 89.9);
-  --secondary: oklch(0.955 0 89.9);
-  --muted: oklch(0.955 0 89.9);
-  --accent: oklch(0.955 0 89.9);
+  --surface: oklch(20% 0.042 265);
+  --card: oklch(21.5% 0.043 265);
 
-  --foreground: oklch(0 0 0);
-  --muted-foreground: oklch(0.48 0.012 264);
+  --primary: oklch(50.5% 0.18 261);
+  --primary-ink: oklch(74% 0.13 258);
+  --primary-foreground: oklch(100% 0 none);
+  --primary-deep: oklch(44% 0.16 261);
+  --on-primary: oklch(94% 0.028 262.8);
 
-  --primary: oklch(0.252 0.056 264);
-  --primary-foreground: oklch(1 0 89.9);
-  --brand: oklch(0.252 0.056 264);
-  --highlight: oklch(0.786 0.167 70);
+  --secondary: oklch(26.5% 0.045 264);
+  --muted-foreground: oklch(73% 0.035 262);
 
-  --border: oklch(0.252 0.056 264 / 12%);
-  --input: oklch(0.252 0.056 264 / 18%);
+  --highlight-hover: color-mix(in oklch, var(--highlight), white 18%);
+  --verified: oklch(0.72 0.15 150);
+  --destructive: oklch(0.66 0.19 27);
+
+  --border: color-mix(in oklch, var(--foreground) 12%, transparent);
+  --input: color-mix(in oklch, var(--foreground) 18%, transparent);
+  --shade: oklch(5% 0.02 266);
+
+  --shadow-frame:
+    0 1px 1px oklch(0% 0 none / 0.25), 0 8px 24px -12px oklch(0% 0 none / 0.5);
+  --shadow-lift:
+    0 2px 4px oklch(0% 0 none / 0.25), 0 26px 48px -20px oklch(0% 0 none / 0.6);
 }
 
-/*
- * The dark half of the same two palettes: navy as the ground rather than an
- * accent. This is the direction both palettes were actually designed for.
- *
- * The number that decides it: gold is unusable as text on white (1.5-1.9:1)
- * and comfortable on dark (7.9-12.5:1). On a light ground the gold can only
- * ever be a highlighter; on a dark one it can carry a CTA, a link and a
- * heading. Whether that is worth re-judging every photograph, every course
- * poster and the full-colour logo raster is the KIT-67 decision.
- *
- *   #FFFFFF on #000000 21.00:1   #FCA311 on #000000 10.39:1
- *   #FFFFFF on #000814 20.10:1   #FFC300 on #000814 12.50:1
- *   #FCA311 on #14213D  7.90:1   #FFD60A on #001D3D 11.97:1
- */
-
-/* Black & Gold Elegance, dark: black ground, navy panels, gold actions. */
-:root[data-theme="elegance-dark"] {
-  --background: oklch(0 0 0);
-  --surface: oklch(0.252 0.056 264);
-  --card: oklch(0.18 0.04 264);
-  --secondary: oklch(0.252 0.056 264);
-  --muted: oklch(0.252 0.056 264);
-  --accent: oklch(0.252 0.056 264);
-  --popover: oklch(0.18 0.04 264);
-  --popover-foreground: oklch(1 0 89.9);
-  --card-foreground: oklch(1 0 89.9);
-
-  --foreground: oklch(1 0 89.9);
-  --muted-foreground: oklch(0.75 0.01 264);
-
-  --primary: oklch(0.786 0.167 70);
-  --primary-foreground: oklch(0 0 0);
-  --secondary-foreground: oklch(1 0 89.9);
-  --accent-foreground: oklch(1 0 89.9);
-  --brand: oklch(0.786 0.167 70);
-  --highlight: oklch(0.786 0.167 70);
-  --verified: oklch(0.72 0.16 150);
-
-  --border: oklch(1 0 89.9 / 14%);
-  --input: oklch(1 0 89.9 / 20%);
+/* Unlayered, like the :root tokens above, or they would win. */
+:root:has([data-promo-strip]:not([data-hidden])) {
+  --strip-height: 2.75rem;
 }
-
-/* Golden Twilight, dark: the palette read the way it was drawn. */
-:root[data-theme="twilight-dark"] {
-  --background: oklch(0.131 0.034 246.6);
-  --surface: oklch(0.231 0.071 252.9);
-  --card: oklch(0.19 0.06 250);
-  --secondary: oklch(0.231 0.071 252.9);
-  --muted: oklch(0.231 0.071 252.9);
-  --accent: oklch(0.328 0.1 252.6);
-  --popover: oklch(0.19 0.06 250);
-  --popover-foreground: oklch(0.99 0.002 90);
-  --card-foreground: oklch(0.99 0.002 90);
-
-  --foreground: oklch(0.99 0.002 90);
-  --muted-foreground: oklch(0.76 0.03 250);
-
-  --primary: oklch(0.848 0.174 86.1);
-  --primary-foreground: oklch(0.131 0.034 246.6);
-  --secondary-foreground: oklch(0.99 0.002 90);
-  --accent-foreground: oklch(0.99 0.002 90);
-  --brand: oklch(0.885 0.181 94.8);
-  --highlight: oklch(0.848 0.174 86.1);
-  --verified: oklch(0.72 0.16 150);
-
-  --border: oklch(0.99 0.002 90 / 14%);
-  --input: oklch(0.99 0.002 90 / 20%);
-}
-
-/* Golden Twilight: the same ground, a deeper ink and a brighter gold. */
-:root[data-theme="twilight"] {
-  --foreground: oklch(0.131 0.034 246.6);
-  --muted-foreground: oklch(0.46 0.03 250);
-
-  --primary: oklch(0.231 0.071 252.9);
-  --primary-foreground: oklch(0.985 0.002 85);
-  --brand: oklch(0.328 0.1 252.6);
-  --highlight: oklch(0.848 0.174 86.1);
-
-  --border: oklch(0.131 0.034 246.6 / 10%);
-  --input: oklch(0.131 0.034 246.6 / 16%);
+@media (width >= 48rem) {
+  :root:has([data-promo-strip]:not([data-hidden])) {
+    --strip-height: 3rem;
+  }
 }
 
 @theme inline {
+  --color-ink: var(--ink-fixed);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --font-as: var(--font-as);
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --ease-out-strong: var(--ease-out-strong);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -220,6 +203,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-deep: var(--primary-deep);
+  --color-on-primary: var(--on-primary);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -228,6 +213,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-brand: var(--brand);
   --color-highlight: var(--highlight);
+  --color-highlight-hover: var(--highlight-hover);
   --color-verified: var(--verified);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -259,55 +245,81 @@
     border-color: var(--border);
   }
 
-  /*
-   * Atmosphere for the dark palettes, after patterncraft.fun's dark radial
-   * glow. Flat #000 is the single most lifeless ground available and it was
-   * making a considered palette look like a default one; the glow gives the
-   * page a light source, so the hero sits in something rather than on it.
-   *
-   * The navy is the palette's own second colour, not a new one - patterncraft
-   * ships this shape as rgb(13,26,54), which is within a hair of ICT's
-   * #14213D. Fixed attachment so the source stays put while the page scrolls
-   * rather than repeating down it.
-   */
-  :root[data-theme="elegance-dark"] body {
-    background-image: radial-gradient(
-      125% 125% at 50% 90%,
-      oklch(0 0 0) 40%,
-      oklch(0.252 0.056 264) 100%
-    );
-    background-attachment: fixed;
-  }
-
-  :root[data-theme="twilight-dark"] body {
-    background-image: radial-gradient(
-      125% 125% at 50% 90%,
-      oklch(0.131 0.034 246.6) 40%,
-      oklch(0.328 0.1 252.6) 100%
-    );
-    background-attachment: fixed;
-  }
-
   html {
     -webkit-tap-highlight-color: transparent;
-    scroll-behavior: smooth;
     scrollbar-gutter: stable;
+    /* In-page links land below the sticky header, with or without motion. */
+    scroll-padding-block-start: calc(
+      var(--header-height) + var(--strip-height)
+    );
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family:
-      var(--font-sans),
-      system-ui,
-      -apple-system,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
+      var(--font-sans), var(--font-as), system-ui, -apple-system, "Segoe UI",
+      Roboto, sans-serif;
+  }
+
+  /* Headings break into even lines; running text never leaves one word
+     alone on the last line. Classes and utilities still override both. */
+  :is(h1, h2, h3, h4) {
+    text-wrap: balance;
+  }
+  :is(p, li, dd, blockquote, figcaption) {
+    text-wrap: pretty;
+  }
+  /* Opening quotes hang outside the text edge where the browser can. */
+  blockquote {
+    hanging-punctuation: first;
   }
 
   .font-as {
     font-family: var(--font-as), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /*
+   * Assamese pages: Anek Bangla leads; Latin runs fall through to Figtree.
+   * Conjuncts, matras and the hanging headline need more room than Latin:
+   * looser leading, no negative tracking, and headings a step smaller, since
+   * Bengali-script glyphs sit larger than Latin at the same size.
+   */
+  /* On the element carrying lang only, so children inherit. As `:lang(as)`
+     it matched every span and reset the leading and face a heading set. */
+  [lang|="as"] {
+    font-family: var(--font-as), var(--font-sans), system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  :lang(as)
+    :is(
+      .type-hero,
+      .type-display,
+      .type-display-sm,
+      .type-lede,
+      .type-lead,
+      h1,
+      h2,
+      h3
+    ) {
+    font-family: var(--font-as), var(--font-sans), system-ui, sans-serif;
+    letter-spacing: 0;
+    line-height: 1.35;
+  }
+  :lang(as) .type-hero {
+    font-size: clamp(2rem, 4.6vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.25;
+  }
+  :lang(as) .type-display {
+    font-size: clamp(1.6rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.3;
   }
 
   .tnum {
@@ -367,31 +379,6 @@
     animation: mark-in 0.9s cubic-bezier(0.65, 0, 0.35, 1) 0.55s backwards;
   }
 
-  /*
-   * The highlighter has to change on a dark ground, not just change colour.
-   *
-   * At 62% over near-white it reads as a marker stroke. The same 62% over
-   * black is a solid gold block with white text sitting on it - the contrast
-   * is bad and the effect is a high-visibility vest. On dark it becomes a
-   * band under the text instead: the same gesture, drawn rather than filled.
-   */
-  :root[data-theme="elegance-dark"] .mark,
-  :root[data-theme="twilight-dark"] .mark {
-    /*
-     * Positioned in em rather than percent. Percentages resolve against the
-     * line box, so a band tuned at 36px cuts straight through the letterforms
-     * at the 60px hero size - it stopped reading as a highlight and started
-     * reading as a strikethrough. In em it keeps the same relationship to the
-     * baseline at every size.
-     */
-    background-image: linear-gradient(
-      transparent calc(100% - 0.22em),
-      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.22em),
-      color-mix(in oklch, var(--highlight) 90%, transparent) calc(100% - 0.06em),
-      transparent calc(100% - 0.06em)
-    );
-  }
-
   /* entry for above-the-fold content: CSS, so it paints without hydration */
   .enter {
     animation: enter-blur 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
@@ -420,27 +407,21 @@
    * display line and far too loose for a three-word claim at 60px.
    */
   .type-hero {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-optical-sizing: auto;
-    font-size: clamp(2.25rem, 5.2vw, 3.75rem);
-    font-weight: 400;
-    /* A serif sets tighter than a grotesque at the same measure: its
-       counters are smaller and its serifs already carry the eye along the
-       line, so the leading that felt right for Inter reads gappy here. */
+    font-family: var(--font-display), var(--font-as), system-ui, sans-serif;
+    font-size: clamp(2.25rem, 5.4vw, 4.25rem);
+    font-weight: 600;
+    /* Unbounded is wide: tight leading and tracking keep a claim a block. */
     line-height: 1.02;
-    /* Negative tracking is a grotesque habit. Fraunces at display opsz is
-       already tightly fitted; pulling it further closes the joins. */
-    letter-spacing: -0.012em;
+    letter-spacing: -0.035em;
     text-wrap: balance;
   }
 
   .type-display {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-optical-sizing: auto;
-    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
-    font-weight: 400;
-    line-height: 1.18;
-    letter-spacing: -0.008em;
+    font-family: var(--font-display), var(--font-as), system-ui, sans-serif;
+    font-size: clamp(1.8rem, 3.6vw, 3rem);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
     text-wrap: balance;
   }
 
@@ -458,12 +439,12 @@
    * system seen at two distances, rather than as two typographic decisions.
    */
   .type-display-sm {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-optical-sizing: auto;
+    /* Working screens read for hours: Figtree, not the display face. */
+    font-family: var(--font-sans), var(--font-as), system-ui, sans-serif;
     font-size: clamp(1.375rem, 1.8vw, 1.75rem);
-    font-weight: 400;
-    line-height: 1.2;
-    letter-spacing: -0.006em;
+    font-weight: 700;
+    line-height: 1.16;
+    letter-spacing: -0.015em;
     text-wrap: balance;
   }
 
@@ -475,10 +456,37 @@
     text-wrap: balance;
   }
 
+  /*
+   * The lead: a section opener in one paragraph. A 700 sentence in ink runs
+   * straight into 400 muted text at the same size, so the claim and its
+   * explanation read as one thought:
+   *   <p class="type-lead"><strong>Numbers you can trust.</strong> Every bot…</p>
+   */
+  .type-lead {
+    font-size: clamp(1.25rem, 2.1vw, 1.625rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+  .type-lead :is(strong, b) {
+    font-weight: 700;
+    color: var(--foreground);
+  }
+
+  /* In every lead-style heading the claim is 700 and its explanation 400. */
+  :is(.type-lede, .type-display, .type-display-sm) > .text-foreground {
+    font-weight: 700;
+  }
+  :is(.type-lede, .type-display, .type-display-sm) > .text-muted-foreground {
+    font-weight: 400;
+  }
+
   /* the quiet label above a lede: body size, medium, grey */
   .type-label {
-    font-size: 1rem;
-    font-weight: 500;
+    font-size: 0.9375rem;
+    font-weight: 400;
     color: var(--muted-foreground);
   }
 
@@ -524,15 +532,20 @@
   }
 }
 
+/* A row that scrolls sideways on a phone without showing a scrollbar. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility container-page {
   margin-inline: auto;
   width: 100%;
-  max-width: 76rem;
-  padding-inline: 1.25rem;
-
-  @media (min-width: 768px) {
-    padding-inline: 2rem;
-  }
+  /* Pulse's measure: 1240px, gutters 20px on phones to 32px from tablets. */
+  max-width: 77.5rem;
+  padding-inline: clamp(1.25rem, 0.4rem + 2.6vw, 2rem);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -544,5 +557,1526 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Typeset (ui.shadcn.com/docs/typeset) for long-form Markdown: blog posts
+ * and their editor preview. The preset keeps the site's own system rather
+ * than Typeset's defaults: Anek in both scripts, 700 and 400 only, links at
+ * body weight with the site underline, looser leading for Assamese.
+ */
+@layer components {
+  .typeset-docs {
+    --typeset-font-body:
+      var(--font-sans), var(--font-as), system-ui, sans-serif;
+    --typeset-font-heading:
+      var(--font-sans), var(--font-as), system-ui, sans-serif;
+    --typeset-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --typeset-size: 16px;
+    --typeset-leading: 1.75;
+    --typeset-flow: 1.25em;
+    /* Typeset reads 18px on phones; a desk screen sits further from the
+       eye, so the text stays 18px there too instead of dropping to 16. */
+    @media (min-width: 48rem) {
+      --typeset-size: 18px;
+    }
+  }
+  .typeset-docs:lang(as) {
+    --typeset-font-body:
+      var(--font-as), var(--font-sans), system-ui, sans-serif;
+    --typeset-font-heading:
+      var(--font-as), var(--font-sans), system-ui, sans-serif;
+    --typeset-leading: 1.85;
+  }
+  .typeset-docs :where(h1, h2, h3, h4, strong, b, thead th, dt, summary) {
+    font-weight: 700;
+  }
+  .typeset-docs :where(h5, h6, kbd, tbody th, tfoot th) {
+    font-weight: 400;
+  }
+  .typeset-docs :where(a) {
+    font-weight: 400;
+    text-underline-offset: 4px;
+  }
+  .typeset-docs :where(h1, h2, h3, h4) {
+    text-wrap: balance;
+  }
+  .typeset-docs:lang(as) :where(h1, h2, h3, h4) {
+    line-height: 1.45;
+    letter-spacing: 0;
+  }
+}
+
+/*
+ * Site header (components/site/site-header.tsx), Pulse's exactly. Paper by
+ * default; white over a blue hero until it sticks; frosted paper once stuck.
+ */
+@layer components {
+  [data-site-header] {
+    position: sticky;
+    /* Under the promo strip, which sticks too (the client asked for both). */
+    inset-block-start: var(--strip-height);
+    z-index: 50;
+    block-size: var(--header-height);
+    /* Content starts underneath, so a hero never reflows. */
+    margin-block-end: calc(-1 * var(--header-height) - 1px);
+    color: var(--foreground);
+    transition: color 0.2s var(--ease-out-strong);
+  }
+  [data-site-header-row] {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    align-items: center;
+    /* The tools on the right sit as one cluster; the room goes either
+       side of the sections (or after the name, on a phone). */
+    gap: 0.25rem;
+    block-size: 100%;
+  }
+  [data-site-header-row] > a:first-of-type {
+    margin-inline-end: auto;
+  }
+  /* Scrolled: the header stays as a floating paper bar a little in from
+     the edges. A real element, so its edges can glide: useDrawIn sets
+     --bar-start/--bar-end to wrap whatever the row holds, and the edges
+     move on the same spring as the items. The bar is an empty box on its
+     own, so moving its edges lays out nothing else; a clip-path here left
+     a ghost of the shadow at the old width while the clip ran on the
+     compositor. Near-opaque paper, so no backdrop blur. */
+  [data-site-bar-wrap] {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+  [data-site-bar] {
+    position: absolute;
+    inset-block: 12px;
+    inset-inline: var(--bar-start, 0px) var(--bar-end, 0px);
+    border-radius: 20px;
+    background-color: color-mix(in oklch, var(--card) 97%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 9%, transparent),
+      0 10px 24px -6px color-mix(in oklch, var(--shade) 14%, transparent);
+  }
+  [data-site-header][data-stuck] [data-site-bar-wrap] {
+    opacity: 1;
+  }
+  [data-site-header][data-stuck] {
+    translate: 0 -6px;
+  }
+
+  /* Reading down, the promo strip folds up and the header rises into its
+     place; any scroll up brings the strip back (hooks/use-headroom.ts
+     writes data-chrome). The header itself never leaves. */
+  :root[data-chrome="hidden"]:not([data-menu-open]) [data-promo-strip] {
+    translate: 0 -100%;
+  }
+  :root[data-chrome="hidden"]:not([data-menu-open])
+    [data-site-header][data-stuck] {
+    translate: 0 calc(-1 * var(--strip-height) - 6px);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-site-header] {
+      transition:
+        color 0.2s var(--ease-out-strong),
+        translate 0.24s var(--ease-spring);
+    }
+    [data-site-bar] {
+      transition:
+        inset-inline-start 0.24s var(--ease-spring),
+        inset-inline-end 0.24s var(--ease-spring);
+    }
+    [data-site-bar-wrap] {
+      transition: opacity 0.2s var(--ease-out-strong);
+    }
+  }
+
+  /* The sections, in a pill of their own while the header is at the top. */
+  [data-site-nav] {
+    display: none;
+    margin-inline: auto;
+  }
+  [data-site-nav] [data-slot="navigation-menu-list"] {
+    padding: 4px;
+    border-radius: 999px;
+    background-color: color-mix(in oklch, var(--card) 72%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in oklch, var(--foreground) 8%, transparent);
+  }
+  [data-site-trigger] {
+    color: var(--muted-foreground);
+  }
+  [data-site-trigger]:is([data-current], [data-popup-open]) {
+    color: var(--foreground);
+  }
+  /* The sliding highlight (site-nav.tsx), under the section names. */
+  [data-site-nav] [data-slot="navigation-menu-list"] {
+    position: relative;
+  }
+  /* Spans the whole row and is clipped to one section: moving it changes
+     only the clip, which the compositor animates (no layout per frame). */
+  [data-nav-pill] {
+    position: absolute;
+    inset-block: 4px;
+    inset-inline: 0;
+    clip-path: inset(0 100% 0 0 round 999px);
+    background-color: var(--secondary);
+    opacity: 0;
+    pointer-events: none;
+  }
+  [data-nav-pill][data-shown] {
+    opacity: 1;
+  }
+  [data-site-trigger] {
+    position: relative;
+  }
+  [data-site-trigger][data-popup-open] [data-slot="navigation-menu-chevron"] {
+    rotate: 180deg;
+  }
+  [data-site-tools] {
+    display: none;
+    align-items: center;
+    gap: 0.375rem;
+    margin-inline-start: 0.25rem;
+    --fold-gap: 0.375rem;
+  }
+  [data-site-phone] {
+    justify-content: center;
+    min-inline-size: 2.75rem;
+    --fold-gap: 0.375rem;
+  }
+  /* On a phone: a call button the size of the other icons. */
+  @media (width < 40rem) {
+    [data-site-phone] {
+      inline-size: 40px;
+      min-inline-size: 0;
+      min-block-size: 40px;
+      border-radius: 999px;
+      box-shadow: inset 0 0 0 1px
+        color-mix(in oklch, currentColor 18%, transparent);
+    }
+    [data-site-phone] [data-fold-lg] {
+      display: none;
+    }
+  }
+  [data-site-header-row] > a:first-of-type {
+    --fold-gap: 0.75rem;
+  }
+  /* A slot whose item is absent (the cart while empty) takes no gap. */
+  [data-site-header-row] > [data-flip]:empty {
+    display: none;
+  }
+
+  /* What folds away when the header draws in (wide screens only): taken
+     out of the row and faded where it stands, riding along with the item
+     it belongs to, so the rest can close up around it. */
+  [data-fold],
+  [data-fold-lg] {
+    white-space: nowrap;
+  }
+  [data-brand-name] {
+    display: none;
+  }
+  @media (width >= 64rem) {
+    [data-site-nav],
+    [data-site-tools] {
+      display: flex;
+    }
+    [data-site-header-row] > a:first-of-type {
+      margin-inline-end: 0;
+    }
+    /* A hairline sets the number apart from the icon buttons. */
+    [data-site-phone] {
+      margin-inline-start: 0.5rem;
+      padding-inline-start: 0.875rem;
+    }
+    [data-site-phone]::before {
+      content: "";
+      position: absolute;
+      inset-inline-start: 0;
+      inset-block: 50% auto;
+      block-size: 1.25rem;
+      translate: 0 -50%;
+      border-inline-start: 1px solid
+        color-mix(in oklch, currentColor 22%, transparent);
+    }
+    [data-site-header][data-stuck] [data-site-phone] {
+      margin-inline-start: 0;
+      padding-inline-start: 0;
+    }
+    [data-site-header][data-stuck] [data-site-phone]::before {
+      display: none;
+    }
+    /* Scrolled: the icon buttons (search, cart, account, phone) sit as one
+       cluster 4px apart; the room goes either side of the sections. */
+    [data-site-header][data-stuck] [data-site-header-row] {
+      justify-content: center;
+      gap: 0.25rem;
+    }
+    [data-site-header][data-stuck] [data-site-nav] {
+      margin-inline: 0.75rem 1rem;
+    }
+    [data-site-header][data-stuck] [data-site-tools] {
+      gap: 0.25rem;
+      margin-inline-start: 0;
+    }
+    [data-site-header][data-stuck]
+      [data-site-nav]
+      [data-slot="navigation-menu-list"] {
+      background-color: transparent;
+      box-shadow: none;
+    }
+    [data-site-header][data-stuck] :is([data-fold], [data-fold-lg]) {
+      position: absolute;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    [data-site-header][data-stuck] [data-brand-name] {
+      inset-inline-start: calc(100% + 0.75rem);
+    }
+    [data-site-header][data-stuck] [data-site-tools] [data-fold] {
+      inset-inline-end: calc(100% + 0.5rem);
+    }
+    [data-site-header][data-stuck] [data-fold-lg] {
+      inset-inline-start: calc(100% + 0.375rem);
+    }
+  }
+  @media (width >= 80rem) {
+    [data-brand-name] {
+      display: inline;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    /* Out quickly; back in a beat after the row has opened up. */
+    [data-fold],
+    [data-fold-lg] {
+      transition:
+        opacity 0.2s var(--ease-out-strong) 0.1s,
+        visibility 0s linear 0s;
+    }
+    /* Gone before the row starts to close up, so nothing rides along
+       outside the bar as it draws in. */
+    [data-site-header][data-stuck] :is([data-fold], [data-fold-lg]) {
+      transition: none;
+    }
+    [data-site-nav] [data-slot="navigation-menu-list"] {
+      transition:
+        background-color 0.2s var(--ease-out-strong),
+        box-shadow 0.2s var(--ease-out-strong);
+    }
+    [data-site-trigger] {
+      transition: color 0.15s ease;
+    }
+    [data-nav-pill] {
+      transition:
+        clip-path 0.25s var(--ease-in-out-strong),
+        opacity 0.15s ease;
+    }
+    [data-slot="navigation-menu-chevron"] {
+      transition: rotate 0.2s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-site-trigger]:hover {
+      color: var(--foreground);
+    }
+  }
+  /* A jump (hooks/use-headroom.ts): the header changes in place. */
+  :root[data-chrome-jump]
+    :is(
+      [data-site-header],
+      [data-site-header] *,
+      [data-promo-strip],
+      [data-promo-strip] *
+    ) {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+
+  [data-menu-button] {
+    display: grid;
+    place-items: center;
+    inline-size: 44px;
+    block-size: 44px;
+    border-radius: 999px;
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--border);
+    transition:
+      background-color 0.2s var(--ease-out-strong),
+      box-shadow 0.2s var(--ease-out-strong);
+  }
+  [data-menu-button]:active {
+    scale: 0.96;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-menu-button] {
+      transition:
+        background-color 0.2s var(--ease-out-strong),
+        box-shadow 0.2s var(--ease-out-strong),
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+
+  /* Over a blue hero, before it sticks: white text, lifted off the photos. */
+  :root:has([data-hero="blue"]):not([data-menu-open])
+    [data-site-header]:not([data-stuck]) {
+    color: oklch(100% 0 none);
+
+    & [data-site-nav] [data-slot="navigation-menu-list"] {
+      background-color: color-mix(in oklch, white 12%, transparent);
+      box-shadow: 0 0 0 1px color-mix(in oklch, white 22%, transparent);
+    }
+    & [data-site-trigger] {
+      color: var(--on-primary);
+    }
+    & [data-site-trigger]:is([data-current], [data-popup-open]) {
+      color: oklch(100% 0 none);
+    }
+    & [data-nav-pill] {
+      background-color: color-mix(in oklch, white 16%, transparent);
+    }
+    & [data-site-header-row] > :not(:has([data-menu-button])) {
+      text-shadow:
+        0 1px 10px color-mix(in oklch, var(--ink-fixed) 60%, transparent),
+        0 0 22px color-mix(in oklch, var(--ink-fixed) 35%, transparent);
+    }
+    & [data-menu-button] {
+      background-color: oklch(100% 0 none);
+      /* Ink on the white disc in both themes. */
+      color: var(--ink-fixed);
+      box-shadow: none;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :root:has([data-hero="blue"]):not([data-menu-open])
+      [data-site-header]:not([data-stuck])
+      [data-site-trigger]:hover {
+      color: oklch(100% 0 none);
+    }
+  }
+}
+
+/* The announcement strip (components/site/promo-strip.tsx): an ink band that
+   folds shut into the top of the page. */
+@layer components {
+  [data-promo-strip] {
+    position: sticky;
+    inset-block-start: 0;
+    /* Level with the header, under dialogs and their overlays (also 50,
+       later in the document). */
+    z-index: 50;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    background-color: var(--ink-fixed);
+    color: oklch(100% 0 none);
+    transition: opacity 0.2s var(--ease-out-strong);
+  }
+  [data-promo-strip] p {
+    text-wrap: nowrap;
+  }
+  [data-promo-strip][data-hidden] {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  [data-promo-strip-body] {
+    color: color-mix(in oklch, var(--on-primary) 80%, var(--foreground));
+  }
+  [data-promo-strip-close] {
+    color: color-mix(in oklch, white 70%, transparent);
+    transition: color 0.15s var(--ease-out-strong);
+  }
+  [data-promo-strip-close]:active {
+    scale: 0.94;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-promo-strip] {
+      transition:
+        grid-template-rows 0.2s var(--ease-out-strong),
+        opacity 0.2s var(--ease-out-strong),
+        translate 0.24s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-promo-strip-close]:hover {
+      color: oklch(100% 0 none);
+    }
+  }
+}
+
+/* Site footer (components/site/site-footer.tsx). */
+@layer components {
+  [data-site-footer] {
+    position: relative;
+    overflow: clip;
+    padding-block-start: clamp(4rem, 2.6rem + 6.9vw, 7rem);
+    border-block-start: 1px solid var(--border);
+    color: var(--foreground);
+  }
+  [data-footer-brand] {
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    letter-spacing: -0.01em;
+  }
+  [data-footer-mark] {
+    border-radius: 999px;
+    background-color: oklch(100% 0 none);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  [data-footer-head] {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted-foreground);
+  }
+  [data-footer-link] {
+    font-size: 0.95rem;
+    color: var(--muted-foreground);
+    transition: color 0.15s var(--ease-out-strong);
+  }
+  [data-footer-seal] {
+    border-radius: 16px;
+    background-color: var(--secondary);
+    color: var(--foreground);
+    box-shadow: inset 0 0 0 1px var(--border);
+    transition: box-shadow 0.2s var(--ease-out-strong);
+  }
+  [data-footer-seal] svg {
+    color: var(--primary-deep);
+  }
+  [data-footer-seal]:active {
+    scale: 0.97;
+  }
+  [data-footer-icon] {
+    border-radius: 16px;
+    color: var(--muted-foreground);
+    transition:
+      color 0.15s var(--ease-out-strong),
+      background-color 0.15s var(--ease-out-strong);
+  }
+  [data-footer-icon]:active {
+    scale: 0.94;
+  }
+  [data-footer-box] {
+    border-radius: 16px;
+    box-shadow: inset 0 0 0 1px var(--border);
+    color: var(--muted-foreground);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-footer-seal] {
+      transition:
+        box-shadow 0.2s var(--ease-out-strong),
+        scale 0.16s var(--ease-out-strong);
+    }
+    [data-footer-icon] {
+      transition:
+        color 0.15s var(--ease-out-strong),
+        background-color 0.15s var(--ease-out-strong),
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-footer-link]:hover {
+      color: var(--foreground);
+    }
+    [data-footer-seal]:hover {
+      box-shadow: inset 0 0 0 1px
+        color-mix(in oklch, var(--foreground) 30%, transparent);
+    }
+    [data-footer-icon]:hover {
+      color: var(--foreground);
+      background-color: color-mix(in oklch, var(--primary) 10%, white);
+    }
+  }
+
+  /* The wordmark: faint, lit blue-to-amber under the mouse. */
+  [data-footer-word] {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    overflow: clip;
+    block-size: clamp(3.1rem, 0.5rem + 11.5vw, 11.5rem);
+    user-select: none;
+    font-family: var(--font-display), sans-serif;
+    font-weight: 600;
+    font-size: clamp(4.5rem, 1rem + 17vw, 17rem);
+    line-height: 0.8;
+    letter-spacing: -0.045em;
+    mask-image: linear-gradient(180deg, #000 55%, transparent);
+  }
+  /* Full width, so the light's mouse position (measured on the wrapper)
+     lands on the same box the mask is drawn in. */
+  [data-footer-word] > span {
+    grid-area: 1 / 1;
+    justify-self: stretch;
+    text-align: center;
+    white-space: nowrap;
+  }
+  [data-footer-word-base] {
+    color: color-mix(in oklch, var(--foreground) 7%, transparent);
+  }
+  [data-footer-word-base]::before,
+  [data-footer-word-lit]::before {
+    content: attr(data-word);
+  }
+  [data-footer-word-lit] {
+    background: linear-gradient(90deg, var(--primary), var(--highlight));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    opacity: 0;
+    mask-image: radial-gradient(
+      260px circle at var(--wx, 50%) var(--wy, 50%),
+      #000,
+      transparent 70%
+    );
+    transition: opacity 0.4s var(--ease-out-strong);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-footer-word]:hover [data-footer-word-lit] {
+      opacity: 1;
+    }
+  }
+}
+
+/* The header's search button and cart: 44px targets in the header's own colour. */
+@layer components {
+  [data-site-cart] {
+    position: relative;
+  }
+  [data-site-cart-count] {
+    position: absolute;
+    inset-block-start: 1px;
+    inset-inline-end: -1px;
+    min-inline-size: 18px;
+    block-size: 18px;
+    padding-inline: 4px;
+    border-radius: 999px;
+    background-color: var(--highlight);
+    color: var(--ink-fixed);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+  }
+  /* The header's icon buttons: 40px circles, 44px to a finger. */
+  :is([data-site-search="header"], [data-site-cart], [data-site-account]) {
+    position: relative;
+    display: grid;
+    place-items: center;
+    inline-size: 40px;
+    block-size: 40px;
+    border-radius: 999px;
+    color: inherit;
+  }
+  :is(
+    [data-site-search="header"],
+    [data-site-cart],
+    [data-site-account]
+  )::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+  }
+  :is(
+    [data-site-search="header"],
+    [data-site-cart],
+    [data-site-account]
+  ):active {
+    scale: 0.94;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :is([data-site-search="header"], [data-site-cart], [data-site-account]) {
+      transition:
+        background-color 0.15s ease,
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is(
+      [data-site-search="header"],
+      [data-site-cart],
+      [data-site-account]
+    ):hover {
+      background-color: color-mix(in oklch, currentColor 10%, transparent);
+    }
+  }
+
+  /* Arriving in the header (the cart's first item, the account once the
+     session is known): grows in from slightly small, out of a blur, so the
+     swap from a placeholder reads as one thing settling. */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-site-header] [data-arrive] {
+      animation: header-arrive 0.24s var(--ease-out-strong);
+    }
+    [data-site-cart-count] {
+      animation: badge-pop 0.28s var(--ease-out-strong);
+    }
+  }
+  @keyframes header-arrive {
+    from {
+      opacity: 0;
+      scale: 0.8;
+      filter: blur(4px);
+    }
+  }
+  @keyframes badge-pop {
+    0% {
+      scale: 0.4;
+    }
+    60% {
+      scale: 1.15;
+    }
+  }
+}
+
+/* The first-visit language question: a small card at the bottom, not a modal. */
+@layer components {
+  [data-language-prompt] {
+    position: fixed;
+    inset-inline: 1rem;
+    inset-block-end: 1rem;
+    z-index: 60;
+    margin-inline: auto;
+    max-inline-size: 26rem;
+    padding: 1rem;
+    border-radius: 24px;
+    background-color: var(--card);
+    color: var(--foreground);
+    box-shadow:
+      0 0 0 1px var(--border),
+      0 24px 48px -24px color-mix(in oklch, var(--shade) 45%, transparent);
+    outline: 2px solid transparent;
+    transition: opacity 0.2s ease-out;
+  }
+  [data-language-prompt][data-starting-style],
+  [data-language-prompt][data-ending-style] {
+    opacity: 0;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-language-prompt] {
+      transition:
+        opacity 0.24s var(--ease-out-strong),
+        translate 0.24s var(--ease-out-strong);
+    }
+    [data-language-prompt][data-starting-style],
+    [data-language-prompt][data-ending-style] {
+      translate: 0 0.75rem;
+    }
+  }
+  [data-language-choice] {
+    background-color: var(--secondary);
+    box-shadow: inset 0 0 0 1.5px transparent;
+  }
+  [data-language-choice="current"] {
+    box-shadow: inset 0 0 0 2px var(--primary);
+  }
+  [data-language-choice]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-language-choice]:active {
+    scale: 0.98;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-language-choice] {
+      transition:
+        background-color 0.15s ease,
+        scale 0.16s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-language-choice]:hover {
+      background-color: color-mix(
+        in oklch,
+        var(--secondary),
+        var(--foreground) 6%
+      );
+    }
+  }
+}
+
+/*
+ * Assamese headings. Many headings take the `font-display` utility (Unbounded,
+ * which has no Bengali-script glyphs); utilities outrank the base-layer
+ * :lang(as) rule, so Assamese headlines fell to a system font with negative
+ * tracking and broke their conjuncts (প্ৰ, স্ত). Inside Assamese content the
+ * display font becomes Anek Bangla, with Unbounded kept for Latin words, and
+ * tracking is reset: letter-spacing pulls Bengali-script clusters apart.
+ */
+html {
+  --font-display-latin: var(--font-display);
+}
+body :lang(as) {
+  --font-display: var(--font-as), var(--font-display-latin), sans-serif;
+}
+@layer utilities {
+  :lang(as) :is(.font-display, h1, h2, h3, [class*="tracking-"]) {
+    letter-spacing: 0;
+  }
+  /* Matras and conjuncts stack above and below the line: Latin display
+     leading (1.0-1.1) makes Assamese headline lines touch. */
+  :lang(as) :is(.font-display, h1, h2, h3) {
+    line-height: 1.24;
+  }
+  /* Heading measures are set in `ch`, the width of a Latin "0"; Assamese
+     words run wider, so a 14ch headline broke a word to a line. */
+  :lang(as) :is(h1, h2, h3)[class*="max-w-["] {
+    max-inline-size: 16em;
+  }
+}
+/* Blue text in dark mode takes the bright ink (--primary-ink), while
+   bg-primary keeps the deep blue that white text needs. */
+@layer utilities {
+  :root[data-theme="dark"] :is(.text-primary, .hover\:text-primary:hover) {
+    color: var(--primary-ink);
+  }
+}
+
+/*
+ * The sign-in code boxes (components/ui/input-otp.tsx, after Kobra's): a
+ * ring that glides between boxes, a sweep when a code is pasted, a wave
+ * across the digits while it is checked, and a bounce when it is right.
+ */
+:root {
+  --otp-wave-duration: 1150ms;
+  --otp-wave-stagger: 70ms;
+  --otp-wave-dim: 0.28;
+  --otp-trail-duration: 400ms;
+  --otp-trail-stagger: 45ms;
+  --otp-trail-width: 3px;
+  --otp-trail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --otp-trail-color: color-mix(in oklch, var(--primary) 45%, transparent);
+  --otp-success-duration: 340ms;
+  --otp-success-stagger: 48ms;
+  --otp-success-width: 3px;
+  --otp-success-color: var(--primary);
+  --otp-bounce-duration: 420ms;
+  --otp-bounce-lift: 8px;
+}
+@keyframes otp-trail {
+  from {
+    box-shadow: 0 0 0 var(--otp-trail-width) var(--otp-trail-color);
+  }
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes otp-trail-success {
+  0%,
+  24% {
+    box-shadow: 0 0 0 var(--otp-success-width) var(--otp-success-color);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes otp-bounce {
+  0% {
+    transform: translateY(0);
+    animation-timing-function: var(--otp-trail-ease);
+  }
+  22% {
+    transform: translateY(calc(var(--otp-bounce-lift) * -1));
+    animation-timing-function: linear;
+  }
+  38% {
+    transform: translateY(calc(var(--otp-bounce-lift) * -1));
+    animation-timing-function: cubic-bezier(0.4, 0, 0.5, 1);
+  }
+  60% {
+    transform: translateY(calc(var(--otp-bounce-lift) * 0.3));
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  78% {
+    transform: translateY(calc(var(--otp-bounce-lift) * -0.15));
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  92% {
+    transform: translateY(calc(var(--otp-bounce-lift) * 0.06));
+    animation-timing-function: cubic-bezier(0.33, 0, 0.67, 1);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes otp-processing {
+  0%,
+  40%,
+  100% {
+    opacity: 1;
+  }
+  16% {
+    opacity: var(--otp-wave-dim);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .otp-processing {
+    animation: otp-processing var(--otp-wave-duration) ease-in-out
+      calc(var(--otp-wave-index) * var(--otp-wave-stagger)) infinite both;
+  }
+  .otp-trail {
+    animation: otp-trail var(--otp-trail-duration) var(--otp-trail-ease)
+      calc(var(--otp-trail-index) * var(--otp-trail-stagger)) forwards;
+  }
+  .otp-trail-success {
+    animation: otp-trail-success var(--otp-success-duration)
+      cubic-bezier(0.33, 0, 0.67, 1)
+      calc(var(--otp-trail-index) * var(--otp-success-stagger)) forwards;
+  }
+  .otp-bounce {
+    animation: otp-bounce var(--otp-bounce-duration) linear
+      calc(var(--otp-trail-index) * var(--otp-success-stagger)) forwards;
+  }
+}
+/* A refused code: the boxes shake once, a short no. */
+@keyframes otp-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+  20%,
+  60% {
+    translate: -6px;
+  }
+  40%,
+  80% {
+    translate: 6px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .otp-shake {
+    animation: otp-shake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+}
+
+/*
+ * The admin's upload target (components/admin/dropzone.tsx). It brightens
+ * when a file is dragged over the window, leans toward the file as it comes
+ * close (--lean-x and --lean-y, -1 to 1, set while dragging), and snaps back
+ * with a little overshoot when the file lands or leaves.
+ */
+@layer components {
+  [data-dropzone-stage] {
+    perspective: 900px;
+  }
+  [data-dropzone] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    inline-size: 100%;
+    min-block-size: 9rem;
+    padding: 1.5rem;
+    border: 1.5px dashed color-mix(in oklch, var(--foreground) 22%, transparent);
+    border-radius: 20px;
+    background:
+      radial-gradient(
+          color-mix(in oklch, var(--ink-fixed) 10%, transparent) 1px,
+          transparent 1.3px
+        )
+        0 0 / 14px 14px,
+      var(--card);
+    text-align: center;
+    text-wrap: balance;
+    cursor: pointer;
+  }
+  [data-dropzone-icon] {
+    display: grid;
+    place-items: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    margin-block-end: 0.25rem;
+    border-radius: 14px;
+    background-color: var(--secondary);
+    color: var(--foreground);
+  }
+  [data-dropzone][data-near] {
+    border-color: color-mix(in oklch, var(--primary) 50%, transparent);
+  }
+  [data-dropzone][data-over] {
+    border-style: solid;
+    border-color: var(--primary);
+    background-color: color-mix(in oklch, var(--primary) 6%, var(--card));
+  }
+  [data-dropzone][data-over] [data-dropzone-icon] {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+  [data-dropzone]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+  [data-dropzone]:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  [data-drop-replace][data-over] {
+    outline: 2px dashed var(--primary);
+    outline-offset: 4px;
+    border-radius: 12px;
+  }
+
+  @keyframes dropzone-pop {
+    40% {
+      scale: 1.14;
+    }
+  }
+  @keyframes dropzone-breathe {
+    50% {
+      border-color: color-mix(in oklch, var(--primary) 20%, transparent);
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-dropzone] {
+      transform: translate(
+          calc(var(--lean-x, 0) * 8px),
+          calc(var(--lean-y, 0) * 8px)
+        )
+        rotateY(calc(var(--lean-x, 0) * 7deg))
+        rotateX(calc(var(--lean-y, 0) * -7deg));
+      transition:
+        transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        border-color 0.15s ease-out,
+        background-color 0.15s ease-out;
+    }
+    [data-dropzone][data-over] {
+      transition:
+        transform 0.12s ease-out,
+        border-color 0.15s ease-out,
+        background-color 0.15s ease-out;
+    }
+    [data-dropzone-icon] {
+      transform: translate(
+        calc(var(--lean-x, 0) * 6px),
+        calc(var(--lean-y, 0) * 6px)
+      );
+      transition:
+        transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background-color 0.15s ease-out,
+        color 0.15s ease-out,
+        scale 0.2s var(--ease-out-strong);
+    }
+    [data-dropzone][data-over] [data-dropzone-icon] {
+      scale: 1.08;
+    }
+    [data-dropzone][data-near]:not([data-over]) {
+      animation: dropzone-breathe 1.4s ease-in-out infinite;
+    }
+    [data-dropzone][data-landed] [data-dropzone-icon],
+    [data-drop-replace][data-landed] {
+      animation: dropzone-pop 0.42s var(--ease-out-strong);
+    }
+    [data-dropzone]:active:not(:disabled) {
+      scale: 0.99;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-dropzone]:not(:disabled):hover {
+      border-color: color-mix(in oklch, var(--foreground) 35%, transparent);
+    }
+  }
+}
+
+/* A key on the keyboard, in hints like the search box's footer. */
+@layer components {
+  [data-kbd] {
+    display: inline-grid;
+    place-items: center;
+    min-inline-size: 1.375rem;
+    block-size: 1.375rem;
+    padding-inline: 0.3rem;
+    border-radius: 0.375rem;
+    background-color: var(--secondary);
+    box-shadow: inset 0 -1px 0
+      color-mix(in oklch, var(--shade) 12%, transparent);
+    color: var(--foreground);
+    font-family: inherit;
+    font-size: 0.6875rem;
+    font-weight: 500;
+  }
+}
+
+/* A choice tile over a hidden radio (components/account/questionnaire-form.tsx):
+   the tick slides in when picked. */
+@layer components {
+  [data-choice] {
+    box-shadow: inset 0 0 0 1px transparent;
+  }
+  [data-choice]:has(:checked) {
+    background-color: color-mix(in oklch, var(--primary) 10%, var(--card));
+    box-shadow: inset 0 0 0 1.5px var(--primary);
+    color: var(--foreground);
+  }
+  [data-choice]:has(:focus-visible) {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-choice-tick] {
+    display: none;
+    color: var(--primary-ink);
+  }
+  [data-choice]:has(:checked) [data-choice-tick] {
+    display: block;
+  }
+  [data-choice]:active {
+    scale: 0.97;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-choice] {
+      transition:
+        background-color 0.15s var(--ease-out-strong),
+        box-shadow 0.15s var(--ease-out-strong),
+        scale 0.12s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-choice]:hover:not(:has(:checked)) {
+      box-shadow: inset 0 0 0 1px
+        color-mix(in oklch, var(--foreground) 18%, transparent);
+    }
+  }
+}
+
+/* The section panels under the header (components/site/site-nav.tsx). The
+   panel grows from the bar, and between sections it changes size and slides
+   the new list in from the side the pointer moved to. */
+@layer components {
+  [data-slot="navigation-menu-popup"] {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--foreground) 7%, transparent),
+      0 28px 56px -28px
+        color-mix(in oklch, var(--primary-deep) 50%, transparent);
+  }
+  [data-slot="navigation-menu-popup"]:is(
+    [data-starting-style],
+    [data-ending-style]
+  ) {
+    opacity: 0;
+  }
+  /* The list fades only when it is replaced by another section's. On the
+     first open it arrives with the panel: one fade, not one inside another. */
+  [data-slot="navigation-menu-content"][data-activation-direction]:is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+    opacity: 0;
+  }
+  /* Kept on its own layer while open, so the end of the opening does not
+     drop the layer and redraw the panel and its shadow a pixel off. */
+  [data-slot="navigation-menu-popup"][data-open] {
+    will-change: transform, opacity;
+  }
+  [data-menu-tile] {
+    color: var(--foreground);
+  }
+  [data-menu-icon] {
+    background-color: var(--secondary);
+    color: var(--primary-ink);
+  }
+  [data-menu-all] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-start: 0.25rem;
+    padding: 0.75rem 0.875rem;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary-ink);
+    background-color: var(--secondary);
+  }
+  [data-menu-tile]:active,
+  [data-menu-all]:active {
+    scale: 0.98;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-slot="navigation-menu-popup"] {
+      transition:
+        opacity 0.2s var(--ease-out-strong),
+        scale 0.2s var(--ease-out-strong),
+        width 0.2s var(--ease-out-strong),
+        height 0.2s var(--ease-out-strong);
+    }
+    [data-slot="navigation-menu-popup"]:is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+      scale: 0.97;
+    }
+    [data-slot="navigation-menu-popup"][data-ending-style] {
+      transition-duration: 0.14s;
+    }
+    [data-instant] {
+      transition-duration: 0s;
+    }
+    /* Between sections the old list is gone before the new one shows, so
+       the two never sit on top of each other mid-fade. */
+    [data-slot="navigation-menu-content"] {
+      transition:
+        opacity 0.16s var(--ease-out-strong) 0.06s,
+        translate 0.2s var(--ease-out-strong) 0.06s;
+    }
+    [data-slot="navigation-menu-content"][data-ending-style] {
+      transition:
+        opacity 0.06s linear,
+        translate 0.06s linear;
+    }
+    [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="right"],
+    [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="left"] {
+      translate: 0.5rem 0;
+    }
+    [data-slot="navigation-menu-content"][data-starting-style][data-activation-direction="left"],
+    [data-slot="navigation-menu-content"][data-ending-style][data-activation-direction="right"] {
+      translate: -0.5rem 0;
+    }
+    [data-menu-tile],
+    [data-menu-all],
+    [data-menu-icon] {
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        scale 0.12s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-menu-tile]:hover {
+      background-color: var(--secondary);
+    }
+    [data-menu-tile]:hover [data-menu-icon] {
+      background-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+    [data-menu-all]:hover {
+      background-color: var(--secondary);
+    }
+  }
+}
+
+/* Loading placeholders (components/ui/skeleton.tsx, and buttons waiting on
+   the session): one slow breath, the same for every block on the page. A
+   light sweeping each block ran at a speed set by the block's width, so a
+   page of them flickered out of step. Opacity only; still under reduced
+   motion. */
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-slot="skeleton"],
+    [data-wait] {
+      animation: skeleton-breathe 1.6s ease-in-out infinite;
+    }
+  }
+  @keyframes skeleton-breathe {
+    50% {
+      opacity: 0.55;
+    }
+  }
+}
+
+/* Command dialogs (site search, the admin's command menu) open high on the
+   screen and grow downward, so the input never moves as results change.
+   Unlayered: it has to beat the dialog's centring utilities. */
+[data-command-dialog] {
+  inset-block-start: clamp(1rem, 12dvh, 7rem);
+}
+
+/* Site search (components/site/site-search.tsx). */
+@layer components {
+  [data-search-kind] {
+    flex: none;
+    min-block-size: 2rem;
+    padding-inline: 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    background-color: var(--secondary);
+  }
+  [data-search-kind][aria-pressed="true"] {
+    color: var(--primary-foreground);
+    background-color: var(--primary);
+  }
+  [data-search-kind]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-search-kind]:active {
+    scale: 0.96;
+  }
+  [data-search-icon] {
+    display: grid;
+    flex: none;
+    place-items: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 10px;
+    background-color: var(--secondary);
+    color: var(--primary-ink);
+  }
+  [data-hit] {
+    background-color: color-mix(in oklch, var(--highlight) 45%, transparent);
+    color: inherit;
+    border-radius: 3px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-search-kind] {
+      transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        scale 0.12s var(--ease-out-strong);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-search-kind]:not([aria-pressed="true"]):hover {
+      color: var(--foreground);
+    }
+  }
+}
+
+/* A button that does something that cannot simply be undone. Unlayered, to
+   beat the button's own colour utilities. */
+[data-danger] {
+  background-color: var(--destructive);
+  color: oklch(100% 0 none);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-danger]:not(:disabled):hover {
+    background-color: color-mix(in oklch, var(--destructive), black 10%);
+  }
+}
+
+/*
+ * Raised buttons (components/ui/button.tsx, and the amber call to action).
+ * The surface is a layer under the label: a press sinks and flattens the
+ * plate while the words stay where the eye is. Light catches the top edge
+ * (inset lip), a darker ring draws the edge, and six stacked shadows tinted
+ * to the ink give it weight. Hover lights it; press takes the lift away.
+ */
+@layer components {
+  :is([data-raise], [data-cta]) {
+    position: relative;
+    isolation: isolate;
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  :is([data-raise], [data-cta])::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-color: var(--raise-fill);
+    box-shadow: var(--raise-shadow);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    :is([data-raise], [data-cta])::before {
+      transition:
+        scale 0.15s var(--ease-out-strong),
+        box-shadow 0.2s cubic-bezier(0.6, 0.6, 0, 1),
+        filter 0.2s cubic-bezier(0.6, 0.6, 0, 1);
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    :is([data-raise], [data-cta]):hover::before {
+      box-shadow: var(--raise-lifted, var(--raise-shadow));
+      filter: var(--raise-lit, none);
+    }
+  }
+  /* The plate sinks; the label does not move. */
+  :is([data-raise], [data-cta]):active {
+    scale: 1;
+  }
+  :is([data-raise], [data-cta]):active::before {
+    scale: 0.97;
+    box-shadow: var(--raise-pressed, var(--raise-shadow));
+    filter: none;
+  }
+
+  [data-raise="primary"],
+  [data-raise="flat-primary"] {
+    --raise-fill: var(--primary);
+    --raise-edge: color-mix(in oklch, var(--primary), black 32%);
+  }
+  [data-cta="amber"] {
+    --raise-fill: var(--highlight);
+    --raise-edge: color-mix(in oklch, var(--highlight), black 22%);
+  }
+  :is([data-raise="primary"], [data-cta="amber"]) {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.2),
+      inset 0 1px 2px -0.5px rgb(255 255 255 / 0.16),
+      inset 0 8px 24px -4px rgb(255 255 255 / 0.1),
+      inset 0 -4px 12px -4px rgb(0 0 0 / 0.08), 0 0 0 1px var(--raise-edge),
+      0 0.5px 0.5px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 2px 2px -1px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 5px 5px -2.5px color-mix(in oklch, var(--shade) 7%, transparent),
+      0 8px 8px -3px color-mix(in oklch, var(--shade) 6%, transparent),
+      0 12px 12px -6px color-mix(in oklch, var(--shade) 5%, transparent);
+    --raise-pressed:
+      inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 2px 6px rgb(0 0 0 / 0.12),
+      0 0 0 1px var(--raise-edge),
+      0 0.5px 0.5px color-mix(in oklch, var(--shade) 8%, transparent);
+    --raise-lit: brightness(1.08);
+  }
+
+  [data-raise="secondary"],
+  [data-raise="flat-secondary"] {
+    --raise-fill: var(--card);
+  }
+  [data-raise="secondary"] {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      inset 0 -1px 0 color-mix(in oklch, var(--shade) 5%, transparent),
+      inset 0 -6px 12px -6px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 9%, transparent),
+      0 0.5px 0.5px color-mix(in oklch, var(--shade) 5%, transparent),
+      0 2px 2px -1px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 3%, transparent),
+      0 5px 5px -2.5px color-mix(in oklch, var(--shade) 3%, transparent),
+      0 8px 8px -3px color-mix(in oklch, var(--shade) 2%, transparent);
+    --raise-lifted:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      inset 0 -1px 0 color-mix(in oklch, var(--shade) 5%, transparent),
+      inset 0 -6px 12px -6px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 12%, transparent),
+      0 1px 1px -0.5px color-mix(in oklch, var(--shade) 6%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 5%, transparent),
+      0 5px 5px -2.5px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 8px 8px -4px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 12px 12px -6px color-mix(in oklch, var(--shade) 3%, transparent);
+    --raise-pressed:
+      inset 0 1px 3px color-mix(in oklch, var(--shade) 8%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 10%, transparent);
+  }
+  /* A field-like control: the fill and a hairline, no lift. */
+  [data-raise="flat-secondary"] {
+    --raise-shadow: 0 0 0 1px var(--border);
+  }
+  [data-raise="flat-primary"] {
+    --raise-shadow: 0 0 0 1px var(--raise-edge);
+  }
+
+  /* The quieter call to action beside the amber one. On blue it is frosted
+     glass: a white plate at low opacity with a bright lip; on paper it is
+     the secondary plate. Same press, same lift, same edge as every button. */
+  [data-cta="ghost-blue"] {
+    --raise-fill: color-mix(in oklch, white 12%, transparent);
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.28),
+      inset 0 0 0 1px rgb(255 255 255 / 0.26), 0 1px 2px rgb(0 0 0 / 0.08),
+      0 6px 16px -8px rgb(0 0 0 / 0.25);
+    --raise-lifted:
+      inset 0 1px 0 rgb(255 255 255 / 0.34),
+      inset 0 0 0 1px rgb(255 255 255 / 0.38), 0 2px 4px rgb(0 0 0 / 0.1),
+      0 10px 22px -10px rgb(0 0 0 / 0.3);
+    --raise-pressed:
+      inset 0 1px 3px rgb(0 0 0 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.22);
+    --raise-lit: brightness(1.12);
+    color: white;
+  }
+  [data-cta="ghost-blue"]::before {
+    backdrop-filter: blur(10px) saturate(140%);
+  }
+  [data-cta="ghost-paper"] {
+    --raise-fill: var(--card);
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      inset 0 -1px 0 color-mix(in oklch, var(--shade) 5%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 10%, transparent),
+      0 1px 1px color-mix(in oklch, var(--shade) 5%, transparent),
+      0 3px 3px -1.5px color-mix(in oklch, var(--shade) 4%, transparent),
+      0 8px 8px -4px color-mix(in oklch, var(--shade) 3%, transparent);
+    --raise-lifted:
+      inset 0 1px 0 rgb(255 255 255 / 0.9),
+      0 0 0 1px color-mix(in oklch, var(--shade) 14%, transparent),
+      0 2px 2px color-mix(in oklch, var(--shade) 6%, transparent),
+      0 6px 10px -4px color-mix(in oklch, var(--shade) 6%, transparent),
+      0 12px 16px -8px color-mix(in oklch, var(--shade) 5%, transparent);
+    --raise-pressed:
+      inset 0 1px 3px color-mix(in oklch, var(--shade) 9%, transparent),
+      0 0 0 1px color-mix(in oklch, var(--shade) 11%, transparent);
+  }
+  :root[data-theme="dark"] [data-cta="ghost-paper"] {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      inset 0 0 0 1px rgb(255 255 255 / 0.1), 0 2px 2px -1px rgb(0 0 0 / 0.24),
+      0 8px 8px -4px rgb(0 0 0 / 0.18);
+    --raise-lifted: var(--raise-shadow);
+    --raise-lit: brightness(1.15);
+    --raise-pressed:
+      inset 0 1px 3px rgb(0 0 0 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+
+  /* Dark mode: the lip is a glint, not a white rim. */
+  :root[data-theme="dark"] [data-raise="secondary"] {
+    --raise-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      inset 0 0 0 1px rgb(255 255 255 / 0.08), 0 0.5px 0.5px rgb(0 0 0 / 0.3),
+      0 2px 2px -1px rgb(0 0 0 / 0.24), 0 5px 5px -2.5px rgb(0 0 0 / 0.18),
+      0 12px 12px -6px rgb(0 0 0 / 0.14);
+    --raise-lifted: var(--raise-shadow);
+    --raise-lit: brightness(1.15);
+    --raise-pressed:
+      inset 0 1px 3px rgb(0 0 0 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+}
+
+/* The phone menu's accordion (components/site/site-menu.tsx): a section
+   opens to its own height, its chevron turns, and the dock stays pinned. */
+@layer components {
+  [data-accordion-panel] {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  [data-accordion-panel][data-open] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  [data-accordion-chevron] {
+    flex: none;
+  }
+  [aria-expanded="true"] > [data-accordion-chevron] {
+    rotate: 180deg;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-accordion-panel] {
+      transition:
+        grid-template-rows 0.32s var(--ease-out-strong),
+        opacity 0.2s ease-out;
+    }
+    [data-accordion-chevron] {
+      transition: rotate 0.25s var(--ease-out-strong);
+    }
+  }
+  [data-menu-row]:active {
+    background-color: var(--secondary);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-menu-row]:hover {
+      background-color: var(--secondary);
+    }
+  }
+  [data-menu-dock] {
+    position: sticky;
+    inset-block-end: 0;
+    margin-block-start: auto;
+    border-block-start: 1px solid var(--border);
+    background-color: color-mix(in oklch, var(--background) 88%, transparent);
+    backdrop-filter: blur(16px) saturate(160%);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    [data-menu-dock] {
+      background-color: var(--background);
+      backdrop-filter: none;
+    }
   }
 }

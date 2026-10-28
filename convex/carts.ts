@@ -1,5 +1,6 @@
-import { v } from "convex/values"
+import { type Infer, v } from "convex/values"
 
+import { LINE_QUANTITY_MAX } from "../lib/catalog"
 import { invalidInput, mutationResult, viewerPerson } from "./authz"
 import type { Id } from "./_generated/dataModel"
 import {
@@ -8,50 +9,64 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server"
+import { LOCALE } from "./schema"
 
 /*
  * The signed-in shopper's cart. Guests keep theirs in localStorage and merge
  * here at sign-in; after that the server copy is the truth and the browser
- * mirrors it. Quantities are clamped the same way the local store caps them.
+ * mirrors it. A line is one bundle in one language.
  */
 
-/** Mirrors MAX_QUANTITY in lib/cart-store.ts. */
-const MAX_LINE_QUANTITY = 10
 /** A cart longer than this is a client bug, not a big shopper. */
-const MAX_LINES = 50
+const MAX_LINES = 10
 
 const CART_LINE = v.object({
   slug: v.string(),
+  language: LOCALE,
   quantity: v.number(),
   at: v.number(),
 })
 
-type Line = { slug: string; quantity: number; at: number }
+type Line = Infer<typeof CART_LINE>
+
+const keyOf = (line: Pick<Line, "slug" | "language">) =>
+  `${line.slug}:${line.language}`
 
 /** Clamp, dedupe and reject caller lines until the shape is cart-safe. */
 function cleanLines(lines: Line[]): Line[] | null {
   if (lines.length > MAX_LINES) return null
-  const bySlug = new Map<string, Line>()
+  const byKey = new Map<string, Line>()
   for (const line of lines) {
     if (!line.slug || line.slug.length > 120) return null
     if (!Number.isInteger(line.quantity)) return null
     if (!Number.isFinite(line.at)) return null
-    const quantity = Math.min(MAX_LINE_QUANTITY, line.quantity)
+    const quantity = Math.min(LINE_QUANTITY_MAX, line.quantity)
     if (quantity <= 0) continue
-    // Same slug twice: keep the newer, identical to the sign-in merge rule.
-    const kept = bySlug.get(line.slug)
+    // Same line twice: keep the newer, identical to the sign-in merge rule.
+    const kept = byKey.get(keyOf(line))
     if (!kept || line.at >= kept.at)
-      bySlug.set(line.slug, { ...line, quantity })
+      byKey.set(keyOf(line), { ...line, quantity })
   }
-  return [...bySlug.values()]
+  return [...byKey.values()]
 }
 
-/** The caller's cart row, if one exists yet. */
 async function readCart(ctx: QueryCtx | MutationCtx, personId: Id<"persons">) {
   return await ctx.db
     .query("carts")
     .withIndex("by_person", (q) => q.eq("personId", personId))
     .first()
+}
+
+async function writeCart(
+  ctx: MutationCtx,
+  personId: Id<"persons">,
+  lines: Line[],
+  at = Date.now()
+) {
+  const cart = await readCart(ctx, personId)
+  if (cart) await ctx.db.patch(cart._id, { lines, updatedAt: at })
+  else if (lines.length > 0)
+    await ctx.db.insert("carts", { personId, lines, updatedAt: at })
 }
 
 /** The signed-in shopper's cart; null when signed out. */
@@ -66,10 +81,7 @@ export const myCart = query({
   },
 })
 
-/**
- * Sign-in merge: union by slug, keeping whichever copy of a line is newer.
- * Replaying the same merge is a no-op, so a retried call cannot duplicate.
- */
+/** Sign-in merge: union by line, keeping the newer copy. Replays are no-ops. */
 export const mergeCart = mutation({
   args: { lines: v.array(CART_LINE) },
   returns: mutationResult({}),
@@ -80,7 +92,6 @@ export const mergeCart = mutation({
   },
 })
 
-/** The merge body, split out so it can be tested without a session. */
 export async function mergeCartAs(
   ctx: MutationCtx,
   personId: Id<"persons">,
@@ -88,64 +99,57 @@ export async function mergeCartAs(
 ) {
   const incoming = cleanLines(rawLines)
   if (!incoming) return invalidInput("lines")
-
   const cart = await readCart(ctx, personId)
   const merged = new Map<string, Line>()
-  for (const line of cart?.lines ?? []) merged.set(line.slug, line)
+  for (const line of cart?.lines ?? []) merged.set(keyOf(line), line)
   for (const line of incoming) {
-    const kept = merged.get(line.slug)
-    if (!kept || line.at >= kept.at) merged.set(line.slug, line)
+    const kept = merged.get(keyOf(line))
+    if (!kept || line.at >= kept.at) merged.set(keyOf(line), line)
   }
-  const lines = [...merged.values()]
-
-  if (cart) await ctx.db.patch(cart._id, { lines, updatedAt: Date.now() })
-  else
-    await ctx.db.insert("carts", {
-      personId,
-      lines,
-      updatedAt: Date.now(),
-    })
+  const lines = [...merged.values()].slice(0, MAX_LINES)
+  await writeCart(ctx, personId, lines)
   return { ok: true as const }
 }
 
-/**
- * One line's absolute quantity, stamped by the server so ordering between
- * devices is total rather than argued about. quantity <= 0 removes the line.
- */
+/** One line's absolute quantity; zero or less removes it. */
 export const setCartLine = mutation({
-  args: { slug: v.string(), quantity: v.number() },
+  args: { slug: v.string(), language: LOCALE, quantity: v.number() },
   returns: mutationResult({}),
   handler: async (ctx, args) => {
     const viewer = await viewerPerson(ctx)
     if (!viewer.ok) return viewer
-    return setCartLineAs(ctx, viewer.value.id, args.slug, args.quantity)
+    return setCartLineAs(ctx, viewer.value.id, args)
   },
 })
 
-/** The line write, split out so it can be tested without a session. */
 export async function setCartLineAs(
   ctx: MutationCtx,
   personId: Id<"persons">,
-  slug: string,
-  quantity: number
+  args: { slug: string; language: Line["language"]; quantity: number }
 ) {
-  if (!Number.isInteger(quantity)) return invalidInput("quantity")
-  if (!slug || slug.length > 120) return invalidInput("slug")
+  if (!Number.isInteger(args.quantity)) return invalidInput("quantity")
+  if (!args.slug || args.slug.length > 120) return invalidInput("slug")
 
   const cart = await readCart(ctx, personId)
   const at = Date.now()
-  const rest = (cart?.lines ?? []).filter((line) => line.slug !== slug)
-  /* The cap guards additions; a removal must always go through, or a cart
-     at the ceiling could never be emptied. */
-  if (quantity > 0 && rest.length >= MAX_LINES) return invalidInput("lines")
+  const rest = (cart?.lines ?? []).filter((line) => keyOf(line) !== keyOf(args))
+  // The cap guards additions; a removal always goes through.
+  if (args.quantity > 0 && rest.length >= MAX_LINES)
+    return invalidInput("lines")
+  // No cap on the order; one line stops at the typo guard.
+  const quantity = Math.min(LINE_QUANTITY_MAX, args.quantity)
+  const next = { slug: args.slug, language: args.language, quantity, at }
+  /* A changed line keeps its place, so the list being edited never jumps;
+     a new one goes at the end. */
   const lines =
-    quantity > 0
-      ? [...rest, { slug, quantity: Math.min(MAX_LINE_QUANTITY, quantity), at }]
-      : rest
-
-  if (cart) await ctx.db.patch(cart._id, { lines, updatedAt: at })
-  else if (lines.length > 0)
-    await ctx.db.insert("carts", { personId, lines, updatedAt: at })
+    args.quantity <= 0
+      ? rest
+      : (cart?.lines ?? []).some((line) => keyOf(line) === keyOf(args))
+        ? (cart?.lines ?? []).map((line) =>
+            keyOf(line) === keyOf(args) ? next : line
+          )
+        : [...rest, next]
+  await writeCart(ctx, personId, lines, at)
   return { ok: true as const }
 }
 

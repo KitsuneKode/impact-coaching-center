@@ -73,6 +73,8 @@ async function viewer(
     name: doc.name,
     phone: doc.phone,
     role: doc.role,
+    grants: doc.grants ?? [],
+    locale: doc.locale,
     verifiedAt: doc.verifiedAt,
     revision: doc.revision ?? 0,
   }
@@ -339,6 +341,46 @@ describe("working a lead", () => {
     expect(cleared).toEqual({ ok: true, revision: 2 })
     const lead = await t.run((ctx) => ctx.db.get(leadId))
     expect(lead?.nextFollowUpAt).toBeUndefined()
+  })
+
+  test("nothing new is written onto an erased account", async () => {
+    const { t, leadId, staff } = await setup()
+    await t.run((ctx) => ctx.db.patch(leadId, { deletedAt: Date.now() }))
+    const missing = { ok: false, reason: "missing-record" } as const
+    expect(
+      await t.run((ctx) =>
+        applyLeadStatus(ctx, staff, {
+          personId: leadId,
+          status: "contacted",
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual(missing)
+    expect(
+      await t.run((ctx) =>
+        appendLeadActivity(ctx, staff, {
+          personId: leadId,
+          kind: "note",
+          body: "Called back",
+        })
+      )
+    ).toEqual(missing)
+    expect(
+      await t.run((ctx) =>
+        applyFollowUp(ctx, staff, {
+          personId: leadId,
+          at: Date.now() + 86_400_000,
+          expectedRevision: 0,
+        })
+      )
+    ).toEqual(missing)
+    const activities = await t.run((ctx) =>
+      ctx.db
+        .query("activities")
+        .withIndex("by_person", (q) => q.eq("personId", leadId))
+        .collect()
+    )
+    expect(activities).toHaveLength(0)
   })
 
   test("a missing lead is reported as missing, not as an error", async () => {
@@ -612,7 +654,7 @@ describe("the queue's server-side filters", () => {
     expect(enrolled.page.map((row) => row.phone)).toEqual(["+919435260001"])
   })
 
-  test("a fragment page stops at numItems matches", async () => {
+  test("a fragment answer is every match up to the cap, not one short page", async () => {
     const t = convexTest(schema, modules)
     const staffId = await seed(t, "staff", { phone: "+919876500100" })
     const me = await viewer(t, staffId)
@@ -631,10 +673,12 @@ describe("the queue's server-side filters", () => {
         { view: "all", search: "943526" }
       )
     )
-    // Flat and done, queue order kept: the third match is simply not read.
+    // Flat and done, queue order kept, and the third match is not hidden
+    // behind a page of two that claims to be the end.
     expect(result.page.map((row) => row.phone)).toEqual([
       "+919435261120",
       "+919435261110",
+      "+919435261100",
     ])
     expect(result.isDone).toBe(true)
   })
@@ -733,7 +777,8 @@ describe("staff adding an enquiry", () => {
     expect(rows).toHaveLength(1)
     expect(rows[0]).toMatchObject({
       kind: "enquiry",
-      body: "Added by staff (phone call)",
+      // Another name on a known number: a sibling, or a new spelling.
+      body: "Added by staff (phone call) for A different spelling",
     })
   })
 
@@ -783,5 +828,73 @@ describe("staff adding an enquiry", () => {
         })
       )
     ).toEqual({ ok: false, reason: "invalid-input", field: "track" })
+  })
+})
+
+describe("past one page of people", () => {
+  /* Convex allows one .paginate() per query. A loop that paginates again
+     throws on the second page, which small fixtures never reach. */
+  async function many(
+    t: ReturnType<typeof convexTest>,
+    n: number,
+    leadStatus: "contacted" | "enrolled" = "contacted",
+    from = 0
+  ) {
+    const now = Date.now()
+    await t.run(async (ctx) => {
+      for (let i = from; i < from + n; i++)
+        await ctx.db.insert("persons", {
+          phone: `+9198${String(10000000 + i)}`,
+          name: `Lead ${i}`,
+          role: "student",
+          source: "website",
+          leadStatus,
+          lastEnquiryAt: now - i * 1000,
+          // Older follow-ups first in the index: the closed ones lead.
+          nextFollowUpAt: now - 3 * 24 * 60 * 60 * 1000 + i,
+        })
+    })
+  }
+
+  test("due follow-ups behind 250 closed leads are still counted", async () => {
+    const t = convexTest(schema, modules)
+    const me = await viewer(t, await seed(t, "staff"))
+    // Enrolled people whose old follow-up date was never cleared come first.
+    await many(t, 250, "enrolled")
+    await many(t, 3, "contacted", 250)
+    const counts = await t.run((ctx) => readLeadCounts(ctx, me!, Date.now()))
+    expect(counts.due).toBe(3)
+  })
+
+  test("a phone fragment past the first 200 people is still found", async () => {
+    const t = convexTest(schema, modules)
+    const me = await viewer(t, await seed(t, "staff"))
+    await many(t, 250)
+    const result = await t.run((ctx) =>
+      readInboxPage(ctx, me, PAGE, { search: "10000249" })
+    )
+    expect(result.page.map((row) => row.name)).toEqual(["Lead 249"])
+  })
+})
+
+describe("closing a lead", () => {
+  test("enrolled or lost clears the call-back date, so it stops counting as due", async () => {
+    const t = convexTest(schema, modules)
+    const me = await viewer(t, await seed(t, "staff"))
+    const lead = await seed(t, "student", {
+      phone: "+919800000077",
+      leadStatus: "interested",
+      nextFollowUpAt: Date.now() - 60_000,
+    })
+    const result = await t.run((ctx) =>
+      applyLeadStatus(ctx, me!, {
+        personId: lead,
+        status: "enrolled",
+        expectedRevision: 0,
+      })
+    )
+    expect(result).toMatchObject({ ok: true })
+    const after = await t.run((ctx) => ctx.db.get(lead))
+    expect(after?.nextFollowUpAt).toBeUndefined()
   })
 })
