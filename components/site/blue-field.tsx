@@ -83,8 +83,13 @@ function capable() {
   if (nav.connection?.saveData) return false
   if (nav.deviceMemory !== undefined && nav.deviceMemory < 4) return false
   if ((nav.hardwareConcurrency ?? 8) < 4) return false
+  // Asked for more contrast: the flat field reads better under white text.
+  if (matchMedia("(prefers-contrast: more)").matches) return false
   return true
 }
+
+/** Average frame gap (ms) above which the device is struggling: ~22 fps. */
+const SLOW_FRAME_MS = 45
 
 export function BlueField() {
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -94,24 +99,38 @@ export function BlueField() {
     const section = el?.parentElement
     if (!el || !section || !capable()) return
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches
-    const gl = el.getContext("webgl", {
-      antialias: false,
-      depth: false,
-      alpha: false,
-      powerPreference: "low-power",
-      premultipliedAlpha: false,
-    })
+    /* No context when the GPU is blocklisted and the browser would fall
+       back to software rendering (failIfMajorPerformanceCaveat): that is
+       slower than the page can afford, so the CSS field stays instead. */
+    let gl: WebGLRenderingContext | null = null
+    try {
+      gl = el.getContext("webgl", {
+        antialias: false,
+        depth: false,
+        alpha: false,
+        powerPreference: "low-power",
+        premultipliedAlpha: false,
+        failIfMajorPerformanceCaveat: true,
+      })
+    } catch {
+      gl = null
+    }
     if (!gl) return
 
     const compile = (type: number, source: string) => {
-      const shader = gl.createShader(type)!
+      const shader = gl.createShader(type)
+      if (!shader) return null
       gl.shaderSource(shader, source)
       gl.compileShader(shader)
-      return shader
+      return gl.getShaderParameter(shader, gl.COMPILE_STATUS) ? shader : null
     }
-    const program = gl.createProgram()!
-    gl.attachShader(program, compile(gl.VERTEX_SHADER, VERTEX))
-    gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FRAGMENT))
+    // Any step that fails leaves the CSS field: the canvas never shows.
+    const vertex = compile(gl.VERTEX_SHADER, VERTEX)
+    const fragment = compile(gl.FRAGMENT_SHADER, FRAGMENT)
+    const program = gl.createProgram()
+    if (!vertex || !fragment || !program) return
+    gl.attachShader(program, vertex)
+    gl.attachShader(program, fragment)
     gl.linkProgram(program)
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return
     gl.useProgram(program)
@@ -206,8 +225,26 @@ export function BlueField() {
       gl.drawArrays(gl.TRIANGLES, 0, 3)
     }
     let lastStep = 0
+    /* Watchdog: over the first 40 frames on screen, a device that cannot
+       hold ~22 fps stops the silk and fades back to the CSS field, rather
+       than making the whole page stutter. */
+    let watched = 0
+    let watchedMs = 0
+    let gaveUp = false
     const tick = (time: number) => {
       frame = requestAnimationFrame(tick)
+      const gap = lastStep ? time - lastStep : 0
+      if (!gaveUp && watched < 40 && gap > 0 && gap < 1000) {
+        watched += 1
+        watchedMs += gap
+        if (watched === 40 && watchedMs / watched > SLOW_FRAME_MS) {
+          gaveUp = true
+          cancelAnimationFrame(frame)
+          frame = 0
+          delete el.dataset.ready
+          return
+        }
+      }
       const dt = lastStep ? Math.min((time - lastStep) / 1000, 0.05) : 1 / 60
       lastStep = time
       // No pointer: the ink point wanders slowly over the left, so the
@@ -233,7 +270,8 @@ export function BlueField() {
     }
     const run = () => {
       cancelAnimationFrame(frame)
-      if (!still && visible && !document.hidden)
+      lastStep = 0
+      if (!gaveUp && !still && visible && !document.hidden)
         frame = requestAnimationFrame(tick)
     }
 
