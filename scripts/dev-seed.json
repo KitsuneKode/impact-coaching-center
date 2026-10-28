@@ -2110,28 +2110,32 @@
       "title": "How to read the APSC CCE notification before you pick a course",
       "excerpt": "The notification answers most week-one questions: syllabus, dates and eligibility. Here is where to find each.",
       "daysAgo": 6,
-      "body": "The APSC CCE notification is the single document every plan should start from.\n\n## What to check first\n\n- **Eligibility**: age limits, attempts, domicile rules.\n- **Syllabus**: the list of papers, not a coaching brochure.\n- **Dates**: application window, prelims, mains.\n\n## Then pick a batch\n\nOnce you know the dates, count back: Prelims in March means classes from August."
+      "body": "The APSC CCE notification is the single document every plan should start from.\n\n## What to check first\n\n- **Eligibility**: age limits, attempts, domicile rules.\n- **Syllabus**: the list of papers, not a coaching brochure.\n- **Dates**: application window, prelims, mains.\n\n## Then pick a batch\n\nOnce you know the dates, count back: Prelims in March means classes from August.",
+      "exam": "APSC"
     },
     {
       "slug": "adre-3-syllabus-section-by-section",
       "title": "ADRE 3.0 syllabus, section by section",
       "excerpt": "General studies, Assam GK, English, maths and reasoning: what each section asks and how much time it deserves.",
       "daysAgo": 12,
-      "body": "ADRE rewards breadth.\n\n## General studies\n\nHistory, polity and geography of India, with Assam in every part.\n\n## English\n\nGrammar and comprehension; twenty minutes a day is enough.\n\n## Maths and reasoning\n\nSpeed matters more than difficulty."
+      "body": "ADRE rewards breadth.\n\n## General studies\n\nHistory, polity and geography of India, with Assam in every part.\n\n## English\n\nGrammar and comprehension; twenty minutes a day is enough.\n\n## Maths and reasoning\n\nSpeed matters more than difficulty.",
+      "exam": "ADRE and Assam Police"
     },
     {
       "slug": "night-batch-for-working-people",
       "title": "How the night batch works for people with a job",
       "excerpt": "Classes from 8 to 10 PM, recordings the same night, and tests on Sundays.",
       "daysAgo": 20,
-      "body": "Half of ICT's APSC students work.\n\n## The week\n\n- Classes Monday to Friday, 8 to 10 PM.\n- Recordings on the app by midnight.\n- A Sunday test, with results on Monday."
+      "body": "Half of ICT's APSC students work.\n\n## The week\n\n- Classes Monday to Friday, 8 to 10 PM.\n- Recordings on the app by midnight.\n- A Sunday test, with results on Monday.",
+      "exam": "APSC"
     },
     {
       "slug": "last-60-days-before-mains",
       "title": "The last sixty days before APSC Mains",
       "excerpt": "Answer writing every day, one mock a week, and nothing new after day fifty.",
       "daysAgo": 33,
-      "body": "Sixty days is enough if you stop collecting material.\n\n## Days 1 to 30\n\nWrite two answers a day and get them checked.\n\n## Days 31 to 50\n\nOne full mock a week.\n\n## Days 51 to 60\n\nRevise your own notes only."
+      "body": "Sixty days is enough if you stop collecting material.\n\n## Days 1 to 30\n\nWrite two answers a day and get them checked.\n\n## Days 31 to 50\n\nOne full mock a week.\n\n## Days 51 to 60\n\nRevise your own notes only.",
+      "exam": "APSC"
     }
   ],
   "bundles": [

@@ -4412,3 +4412,10 @@
   outline: 2px solid white;
   outline-offset: 3px;
 }
+
+/* A post's next step (components/blog/post-next-step.tsx). */
+[data-post-next] {
+  background-color: color-mix(in oklch, var(--primary) 7%, var(--card));
+  box-shadow: inset 0 0 0 1.5px
+    color-mix(in oklch, var(--primary) 24%, transparent);
+}

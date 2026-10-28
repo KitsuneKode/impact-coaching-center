@@ -52,6 +52,7 @@ import {
   type PostLanguage,
 } from "@/lib/blog"
 import { slugify } from "@/lib/catalog"
+import { tracks } from "@/lib/brand"
 
 type Draft = {
   title: string
@@ -59,6 +60,8 @@ type Draft = {
   excerpt: string
   body: string
   language: PostLanguage
+  /** The exam it is about, or "" for a general post. */
+  exam: string
   cover: StoredImage | null
 }
 
@@ -68,8 +71,16 @@ const EMPTY: Draft = {
   excerpt: "",
   body: "",
   language: "en",
+  exam: "",
   cover: null,
 }
+
+/** The select's value for a post about no one exam. */
+const GENERAL = "general"
+const EXAM_ITEMS = [
+  { value: GENERAL, label: "General, not one exam" },
+  ...tracks.map((track) => ({ value: track.exam, label: track.exam })),
+]
 
 const LANGUAGE_ITEMS: { value: PostLanguage; label: string }[] = [
   { value: "en", label: "English" },
@@ -129,6 +140,7 @@ export function PostEditor({ id }: { id?: string }) {
         excerpt: post.excerpt,
         body: post.body,
         language: post.language,
+        exam: post.exam ?? "",
         cover: post.cover
           ? { id: post.cover, url: post.coverPicture?.url ?? null }
           : null,
@@ -247,6 +259,7 @@ function PostForm({
         ...(id ? { id, expectedRevision: revision } : {}),
         ...checked.value,
         cover: draft.cover?.id,
+        exam: draft.exam || undefined,
       })
       if (!result.ok) {
         if (result.reason === "invalid-input" && result.field) {
@@ -340,6 +353,31 @@ function PostForm({
             <FieldDescription>
               Both /blog and /as/blog list every post; each shows its own
               language first.
+            </FieldDescription>
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="post-exam">Which exam it is about</FieldLabel>
+            <Select
+              value={draft.exam || GENERAL}
+              onValueChange={(next) =>
+                set("exam", !next || next === GENERAL ? "" : next)
+              }
+              items={EXAM_ITEMS}
+            >
+              <SelectTrigger id="post-exam" className="w-full sm:w-72">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EXAM_ITEMS.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              The post then ends with that exam&rsquo;s current course and its
+              free workshop, and is listed under the exam on /blog.
             </FieldDescription>
           </Field>
           <Field {...fieldProps("slug")}>

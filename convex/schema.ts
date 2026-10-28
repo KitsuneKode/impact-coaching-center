@@ -449,6 +449,8 @@ export default defineSchema({
   posts: defineTable({
     slug: v.string(),
     language: v.optional(LOCALE),
+    /** The exam it is about, as `tracks` names it: ties it to its courses. */
+    exam: v.optional(v.string()),
     title: v.string(),
     excerpt: v.string(),
     body: v.string(),

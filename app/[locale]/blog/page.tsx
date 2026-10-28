@@ -26,7 +26,10 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: alternatesFor("/blog", locale),
+    alternates: {
+      ...alternatesFor("/blog", locale),
+      types: { "application/rss+xml": "/feed.xml" },
+    },
     openGraph: openGraphFor("/blog", title, description, locale),
   }
 }

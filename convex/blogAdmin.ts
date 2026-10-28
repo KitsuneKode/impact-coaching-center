@@ -17,6 +17,7 @@ import type { Id } from "./_generated/dataModel"
 import { mutation, type MutationCtx, query } from "./_generated/server"
 import { PICTURE, pictureOf } from "./images"
 import { IMAGE_MAX_BYTES } from "../lib/catalog"
+import { tracks } from "../lib/brand"
 
 /**
  * Owner-only post editing, mirroring catalogAdmin: every save carries the
@@ -121,6 +122,7 @@ export const get = query({
       updatedAt: v.number(),
       cover: v.optional(v.id("_storage")),
       coverPicture: v.union(PICTURE, v.null()),
+      exam: v.optional(v.string()),
     }),
     v.null()
   ),
@@ -136,6 +138,7 @@ export const get = query({
       excerpt: row.excerpt,
       body: row.body,
       language: row.language ?? "en",
+      exam: row.exam,
       published: row.published,
       publishedAt: row.publishedAt,
       revision: row.revision,
@@ -156,6 +159,8 @@ export const save = mutation({
     language: v.optional(POST_LANGUAGE),
     /** Absent removes the cover. */
     cover: v.optional(v.id("_storage")),
+    /** The exam it is about; absent is a general post. */
+    exam: v.optional(v.string()),
   },
   returns: mutationResult({ id: v.id("posts"), revision: v.number() }),
   handler: async (ctx, args) => {
@@ -179,6 +184,7 @@ export async function applySavePost(
     /** Absent keeps the post's current language; a new post is English. */
     language?: PostInput["language"]
     cover?: Id<"_storage">
+    exam?: string
   }
 ) {
   if (!hasGrant(viewer, "content")) return forbidden
@@ -194,6 +200,8 @@ export async function applySavePost(
   if (!checked.ok) return invalidInput(checked.field)
   if (args.cover && !(await isImage(ctx, args.cover)))
     return invalidInput("cover")
+  if (args.exam !== undefined && !tracks.some((t) => t.exam === args.exam))
+    return invalidInput("exam")
 
   /* Same rule as saveBook: collect, and a clash is a *different* row. */
   const clash = await ctx.db
@@ -208,6 +216,7 @@ export async function applySavePost(
     const id = await ctx.db.insert("posts", {
       ...checked.value,
       cover: args.cover,
+      exam: args.exam,
       authorId: viewer.id,
       published: false,
       revision: 0,
@@ -230,6 +239,7 @@ export async function applySavePost(
   await ctx.db.patch(args.id, {
     ...checked.value,
     cover: args.cover,
+    exam: args.exam,
     // An edited fixture is real: the dev reseed must not overwrite it,
     // exactly as books and resources do.
     sample: false,

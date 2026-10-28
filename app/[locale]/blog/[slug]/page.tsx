@@ -14,6 +14,8 @@ import { PostContents } from "@/components/blog/post-contents"
 import { PostShare } from "@/components/blog/post-share"
 import { MarkdownBody } from "@/components/marketing/markdown-body"
 import { ReadCounter } from "@/components/blog/read-counter"
+import { PostNextStep } from "@/components/blog/post-next-step"
+import { PageExam } from "@/components/site/page-exam"
 import { ownLanguageFirst, READS_FROM } from "@/lib/blog"
 import { headingsOf, readingMinutes } from "@/lib/article"
 import { brand } from "@/lib/brand"
@@ -90,11 +92,17 @@ export default async function PostPage({
   ])
   if (!post) notFound()
   const lang = post.language === "as" ? "as" : "en"
-  // Three more to read next, in the post's own language first.
+  // Three more to read next: the same exam first, then its own language.
   const more = ownLanguageFirst(
     posts.filter((other) => other.slug !== post.slug),
     lang
-  ).slice(0, 3)
+  )
+    .toSorted(
+      (a, b) =>
+        Number(b.exam !== undefined && b.exam === post.exam) -
+        Number(a.exam !== undefined && a.exam === post.exam)
+    )
+    .slice(0, 3)
   // Pictures only when every card has one, so the row stays level.
   const covers = more.every((other) => other.cover)
   const headings = headingsOf(post.body)
@@ -112,6 +120,7 @@ export default async function PostPage({
     dateModified: new Date(post.updatedAt).toISOString(),
     ...(post.cover ? { image: [post.cover.url] } : {}),
     wordCount: post.body.split(/\s+/).filter(Boolean).length,
+    ...(post.exam ? { about: { "@type": "Thing", name: post.exam } } : {}),
     author: {
       "@type": "Organization",
       name: brand.legalName,
@@ -148,6 +157,7 @@ export default async function PostPage({
 
   return (
     <main>
+      <PageExam exam={post.exam} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -259,8 +269,12 @@ export default async function PostPage({
               <MarkdownBody headings={headings}>{post.body}</MarkdownBody>
             </div>
 
+            <div className="mbs-14">
+              <PostNextStep exam={post.exam} locale={locale} />
+            </div>
+
             {/* The end of the post: pass it on, or go back up. */}
-            <footer className="mbs-16 grid justify-items-start gap-4 border-bs border-border pbs-8">
+            <footer className="mbs-12 grid justify-items-start gap-4 border-bs border-border pbs-8">
               <p className="text-sm font-semibold">{tb("shareLabel")}</p>
               <PostShare title={post.title} url={url} />
               <a

@@ -738,6 +738,7 @@ const resources = [
 const posts = [
   {
     slug: "how-to-read-the-apsc-cce-notification",
+    exam: "APSC",
     title: "How to read the APSC CCE notification before you pick a course",
     excerpt:
       "The notification answers most week-one questions: syllabus, dates and eligibility. Here is where to find each.",
@@ -746,6 +747,7 @@ const posts = [
   },
   {
     slug: "adre-3-syllabus-section-by-section",
+    exam: "ADRE and Assam Police",
     title: "ADRE 3.0 syllabus, section by section",
     excerpt:
       "General studies, Assam GK, English, maths and reasoning: what each section asks and how much time it deserves.",
@@ -754,6 +756,7 @@ const posts = [
   },
   {
     slug: "night-batch-for-working-people",
+    exam: "APSC",
     title: "How the night batch works for people with a job",
     excerpt:
       "Classes from 8 to 10 PM, recordings the same night, and tests on Sundays.",
@@ -762,6 +765,7 @@ const posts = [
   },
   {
     slug: "last-60-days-before-mains",
+    exam: "APSC",
     title: "The last sixty days before APSC Mains",
     excerpt:
       "Answer writing every day, one mock a week, and nothing new after day fifty.",

@@ -28,6 +28,8 @@ export type PostCard = {
   title: string
   excerpt: string
   language: PostLanguage
+  /** The exam it is about, as `tracks` names it; absent for a general post. */
+  exam?: string
   publishedAt?: number
   updatedAt: number
   cover?: Picture | null

@@ -488,6 +488,8 @@ export const seedPosts = internalMutation({
         title: v.string(),
         excerpt: v.string(),
         body: v.string(),
+        /** The exam it is about, as `tracks` names it. */
+        exam: v.optional(v.string()),
         /** How long ago the post went live. Fractions are fine. */
         daysAgo: v.number(),
       })

@@ -288,7 +288,16 @@
     "copyLink": "Copy link",
     "copied": "Link copied.",
     "keepReading": "Keep reading.",
-    "allPosts": "All posts"
+    "allPosts": "All posts",
+    "nextFor": "Preparing for {exam}?",
+    "nextGeneral": "Study with ICT",
+    "nextHeading": "Sit a free class first.",
+    "nextBody": "ICT runs free workshops for APSC and for Bank, SSC and Railway. Ask for the next one on WhatsApp and come to the centre or join on the app.",
+    "save": "Save {amount} · {pct}% off",
+    "seeCourse": "See {name}",
+    "seeCourses": "See the courses",
+    "tryFree": "Try {name} free",
+    "workshop": "Ask for a free workshop"
   },
   "Policy": {
     "englishOnly": "This document is in English only for now."
