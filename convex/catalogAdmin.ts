@@ -99,7 +99,8 @@ async function pdfUploaded(ctx: MutationCtx, pdf: Infer<typeof PDF_DOCUMENT>) {
   if (pdf.pages < 1 || pdf.pages > 2000 || !pdf.name.trim()) return false
   const meta = await r2.getMetadata(ctx, pdf.key)
   if (!meta) return false
-  if (meta.contentType && meta.contentType !== "application/pdf") return false
+  // The browser labels a PDF it uploads; anything else, or nothing, is not one.
+  if (meta.contentType !== "application/pdf") return false
   return (meta.size ?? 0) > 0 && (meta.size ?? 0) <= PDF_MAX_BYTES
 }
 
