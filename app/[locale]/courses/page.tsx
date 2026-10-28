@@ -54,14 +54,22 @@ export default async function CoursesPage({
   const content = await contentFor(locale)
   const courses = await liveCourses()
 
+  /* The current edition of each programme is listed; older ones (Victor 8
+     once Victor 9 is out) stay on ClassPlus and on their own pages, shown
+     here only when asked for. */
+  const current = latestEditions(courses)
+  const isCurrent = new Set(current.map((course) => course.slug))
   const groups = tracks.flatMap((track) => {
-    const { flagship, also, free } = lineup(courses, track.exam)
+    const { flagship, also, free } = lineup(current, track.exam)
     const items = [flagship, ...also, free].filter((c) => c !== undefined)
-    return items.length ? [{ track, items }] : []
+    const older = courses.filter(
+      (course) => course.track === track.exam && !isCurrent.has(course.slug)
+    )
+    return items.length || older.length ? [{ track, items, older }] : []
   })
 
   // Current batches with a readable time, for the day timeline.
-  const day: DayBatch[] = latestEditions(courses).flatMap((course) => {
+  const day: DayBatch[] = current.flatMap((course) => {
     const poster = schedules[course.id]
     const when = course.timing ?? poster?.when
     const span = parseTiming(when)
@@ -145,19 +153,20 @@ export default async function CoursesPage({
         </ul>
       </PageHead>
 
-      <ExamDoors courses={courses} />
+      <ExamDoors courses={current} />
 
       <CourseBoard
         finder={finderCourses}
         exams={exams}
         today={await todayInIndia()}
         day={day}
-        groups={groups.map(({ track, items }) => ({
+        groups={groups.map(({ track, items, older }) => ({
           slug: track.slug,
           exam: track.exam,
           label: content.track(track.slug).exam,
           head: <TrackHead slug={track.slug} />,
           slugs: items.map((course) => course.slug),
+          older: older.map((course) => course.slug),
         }))}
         cards={Object.fromEntries(
           courses.map((course) => [

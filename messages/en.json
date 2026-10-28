@@ -356,7 +356,9 @@
     "sampleNote": "From the same syllabus, free.",
     "moreIn": "More in {exam}",
     "otherWays": "Other ways to prepare.",
-    "howExam": "How the exam works"
+    "howExam": "How the exam works",
+    "olderBatch": "An older batch.",
+    "successor": "{name} is the one enrolling now"
   },
   "Stories": {
     "title": "Success stories and student reviews",
@@ -1010,7 +1012,9 @@
     "other": "For {exam}",
     "seeAll": "See all {count} courses, best fit first",
     "students": "{count, plural, one {# student} other {#+ students}}",
-    "studentsAll": "{count}+ students have joined ICT's courses on the app"
+    "studentsAll": "{count}+ students have joined ICT's courses on the app",
+    "older": "Show older batches ({count})",
+    "olderBatch": "Older batch"
   },
   "NavMenu": {
     "ict": "About ICT",

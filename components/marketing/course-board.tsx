@@ -42,6 +42,8 @@ type Group = {
   label: string
   head: ReactNode
   slugs: string[]
+  /** Older editions of the exam's programmes, listed only when asked. */
+  older: string[]
 }
 
 /**
@@ -73,6 +75,7 @@ export function CourseBoard({
   const answers = useFinderAnswers()
   const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState("all")
+  const [showOlder, setShowOlder] = useState(false)
   const sorted = Object.values(answers).some(Boolean)
 
   // Links to /courses#finder (the menu, the home page) open it.
@@ -109,7 +112,13 @@ export function CourseBoard({
   const shownGroups = groups.filter(
     (group) => filter === "all" || group.slug === filter
   )
-  const listed = new Set(shownGroups.flatMap((group) => group.slugs))
+  const listed = new Set(
+    shownGroups.flatMap((group) =>
+      showOlder ? [...group.slugs, ...group.older] : group.slugs
+    )
+  )
+  const olderCount = groups.reduce((sum, group) => sum + group.older.length, 0)
+  const isOlder = new Set(groups.flatMap((group) => group.older))
   const ranked = sorted
     ? rankAll(finder, answers, examOf).filter((pick) =>
         listed.has(pick.course.slug)
@@ -260,6 +269,22 @@ export function CourseBoard({
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
+          {olderCount ? (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showOlder}
+              data-older-switch
+              data-press
+              onClick={() => setShowOlder((on) => !on)}
+              className="inline-flex h-9 items-center gap-2.5 rounded-full ps-2 pe-4 text-sm font-medium text-muted-foreground"
+            >
+              <span aria-hidden data-older-track>
+                <span data-older-thumb />
+              </span>
+              {t("older", { count: olderCount })}
+            </button>
+          ) : null}
         </div>
 
         {sorted ? (
@@ -284,6 +309,9 @@ export function CourseBoard({
                 >
                   <p className="flex min-h-7 flex-wrap items-center gap-x-3 gap-y-1 pbe-2 text-sm">
                     {label ? <span data-fit-label>{label}</span> : null}
+                    {isOlder.has(pick.course.slug) ? (
+                      <span data-older-label>{t("olderBatch")}</span>
+                    ) : null}
                     {own
                       ? pick.reasons
                           .filter((reason) => reason !== "exam")
@@ -303,22 +331,34 @@ export function CourseBoard({
             })}
           </ol>
         ) : (
-          shownGroups.map((group) => (
-            <section
-              key={group.slug}
-              id={group.slug}
-              data-board-group
-              aria-labelledby={`${group.slug}-heading`}
-              className="scroll-mt-40 pbs-10"
-            >
-              {group.head}
-              <ul data-board-grid className="mbs-6">
-                {group.slugs.map((slug) => (
-                  <li key={slug}>{cards[slug]}</li>
-                ))}
-              </ul>
-            </section>
-          ))
+          shownGroups
+            .filter((group) => group.slugs.length || showOlder)
+            .map((group) => (
+              <section
+                key={group.slug}
+                id={group.slug}
+                data-board-group
+                aria-labelledby={`${group.slug}-heading`}
+                className="scroll-mt-40 pbs-10"
+              >
+                {group.head}
+                <ul data-board-grid className="mbs-6">
+                  {group.slugs.map((slug) => (
+                    <li key={slug}>{cards[slug]}</li>
+                  ))}
+                  {showOlder
+                    ? group.older.map((slug) => (
+                        <li key={slug} data-older-card>
+                          <p className="pbe-2 text-sm">
+                            <span data-older-label>{t("olderBatch")}</span>
+                          </p>
+                          {cards[slug]}
+                        </li>
+                      ))
+                    : null}
+                </ul>
+              </section>
+            ))
         )}
       </section>
     </>

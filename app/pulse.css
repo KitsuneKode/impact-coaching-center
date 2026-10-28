@@ -4335,3 +4335,80 @@
     }
   }
 }
+
+/* Older editions on the courses page (course-board.tsx): a switch shows them. */
+@layer components {
+  [data-older-switch][aria-checked="true"] {
+    color: var(--foreground);
+  }
+  [data-older-track] {
+    position: relative;
+    display: inline-block;
+    inline-size: 30px;
+    block-size: 18px;
+    border-radius: 999px;
+    background-color: color-mix(in oklch, var(--foreground) 18%, transparent);
+  }
+  [data-older-thumb] {
+    position: absolute;
+    inset-block-start: 2px;
+    inset-inline-start: 2px;
+    inline-size: 14px;
+    block-size: 14px;
+    border-radius: 999px;
+    background-color: var(--card);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--shade) 30%, transparent);
+  }
+  [data-older-switch][aria-checked="true"] [data-older-track] {
+    background-color: var(--primary);
+  }
+  [data-older-switch][aria-checked="true"] [data-older-thumb] {
+    translate: 12px 0;
+  }
+  [data-older-switch]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  [data-older-label] {
+    display: inline-flex;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background-color: var(--secondary);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  /* Quieter than the current batches beside them. */
+  [data-older-card] > :last-child {
+    opacity: 0.82;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-older-thumb] {
+      transition: translate 0.2s var(--ease-out-strong);
+    }
+    [data-older-track] {
+      transition: background-color 0.2s var(--ease-out-strong);
+    }
+    [data-older-card] {
+      @starting-style {
+        opacity: 0;
+        translate: 0 8px;
+      }
+      transition:
+        opacity 0.3s var(--ease-out-strong),
+        translate 0.3s var(--ease-out-strong);
+    }
+  }
+}
+
+/* On an older edition's page: the way to the batch enrolling now. */
+[data-successor] {
+  background-color: var(--highlight);
+  color: var(--ink-fixed);
+  box-shadow: 0 8px 20px -10px
+    color-mix(in oklch, var(--shade) 50%, transparent);
+}
+[data-successor]:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 3px;
+}

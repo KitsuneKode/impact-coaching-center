@@ -35,6 +35,7 @@ import { publishedBundles, publishedResources } from "@/lib/catalog-server"
 import { contactHref } from "@/lib/contact"
 import { inr, lineup } from "@/lib/courses"
 import { liveCourse, liveCourses } from "@/lib/courses-server"
+import { editionOf, latestEditions } from "@/lib/course-finder"
 import {
   alternatesFor,
   clipDescription,
@@ -137,7 +138,18 @@ export default async function CoursePage({
   const names = track ? content.track(track.slug) : null
   const exam = names?.exam ?? course.track
   const people = (track?.faculty ?? []).map(facultyBySlug)
-  const { flagship, also, free } = lineup(courses, course.track)
+  // Suggestions are current batches only; an older edition points to its successor.
+  const current = latestEditions(courses)
+  const { flagship, also, free } = lineup(current, course.track)
+  const successor = current.some((c) => c.slug === course.slug)
+    ? undefined
+    : current
+        .filter(
+          (c) =>
+            c.track === course.track &&
+            editionOf(c.short).stem === editionOf(course.short).stem
+        )
+        .at(0)
   const siblings = [flagship, ...also, free].filter(
     (c): c is NonNullable<typeof c> => c !== undefined && c.id !== course.id
   )
@@ -234,6 +246,18 @@ export default async function CoursePage({
                 </li>
               </ol>
             </nav>
+            {successor ? (
+              <Link
+                href={`/courses/${successor.slug}`}
+                data-successor
+                data-press
+                className="mbs-4 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl ps-4 pe-4 pbs-2.5 pbe-2.5 text-sm"
+              >
+                <span className="font-semibold">{detail("olderBatch")}</span>
+                <span>{detail("successor", { name: successor.short })}</span>
+                <IconArrowRight data-nudge aria-hidden size={16} stroke={2} />
+              </Link>
+            ) : null}
             <h1
               id="course-heading"
               data-rise
