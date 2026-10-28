@@ -1079,5 +1079,15 @@
     "linkCopied": "Link copied. Paste it in WhatsApp or anywhere.",
     "copyThis": "Copy this link to share it",
     "notesNotKept": "Your notes could not be saved on this device. They stay until you close the reader."
+  },
+  "Shelf": {
+    "position": "Volume {n} of {total}",
+    "set": "In the set",
+    "pages": "Pages",
+    "price": "Set price",
+    "from": "From {price}",
+    "open": "See the set",
+    "previous": "Previous book",
+    "next": "Next book"
   }
 }

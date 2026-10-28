@@ -3756,119 +3756,85 @@
   }
 }
 
-/* The books page's volumes (components/commerce/volume-shelf.tsx): books
-   climb a diagonal left to right, each half over the last, spines out. */
-[data-shelf] {
-  --w: clamp(7.5rem, 4rem + 9vw, 11rem);
-  --climb: clamp(3rem, 1rem + 8vw, 9rem);
-  container-type: inline-size;
-  position: relative;
-  block-size: calc(var(--w) * 4 / 3 + var(--climb) + 5rem);
-  margin-block-start: 1rem;
+/* The books page's volume track (components/commerce/volume-shelf.tsx):
+   one book in front, the rest receding up and down a diagonal behind it,
+   turned to their spines; moving along it slides every volume at once. */
+[data-track-stage] {
+  --w: clamp(9rem, 6rem + 9vw, 15rem);
+  block-size: calc(var(--w) * 4 / 3 + 9rem);
+  border-radius: 24px;
+  touch-action: pan-y;
+  user-select: none;
 }
-[data-shelf-item] {
+@media (width < 40rem) {
+  [data-track-stage] {
+    block-size: calc(var(--w) * 4 / 3 + 4.5rem);
+  }
+}
+/* Beside the details, the volumes before the front one are cut at the
+   stage's edge rather than drawn over the text. */
+@media (width >= 64rem) {
+  [data-track-stage] {
+    clip-path: inset(-50% -50% -50% 0);
+  }
+}
+[data-track-volume] {
   position: absolute;
+  inset-block-start: calc(50% - var(--w) * 2 / 3);
+  inset-inline-start: calc(50% - var(--w) / 2);
   inline-size: var(--w);
-  inset-inline-start: calc((100cqw - var(--w)) * var(--i) / (var(--n) - 1));
-  inset-block-end: calc(4rem + var(--climb) * var(--i) / (var(--n) - 1));
-  z-index: calc(var(--n) - var(--i));
-}
-[data-shelf-link] {
   display: block;
-  border-radius: 10px;
+  cursor: pointer;
+  -webkit-user-drag: none;
 }
-[data-shelf-link]:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 4px;
+@media (width >= 64rem) {
+  [data-track-volume] {
+    inset-inline-start: calc(32% - var(--w) / 2);
+  }
 }
-[data-shelf] [data-book] {
+[data-track-volume] [data-book] {
   padding: 0;
 }
-[data-shelf] [data-book-inner] {
-  rotate: y 34deg;
+[data-track-volume] [data-book-inner] {
+  rotate: y 38deg;
 }
-[data-shelf-caption] {
-  position: absolute;
-  inset-block-start: calc(100% + 0.75rem);
-  inset-inline-start: 0;
-  inline-size: max(100%, 12rem);
-  font-size: 0.8125rem;
-  line-height: 1.35;
-  opacity: 0;
-  translate: 0 -4px;
-  pointer-events: none;
+[data-track-volume][data-front] [data-book-inner] {
+  rotate: y 10deg;
 }
-[data-shelf-item]:is(:hover, :focus-within) {
-  z-index: calc(var(--n) + 1);
+@media (hover: hover) and (pointer: fine) {
+  [data-track-volume][data-front]:hover [data-book-inner] {
+    rotate: y 2deg;
+    translate: 0 -10px;
+  }
+  [data-track-volume]:not([data-front]):hover [data-book-inner] {
+    rotate: y 24deg;
+    translate: 0 -8px;
+  }
 }
-[data-shelf-item]:is(:hover, :focus-within) [data-book-inner] {
-  translate: 0 -14px;
-  rotate: y 14deg;
+[data-track-arrow] {
+  box-shadow: inset 0 0 0 1.5px var(--border);
 }
-[data-shelf-item]:is(:hover, :focus-within) [data-shelf-caption] {
-  opacity: 1;
-  translate: 0 0;
+[data-track-arrow]:disabled {
+  opacity: 0.35;
 }
 @media (prefers-reduced-motion: no-preference) {
-  [data-shelf] [data-book-inner] {
+  [data-track-volume] {
+    transition:
+      translate 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+      scale 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.4s ease;
+  }
+  [data-track-volume] [data-book-inner] {
     transition:
       translate 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-      rotate 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+      rotate 0.65s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  [data-shelf-caption] {
-    transition:
-      opacity 0.25s ease-out,
-      translate 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  /* The first time: dealt out from the front volume, nearest first. */
+  [data-track-stage][data-dealt] [data-track-volume] {
+    transition-delay: var(--delay), var(--delay), var(--delay);
   }
-  /* Dealt out from the first book's place as the shelf scrolls into view. */
-  @supports (animation-timeline: view()) {
-    [data-shelf-item] {
-      animation: shelf-deal linear both;
-      animation-timeline: view();
-      animation-range: entry 5% cover 35%;
-    }
-    @keyframes shelf-deal {
-      from {
-        translate: calc((100cqw - var(--w)) * var(--i) / (var(--n) - 1) * -1)
-          calc(var(--climb) * var(--i) / (var(--n) - 1));
-      }
-    }
-  }
-}
-/* Phones: ten books will not fan across 390px, so they stand in a row that
-   scrolls sideways, each with its title, still turned to show the spine. */
-@media (width < 40rem) {
-  [data-shelf] {
-    --w: 7rem;
-    display: flex;
-    gap: 1.25rem;
-    block-size: auto;
-    margin-inline: calc(clamp(1.25rem, 0.4rem + 2.6vw, 2rem) * -1);
-    padding: 1rem clamp(1.25rem, 0.4rem + 2.6vw, 2rem) 0.5rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding-inline: clamp(1.25rem, 0.4rem + 2.6vw, 2rem);
-    scrollbar-width: none;
-  }
-  [data-shelf]::-webkit-scrollbar {
-    display: none;
-  }
-  [data-shelf-item] {
-    position: relative;
-    inset: auto;
-    flex: none;
-    scroll-snap-align: start;
-    animation: none;
-  }
-  [data-shelf] [data-book-inner] {
-    rotate: y 18deg;
-  }
-  [data-shelf-caption] {
-    position: static;
-    inline-size: auto;
-    margin-block-start: 0.75rem;
-    opacity: 1;
-    translate: none;
+  [data-track-stage][data-dealt][data-moved] [data-track-volume] {
+    transition-delay: 0s;
   }
 }
 
