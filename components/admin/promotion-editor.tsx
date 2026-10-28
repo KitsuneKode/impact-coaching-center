@@ -14,7 +14,8 @@ import {
 } from "@/components/admin/catalog-fields"
 import { refreshSite } from "@/app/admin/refresh-site"
 import { readVideoRows, VideoRows } from "@/components/admin/video-rows"
-import { PromoBanner, PromoCard, PromoReel } from "@/components/site/promos"
+import { FloatingReel } from "@/components/site/floating-reel"
+import { PromoBanner, PromoCard } from "@/components/site/promos"
 import { Button, ButtonLink } from "@/components/ui/button"
 import {
   Field,
@@ -823,7 +824,19 @@ function PromotionForm({
                       {kind === "banner" ? (
                         <PromoBanner promo={{ ...preview, kind }} />
                       ) : (
-                        <PromoReel promo={{ ...preview, kind }} />
+                        // Bottom right of a page, as visitors see it.
+                        <div className="relative h-72 bg-background">
+                          <FloatingReel
+                            contained
+                            ids={preview.reelIds}
+                            title={preview.headline}
+                            cta={
+                              preview.cta
+                                ? { label: preview.cta, href: preview.href }
+                                : undefined
+                            }
+                          />
+                        </div>
                       )}
                     </div>
                   )}

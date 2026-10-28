@@ -1022,7 +1022,10 @@
     "reelPosition": "ভিডিঅ' {n} / {total}",
     "reelNext": "পিছৰ ভিডিঅ'",
     "reelPrevious": "আগৰ ভিডিঅ'",
-    "watchOnYouTube": "YouTubeত চাওক"
+    "watchOnYouTube": "YouTubeত চাওক",
+    "reelSound": "শব্দৰ বাবে টিপক",
+    "reelWatch": "চাওক",
+    "reelClose": "ভিডিঅ'বোৰ বন্ধ কৰক"
   },
   "Finder": {
     "kicker": "কোনটো পাঠ্যক্ৰম ল’ব, নিশ্চিত নহয়নে?",

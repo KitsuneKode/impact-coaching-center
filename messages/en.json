@@ -822,7 +822,10 @@
     "reelPosition": "Video {n} of {total}",
     "reelNext": "Next video",
     "reelPrevious": "Previous video",
-    "watchOnYouTube": "Watch on YouTube"
+    "watchOnYouTube": "Watch on YouTube",
+    "reelSound": "Tap for sound",
+    "reelWatch": "Watch",
+    "reelClose": "Close the videos"
   },
   "Finder": {
     "kicker": "Not sure which course?",

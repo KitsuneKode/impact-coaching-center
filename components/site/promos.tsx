@@ -1,17 +1,10 @@
 "use client"
 
-import {
-  IconArrowRight,
-  IconCheck,
-  IconCopy,
-  IconPlayerPlayFilled,
-  IconX,
-} from "@tabler/icons-react"
+import { IconArrowRight, IconCheck, IconCopy, IconX } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 import { useState, type ReactNode } from "react"
 
-import { ReelViewer } from "@/components/site/reel-viewer"
 import { useMinute } from "@/components/site/use-live-promos"
 
 /** A promotion as the site shows it; the live query and the admin preview both produce this. */
@@ -252,120 +245,5 @@ export function PromoBanner({
         ) : null}
       </div>
     </aside>
-  )
-}
-
-/** Short videos in a row: the offer said by the people making it. */
-export function PromoReel({
-  promo,
-  onAction,
-  bare = false,
-}: {
-  promo: Promo
-  onAction?: () => void
-  /** The banner above already says it: the videos alone, no repeat. */
-  bare?: boolean
-}) {
-  const t = useTranslations("Promos")
-  const [playing, setPlaying] = useState<number | null>(null)
-  return (
-    <section
-      aria-label={bare ? promo.headline : promo.tag || t("label")}
-      className="container-page overflow-x-clip pbe-16"
-    >
-      <div className="rounded-[32px] bg-card p-6 shadow-[0_0_0_1px_var(--border)] md:p-9">
-        {bare ? null : promo.tag ? (
-          <span className="text-sm font-semibold text-primary">
-            {promo.tag}
-          </span>
-        ) : null}
-        {bare ? null : (
-          <>
-            <p className="mbs-2 font-display text-[clamp(1.5rem,1.1rem+1.6vw,2.25rem)] leading-tight font-semibold tracking-[-0.03em] text-balance">
-              {promo.headline}
-            </p>
-            {promo.body ? (
-              <p className="mbs-2 max-w-[56ch] text-muted-foreground">
-                {promo.body}
-              </p>
-            ) : null}
-            <EndsIn
-              endsAt={promo.endsAt}
-              className="mbs-2 block text-sm font-semibold text-primary"
-            />
-          </>
-        )}
-        {/* Phones: a row to swipe through, as in Shorts. Wider: a grid. */}
-        <ul
-          className={`${bare ? "" : "mbs-6 "}-mx-6 flex snap-x snap-mandatory [scrollbar-width:none] gap-3 overflow-x-auto px-6 md:mx-0 md:grid md:grid-cols-[repeat(auto-fill,minmax(9rem,12rem))] md:overflow-visible md:px-0`}
-        >
-          {promo.reelIds.map((id, i) => (
-            <li
-              key={id}
-              className="w-[40%] max-w-48 flex-none snap-start md:w-auto md:max-w-none"
-            >
-              <button
-                type="button"
-                data-press
-                onClick={() => {
-                  setPlaying(i)
-                  // A play is the reel's click: the videos are the offer.
-                  onAction?.()
-                }}
-                aria-label={t("reelPlay", { n: i + 1, title: promo.headline })}
-                className="group block w-full cursor-pointer"
-              >
-                <span className="relative block aspect-[9/16] overflow-clip rounded-[20px] bg-ink">
-                  <Image
-                    src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
-                    alt=""
-                    fill
-                    sizes="(min-width: 768px) 12rem, 40vw"
-                    className="object-cover"
-                  />
-                  <span className="absolute inset-0 grid place-items-center">
-                    <span
-                      data-play
-                      className="grid size-12 place-items-center rounded-full bg-highlight text-ink"
-                    >
-                      <IconPlayerPlayFilled
-                        aria-hidden
-                        size={18}
-                        className="translate-x-px"
-                      />
-                    </span>
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        <ReelViewer
-          ids={promo.reelIds}
-          index={playing}
-          onIndexChange={setPlaying}
-          onClose={() => setPlaying(null)}
-          title={promo.headline}
-          cta={
-            promo.cta
-              ? { label: promo.cta, href: promo.href, onClick: onAction }
-              : undefined
-          }
-        />
-        {promo.cta && !bare ? (
-          <a
-            href={promo.href || "#"}
-            {...external(promo.href)}
-            onClick={onAction}
-            data-press
-            data-cta="amber"
-            className="mbs-6 inline-flex h-12 items-center gap-2 rounded-full bg-highlight px-6 font-semibold text-ink"
-          >
-            {promo.cta}
-            <IconArrowRight data-nudge aria-hidden size={18} stroke={2} />
-          </a>
-        ) : null}
-      </div>
-    </section>
   )
 }

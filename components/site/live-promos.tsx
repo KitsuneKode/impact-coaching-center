@@ -4,12 +4,8 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { useEffect, useRef, useState } from "react"
 
 import { convexConfigured } from "@/app/providers"
-import {
-  PromoBanner,
-  PromoCard,
-  PromoReel,
-  type Promo,
-} from "@/components/site/promos"
+import { FloatingReel } from "@/components/site/floating-reel"
+import { PromoBanner, PromoCard, type Promo } from "@/components/site/promos"
 import {
   isAvailable,
   rememberClosed,
@@ -61,9 +57,9 @@ const toPromo = (row: LivePromo): Promo => ({
 })
 
 /**
- * The owner's live promotions below the page: one banner and one reel, before
- * the footer, and one pop-up, timed to real interest. The bar lives in
- * PromoStrip above the header.
+ * The owner's live promotions: one banner before the footer, the students'
+ * videos in a small card at the bottom right, and one pop-up, timed to real
+ * interest. The bar lives in PromoStrip above the header.
  */
 export function LivePromos() {
   if (!convexConfigured) return null
@@ -84,11 +80,9 @@ function Live() {
         isAvailable(row, now)
     )
   const banner = open("banner")
-  const reel = rows.find((row) => row.kind === "reel")
-  // One promotion says its piece once a page: under its own banner the reel
-  // is just the videos, and its pop-up waits while the banner is showing
-  // (it would open at the page end, on top of that same banner).
-  const reelUnderBanner = Boolean(banner && reel && reel.id === banner.id)
+  const reel = open("reel")
+  // One promotion says its piece once a page: its pop-up waits while its
+  // banner is showing (it would open at the page end, over that banner).
   const candidate = open("modal")
   const modal = candidate && candidate.id === banner?.id ? undefined : candidate
 
@@ -114,14 +108,27 @@ function Live() {
           />
         </Seen>
       ) : null}
-      {reel ? (
-        <Seen key={storeKey(reel)} onSeen={() => track(reel, "view")}>
-          <PromoReel
-            promo={toPromo(reel)}
-            bare={reelUnderBanner}
-            onAction={() => track(reel, "click")}
-          />
-        </Seen>
+      {reel && reel.reelIds.length ? (
+        <FloatingReel
+          key={storeKey(reel)}
+          ids={reel.reelIds}
+          title={reel.headline}
+          cta={
+            reel.cta && reel.href
+              ? {
+                  label: reel.cta,
+                  href: reel.href,
+                  onClick: () => track(reel, "click"),
+                }
+              : undefined
+          }
+          onShow={() => track(reel, "view")}
+          onPlay={() => track(reel, "click")}
+          onClose={() => {
+            track(reel, "close")
+            close(reel)
+          }}
+        />
       ) : null}
       {modal ? (
         <TimedPopup
