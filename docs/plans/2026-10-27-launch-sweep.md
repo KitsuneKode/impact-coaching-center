@@ -128,16 +128,16 @@ Also update hte veasoins of all packageas and improve those works that are neede
 
 ## 8. Round of 28 Oct (owner's review)
 
-- [ ] Hero shader goes black on a real GPU (RTX 4050 + Intel, Chrome) after a split second
-- [ ] Header: one compact cluster (search, cart, account), log-in as an icon, cart arrives gracefully
-- [ ] Reels: floating bottom-right player with autoplaying YouTube Shorts (as in client-preview pulse-final)
-- [ ] Pop-up: tasteful, lead-generating, never in the way
-- [ ] Centre section: auto-moving carousel, drag/touch; "Classroom tour" instead of "Call the centre"
-- [ ] New classroom tour page: photos, videos, parallax grid, centre (location) toggle, map
-- [ ] Books shelf: hover behaves like the manga volumes (neighbours make room)
-- [ ] Checkout address: PIN lookup fills district and town, landmark, courier phone, save address, collection centre choice
-- [ ] Refunds: explain how they work today; owner refund from admin if needed
-- [ ] Footer and other pages: improvements
-- [ ] Writing pass: no repetition or filler, SEO and GEO
-- [ ] ICT handover artifact: Drive folder structure, every photo, video and fact needed
-- [ ] Backend flows review: R2 uploads, verification, payments
+- [x] Hero shader goes black on a real GPU (RTX 4050 + Intel, Chrome) after a split second
+- [x] Header: one compact cluster (search, cart, account), log-in as an icon, cart arrives gracefully
+- [x] Reels: floating bottom-right player with autoplaying YouTube Shorts (as in client-preview pulse-final)
+- [x] Pop-up: tasteful, lead-generating, never in the way
+- [x] Centre section: auto-moving carousel, drag/touch; "Classroom tour" instead of "Call the centre"
+- [x] New classroom tour page: photos, videos, parallax grid, centre (location) toggle, map
+- [x] Books shelf: hover behaves like the manga volumes (neighbours make room)
+- [x] Checkout address: PIN lookup fills district and town, landmark, courier phone, save address, collection centre choice
+- [x] Refunds: explained (cancel marks refund due, refund in Razorpay, webhook closes it); a refund button in admin is still open
+- [ ] Footer and other pages: improvements (only "Tour the centre" link added so far)
+- [x] Writing pass: no repetition or filler, SEO and GEO
+- [x] ICT handover artifact: Drive folder structure, every photo, video and fact needed
+- [x] Backend flows review: R2 uploads, verification, payments
