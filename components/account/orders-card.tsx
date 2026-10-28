@@ -17,7 +17,7 @@ import { OrderStatusBadge } from "@/components/admin/order-status"
 import { ButtonLink } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/convex/_generated/api"
-import { courierSite } from "@/lib/couriers"
+import { courierSite, parcelLink } from "@/lib/couriers"
 import { formatPaise } from "@/lib/money"
 import type { OrderStatus } from "@/lib/order-status"
 
@@ -219,23 +219,24 @@ function OrderTrack({
 }
 
 /**
- * Couriers publish no per-parcel link, so this copies the number and opens
- * their tracking page, where it can be pasted.
+ * Delhivery has a page per parcel: straight there. Other couriers do not,
+ * so this copies the number and opens their tracking page to paste it.
  */
 function TrackParcel({ courier, number }: { courier: string; number: string }) {
-  const site = courierSite(courier)
+  const parcel = parcelLink(courier, number)
+  const site = parcel ?? courierSite(courier)
   if (!site) return null
   return (
     <a
       href={site}
       target="_blank"
       rel="noreferrer"
-      onClick={() =>
-        void navigator.clipboard?.writeText(number).catch(() => {})
-      }
+      onClick={() => {
+        if (!parcel) void navigator.clipboard?.writeText(number).catch(() => {})
+      }}
       className="inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 font-semibold text-primary hover:bg-card"
     >
-      Track on {courier}&rsquo;s site
+      {parcel ? "Track this parcel" : <>Track on {courier}&rsquo;s site</>}
       <IconExternalLink aria-hidden size={15} stroke={1.75} />
       <span className="sr-only"> (opens in a new tab)</span>
     </a>

@@ -34,7 +34,9 @@ export default function AdminSettingsPage() {
 }
 
 const FIELD_NAMES: Record<string, string> = {
-  shipping: "Shipping charge",
+  shipping: "Assam delivery charge",
+  shippingNortheast: "North East delivery charge",
+  shippingIndia: "Rest of India delivery charge",
   pickupAddress: "Pickup address",
   legalName: "Business name",
   gstin: "GSTIN",
@@ -81,6 +83,14 @@ function SettingsForm({
   const save = useMutation(api.settings.saveSettings)
   const [draft, setDraft] = useState({
     shipping: `${settings.shippingPaise / 100}`,
+    shippingNortheast:
+      settings.shippingNortheastPaise === undefined
+        ? ""
+        : `${settings.shippingNortheastPaise / 100}`,
+    shippingIndia:
+      settings.shippingIndiaPaise === undefined
+        ? ""
+        : `${settings.shippingIndiaPaise / 100}`,
     pickupAddress: settings.pickupAddress,
     legalName: settings.legalName,
     gstin: settings.gstin ?? "",
@@ -103,10 +113,25 @@ function SettingsForm({
       setError({ field: "shipping", message: "A charge in rupees, like 60." })
       return
     }
+    // A zone left blank charges the Assam rate.
+    const zone = (value: string) =>
+      value.trim() ? rupeesToPaise(value) : undefined
+    const shippingNortheastPaise = zone(draft.shippingNortheast)
+    const shippingIndiaPaise = zone(draft.shippingIndia)
+    for (const [field, paise] of [
+      ["shippingNortheast", shippingNortheastPaise],
+      ["shippingIndia", shippingIndiaPaise],
+    ] as const)
+      if (paise === null) {
+        setError({ field, message: "A charge in rupees, like 99, or blank." })
+        return
+      }
     setBusy(true)
     try {
       const result = await save({
         shippingPaise,
+        shippingNortheastPaise: shippingNortheastPaise ?? undefined,
+        shippingIndiaPaise: shippingIndiaPaise ?? undefined,
         pickupAddress: draft.pickupAddress,
         legalName: draft.legalName,
         gstin: draft.gstin || undefined,
@@ -140,21 +165,39 @@ function SettingsForm({
     >
       <form onSubmit={onSave} noValidate className="max-w-xl">
         <FieldGroup>
-          <Field data-invalid={invalid("shipping") || undefined}>
-            <FieldLabel htmlFor="settings-shipping">
-              Shipping charge per order (₹)
-            </FieldLabel>
-            <Input
-              id="settings-shipping"
-              inputMode="decimal"
-              value={draft.shipping}
-              onChange={(e) => set("shipping")(rupeeDraft(e.target.value))}
-              aria-invalid={invalid("shipping")}
-            />
+          <fieldset className="grid gap-4">
+            <legend className="mbe-1 text-sm font-medium">
+              Delivery charge per order (₹), by where it goes
+            </legend>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {(
+                [
+                  ["shipping", "Assam", "settings-shipping"],
+                  ["shippingNortheast", "North East", "settings-shipping-ne"],
+                  ["shippingIndia", "Rest of India", "settings-shipping-in"],
+                ] as const
+              ).map(([key, label, id]) => (
+                <Field key={key} data-invalid={invalid(key) || undefined}>
+                  <FieldLabel htmlFor={id}>{label}</FieldLabel>
+                  <Input
+                    id={id}
+                    inputMode="decimal"
+                    placeholder={
+                      key === "shipping" ? undefined : draft.shipping
+                    }
+                    value={draft[key]}
+                    onChange={(e) => set(key)(rupeeDraft(e.target.value))}
+                    aria-invalid={invalid(key)}
+                  />
+                </Field>
+              ))}
+            </div>
             <FieldDescription>
-              Charged once per delivered order. Pickup is free.
+              Once per delivered order, by the PIN code: Assam is 78, the North
+              East 790-799 and Sikkim. A blank zone charges the Assam rate.
+              Collection is free.
             </FieldDescription>
-          </Field>
+          </fieldset>
           <Field data-invalid={invalid("pickupAddress") || undefined}>
             <FieldLabel htmlFor="settings-pickup">Pickup address</FieldLabel>
             <Textarea

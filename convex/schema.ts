@@ -711,7 +711,10 @@ export default defineSchema({
 
   /** One row of owner-editable shop and business details. */
   siteSettings: defineTable({
+    /** Delivery within Assam; also every zone left blank (lib/shipping.ts). */
     shippingPaise: v.number(),
+    shippingNortheastPaise: v.optional(v.number()),
+    shippingIndiaPaise: v.optional(v.number()),
     pickupAddress: v.string(),
     legalName: v.string(),
     gstin: v.optional(v.string()),

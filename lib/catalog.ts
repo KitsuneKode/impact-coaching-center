@@ -3,6 +3,8 @@
  * and the Convex functions share, and the one set of rules they validate with.
  */
 
+import { isIndianPin } from "./shipping"
+
 export const LANGUAGES = ["en", "as"] as const
 export type Language = (typeof LANGUAGES)[number]
 
@@ -137,9 +139,9 @@ export const BUNDLE_BOOKS_MAX = 12
  */
 export const LINE_QUANTITY_MAX = 99
 
-/** Parcels go within Assam, whose PIN codes all start with 78. */
+/** Parcels go anywhere in India (lib/shipping.ts prices them by zone). */
 export function deliversTo(pin: string) {
-  return /^78\d{4}$/.test(pin.trim())
+  return isIndianPin(pin)
 }
 const PRICE_MAX_PAISE = 10_000_000
 

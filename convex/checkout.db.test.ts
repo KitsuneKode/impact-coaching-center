@@ -406,17 +406,42 @@ describe("beginCheckout", () => {
 })
 
 describe("order rules ICT set", () => {
-  test("parcels go only within Assam; collection is open to anyone", async () => {
+  test("parcels go anywhere in India, priced by zone; collection is open to anyone", async () => {
     const t = convexTest(schema, modules)
     const buyer = (await viewer(t, "+919876543210"))!
     await bundle(t, "apsc")
+    await t.run((ctx) =>
+      ctx.db.insert("siteSettings", {
+        ...DEFAULT_SETTINGS,
+        shippingPaise: 6000,
+        shippingIndiaPaise: 12000,
+        revision: 0,
+      })
+    )
     await cart(t, buyer.id, [line("apsc")])
+    // Not an Indian PIN (9 is the Army Post Office).
     expect(
-      await begin(t, buyer, "delivery", { ...ADDRESS, pin: "110001" })
+      await begin(t, buyer, "delivery", { ...ADDRESS, pin: "900001" })
     ).toEqual({ ok: false, reason: "invalid-input", field: "pin-area" })
-    expect(
-      await begin(t, buyer, "delivery", { ...ADDRESS, pin: "787001" })
-    ).toMatchObject({ ok: true })
+    const assam = await begin(t, buyer, "delivery", {
+      ...ADDRESS,
+      pin: "787001",
+    })
+    const delhi = await begin(t, buyer, "delivery", {
+      ...ADDRESS,
+      pin: "110001",
+    })
+    // The North East has no rate of its own here: it charges Assam's.
+    const shillong = await begin(t, buyer, "delivery", {
+      ...ADDRESS,
+      pin: "793001",
+    })
+    expect(assam).toMatchObject({ ok: true })
+    expect(delhi).toMatchObject({ ok: true })
+    expect(shillong).toMatchObject({ ok: true })
+    if (!assam.ok || !delhi.ok || !shillong.ok) return
+    expect(delhi.totalPaise - assam.totalPaise).toBe(6000)
+    expect(shillong.totalPaise).toBe(assam.totalPaise)
     expect(await begin(t, buyer, "collection")).toMatchObject({ ok: true })
   })
 

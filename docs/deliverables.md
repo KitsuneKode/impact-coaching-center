@@ -176,7 +176,7 @@ you did and what happened.
 **Buyer**
 
 - [ ] Add a set in each language; change quantity; cart survives a reload
-- [ ] Checkout with delivery: a PIN outside Assam is refused with a reason
+- [ ] Checkout with delivery: a PIN in Assam, the North East and elsewhere in India each shows its own charge; a non-Indian PIN is refused with a reason
 - [ ] Pay (test card 4100 2800 0000 1007 or UPI `success@razorpay` in test mode); receipt and WhatsApp message arrive
 - [ ] Close the payment window halfway; the cart is still there; pay again works
 - [ ] Account: order timeline, tracking link once shipped, receipt prints to PDF

@@ -9,6 +9,7 @@ import {
 } from "./authz"
 import { brand, place } from "../lib/brand"
 import { toE164 } from "../lib/leads"
+import { lowestShipping, type ShippingRates } from "../lib/shipping"
 import type { Doc } from "./_generated/dataModel"
 import { mutation, query, type QueryCtx } from "./_generated/server"
 
@@ -32,17 +33,34 @@ export async function readSettings(
   return (await ctx.db.query("siteSettings").first()) ?? DEFAULT_SETTINGS
 }
 
+/** The delivery rate per zone, as lib/shipping.ts reads them. */
+export function ratesOf(settings: Settings): ShippingRates {
+  return {
+    assam: settings.shippingPaise,
+    northeast: settings.shippingNortheastPaise,
+    india: settings.shippingIndiaPaise,
+  }
+}
+
 /** What the shop shows to visitors. */
 export const shop = query({
   args: {},
   returns: v.object({
+    /** The lowest delivery charge, for "from ₹60" before a PIN is typed. */
     shippingPaise: v.number(),
+    rates: v.object({
+      assam: v.number(),
+      northeast: v.optional(v.number()),
+      india: v.optional(v.number()),
+    }),
     pickupAddress: v.string(),
   }),
   handler: async (ctx) => {
     const settings = await readSettings(ctx)
+    const rates = ratesOf(settings)
     return {
-      shippingPaise: settings.shippingPaise,
+      shippingPaise: lowestShipping(rates),
+      rates,
       pickupAddress: settings.pickupAddress,
     }
   },
@@ -50,6 +68,8 @@ export const shop = query({
 
 const FIELDS = {
   shippingPaise: v.number(),
+  shippingNortheastPaise: v.optional(v.number()),
+  shippingIndiaPaise: v.optional(v.number()),
   pickupAddress: v.string(),
   legalName: v.string(),
   gstin: v.optional(v.string()),
@@ -65,6 +85,8 @@ export const adminSettings = query({
     const s = await readSettings(ctx)
     return {
       shippingPaise: s.shippingPaise,
+      shippingNortheastPaise: s.shippingNortheastPaise,
+      shippingIndiaPaise: s.shippingIndiaPaise,
       pickupAddress: s.pickupAddress,
       legalName: s.legalName,
       gstin: s.gstin,
@@ -84,7 +106,14 @@ export const saveSettings = mutation({
     const owner = await requireOwner(ctx)
     if (!owner.ok) return owner
     const { expectedRevision, ...input } = args
-    if (!Number.isInteger(input.shippingPaise) || input.shippingPaise < 0)
+    const rate = (paise: number | undefined) =>
+      paise === undefined || (Number.isInteger(paise) && paise >= 0)
+    if (
+      !Number.isInteger(input.shippingPaise) ||
+      input.shippingPaise < 0 ||
+      !rate(input.shippingNortheastPaise) ||
+      !rate(input.shippingIndiaPaise)
+    )
       return invalidInput("shipping")
     const pickupAddress = input.pickupAddress.trim()
     const legalName = input.legalName.trim()
@@ -106,6 +135,8 @@ export const saveSettings = mutation({
     if (conflict) return conflict
     const next = {
       shippingPaise: input.shippingPaise,
+      shippingNortheastPaise: input.shippingNortheastPaise,
+      shippingIndiaPaise: input.shippingIndiaPaise,
       pickupAddress,
       legalName,
       gstin,

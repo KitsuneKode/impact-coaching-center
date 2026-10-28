@@ -1,7 +1,7 @@
 ---
 title: Shipping and delivery
 description: Where Impact Career Tutorials delivers books ordered through this website, what it costs, how long it takes, and collecting from the centre.
-updated: 2026-09-26
+updated: 2026-10-28
 approved: false
 ---
 
@@ -11,11 +11,11 @@ Impact Career Tutorials does not currently take online orders for books through 
 
 ## Where we deliver
 
-{{proposed: Anywhere in India that our courier or India Post serves.}} If we cannot deliver to your PIN code, checkout says so before you pay.
+Anywhere in India that our courier, {{proposed: Delhivery}}, serves. If it cannot deliver to your PIN code, checkout says so before you pay, and you can collect from the centre instead.
 
 ## What delivery costs
 
-{{fill: delivery charge, e.g. a flat charge per order, a charge by weight or by region, and any order value above which delivery is free}}
+One charge per order, by where it goes: {{fill: ₹ within Assam}}, {{fill: ₹ to the rest of the North East}} and {{fill: ₹ to the rest of India}}.
 
 The charge is shown at checkout before you pay, and is charged once per order however many books it contains.
 
@@ -25,7 +25,7 @@ ICT {{proposed: dispatches orders within 2 working days}} of payment. After disp
 
 ## Tracking
 
-When your order is dispatched we send the courier's name and tracking number {{proposed: on WhatsApp}}, and they appear with the order on your account page.
+When your order is dispatched we send the courier's name and tracking number {{proposed: on WhatsApp}}, with a link to follow the parcel. They also appear with the order on your account page.
 
 ## Collecting from the centre
 

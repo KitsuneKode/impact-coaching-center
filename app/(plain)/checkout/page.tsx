@@ -40,6 +40,7 @@ import { SecureCheckout } from "@/components/commerce/secure-checkout"
 import { useCartSynced } from "@/components/commerce/shop-shell"
 import { FULFILMENT_LABELS } from "@/lib/checkout"
 import { formatPaise } from "@/lib/money"
+import { shippingFor, ZONE_LABELS, zoneOf } from "@/lib/shipping"
 import { PayButton, type Paid } from "@/components/commerce/pay-order"
 import { Spinner } from "@/components/ui/spinner"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -59,7 +60,7 @@ const REFUSED_FIELD: Record<string, string> = {
     "Something in your cart is no longer available - check it and try again.",
   cart: "Your cart is empty.",
   "pin-area":
-    "We deliver within Assam only (PIN codes starting 78). Choose collection at the centre, or call ICT.",
+    "Enter a PIN code in India. Or choose collection at the centre, or call ICT.",
   address:
     "Check the address: PIN code, district, town, and the house and street.",
   "courier-phone": "Check the courier's number: 10 digits, like 98765 43210.",
@@ -67,6 +68,9 @@ const REFUSED_FIELD: Record<string, string> = {
   quantity: `Up to ${LINE_QUANTITY_MAX} of one set at a time. For more, call ICT.`,
   name: "Add your name in your account before ordering.",
 }
+
+const NOT_SERVED =
+  "The courier does not deliver to this PIN yet. Choose collection at the centre, or call ICT to arrange it."
 
 export default function CheckoutPage() {
   if (!convexConfigured)
@@ -131,6 +135,8 @@ function CheckoutForm({ signedIn }: { signedIn: boolean }) {
     courierPhone: "",
   })
   const [saveAddress, setSaveAddress] = useState(true)
+  // Delhivery's answer for the PIN typed; null until it answers, or without a token.
+  const [serviceable, setServiceable] = useState<boolean | null>(null)
   const [centre, setCentre] = useState(centres[0]!.id)
   // Once: the remembered address, or at least the buyer's own number.
   const [prefilled, setPrefilled] = useState(false)
@@ -174,12 +180,23 @@ function CheckoutForm({ signedIn }: { signedIn: boolean }) {
         ]
       : []
   )
+  // The lowest rate until a PIN says which zone; then that zone's.
   const shippingPaise = shop?.shippingPaise ?? 0
+  const zone = zoneOf(address.pin)
+  const zonePaise =
+    shop && zone
+      ? (shippingFor(address.pin, shop.rates) ?? shippingPaise)
+      : null
+  const ratesVary = shop
+    ? new Set(Object.values(shop.rates).filter((r) => r !== undefined)).size > 1
+    : false
   const itemsPaise = totals.itemsPaise
-  const deliveryPaise = fulfilment === "delivery" ? shippingPaise : 0
+  const deliveryPaise =
+    fulfilment === "delivery" ? (zonePaise ?? shippingPaise) : 0
 
   const checkAddress = () => {
     const errors = checkDelivery(address)
+    if (!errors.pin && serviceable === false) errors.pin = NOT_SERVED
     setFieldErrors(errors)
     const first = DELIVERY_FIELDS.find((field) => errors[field])
     if (first) document.getElementById(first)?.focus()
@@ -334,7 +351,7 @@ function CheckoutForm({ signedIn }: { signedIn: boolean }) {
                           </span>
                           <span className="block text-sm text-muted-foreground">
                             {value === "delivery"
-                              ? `${formatPaise(shippingPaise)} delivery`
+                              ? `${ratesVary ? "From " : ""}${formatPaise(shippingPaise)} delivery, anywhere in India`
                               : `Free. From the centre on ${place.spoken}, when it's ready`}
                           </span>
                         </span>
@@ -406,10 +423,20 @@ function CheckoutForm({ signedIn }: { signedIn: boolean }) {
                       errors={fieldErrors}
                       onChange={(next, field) => {
                         setAddress((a) => ({ ...a, ...next }))
+                        if (field === "pin") setServiceable(null)
                         setFieldErrors((errors) => ({
                           ...errors,
                           [field]: undefined,
                         }))
+                      }}
+                      onServiceable={(served) => {
+                        setServiceable(served)
+                        // Said at once, beside the PIN, not after Pay.
+                        if (served === false)
+                          setFieldErrors((errors) => ({
+                            ...errors,
+                            pin: NOT_SERVED,
+                          }))
                       }}
                     />
                     <label className="flex items-start gap-3 text-sm">
@@ -456,10 +483,12 @@ function CheckoutForm({ signedIn }: { signedIn: boolean }) {
                 <dt className="text-muted-foreground">Delivery</dt>
                 <dd className="tnum">
                   {!signedIn || whatsapp
-                    ? `${formatPaise(shippingPaise)}, or free to collect`
-                    : fulfilment === "delivery"
-                      ? formatPaise(deliveryPaise)
-                      : "Free"}
+                    ? `${ratesVary ? "From " : ""}${formatPaise(shippingPaise)}, or free to collect`
+                    : fulfilment !== "delivery"
+                      ? "Free"
+                      : zone
+                        ? `${formatPaise(deliveryPaise)} · ${ZONE_LABELS[zone]}`
+                        : `${ratesVary ? "From " : ""}${formatPaise(deliveryPaise)}`}
                 </dd>
               </div>
               <div className="flex justify-between border-t border-border pbs-3 text-base font-medium">

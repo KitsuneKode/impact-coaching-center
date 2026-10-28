@@ -172,7 +172,7 @@ One Google Sheet with these tabs. Short answers are fine.
 | Centre   | Opening hours (each day), collection hours for book orders, Dhemaji address, PIN, map pin, phone, opening date        |
 | Contact  | Who answers enquiries; is "we reply the same day" true; Telegram channel (if any); current Play Store link            |
 | Books    | Which 2–3 sets are on sale, the books in each, price per language, which languages exist                              |
-| Delivery | Shipping charge, days to dispatch, days to deliver, refund window                                                     |
+| Delivery | Delivery charge for Assam, the North East and the rest of India; days to dispatch; refund window                      |
 | ASSIST   | Next date, who can sit it, fee, format, scholarship amounts                                                           |
 | Courses  | Timings for Radiant 2.0 and Diamond 3.0; whether PRAGATI's "20+ selections" can be checked                            |
 | Library  | Included or separate fee, hours, seats, facilities, rules, outsiders allowed                                          |
@@ -190,5 +190,10 @@ at the centre:
 - Domain log-in (or someone who can add DNS records)
 - Razorpay: KYC done, GSTIN, bank account
 - A new SIM for the website's WhatsApp, and Meta Business access
-- Google Business Profile: add us as a manager
+- Google Business Profile: add us as a manager. Today it shows opening
+  hours for Wednesday only (10 am to 5:30 pm) and no website: add the hours
+  for every day, and we add the website link at launch.
+- Delhivery business account: the API token, and the centre registered as
+  the pickup address. With the token, checkout checks every PIN code with
+  Delhivery before taking payment.
 - The desk phone that should get a WhatsApp for every paid order

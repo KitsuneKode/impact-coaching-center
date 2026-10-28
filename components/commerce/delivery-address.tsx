@@ -42,7 +42,7 @@ export const DELIVERY_FIELDS: DeliveryField[] = [
 type Lookup =
   | { state: "idle" }
   | { state: "looking" }
-  | { state: "found"; district: string; places: string[] }
+  | { state: "found"; district: string; region: string; places: string[] }
   | { state: "unknown" }
 
 /** Checked here first, so the buyer fixes it in place, not after a round trip. */
@@ -50,8 +50,7 @@ export function checkDelivery(value: Delivery) {
   const errors: Partial<Record<DeliveryField, string>> = {}
   if (!/^\d{6}$/.test(value.pin)) errors.pin = "Enter the 6-digit PIN code."
   else if (!deliversTo(value.pin))
-    errors.pin =
-      "We deliver within Assam only (PIN codes starting 78). Choose collection, or call ICT."
+    errors.pin = "Enter a PIN code in India, like 787001."
   if (!value.district.trim()) errors.district = "Enter the district."
   if (!value.city.trim()) errors.city = "Enter the town, city or village."
   if (!value.line1.trim()) errors.line1 = "Enter the house number and street."
@@ -73,19 +72,22 @@ export function DeliveryAddress({
   value,
   onChange,
   errors,
+  onServiceable,
 }: {
   value: Delivery
   onChange: (next: Partial<Delivery>, field: keyof Delivery) => void
   errors: Partial<Record<DeliveryField, string>>
+  /** Whether the courier delivers to the PIN typed: true, false or unknown. */
+  onServiceable?: (serviceable: boolean | null) => void
 }) {
   const [lookup, setLookup] = useState<Lookup>({ state: "idle" })
   const placesId = useId()
   // What the lookup itself put in, so a later PIN can replace it but never
   // something the buyer typed.
   const filled = useRef({ district: "", city: "" })
-  const latest = useRef({ value, onChange })
+  const latest = useRef({ value, onChange, onServiceable })
   useEffect(() => {
-    latest.current = { value, onChange }
+    latest.current = { value, onChange, onServiceable }
   })
 
   const pin = value.pin
@@ -99,12 +101,20 @@ export function DeliveryAddress({
           signal: controller.signal,
         })
         const data = (await response.json()) as
-          | { found: true; district: string; places: string[] }
-          | { found: false }
+          | {
+              found: true
+              district: string
+              state: string
+              places: string[]
+              serviceable: boolean | null
+            }
+          | { found: false; serviceable?: boolean | null }
+        latest.current.onServiceable?.(data.serviceable ?? null)
         if (!data.found) return setLookup({ state: "unknown" })
         setLookup({
           state: "found",
           district: data.district,
+          region: data.state,
           places: data.places,
         })
         const { value: now, onChange: change } = latest.current
@@ -148,7 +158,7 @@ export function DeliveryAddress({
           stroke={1.75}
           className="text-primary"
         />
-        {lookup.district} district, Assam
+        {lookup.district} district, {lookup.region}
       </span>
     ) : lookup.state === "looking" ? (
       <span className="inline-flex items-center gap-1.5">
@@ -156,7 +166,7 @@ export function DeliveryAddress({
         Finding the district
       </span>
     ) : (
-      "We deliver within Assam."
+      "We deliver anywhere in India."
     )
 
   return (

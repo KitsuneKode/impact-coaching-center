@@ -21,7 +21,7 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server"
-import { courierSite } from "../lib/couriers"
+import { courierSite, parcelLink } from "../lib/couriers"
 import { publicOrigin } from "../lib/order-messages"
 import {
   isOrderReference,
@@ -551,7 +551,8 @@ async function tellBuyer(
         order.reference,
         order.courier.name,
         order.courier.trackingNumber,
-        courierSite(order.courier.name) ??
+        parcelLink(order.courier.name, order.courier.trackingNumber) ??
+          courierSite(order.courier.name) ??
           (origin ? `${origin}/account` : "your ICT account"),
       ],
     })

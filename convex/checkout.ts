@@ -8,7 +8,8 @@ import { deliversTo } from "../lib/catalog"
 import { toE164 } from "../lib/leads"
 import { ADDRESS } from "./schema"
 import { consumeRateLimit } from "./persons"
-import { readSettings } from "./settings"
+import { ratesOf, readSettings } from "./settings"
+import { shippingFor } from "../lib/shipping"
 
 /**
  * Checkout (ADR-0005). "Pay" freezes the server cart at today's prices into
@@ -114,7 +115,7 @@ export async function beginCheckoutAs(
       ? (validateAddress(args.address) ?? undefined)
       : undefined
   if (args.fulfilment === "delivery" && !address) return invalidInput("address")
-  // Collection is open to anyone; parcels only go within Assam.
+  // Collection is open to anyone; parcels go anywhere in India.
   if (address && !deliversTo(address.pin)) return invalidInput("pin-area")
 
   /* The cart on the server is what gets paid for; what the browser showed
@@ -166,7 +167,9 @@ export async function beginCheckoutAs(
   )
   const settings = await readSettings(ctx)
   const deliveryPaise =
-    args.fulfilment === "delivery" ? settings.shippingPaise : 0
+    args.fulfilment === "delivery" && address
+      ? (shippingFor(address.pin, ratesOf(settings)) ?? 0)
+      : 0
   const totalPaise = itemsPaise + deliveryPaise
   const contact = {
     name: person.name.trim(),
