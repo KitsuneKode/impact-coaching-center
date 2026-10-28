@@ -745,6 +745,10 @@
   [data-site-header-row] > a:first-child {
     --fold-gap: 0.75rem;
   }
+  /* A slot whose item is absent (the cart while empty) takes no gap. */
+  [data-site-header-row] > [data-flip]:empty {
+    display: none;
+  }
 
   /* What folds away when the header draws in (wide screens only): taken
      out of the row and faded where it stands, riding along with the item
@@ -764,12 +768,17 @@
     [data-site-phone] {
       margin-inline-start: 0;
     }
+    /* Scrolled: the icon buttons (search, cart, account, phone) sit as one
+       cluster 4px apart; the room goes either side of the sections. */
     [data-site-header][data-stuck] [data-site-header-row] {
       justify-content: center;
-      gap: 1rem;
+      gap: 0.25rem;
     }
     [data-site-header][data-stuck] [data-site-nav] {
-      margin-inline: 0;
+      margin-inline: 0.75rem 1rem;
+    }
+    [data-site-header][data-stuck] [data-site-tools] {
+      gap: 0.25rem;
     }
     [data-site-header][data-stuck]
       [data-site-nav]

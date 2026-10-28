@@ -2289,6 +2289,32 @@
       "restDays": 7,
       "delaySeconds": 0,
       "priority": 20
+    },
+    {
+      "name": "Students on video reel",
+      "kind": "reel",
+      "tag": "Students",
+      "headline": "Hear it from ICT's students.",
+      "body": "Short reviews filmed at the centre, each with the student's name and batch.",
+      "cta": "All student reviews",
+      "href": "/success-stories#voices",
+      "restDays": 2,
+      "delaySeconds": 4,
+      "priority": 30,
+      "reelIds": ["iMTV56lmQpQ", "ipaMDRbfhms", "746gEBLxB28", "Ocg2NUu-nA0"]
+    },
+    {
+      "name": "ASSIST scholarship pop-up",
+      "kind": "modal",
+      "tag": "Scholarship",
+      "headline": "Sit ASSIST, pay less for your batch.",
+      "body": "ICT's scholarship test lowers the fee for the batch you choose. Ask for the next date on WhatsApp.",
+      "cta": "About ASSIST",
+      "href": "/assist",
+      "restDays": 5,
+      "delaySeconds": 12,
+      "priority": 40,
+      "routes": ["/courses"]
     }
   ]
 }

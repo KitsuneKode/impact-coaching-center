@@ -541,6 +541,10 @@ export const seedCampaigns = internalMutation({
         restDays: v.number(),
         delaySeconds: v.number(),
         priority: v.number(),
+        /** YouTube Shorts ids for a reel. */
+        reelIds: v.optional(v.array(v.string())),
+        /** Paths it shows on; none means everywhere. */
+        routes: v.optional(v.array(v.string())),
       })
     ),
   },
@@ -555,8 +559,8 @@ export const seedCampaigns = internalMutation({
         name: `${SAMPLE_PREFIX}${campaign.name}`,
         status: "live",
         coupon: "",
-        reelIds: [],
-        routes: [],
+        reelIds: campaign.reelIds ?? [],
+        routes: campaign.routes ?? [],
         revision: 0,
         updatedAt: Date.now(),
       })
