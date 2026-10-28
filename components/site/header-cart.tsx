@@ -22,11 +22,13 @@ export function HeaderCart() {
     <Link
       href="/checkout"
       data-site-cart
+      data-arrive
       data-press
       aria-label={t("cartLabel", { count })}
     >
       <IconShoppingBag aria-hidden size={19} stroke={1.75} />
-      <span aria-hidden data-site-cart-count className="tnum">
+      {/* Keyed by the count, so each new item pops the badge. */}
+      <span key={count} aria-hidden data-site-cart-count className="tnum">
         {count}
       </span>
     </Link>

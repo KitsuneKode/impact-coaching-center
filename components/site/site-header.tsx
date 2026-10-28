@@ -85,7 +85,7 @@ export function SiteHeader() {
               <LocaleSwitch />
             </span>
             <span data-flip className="flex">
-              <AccountMenu />
+              <AccountMenu variant="icon" />
             </span>
           </div>
 

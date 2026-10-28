@@ -32,13 +32,20 @@ import { resetAnalytics } from "@/lib/analytics"
 import { initials } from "@/lib/person"
 import { useViewer } from "@/hooks/use-viewer"
 
-/** Who you are, and the way out. */
-export function AccountMenu({ className }: { className?: string }) {
-  if (!convexConfigured) return null
-  return <Menu className={className} />
+type Props = {
+  className?: string
+  /** "icon" in the header: a person icon to log in, the same size as the
+   *  avatar that replaces it. "text" in the phone menu's dock. */
+  variant?: "icon" | "text"
 }
 
-function Menu({ className }: { className?: string }) {
+/** Who you are, and the way out. */
+export function AccountMenu(props: Props) {
+  if (!convexConfigured) return null
+  return <Menu {...props} />
+}
+
+function Menu({ className, variant = "text" }: Props) {
   const t = useTranslations("Account")
   const viewer = useViewer()
   const router = useRouter()
@@ -53,11 +60,26 @@ function Menu({ className }: { className?: string }) {
    */
   if (viewer === undefined && !stalled)
     return (
-      // As wide as the Log in link, so nothing shifts when it arrives.
+      // As wide as what replaces it, so nothing shifts when it arrives.
       <Skeleton
         aria-hidden="true"
-        className={`h-9 w-16 shrink-0 rounded-full ${className ?? ""}`}
+        className={`shrink-0 rounded-full ${variant === "icon" ? "size-10" : "h-9 w-16"} ${className ?? ""}`}
       />
+    )
+
+  if (!viewer && variant === "icon")
+    return (
+      <Link
+        href="/login"
+        aria-label={t("login")}
+        title={t("login")}
+        data-site-account
+        data-arrive
+        data-press
+        className={className}
+      >
+        <IconUserCircle aria-hidden size={21} stroke={1.6} />
+      </Link>
     )
 
   if (!viewer)
@@ -83,7 +105,8 @@ function Menu({ className }: { className?: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={t("account", { name: label })}
-        className={`relative inline-flex size-9 items-center justify-center rounded-full transition-colors after:absolute after:-inset-1 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
+        data-arrive
+        className={`relative inline-flex size-10 items-center justify-center rounded-full transition-colors after:absolute after:-inset-0.5 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${className ?? ""}`}
       >
         <Avatar className="size-8">
           <AvatarFallback className="text-xs">
