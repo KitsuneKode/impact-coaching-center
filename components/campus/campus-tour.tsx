@@ -37,12 +37,8 @@ export function CampusTour({ shots }: { shots: TourShot[] }) {
 
   return (
     <div className="grid gap-8">
-      <div
-        role="group"
-        aria-label={t("pick")}
-        data-tour-switch
-        className="flex flex-wrap gap-2"
-      >
+      <fieldset data-tour-switch className="flex flex-wrap gap-2">
+        <legend className="sr-only">{t("pick")}</legend>
         {centres.map((x) => (
           <button
             key={x.id}
@@ -59,7 +55,7 @@ export function CampusTour({ shots }: { shots: TourShot[] }) {
             </span>
           </button>
         ))}
-      </div>
+      </fieldset>
 
       {centre.at ? (
         <div
