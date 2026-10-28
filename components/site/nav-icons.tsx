@@ -17,6 +17,7 @@ import {
   Trophy,
   Truck,
   UsersThree,
+  DoorOpen,
 } from "@phosphor-icons/react/dist/ssr"
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react"
 
@@ -47,4 +48,5 @@ export const NAV_ICONS = {
   trophy: duo(Trophy),
   users: duo(UsersThree),
   map: duo(MapPin),
+  door: duo(DoorOpen),
 } as const

@@ -1,22 +1,23 @@
 import {
+  IconArrowRight,
   IconMapPin,
-  IconPhone,
   IconPlayerPlayFilled,
 } from "@tabler/icons-react"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 
 import { VideoDialog } from "@/components/marketing/video-dialog"
+import { DriftRow } from "@/components/motion/drift-row"
 import { Reveal } from "@/components/motion/reveal"
-import { ButtonAnchor } from "@/components/ui/button"
-import { contact, place } from "@/lib/brand"
-import { contactHref } from "@/lib/contact"
+import { ButtonAnchor, ButtonLink } from "@/components/ui/button"
+import { place } from "@/lib/brand"
 import { campus } from "@/lib/stories"
 
 /**
  * The room a parent is sending their child into: six photographs of the
- * centre, each a frame from the ICT video it plays, beside the address and
- * the two ways to get there. Answers "can I see the place?" before it is asked.
+ * centre drifting past, each a frame from the ICT video it plays, beside the
+ * address, directions and the full tour. Answers "can I see the place?"
+ * before it is asked.
  */
 export function Centre() {
   const t = useTranslations("Pulse")
@@ -52,54 +53,49 @@ export function Centre() {
               <IconMapPin aria-hidden stroke={1.75} />
               {t("directions")}
             </ButtonAnchor>
-            <ButtonAnchor
-              href={contactHref({ kind: "call" })}
-              variant="secondary"
-              size="md"
-            >
-              <IconPhone aria-hidden stroke={1.75} />
-              <span className="tnum">{t("callCentre")}</span>
-            </ButtonAnchor>
+            <ButtonLink href="/campus" variant="secondary" size="md">
+              {t("centreTour")}
+              <IconArrowRight data-nudge aria-hidden stroke={2} />
+            </ButtonLink>
           </div>
-          <p className="sr-only">{contact.phones.join(", ")}</p>
         </Reveal>
 
-        {/* A row that scrolls sideways on a phone and settles on each photo. */}
-        <ul
+        <DriftRow
           data-centre-row
-          className="scrollbar-none flex snap-x snap-mandatory gap-3 overflow-x-auto lg:col-span-8"
-        >
-          {campus.map((photo, i) => (
-            <li key={photo.src} className="w-44 flex-none snap-start sm:w-52">
-              <VideoDialog
-                id={photo.video}
-                title={captions[i]!}
-                vertical
-                label={t("centreWatch", { caption: captions[i]! })}
-                className="group/photo grid w-full gap-2.5 text-start"
-              >
-                <span className="relative block aspect-9/16 overflow-clip rounded-card bg-secondary">
-                  <Image
-                    src={photo.src}
-                    alt={photo.alt}
-                    fill
-                    sizes="(min-width: 640px) 13rem, 11rem"
-                    className="object-cover transition-[scale] duration-500 ease-out group-hover/photo:scale-[1.03]"
-                  />
-                  <span
-                    aria-hidden
-                    className="absolute inset-s-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-ink shadow-frame"
-                  >
-                    <IconPlayerPlayFilled size={14} />
-                  </span>
+          label={t("centrePhotos")}
+          className="gap-3 lg:col-span-8"
+          itemClassName="w-44 flex-none sm:w-52"
+          items={campus.map((photo, i) => (
+            <VideoDialog
+              key={photo.src}
+              id={photo.video}
+              title={captions[i]!}
+              vertical
+              label={t("centreWatch", { caption: captions[i]! })}
+              className="group/photo grid w-full gap-2.5 text-start"
+            >
+              <span className="relative block aspect-9/16 overflow-clip rounded-card bg-secondary">
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  sizes="(min-width: 640px) 13rem, 11rem"
+                  draggable={false}
+                  className="object-cover transition-[scale] duration-500 ease-out group-hover/photo:scale-[1.03]"
+                />
+                <span
+                  aria-hidden
+                  className="absolute inset-s-3 inset-be-3 grid size-9 place-items-center rounded-full bg-white/90 text-ink shadow-frame"
+                >
+                  <IconPlayerPlayFilled size={14} />
                 </span>
-                <span className="text-sm text-pretty text-muted-foreground">
-                  {captions[i]}
-                </span>
-              </VideoDialog>
-            </li>
+              </span>
+              <span className="text-sm text-pretty text-muted-foreground">
+                {captions[i]}
+              </span>
+            </VideoDialog>
           ))}
-        </ul>
+        />
       </div>
     </section>
   )

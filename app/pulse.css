@@ -3591,9 +3591,32 @@
   [data-centre-row] {
     margin-inline: 0;
     padding-inline: 0;
-    /* More photos past the edge: the cut fades rather than chops. */
-    mask-image: linear-gradient(90deg, #000 82%, transparent);
+    /* It keeps going past both edges: the cut fades rather than chops. */
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 6%,
+      #000 88%,
+      transparent
+    );
   }
+}
+
+/* A drifting row (components/motion/drift-row.tsx): a mouse drags it. */
+@media (hover: hover) and (pointer: fine) {
+  [data-drift-row] {
+    cursor: grab;
+  }
+  [data-drift-row][data-dragging] {
+    cursor: grabbing;
+    user-select: none;
+  }
+  [data-drift-row][data-dragging] * {
+    pointer-events: none;
+  }
+}
+[data-drift-row] img {
+  -webkit-user-drag: none;
 }
 
 /* Rolling counts (components/motion/rolling-number.tsx): each digit is a
@@ -4240,5 +4263,52 @@
     [data-ending-style]
   ) {
     opacity: 0;
+  }
+}
+
+/* The centre tour (components/campus/campus-tour.tsx). */
+[data-tour-centre] {
+  background-color: var(--card);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition:
+    background-color 0.2s var(--ease-out-strong),
+    color 0.2s var(--ease-out-strong);
+}
+[data-tour-centre][aria-pressed="true"] {
+  background-color: var(--foreground);
+  color: var(--background);
+  box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-tour-centre][aria-pressed="false"]:hover {
+    background-color: var(--secondary);
+  }
+}
+/* Parallax: as the wall passes, the outer columns rise and the middle one
+   sinks (room is left under it so it never runs into what follows). */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) and (width >= 48rem) {
+    [data-tour-grid] {
+      view-timeline-name: --tour;
+      padding-block-end: 5rem;
+    }
+    [data-tour-col] {
+      animation: tour-rise linear both;
+      animation-timeline: --tour;
+      animation-range: entry 0% exit 100%;
+    }
+    [data-tour-col="1"] {
+      animation-name: tour-sink;
+    }
+  }
+}
+@keyframes tour-rise {
+  to {
+    translate: 0 -5rem;
+  }
+}
+@keyframes tour-sink {
+  to {
+    translate: 0 5rem;
   }
 }

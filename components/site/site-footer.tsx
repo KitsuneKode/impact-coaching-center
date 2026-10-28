@@ -74,6 +74,7 @@ export function SiteFooter() {
       head: t("fVisit"),
       items: [
         { label: nav("contact"), href: "/contact" },
+        { label: t("centreTour"), href: "/campus" },
         { label: t("directions"), href: place.maps, out: true },
         {
           label: t("whatsapp"),

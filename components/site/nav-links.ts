@@ -63,6 +63,7 @@ export const NAV_MENUS = [
     items: [
       { key: "results", href: "/success-stories", icon: "trophy" },
       { key: "teachers", href: "/teachers", icon: "users" },
+      { key: "campus", href: "/campus", icon: "door" },
       { key: "contact", href: "/contact", icon: "map" },
     ],
   },

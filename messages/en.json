@@ -145,10 +145,21 @@
     "unit": "one time"
   },
   "Campus": {
-    "label": "The centre",
-    "claim": "{place}, on an ordinary week.",
-    "rest": "Not stock photography. These are frames from ICT's own clips of mock tests, classes and guest sessions.",
-    "subtitle": "At the ICT centre, North Lakhimpur"
+    "title": "Tour the ICT centre in North Lakhimpur",
+    "description": "Photos and videos from inside Impact Career Tutorials on DC Bungalow Road, North Lakhimpur: the classrooms, the digital classroom, mock tests and guest sessions with officers. With directions and both centres on the map.",
+    "crumb": "Tour the centre",
+    "heading": "Inside the centre.",
+    "lede": "Classrooms, the digital classroom and the mock-test hall on DC Bungalow Road, North Lakhimpur. Every photo here is a frame from ICT's own videos; tap one to watch it.",
+    "photos": "Photos and videos of the centre",
+    "pick": "Choose a centre",
+    "watch": "Watch: {caption}",
+    "guestCaption": "{name}, {role}, at ICT",
+    "guestAlt": "{name}, {role}, speaking to students at ICT",
+    "soonHeading": "Photos of the {town} centre are on the way.",
+    "soonBody": "Its address, timings and photos will be here soon. Until then, call ICT to ask about the {town} centre.",
+    "visitHeading": "See it for yourself: sit a free class.",
+    "visitBody": "Ask for the next free workshop on WhatsApp and come to the centre on {place}. Bring a parent if you like.",
+    "visitCta": "Book a free class"
   },
   "Classes": {
     "label": "Free classes",
@@ -808,7 +819,9 @@
     "volumesLabel": "Every book ICT prints",
     "cardStarts": "Starts {date}",
     "cardSave": "Save {amount}",
-    "tagline": "Teachers you can watch before you pay. Classes you can replay on your phone."
+    "tagline": "Teachers you can watch before you pay. Classes you can replay on your phone.",
+    "centreTour": "Tour the centre",
+    "centrePhotos": "Photos from the centre"
   },
   "Promos": {
     "code": "Code",
@@ -1036,6 +1049,10 @@
     "teachers": {
       "title": "Teachers",
       "note": "Who teaches what"
+    },
+    "campus": {
+      "title": "Tour the centre",
+      "note": "Photos and videos from inside"
     },
     "contact": {
       "title": "Visit or call",

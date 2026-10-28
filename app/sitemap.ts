@@ -81,6 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     })),
     { url: `${siteUrl}/contact`, changeFrequency: "yearly", priority: 0.6 },
+    { url: `${siteUrl}/campus`, changeFrequency: "monthly", priority: 0.6 },
     // Only documents ICT has signed off. An unapproved policy is also
     // noindex, so listing it here would ask crawlers to fetch a page that
     // tells them to go away.
