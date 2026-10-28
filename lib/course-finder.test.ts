@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test"
 
 import {
+  editionOf,
+  latestEditions,
+  freeToTry,
   rankAll,
   recommend,
   startHour,
@@ -125,6 +128,39 @@ describe("recommend", () => {
     expect(picks[0]?.reasons).toContain("newest")
   })
 
+  test("just starting, evenings: the evening batch, with the workshop to try free", () => {
+    const answers = {
+      exam: "apsc",
+      stage: "starting",
+      time: "evening",
+      mode: "centre",
+    } as const
+    const [best] = recommend(courses, answers, examOf)
+    expect(best?.course.slug).toBe("pragati")
+    expect(best?.course.free).toBe(false)
+    expect(freeToTry(courses, answers, examOf)?.course.slug).toBe("kouxal")
+  })
+
+  test("batches running side by side do not push each other down", () => {
+    // Lakhya is newer than PRAGATI, but they are different programmes.
+    const [best] = recommend(
+      courses,
+      { exam: "apsc", stage: "starting", time: "evening" },
+      examOf
+    )
+    expect(best?.course.slug).toBe("pragati")
+    expect(best?.reasons).not.toContain("newest")
+  })
+
+  test("an older edition of a programme is never suggested", () => {
+    const picks = recommend(
+      courses,
+      { exam: "adre", stage: "starting", time: "morning" },
+      examOf
+    )
+    expect(picks.map((p) => p.course.slug)).toEqual(["victor-8"])
+  })
+
   test("not sure yet leads with a free workshop", () => {
     const [best] = recommend(
       courses,
@@ -140,6 +176,15 @@ describe("recommend", () => {
   })
 })
 
+describe("editionOf", () => {
+  test("reads the programme and its number from the short name", () => {
+    expect(editionOf("Victor 9.0")).toEqual({ stem: "victor", version: 9 })
+    expect(editionOf("VICTOR 8.0")).toEqual({ stem: "victor", version: 8 })
+    expect(editionOf("Lakhya 2027")).toEqual({ stem: "lakhya", version: 2027 })
+    expect(editionOf("Kouxal")).toEqual({ stem: "kouxal", version: 0 })
+  })
+})
+
 describe("rankAll", () => {
   test("keeps every course, the chosen exam's first", () => {
     const all = rankAll(courses, { exam: "apsc" }, examOf)
@@ -152,5 +197,18 @@ describe("rankAll", () => {
     expect(rankAll(courses, {}, examOf).length).toBe(
       courses.filter((c) => c.track).length
     )
+  })
+})
+
+describe("latestEditions", () => {
+  test("drops a programme's older editions and keeps the rest", () => {
+    expect(latestEditions(courses).map((c) => c.slug)).toEqual([
+      "lakhya",
+      "pragati",
+      "arjuna",
+      "kouxal",
+      "victor-8",
+      "abhigyan",
+    ])
   })
 })

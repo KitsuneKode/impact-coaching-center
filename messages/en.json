@@ -956,7 +956,12 @@
     "stripNote": "Four questions, about a minute. Your answers sort the courses below.",
     "start": "Find my course",
     "editAnswers": "Change answers",
-    "close": "Close the course finder"
+    "close": "Close the course finder",
+    "tryFree": "Try it free first",
+    "free": "Free",
+    "save": "Save {amount} · {pct}% off",
+    "dayCount": "{count, plural, =0 {No batch in these hours yet: ask ICT, or pick another time} one {# batch in these hours} other {# batches in these hours}}",
+    "seeNamed": "See {name}"
   },
   "Teachers": {
     "title": "Teachers",

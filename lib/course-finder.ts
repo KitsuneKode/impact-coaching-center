@@ -48,6 +48,17 @@ const TEST_SERIES = /\bmock\b|test series/i
 const WORKING = /working|professional/i
 
 /**
+ * A programme and its edition from the short name: "Victor 9.0" is the
+ * ninth Victor, "Lakhya 2027" the 2027 Lakhya. ClassPlus keeps old
+ * editions listed; only the latest of each programme is the one to join.
+ */
+export function editionOf(short: string) {
+  const match = short.trim().match(/^(.*?)[\s-]*v?(\d+(?:\.\d+)?)$/i)
+  const stem = (match?.[1] || short).trim().toLowerCase()
+  return { stem, version: match?.[1] ? Number(match[2]) : 0 }
+}
+
+/**
  * The hour a class starts, 0 to 23, from timings as ICT writes them:
  * "8 to 10 AM", "12 to 2 PM", "6 to 8 PM", "4 to 5:30 PM", "10 to 12 PM".
  * Only the end carries AM or PM, so the start borrows it unless that
@@ -78,6 +89,24 @@ export function timeOfDay(timing: string | undefined) {
   return hour < 11 ? "morning" : hour < 15 ? "day" : "evening"
 }
 
+/** The courses minus older editions of a programme (Victor 8 once 9 is out). */
+export function latestEditions<
+  T extends Pick<FinderCourse, "short" | "track" | "free">,
+>(courses: readonly T[]): T[] {
+  const latest = new Map<string, number>()
+  for (const course of courses) {
+    const { stem, version } = editionOf(course.short)
+    const key = `${course.track}:${stem}`
+    latest.set(key, Math.max(latest.get(key) ?? -1, version))
+  }
+  return courses.filter((course) => {
+    const { stem, version } = editionOf(course.short)
+    return (
+      course.free || version >= (latest.get(`${course.track}:${stem}`) ?? 0)
+    )
+  })
+}
+
 /**
  * The courses that fit the answers, best first, at most three. An exam
  * named narrows to its courses; "not sure" leads with the free workshops,
@@ -90,7 +119,10 @@ export function recommend(
 ): FinderPick[] {
   const exam =
     answers.exam && answers.exam !== "unsure" ? examOf[answers.exam] : undefined
+  // An older edition stays on the list below, never among the picks.
+  const current = new Set(latestEditions(courses).map((c) => c.slug))
   return rankAll(courses, answers, examOf)
+    .filter((pick) => current.has(pick.course.slug))
     .filter((pick) => !exam || pick.course.track === exam)
     .slice(0, 3)
 }
@@ -110,14 +142,17 @@ export function rankAll(
   const pool = courses.filter((course) => course.track)
   if (!pool.length) return []
 
-  // Newer batches of a track replace older ones still listed on ClassPlus.
-  const newestOf = new Map<string, number>()
+  /* The latest edition of each programme. Different programmes for one
+     exam (a foundation batch, a working people's batch) run side by side
+     and do not compete on age; only Victor 8 behind Victor 9 is old. */
+  const latest = new Map<string, number>()
+  const editions = new Map<string, number>()
   for (const course of pool) {
-    if (course.free || TEST_SERIES.test(course.name) || !course.track) continue
-    newestOf.set(
-      course.track,
-      Math.max(newestOf.get(course.track) ?? 0, course.createdAt ?? 0)
-    )
+    if (course.free) continue
+    const { stem, version } = editionOf(course.short)
+    const key = `${course.track}:${stem}`
+    editions.set(key, (editions.get(key) ?? 0) + 1)
+    latest.set(key, Math.max(latest.get(key) ?? -1, version))
   }
 
   const picks = pool.map((course): FinderPick => {
@@ -139,19 +174,22 @@ export function rankAll(
       } else score -= 2
     } else if (series) score -= 8
 
+    /* Not sure of the exam: a free workshop risks nothing. With an exam
+       chosen, the batch is the answer and its free workshop is offered
+       beside it (freeToTry), not instead of it. */
     if (course.free) {
-      if (!exam || answers.stage === "starting") {
-        score += exam ? 3 : 6
+      if (!exam) {
+        score += 6
         reasons.push("free")
-      } else score -= 1
+      } else score -= 3
     }
 
     const slot = timeOfDay(course.timing)
     if (answers.time && answers.time !== "any" && slot) {
       if (slot === answers.time) {
-        score += 4
+        score += 6
         reasons.push("time")
-      } else score -= 2
+      } else score -= 3
     }
     if (
       answers.time === "evening" &&
@@ -163,12 +201,14 @@ export function rankAll(
 
     if (answers.mode === "centre" && slot) score += 1
 
-    const newest = course.track ? newestOf.get(course.track) : undefined
-    if (!course.free && !series && newest !== undefined) {
-      if ((course.createdAt ?? 0) === newest) {
-        score += 3
-        if (newest > 0) reasons.push("newest")
-      } else score -= 4
+    if (!course.free) {
+      const { stem, version } = editionOf(course.short)
+      const key = `${course.track}:${stem}`
+      if (version < (latest.get(key) ?? version)) score -= 12
+      else if ((editions.get(key) ?? 0) > 1) {
+        score += 2
+        reasons.push("newest")
+      }
     }
 
     return { course, score, reasons }
@@ -178,6 +218,30 @@ export function rankAll(
     (a, b) =>
       b.score - a.score || (b.course.createdAt ?? 0) - (a.course.createdAt ?? 0)
   )
+}
+
+/**
+ * The free workshop for the chosen exam, to try before paying: the one in
+ * the hours picked when there are several. Null when the best fit is
+ * already free, or the exam has none.
+ */
+export function freeToTry(
+  courses: readonly FinderCourse[],
+  answers: FinderAnswers,
+  examOf: Record<string, string>
+): FinderPick | null {
+  const exam =
+    answers.exam && answers.exam !== "unsure" ? examOf[answers.exam] : undefined
+  if (!exam) return null
+  const free = courses
+    .filter((course) => course.free && course.track === exam)
+    .map((course) => ({
+      course,
+      score: answers.time && timeOfDay(course.timing) === answers.time ? 1 : 0,
+      reasons: ["free" as const],
+    }))
+    .toSorted((a, b) => b.score - a.score)
+  return free[0] ?? null
 }
 
 /** The answers in English, for the WhatsApp message ICT reads. */

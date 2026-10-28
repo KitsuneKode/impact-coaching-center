@@ -13,6 +13,7 @@ import { getLocale, getTranslations, setRequestLocale } from "next-intl/server"
 
 import { Ask } from "@/components/home/ask"
 import { CourseBoard, type DayBatch } from "@/components/marketing/course-board"
+import { latestEditions } from "@/lib/course-finder"
 import { ExamDoors, JoinSteps } from "@/components/marketing/exam-doors"
 import { PageHead } from "@/components/site/page-head"
 import { contentFor } from "@/i18n/content-server"
@@ -59,8 +60,8 @@ export default async function CoursesPage({
     return items.length ? [{ track, items }] : []
   })
 
-  // Batches with a readable time, for the day timeline.
-  const day: DayBatch[] = courses.flatMap((course) => {
+  // Current batches with a readable time, for the day timeline.
+  const day: DayBatch[] = latestEditions(courses).flatMap((course) => {
     const poster = schedules[course.id]
     const when = course.timing ?? poster?.when
     const span = parseTiming(when)
