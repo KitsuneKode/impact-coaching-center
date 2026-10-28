@@ -28,6 +28,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { api } from "@/convex/_generated/api"
+import { centres, formatPhone } from "@/lib/brand"
 import { COURIERS } from "@/lib/couriers"
 import { formatPaise } from "@/lib/money"
 import {
@@ -437,14 +438,32 @@ export function OrderDetail({
                 <br />
               </>
             ) : null}
+            {order.address.landmark ? (
+              <>
+                {order.address.landmark}
+                <br />
+              </>
+            ) : null}
             {order.address.city}
             {order.address.district ? `, ${order.address.district}` : ""}
             <br />
             <span className="tnum">{order.address.pin}</span>
+            {order.courierPhone ? (
+              <>
+                <br />
+                Courier calls{" "}
+                <a href={`tel:${order.courierPhone}`} className="tnum link">
+                  {formatPhone(order.courierPhone)}
+                </a>
+              </>
+            ) : null}
           </address>
         ) : (
           <p className="mbs-3 text-muted-foreground">
-            Collecting from the centre. No delivery address was taken.
+            Collecting from the{" "}
+            {centres.find((c) => c.id === order.pickupCentre)?.town ??
+              centres[0]!.town}{" "}
+            centre. No delivery address was taken.
           </p>
         )}
 

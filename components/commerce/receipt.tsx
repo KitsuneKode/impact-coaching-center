@@ -188,6 +188,9 @@ export function ReceiptView({
                 <dd className="mbs-1">
                   {receipt.address.line1 ? `${receipt.address.line1}, ` : ""}
                   {receipt.address.line2 ? `${receipt.address.line2}, ` : ""}
+                  {receipt.address.landmark
+                    ? `${receipt.address.landmark}, `
+                    : ""}
                   {receipt.address.city}
                   {receipt.address.district
                     ? `, ${receipt.address.district}`

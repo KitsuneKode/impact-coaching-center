@@ -112,6 +112,10 @@ const ORDER_ROW = v.object({
   courier: v.optional(COURIER),
   buyerName: v.string(),
   buyerPhone: v.string(),
+  /** The number the courier rings, when not the buyer's own. */
+  courierPhone: v.optional(v.string()),
+  /** For collection: which centre (lib/brand.ts `centres`). */
+  pickupCentre: v.optional(v.string()),
   /** The buyer deleted their account: no name or number to show or dial. */
   buyerDeleted: v.boolean(),
   /** Paid, then cancelled: the owner owes a refund in Razorpay. */
@@ -140,6 +144,8 @@ async function toRow(ctx: QueryCtx, order: Doc<"orders">) {
        account was erased, in which case there is nobody to show or dial. */
     buyerName: deleted ? "" : order.contact.name,
     buyerPhone: deleted ? "" : order.contact.phone,
+    courierPhone: deleted ? undefined : order.contact.courierPhone,
+    pickupCentre: order.pickupCentre,
     buyerDeleted: deleted,
     refundDue: order.refundDueAt !== undefined,
   }
@@ -358,7 +364,8 @@ export const labelsFor = query({
             {
               reference: order.reference,
               name: order.contact.name,
-              phone: order.contact.phone,
+              // The courier rings whoever the buyer named for the door.
+              phone: order.contact.courierPhone ?? order.contact.phone,
               address: order.address,
               sets: order.lines.reduce((n, line) => n + line.quantity, 0),
             },

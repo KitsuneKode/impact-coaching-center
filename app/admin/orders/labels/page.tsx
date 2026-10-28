@@ -70,6 +70,12 @@ function Labels() {
                     {label.address.line2}
                   </>
                 ) : null}
+                {label.address.landmark ? (
+                  <>
+                    <br />
+                    {label.address.landmark}
+                  </>
+                ) : null}
                 <br />
                 {label.address.city}
                 {label.address.district ? `, ${label.address.district}` : ""}
