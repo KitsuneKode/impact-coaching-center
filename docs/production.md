@@ -29,6 +29,7 @@ to WhatsApp, the shop and log-in are off).
 | `REVALIDATE_SECRET`              | Yes                     | Bearer secret Convex sends to `/api/revalidate` when content changes with no admin on the site (ClassPlus sync, a promotion starting or ending). `openssl rand -hex 32`; the same value is set on Convex below.                                              |
 | `INDEXNOW_KEY`                   | Optional                | Any 8 to 128 letters, digits or dashes. When set on the indexable production site, every admin publish pings Bing and others (IndexNow) with the changed pages; ChatGPT search and Copilot read Bing's index.                                                |
 | `TURNSTILE_SECRET_KEY`           | Yes before launch       | Server-side siteverify in `app/actions/lead.ts` and, for every sign-in code request, in `lib/auth-server.ts`. Unset = check skipped (development only). Set it together with `AUTH_PROXY_SECRET`, or a script can ask Convex for codes directly and skip it. |
+| `DELHIVERY_TOKEN`                | Optional                | Delhivery API token. Set, checkout asks Delhivery whether it delivers to each PIN before taking payment (`app/api/pin/[pin]/route.ts`); unset, any Indian PIN is taken. Server only, never `NEXT_PUBLIC_`.                                                   |
 | `CONVEX_DEPLOY_KEY`              | Yes                     | Production deploy key from the Convex dashboard. Lets the build run `npx convex deploy` so functions and site ship together. Production environment only.                                                                                                    |
 
 ## Convex deployment settings
@@ -162,8 +163,10 @@ Nothing below has been run. Each step changes a provider account.
    - `SITE_URL` = the production origin, for example `https://<domain>`
    - `BETTER_AUTH_SECRET` = output of `openssl rand -base64 32`
    - `LEAD_INGEST_SECRET` = output of `openssl rand -hex 32` (keep it for step 5)
-   - `OTP_TRANSPORT` = `whatsapp` once KIT-46 ships. Until then production
-     cannot sign anyone in: `logger` is refused there by design.
+   - `OTP_TRANSPORT` = `whatsapp`, with the WhatsApp settings below, once
+     ICT's sending number and its code template are approved by Meta. Until
+     then production cannot sign anyone in: `logger` is refused there by
+     design.
 4. **Deploy key.** Dashboard → production deployment → Settings → Generate
    production deploy key. Copy it for step 5.
 5. **Vercel production variables.** Project → Settings → Environment
@@ -184,8 +187,8 @@ Nothing below has been run. Each step changes a provider account.
    `npx convex run --prod people:bootstrapOwner '{"phone":"<owner mobile>"}'`.
    It refuses once any owner exists.
 
-Still separate work, not configuration: WhatsApp OTP transport (KIT-46),
-Razorpay live keys (orders exist only once paid, ADR-0005), domain and DNS (KIT-42; then set `SITE_INDEXABLE=true`), Google
+Still separate work, not configuration: ICT's WhatsApp sending number and
+approved templates, Razorpay live keys (orders exist only once paid, ADR-0005), domain and DNS (KIT-42; then set `SITE_INDEXABLE=true`), Google
 Business Profile and Search Console (KIT-43).
 
 ## Orders v2 migration (dev deployments only)
