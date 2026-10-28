@@ -125,3 +125,19 @@ Also update hte veasoins of all packageas and improve those works that are neede
 **msg 2.** And improve the parts and complete it to like only keep the parts which are only dependent on ict only doing all the rest and also testing certain thigns and also having the best ux and ui patterns speed and feel and accross the mobiel tablet laptopn big screens and hae best of the sections okay and running and also improve the writign h1 $better-accessibility and $better-writing and improving the blogs and how they do like how fuma docs do those shoud be good and all the engienerreignn way and thigns that would make sense right
 
 **27 Oct.** continue and also like based on all your findings make sure to do all the best works and also like make sure thigns are mergeable and ready for thigns … improve the overall usabiility and thigns and continue until you complete all the works here listed … make the task list of all the thigns i said and do that don't miss anythign i mentioned
+
+## 8. Round of 28 Oct (owner's review)
+
+- [ ] Hero shader goes black on a real GPU (RTX 4050 + Intel, Chrome) after a split second
+- [ ] Header: one compact cluster (search, cart, account), log-in as an icon, cart arrives gracefully
+- [ ] Reels: floating bottom-right player with autoplaying YouTube Shorts (as in client-preview pulse-final)
+- [ ] Pop-up: tasteful, lead-generating, never in the way
+- [ ] Centre section: auto-moving carousel, drag/touch; "Classroom tour" instead of "Call the centre"
+- [ ] New classroom tour page: photos, videos, parallax grid, centre (location) toggle, map
+- [ ] Books shelf: hover behaves like the manga volumes (neighbours make room)
+- [ ] Checkout address: PIN lookup fills district and town, landmark, courier phone, save address, collection centre choice
+- [ ] Refunds: explain how they work today; owner refund from admin if needed
+- [ ] Footer and other pages: improvements
+- [ ] Writing pass: no repetition or filler, SEO and GEO
+- [ ] ICT handover artifact: Drive folder structure, every photo, video and fact needed
+- [ ] Backend flows review: R2 uploads, verification, payments

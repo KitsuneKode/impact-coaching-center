@@ -24,7 +24,11 @@ const VERTEX = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`
    how fast it moves (uInk), and a soft light under it. Film grain moves
    over all of it, heavier on the left, like the paper the copy sits on. */
 const FRAGMENT = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
 precision mediump float;
+#endif
 uniform vec2 uRes;
 uniform float uTime;
 uniform vec2 uMouse;
@@ -47,7 +51,8 @@ void main(){
   p+=vec2(-d.y,d.x)*fall*uInk*2.4+d*fall*uInk*.6;
   vec2 rd=(uv-uRipple.xy)*aspect;
   float rl=length(rd);
-  float ring=exp(-pow(rl-uRipple.z*.7,2.)*90.)*exp(-uRipple.z*1.8);
+  float band=rl-uRipple.z*.7;
+  float ring=exp(-band*band*90.)*exp(-uRipple.z*1.8);
   p+=rd/max(rl,.001)*ring*.35;
   float t=uTime*.035;
   vec2 q=vec2(fbm(p+t),fbm(p-t+vec2(5.2,1.3)));
@@ -56,13 +61,13 @@ void main(){
   vec3 col=mix(uDeep,uBlue,smoothstep(.18,.62,f));
   float right=smoothstep(.15,.95,uv.x)*smoothstep(-.2,.9,uv.y);
   col=mix(col,uLight,smoothstep(.5,.92,f)*right*.6);
-  float sheen=pow(max(0.,sin((p.x*.9+p.y*.5)*2.2+f*5.+uTime*.12)),14.);
+  float sheen=pow(max(1e-4,sin((p.x*.9+p.y*.5)*2.2+f*5.+uTime*.12)),14.);
   col+=sheen*.07*right;
   col+=uLight*exp(-dot(d,d)*5.)*.16*uNear;
   col+=uLight*ring*.22;
   float grain=hash(gl_FragCoord.xy+floor(uTime*18.)*vec2(17.,31.))-.5;
   col+=grain*mix(.07,.035,uv.x);
-  gl_FragColor=vec4(col,1.);
+  gl_FragColor=vec4(clamp(col,0.,1.),1.);
 }`
 
 /** sRGB hex to the 0-1 floats a shader reads. */
@@ -231,6 +236,7 @@ export function BlueField() {
     let watched = 0
     let watchedMs = 0
     let gaveUp = false
+    let drawn = 0
     const tick = (time: number) => {
       frame = requestAnimationFrame(tick)
       const gap = lastStep ? time - lastStep : 0
@@ -267,6 +273,13 @@ export function BlueField() {
       if (time - last < 1000 / 30) return
       last = time
       draw(time)
+      // Every five seconds, the same look as at the start.
+      if (++drawn % 150 === 0 && !drewSilk()) {
+        gaveUp = true
+        cancelAnimationFrame(frame)
+        frame = 0
+        delete el.dataset.ready
+      }
     }
     const run = () => {
       cancelAnimationFrame(frame)
@@ -287,8 +300,32 @@ export function BlueField() {
     el.addEventListener("webglcontextlost", onLost)
 
     // After first paint and idle time: the headline is the page's LCP.
+    /* Then a look at what was drawn: a driver that renders this shader
+       black (NaN, a bad precision) never gets shown. */
+    const drewSilk = () => {
+      const px = new Uint8Array(4)
+      const at = [
+        [0.25, 0.5],
+        [0.5, 0.5],
+        [0.8, 0.3],
+      ]
+      return at.every(([x, y]) => {
+        gl.readPixels(
+          Math.floor(el.width * x!),
+          Math.floor(el.height * y!),
+          1,
+          1,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          px
+        )
+        // The silk's darkest blue is #16449a, so blue never drops near 0.
+        return px[2]! > 60
+      })
+    }
     const reveal = () => {
       draw(performance.now())
+      if (gl.isContextLost() || !drewSilk()) return
       el.dataset.ready = ""
       run()
     }
