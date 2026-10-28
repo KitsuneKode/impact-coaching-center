@@ -90,8 +90,9 @@ export function SiteHeader() {
           </div>
 
           {/*
-            The number stays in the header on every width: for ICT's students a
-            call is the most common next step. The name starts with the
+            A call is ICT's students' most common next step, so it stays in
+            the header on every width: the number from a tablet up, a call
+            button on a phone (the menu repeats the number). The name starts with the
             visible number (WCAG 2.5.3); "Call" is for screen readers.
           */}
           <a
@@ -100,12 +101,7 @@ export function SiteHeader() {
             data-flip
             className="tnum relative inline-flex min-h-11 items-center gap-1.5 text-sm font-medium whitespace-nowrap"
           >
-            <IconPhone
-              aria-hidden
-              size={16}
-              stroke={1.75}
-              className="hidden sm:block"
-            />
+            <IconPhone aria-hidden size={16} stroke={1.75} />
             <span className="sr-only">
               {t("callPrefix")} {phone}
             </span>

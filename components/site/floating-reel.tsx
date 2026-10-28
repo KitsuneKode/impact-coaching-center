@@ -15,7 +15,9 @@ import { ReelViewer } from "@/components/site/reel-viewer"
 /** How long each clip plays in the small card before the next one. */
 const CLIP_MS = 14_000
 /** Not before the visitor has had this long with the page. */
-const SETTLE_MS = 6_000
+const SETTLE_MS = 5_000
+/** Or this long on the page without scrolling. */
+const LATE_MS = 15_000
 
 function embed(id: string) {
   const q = new URLSearchParams({
@@ -53,7 +55,8 @@ function cornerTaken() {
  * Students' videos in a small vertical card at the bottom right, as on
  * Instagram and Shorts: muted, looping, a new clip every fourteen seconds
  * (a hover holds it), and a tap opens it full size with sound. It comes in
- * once the visitor has scrolled past the first screen, and once closed it
+ * a few seconds after the visitor starts scrolling (or after fifteen
+ * seconds on the first screen), and once closed it
  * rests for the campaign's rest days.
  *
  * `contained` is the admin's preview: inside its frame and shown at once.
@@ -94,14 +97,17 @@ export function FloatingReel({
     onShowRef.current = onShow
   })
 
-  // Comes in after the first screen and a few seconds, never over the
+  // Comes in once the visitor has settled in, never over the
   // language question or the books' own corner card.
   useEffect(() => {
     if (contained) return
     const started = performance.now()
     const timer = window.setInterval(() => {
-      if (performance.now() - started < SETTLE_MS || cornerTaken()) return
-      if (window.scrollY < window.innerHeight * 0.5) return
+      const waited = performance.now() - started
+      if (waited < SETTLE_MS || cornerTaken()) return
+      // A first scroll shows interest; a visitor who only reads the first
+      // screen still sees it after a while.
+      if (window.scrollY < window.innerHeight * 0.3 && waited < LATE_MS) return
       window.clearInterval(timer)
       setShown(true)
       onShowRef.current?.()
