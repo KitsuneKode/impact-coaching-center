@@ -30,6 +30,7 @@ uniform float uTime;
 uniform vec2 uMouse;
 uniform float uInk;
 uniform float uNear;
+uniform vec3 uRipple;
 uniform vec3 uDeep;
 uniform vec3 uBlue;
 uniform vec3 uLight;
@@ -44,6 +45,10 @@ void main(){
   vec2 d=(uv-uMouse)*aspect;
   float fall=exp(-dot(d,d)*9.);
   p+=vec2(-d.y,d.x)*fall*uInk*2.4+d*fall*uInk*.6;
+  vec2 rd=(uv-uRipple.xy)*aspect;
+  float rl=length(rd);
+  float ring=exp(-pow(rl-uRipple.z*.7,2.)*90.)*exp(-uRipple.z*1.8);
+  p+=rd/max(rl,.001)*ring*.35;
   float t=uTime*.035;
   vec2 q=vec2(fbm(p+t),fbm(p-t+vec2(5.2,1.3)));
   vec2 r=vec2(fbm(p+2.2*q+vec2(1.7,9.2)+t*1.4),fbm(p+2.2*q+vec2(8.3,2.8)-t));
@@ -54,6 +59,7 @@ void main(){
   float sheen=pow(max(0.,sin((p.x*.9+p.y*.5)*2.2+f*5.+uTime*.12)),14.);
   col+=sheen*.07*right;
   col+=uLight*exp(-dot(d,d)*5.)*.16*uNear;
+  col+=uLight*ring*.22;
   float grain=hash(gl_FragCoord.xy+floor(uTime*18.)*vec2(17.,31.))-.5;
   col+=grain*mix(.07,.035,uv.x);
   gl_FragColor=vec4(col,1.);
@@ -125,6 +131,7 @@ export function BlueField() {
     const uMouse = gl.getUniformLocation(program, "uMouse")
     const uInk = gl.getUniformLocation(program, "uInk")
     const uNear = gl.getUniformLocation(program, "uNear")
+    const uRipple = gl.getUniformLocation(program, "uRipple")
     gl.uniform3fv(gl.getUniformLocation(program, "uDeep"), DEEP)
     gl.uniform3fv(gl.getUniformLocation(program, "uBlue"), BLUE)
     gl.uniform3fv(gl.getUniformLocation(program, "uLight"), LIGHT)
@@ -169,6 +176,17 @@ export function BlueField() {
     const onLeave = () => {
       goal.near = 0
     }
+    /* A press sends one ring out through the silk from where it landed,
+       like a drop on water. Touch too: a tap is the one gesture a phone
+       has here. */
+    const ripple = { x: 0, y: 0, start: -10 }
+    const onPress = (event: PointerEvent) => {
+      const box = section.getBoundingClientRect()
+      ripple.x = (event.clientX - box.left) / box.width
+      ripple.y = 1 - (event.clientY - box.top) / box.height
+      ripple.start = performance.now() / 1000
+    }
+    if (!still) section.addEventListener("pointerdown", onPress)
     if (fine && !still) {
       section.addEventListener("pointermove", onMove, { passive: true })
       section.addEventListener("pointerleave", onLeave)
@@ -179,19 +197,26 @@ export function BlueField() {
       gl.uniform2f(uMouse, now.x, now.y)
       gl.uniform1f(uInk, now.ink)
       gl.uniform1f(uNear, now.near)
+      gl.uniform3f(
+        uRipple,
+        ripple.x,
+        ripple.y,
+        Math.min(4, time / 1000 - ripple.start)
+      )
       gl.drawArrays(gl.TRIANGLES, 0, 3)
     }
-    /* The wall's drift slows to a crawl while the pointer is over it, so a
-       photo can be looked at rather than chased; it picks up again after. */
-    const drifts = [
-      ...section.querySelectorAll("[data-hero-sidewall] [data-wall-col]"),
-    ].flatMap((col) => col.getAnimations())
-    let rate = 1
     let lastStep = 0
     const tick = (time: number) => {
       frame = requestAnimationFrame(tick)
       const dt = lastStep ? Math.min((time - lastStep) / 1000, 0.05) : 1 / 60
       lastStep = time
+      // No pointer: the ink point wanders slowly over the left, so the
+      // silk is never quite still, but stirs nothing on its own.
+      if (goal.near === 0) {
+        const t = time / 1000
+        goal.x = 0.3 + Math.sin(t * 0.11) * 0.14
+        goal.y = 0.55 + Math.sin(t * 0.17 + 1.3) * 0.12
+      }
       // Springy follow (critically damped feel), every frame for the CSS.
       const k = 1 - Math.exp(-dt / 0.18)
       now.x += (goal.x - now.x) * k
@@ -200,12 +225,6 @@ export function BlueField() {
       // Ink rises with speed and settles over about a second.
       now.ink = Math.min(1, now.ink * Math.exp(-dt / 0.9) + speed * 2.2)
       speed = 0
-      const slow = goal.near === 1 && goal.x > 0.55 ? 0.15 : 1
-      const nextRate = rate + (slow - rate) * (1 - Math.exp(-dt / 0.5))
-      if (Math.abs(nextRate - rate) > 0.005) {
-        rate = nextRate
-        for (const drift of drifts) drift.playbackRate = rate
-      }
       section.style.setProperty("--px", ((now.x - 0.5) * 2).toFixed(3))
       section.style.setProperty("--py", ((0.5 - now.y) * 2).toFixed(3))
       if (time - last < 1000 / 30) return
@@ -258,6 +277,7 @@ export function BlueField() {
       el.removeEventListener("webglcontextlost", onLost)
       section.removeEventListener("pointermove", onMove)
       section.removeEventListener("pointerleave", onLeave)
+      section.removeEventListener("pointerdown", onPress)
       // Not loseContext(): React's dev double effect would reuse a dead one.
       gl.deleteBuffer(buffer)
       gl.deleteProgram(program)

@@ -79,7 +79,7 @@
     gap: 14px;
     align-content: start;
   }
-  [data-wall-col] > span {
+  [data-wall-col] > [data-wall-photo] {
     position: relative;
     display: block;
     aspect-ratio: 3 / 4;
@@ -3913,20 +3913,64 @@
       opacity: 0;
     }
   }
-  [data-hero-sidewall] [data-wall-col] > span {
+  [data-hero-sidewall] [data-wall-col] > [data-wall-photo] {
     transition:
       scale 0.5s cubic-bezier(0.22, 1, 0.36, 1),
       box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  [data-hero-sidewall] [data-wall-col] > span img {
+  [data-hero-sidewall] [data-wall-col] > [data-wall-photo] img {
     transition: filter 0.4s ease-out;
   }
-  [data-hero-sidewall] [data-wall-col] > span:hover {
+  [data-hero-sidewall] [data-wall-col] > [data-wall-photo]:hover {
     z-index: 1;
     scale: 1.05;
     box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.45);
   }
-  [data-hero-sidewall] [data-wall-col] > span:hover img {
+  [data-hero-sidewall] [data-wall-col] > [data-wall-photo]:hover img {
     filter: none;
+  }
+}
+
+/* The hero wall under a mouse (wall-drive.tsx): it can be dragged like a
+   reel, and the photo under the pointer names itself and where it leads. */
+@media (hover: hover) and (pointer: fine) {
+  [data-hero-sidewall] {
+    cursor: grab;
+    touch-action: pan-y;
+  }
+  [data-hero-sidewall][data-dragging] {
+    cursor: grabbing;
+  }
+  [data-hero-sidewall][data-dragging] [data-wall-photo] {
+    pointer-events: none;
+  }
+}
+
+/* The name of the photo under the pointer, riding beside it (wall-drive). */
+[data-wall-chip] {
+  position: fixed;
+  z-index: 40;
+  inset: 0 auto auto 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background-color: rgb(255 255 255 / 0.94);
+  color: var(--ink-fixed);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 20px -8px rgb(0 0 0 / 0.35);
+  opacity: 0;
+  scale: 0.94;
+}
+[data-wall-chip][data-on] {
+  opacity: 1;
+  scale: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-wall-chip] {
+    transition:
+      opacity 0.18s ease-out,
+      scale 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
 }

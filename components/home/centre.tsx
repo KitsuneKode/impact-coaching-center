@@ -25,7 +25,11 @@ export function Centre() {
   )
 
   return (
-    <section aria-labelledby="centre-heading" className="pbe-20 md:pbe-28">
+    <section
+      id="centre"
+      aria-labelledby="centre-heading"
+      className="scroll-mt-24 pbe-20 md:pbe-28"
+    >
       <div className="container-page grid gap-10 lg:grid-cols-12 lg:items-end">
         <Reveal className="grid content-start gap-5 lg:col-span-4">
           <h2 id="centre-heading" className="type-display">

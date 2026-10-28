@@ -7,6 +7,7 @@ import type { Course } from "@/lib/courses"
 import { BatchTicket } from "./batch-ticket"
 import { PrimaryCta, WhatsFree } from "./cta"
 import { PhotoWall } from "./photo-wall"
+import { WallDrive } from "./wall-drive"
 import { WordRoll } from "./word-roll"
 import { afterWords, splitWords } from "@/components/motion/words"
 import { BlueField } from "@/components/site/blue-field"
@@ -43,6 +44,7 @@ export function Hero({
   return (
     <section id="top" data-hero="blue" aria-label={t("heroLabel")}>
       <BlueField />
+      <WallDrive />
       <div data-hero-glow aria-hidden />
       <div data-hero-sidewall aria-hidden>
         <PhotoWall
